@@ -13,4 +13,12 @@
     <artifactId>versioned-data-storage-pg-impl</artifactId>
     <packaging>jar</packaging>
 
+    <dependencies>
+        <dependency>
+            <groupId>ru.i-novus.platform</groupId>
+            <artifactId>versioned-data-storage-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
 </project>

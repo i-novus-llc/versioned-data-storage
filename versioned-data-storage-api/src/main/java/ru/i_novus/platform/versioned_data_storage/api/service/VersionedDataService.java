@@ -3,10 +3,10 @@ package ru.i_novus.platform.versioned_data_storage.api.service;
 import net.n2oapp.criteria.api.CollectionPage;
 import net.n2oapp.criteria.api.Criteria;
 import net.n2oapp.criteria.api.Sorting;
+import ru.i_novus.platform.versioned_data_storage.api.criteria.FieldSearchCriteria;
 import ru.i_novus.platform.versioned_data_storage.api.model.Field;
 import ru.i_novus.platform.versioned_data_storage.api.model.FieldValue;
 import ru.i_novus.platform.versioned_data_storage.api.model.RowValue;
-import ru.i_novus.platform.versioned_data_storage.api.criteria.TextSearchCriteria;
 import ru.i_novus.platform.versioned_data_storage.api.model.CompareData;
 import ru.i_novus.platform.versioned_data_storage.api.model.Field;
 import ru.i_novus.platform.versioned_data_storage.api.model.Key;
@@ -23,30 +23,33 @@ import java.util.Map;
 public interface VersionedDataService {
 
     /**
-     * Получение данных
+     * Получение данных постранично
      *
      * @param tableName    наименование таблицы
+     * @param beginDt      дата начала интервала актуальности поля
+     * @param endDt        дата окончания интервала актуальности поля
      * @param fields       список полей в ответе
      * @param fieldFilter  фильтр по отдельным полям
      * @param commonFilter фильтр по всем полям
      * @param criteria     содержит page, size, sorting
-     *
-     * @return Список записей, где запись есть карта типа <поле, значение>
+     * @return Список записей
      */
-    CollectionPage<RowValue> getPagedData(String tableName, Date beginDt, Date endDt, List<Field> fields, List<TextSearchCriteria> fieldFilter,
+    CollectionPage<RowValue> getPagedData(String tableName, Date beginDt, Date endDt, List<Field> fields, List<FieldSearchCriteria> fieldFilter,
                                           String commonFilter, Criteria criteria);
 
     /**
-     * Получение данных постранично
+     * Получение данных
      *
      * @param tableName    наименование таблицы
+     * @param beginDt      дата начала интервала актуальности поля
+     * @param endDt        дата окончания интервала актуальности поля
      * @param fields       список полей в ответе
      * @param fieldFilter  фильтр по отдельным полям
      * @param commonFilter фильтр по всем полям
      * @param sorting      сортировка
-     * @return Список записей, где запись есть карта типа <поле, значение>
+     * @return Список записей
      */
-    List<List<FieldValue>> getData(String tableName, List<Field> fields, List<TextSearchCriteria> fieldFilter,
+    List<List<FieldValue>> getData(String tableName, Date beginDt, Date endDt, List<Field> fields, List<FieldSearchCriteria> fieldFilter,
                                    String commonFilter, Sorting sorting);
 
     /**
@@ -61,20 +64,31 @@ public interface VersionedDataService {
 
 
     /**
-     * Создание черновика версии
+     * Создание черновика версии с данными
      *
-     * @param fields            список полей
-     * @param keys              список ключей
-     * @param data              данные
-     * @param existingTableName наименование существующей таблицы, куда будет создан черновик
+     * @param fields список полей
+     * @param keys   список ключей
+     * @param data   данные
      * @return наименование таблицы черновика
      */
     String createDraft(List<Field> fields, List<Key> keys, List<FieldValue> data);
 
+    /**
+     * Создание черновика версии без данных
+     *
+     * @param fields список полей
+     * @param keys   список ключей
+     * @return наименование таблицы черновика
+     */
     String createDraft(List<Field> fields, List<Key> keys);
 
-    void addDraftData(List<FieldValue> data, String tableName)
-
+    /**
+     * Сохранение данных в черновик
+     *
+     * @param tableName наименование таблицы
+     * @param data      данные
+     */
+    void addDraftData(String tableName, List<FieldValue> data);
 
     /**
      * Создание новой версии на основе черновика
@@ -105,9 +119,9 @@ public interface VersionedDataService {
      * Удаление записи из таблицы
      *
      * @param tableName наименование таблицы
-     * @param id        системный идентификатор записи
+     * @param systemId  системный идентификатор записи
      */
-    void deleteRowFromTable(String tableName, String systenId);
+    void deleteRowFromTable(String tableName, String systemId);
 
     /**
      * Изменение записи таблицы
