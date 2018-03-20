@@ -8,7 +8,6 @@ import ru.i_novus.platform.versioned_data_storage.api.model.Field;
 import ru.i_novus.platform.versioned_data_storage.api.model.FieldValue;
 import ru.i_novus.platform.versioned_data_storage.api.model.RowValue;
 import ru.i_novus.platform.versioned_data_storage.api.model.CompareData;
-import ru.i_novus.platform.versioned_data_storage.api.model.Field;
 import ru.i_novus.platform.versioned_data_storage.api.model.Key;
 
 import java.lang.String;
@@ -151,18 +150,18 @@ public interface VersionedDataService {
     /**
      * Сравненние данные таблиц
      *
-     * @param sourceTableName таблица, которую сравнивают
-     * @param targetTableName таблица, с которой сравнивают
+     * @param sourceDate дата версии, которую сравнивают
+     * @param targetDate дата версии, с которой сравнивают
      * @return результат сравнения
      */
-    CompareData compareData(String sourceTableName, String targetTableName);
+    CompareData compareData(Date sourceDate, Date targetDate);
 
     /**
      * Сравненние структуры таблиц
      *
-     * @param sourceTableName таблица, которую сравнивают
-     * @param targetTableName таблица, с которой сравнивают
+     * @param sourceDate дата версии, которую сравнивают
+     * @param targetDate дата версии, с которой сравнивают
      * @return результат сравнения
      */
-    CompareData compareStructure(String sourceTableName, String targetTableName);
+    CompareData compareStructure(Date sourceDate, Date targetDate);
 }
