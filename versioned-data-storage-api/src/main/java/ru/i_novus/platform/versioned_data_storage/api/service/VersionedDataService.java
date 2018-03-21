@@ -1,14 +1,7 @@
 package ru.i_novus.platform.versioned_data_storage.api.service;
 
 import net.n2oapp.criteria.api.CollectionPage;
-import net.n2oapp.criteria.api.Criteria;
-import net.n2oapp.criteria.api.Sorting;
-import ru.i_novus.platform.versioned_data_storage.api.criteria.FieldSearchCriteria;
-import ru.i_novus.platform.versioned_data_storage.api.model.Field;
-import ru.i_novus.platform.versioned_data_storage.api.model.FieldValue;
-import ru.i_novus.platform.versioned_data_storage.api.model.RowValue;
-import ru.i_novus.platform.versioned_data_storage.api.model.CompareData;
-import ru.i_novus.platform.versioned_data_storage.api.model.Key;
+import ru.i_novus.platform.versioned_data_storage.api.model.*;
 
 import java.lang.String;
 import java.util.Date;
@@ -24,32 +17,17 @@ public interface VersionedDataService {
     /**
      * Получение данных постранично
      *
-     * @param tableName    наименование таблицы
-     * @param beginDt      дата начала интервала актуальности поля
-     * @param endDt        дата окончания интервала актуальности поля
-     * @param fields       список полей в ответе
-     * @param fieldFilter  фильтр по отдельным полям
-     * @param commonFilter фильтр по всем полям
      * @param criteria     содержит page, size, sorting
      * @return Список записей
      */
-    CollectionPage<RowValue> getPagedData(String tableName, Date beginDt, Date endDt, List<Field> fields, List<FieldSearchCriteria> fieldFilter,
-                                          String commonFilter, Criteria criteria);
+    CollectionPage<RowValue> getPagedData(DataCriteria criteria);
 
     /**
      * Получение данных
-     *
-     * @param tableName    наименование таблицы
-     * @param beginDt      дата начала интервала актуальности поля
-     * @param endDt        дата окончания интервала актуальности поля
-     * @param fields       список полей в ответе
-     * @param fieldFilter  фильтр по отдельным полям
-     * @param commonFilter фильтр по всем полям
-     * @param sorting      сортировка
+
      * @return Список записей
      */
-    List<List<FieldValue>> getData(String tableName, Date beginDt, Date endDt, List<Field> fields, List<FieldSearchCriteria> fieldFilter,
-                                   String commonFilter, Sorting sorting);
+    List<List<FieldValue>> getData(DataCriteria criteria);
 
     /**
      * Получение данных записи по системному идентификатору
@@ -66,20 +44,19 @@ public interface VersionedDataService {
      * Создание черновика версии с данными
      *
      * @param fields список полей
-     * @param keys   список ключей
+     * @param indexes   список ключей
      * @param data   данные
      * @return наименование таблицы черновика
      */
-    String createDraft(List<Field> fields, List<Key> keys, List<FieldValue> data);
+    String createDraft(List<Field> fields, List<Index> indexes, List<FieldValue> data);
 
     /**
      * Создание черновика версии без данных
      *
-     * @param fields список полей
-     * @param keys   список ключей
-     * @return наименование таблицы черновика
+     *
+     * @param dataStructure@return наименование таблицы черновика
      */
-    String createDraft(List<Field> fields, List<Key> keys);
+    String createDraft(DataStructure dataStructure);
 
     /**
      * Сохранение данных в черновик
@@ -112,7 +89,7 @@ public interface VersionedDataService {
      * @param tableName наименование таблицы
      * @param data      данные
      */
-    void addRowToTable(String tableName, List<FieldValue> data);
+    void addRow(String tableName, List<FieldValue> data);
 
     /**
      * Удаление записи из таблицы
@@ -120,7 +97,14 @@ public interface VersionedDataService {
      * @param tableName наименование таблицы
      * @param systemId  системный идентификатор записи
      */
-    void deleteRowFromTable(String tableName, String systemId);
+    void deleteRow(String tableName, String systemId);
+
+    /**
+     *
+     * @param tableName
+     * @param date
+     */
+    void deleteRows(String tableName, Date date);
 
     /**
      * Изменение записи таблицы
@@ -129,7 +113,7 @@ public interface VersionedDataService {
      * @param id        системный идентификатор записи
      * @param data      новые данные
      */
-    void updateRowFromTable(String tableName, String id, Map<String, Object> data);
+    void updateRow(String tableName, String id, Map<String, Object> data);
 
     /**
      * Добавление нового поля в таблицу
@@ -137,7 +121,7 @@ public interface VersionedDataService {
      * @param tableName наименование таблицы
      * @param field     данные поля
      */
-    void addColumnToTable(String tableName, Field field);
+    void addColumn(String tableName, Field field);
 
     /**
      * Удаления поля из таблицы
@@ -145,7 +129,7 @@ public interface VersionedDataService {
      * @param tableName наименование таблицы
      * @param field     наименование удаляемого поля
      */
-    void deleteColumnFromTable(String tableName, String field);
+    void deleteColumn(String tableName, String field);
 
     /**
      * Сравненние данные таблиц
@@ -163,5 +147,47 @@ public interface VersionedDataService {
      * @param targetDate дата версии, с которой сравнивают
      * @return результат сравнения
      */
-    CompareData compareStructure(Date sourceDate, Date targetDate);
+    CompareStructure compareStructure(Date sourceDate, Date targetDate);
+
+    /**
+     *
+     * @param tableName
+     * @param fieldName
+     * @param date         дата версии
+     * @return
+     */
+    boolean fieldIsNotEmpty(String tableName, String fieldName, Date date);
+
+    /**
+     *
+     * @param tableName
+     * @param fieldName
+     * @param date         дата версии
+     * @return
+     */
+    boolean fieldIsUnique(String tableName, String fieldName, Date date);
+
+    /**
+     *
+     * @param tableName
+     * @param fieldValue
+     * @param date
+     * @return
+     */
+    boolean fieldIsUnique(String tableName, FieldValue fieldValue, Date date);
+
+    /**
+     *
+     * @param tableName
+     * @param fields
+     */
+    void createIndex(String tableName, List<String> fields);
+
+    /**
+     *
+     * @param tableName
+     * @param fields
+     */
+    void removeIndex(String tableName, List<String> fields);
+
 }
