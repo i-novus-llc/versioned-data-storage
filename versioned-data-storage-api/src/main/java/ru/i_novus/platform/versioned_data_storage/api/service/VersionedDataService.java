@@ -17,14 +17,15 @@ public interface VersionedDataService {
     /**
      * Получение данных постранично
      *
-     * @param criteria     содержит page, size, sorting
+     * @param criteria параметры запроса
      * @return Список записей
      */
     CollectionPage<RowValue> getPagedData(DataCriteria criteria);
 
     /**
      * Получение данных
-
+     *
+     * @param criteria параметры запроса
      * @return Список записей
      */
     List<List<FieldValue>> getData(DataCriteria criteria);
@@ -43,9 +44,9 @@ public interface VersionedDataService {
     /**
      * Создание черновика версии с данными
      *
-     * @param fields список полей
-     * @param indexes   список ключей
-     * @param data   данные
+     * @param fields  список полей
+     * @param indexes список ключей
+     * @param data    данные
      * @return наименование таблицы черновика
      */
     String createDraft(List<Field> fields, List<Index> indexes, List<FieldValue> data);
@@ -53,8 +54,8 @@ public interface VersionedDataService {
     /**
      * Создание черновика версии без данных
      *
-     *
-     * @param dataStructure@return наименование таблицы черновика
+     * @param dataStructure структура данных
+     * @return наименование таблицы черновика
      */
     String createDraft(DataStructure dataStructure);
 
@@ -100,9 +101,8 @@ public interface VersionedDataService {
     void deleteRow(String tableName, String systemId);
 
     /**
-     *
-     * @param tableName
-     * @param date
+     * @param tableName наименование таблицы
+     * @param date      дата версии
      */
     void deleteRows(String tableName, Date date);
 
@@ -150,43 +150,48 @@ public interface VersionedDataService {
     CompareStructure compareStructure(Date sourceDate, Date targetDate);
 
     /**
+     * Проверка на наличие пустого значения в поле
      *
-     * @param tableName
-     * @param fieldName
-     * @param date         дата версии
-     * @return
+     * @param tableName наименование таблицы
+     * @param fieldName наименование поля
+     * @param date      дата версии
+     * @return true, если есть пустое значение
      */
     boolean fieldIsNotEmpty(String tableName, String fieldName, Date date);
 
     /**
+     * Проверка на уникальность значений в поле
      *
-     * @param tableName
-     * @param fieldName
-     * @param date         дата версии
-     * @return
+     * @param tableName наименование таблицы
+     * @param fieldName наименование поля
+     * @param date      дата версии
+     * @return true, если есть поле уникально
      */
     boolean fieldIsUnique(String tableName, String fieldName, Date date);
 
     /**
+     * Проверка на уникальность конкретного значения в поле
      *
-     * @param tableName
-     * @param fieldValue
-     * @param date
-     * @return
+     * @param tableName  наименование таблицы
+     * @param fieldValue значение поля
+     * @param date       дата версии
+     * @return true, если значение уникально
      */
     boolean fieldIsUnique(String tableName, FieldValue fieldValue, Date date);
 
     /**
+     * Создание индекса
      *
-     * @param tableName
-     * @param fields
+     * @param tableName наименование таблицы
+     * @param fields    список полей, на основе которых создается индекс
      */
     void createIndex(String tableName, List<String> fields);
 
     /**
+     * Удаление индекса
      *
-     * @param tableName
-     * @param fields
+     * @param tableName наименование таблицы
+     * @param fields    список полей, на основе которых был создан индекс
      */
     void removeIndex(String tableName, List<String> fields);
 
