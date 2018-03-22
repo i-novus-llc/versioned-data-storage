@@ -8,6 +8,9 @@ import java.util.Date;
 import java.util.List;
 
 /**
+ * Сервис работы с черновиками. Черновик ({@code draft}) - это модифицируемый набор записей.
+ * У черновика может изменяться как набор данных, так и их структура, вплоть до момента публикации при помощи метода {@code apply}.
+ *
  * @author lgalimova
  * @since 31.01.2018
  */
@@ -15,8 +18,8 @@ public interface DraftDataService {
     /**
      * Создание черновика версии с данными
      *
-     * @param fields  список полей
-     * @param data    данные
+     * @param fields список полей
+     * @param data   данные
      * @return Уникальный код черновика
      */
     String createDraft(List<Field> fields, List<RowValue> data);
@@ -24,7 +27,7 @@ public interface DraftDataService {
     /**
      * Создание черновика версии без данных
      *
-     * @param fields  список полей
+     * @param fields список полей
      * @return Уникальный код черновика
      */
     String createDraft(List<Field> fields);
@@ -32,9 +35,9 @@ public interface DraftDataService {
     /**
      * Создание новой версии на основе черновика
      *
-     * @param baseStorageCode  код хранилища данных
-     * @param draftCode        таблица черновика
-     * @param publishTime      дата и время публикации черновика
+     * @param baseStorageCode код хранилища данных
+     * @param draftCode       таблица черновика
+     * @param publishTime     дата и время публикации черновика
      * @return Уникальный код хранилища данных, созданного в результате слияния данных исходного хранилища и черновика
      */
     String applyDraft(String baseStorageCode, String draftCode, Date publishTime);
@@ -42,8 +45,8 @@ public interface DraftDataService {
     /**
      * Добавление данных в черновик
      *
-     * @param draftCode  код черновика
-     * @param data       данные строки
+     * @param draftCode код черновика
+     * @param data      данные строки
      * @return Системные идентификаторы добавленных записей
      */
     List<String> addRows(String draftCode, List<RowValue> data);
@@ -51,40 +54,40 @@ public interface DraftDataService {
     /**
      * Удалить записи из таблицы
      *
-     * @param draftCode  код черновика
-     * @param systemIds  системный идентификатор записи
+     * @param draftCode код черновика
+     * @param systemIds системный идентификатор записи
      */
     void deleteRows(String draftCode, List<String> systemIds);
 
     /**
      * Удалить все записи из таблицы
      *
-     * @param draftCode  код черновика
+     * @param draftCode код черновика
      */
     void deleteAllRows(String draftCode);
 
     /**
      * Изменение записи таблицы
      *
-     * @param draftCode  код черновика
-     * @param systemId   системный идентификатор записи
-     * @param data       новые значения
+     * @param draftCode код черновика
+     * @param systemId  системный идентификатор записи
+     * @param data      новые значения
      */
     void updateRow(String draftCode, String systemId, List<FieldValue> data);
 
     /**
      * Добавление нового поля в таблицу
      *
-     * @param draftCode  код черновика
-     * @param field      данные поля
+     * @param draftCode код черновика
+     * @param field     данные поля
      */
     void addField(String draftCode, Field field);
 
     /**
      * Удаления поля из таблицы
      *
-     * @param draftCode  код черновика
-     * @param fieldName  наименование удаляемого поля
+     * @param draftCode код черновика
+     * @param fieldName наименование удаляемого поля
      */
     void deleteField(String draftCode, String fieldName);
 }
