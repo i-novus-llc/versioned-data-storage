@@ -13,19 +13,19 @@ public interface CompareDataService {
     /**
      * Сравнение актуальных на заданные даты данных
      *
-     * @param storageCode код хранилища данных
-     * @param baseDataDate дата актуальности для исходных данных
-     * @param targetDataDate дата актуальности для целевого набора данных
-     * @return результат сравнения
+     * @param storageCode     код хранилища данных
+     * @param baseDataDate    дата актуальности для исходных данных
+     * @param targetDataDate  дата актуальности для целевого набора данных
+     * @return Результат сравнения
      */
     DataDifference calculateDifference(String storageCode, Date baseDataDate, Date targetDataDate);
 
     /**
      * Сравненние структур данных в двух хранилищах
      *
-     * @param baseStorageCode код хранилища с исходной структурой данных
-     * @param targetStorageCode код хранилища с целевой структурой данных
-     * @return результат сравнения
+     * @param baseStorageCode    код хранилища с исходной структурой данных
+     * @param targetStorageCode  код хранилища с целевой структурой данных
+     * @return Результат сравнения
      */
     MetaDifference calculateDifference(String baseStorageCode, String targetStorageCode);
 }

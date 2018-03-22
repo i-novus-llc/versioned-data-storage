@@ -14,7 +14,7 @@ public interface SearchDataService {
     /**
      * Получение данных постранично
      *
-     * @param criteria параметры запроса
+     * @param criteria  параметры запроса
      * @return Список записей
      */
     CollectionPage<RowValue> getPagedData(DataCriteria criteria);
@@ -22,7 +22,7 @@ public interface SearchDataService {
     /**
      * Получение данных
      *
-     * @param criteria параметры запроса
+     * @param criteria  параметры запроса
      * @return Список записей
      */
     List<RowValue> getData(DataCriteria criteria);
@@ -30,8 +30,8 @@ public interface SearchDataService {
     /**
      * Получение данных записи по системному идентификатору
      *
-     * @param storageCode код хранилища данных
-     * @param systemId    системный идентификатор записи
+     * @param storageCode  код хранилища данных
+     * @param systemId     системный идентификатор записи
      * @return Найденная запись
      */
     RowValue findRow(String storageCode, String systemId);
