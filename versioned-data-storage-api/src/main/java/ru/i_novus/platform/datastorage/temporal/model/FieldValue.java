@@ -1,4 +1,4 @@
-package ru.i_novus.platform.versioned_data_storage.api.model;
+package ru.i_novus.platform.datastorage.temporal.model;
 
 /**
  * @author lgalimova
