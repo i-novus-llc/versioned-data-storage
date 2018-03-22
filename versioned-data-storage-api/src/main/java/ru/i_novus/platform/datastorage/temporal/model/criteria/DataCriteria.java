@@ -1,7 +1,8 @@
-package ru.i_novus.platform.versioned_data_storage.api.model;
+package ru.i_novus.platform.datastorage.temporal.model.criteria;
 
 import net.n2oapp.criteria.api.Criteria;
-import ru.i_novus.platform.versioned_data_storage.api.criteria.FieldSearchCriteria;
+import ru.i_novus.platform.datastorage.temporal.model.Field;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.FieldSearchCriteria;
 
 import java.util.Date;
 import java.util.List;
