@@ -10,6 +10,14 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
+    <properties>
+        <jackson.version>2.8.7</jackson.version>
+        <hibernate.version>5.2.4.Final</hibernate.version>
+        <n2o.version>6.1.16</n2o.version>
+        <criteria.api.version>3.8</criteria.api.version>
+        <common-exception.version>1.0-SNAPSHOT</common-exception.version>
+    </properties>
+
     <groupId>ru.i-novus.platform</groupId>
     <artifactId>versioned-data-storage</artifactId>
     <version>1.0-SNAPSHOT</version>
@@ -34,7 +42,23 @@
             <dependency>
                 <groupId>net.n2oapp.criteria</groupId>
                 <artifactId>criteria-api</artifactId>
-                <version>3.5</version>
+                <version>${criteria.api.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.hibernate</groupId>
+                <artifactId>hibernate-core</artifactId>
+                <scope>provided</scope>
+                <version>${hibernate.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cz.atria</groupId>
+                <artifactId>common-lang</artifactId>
+                <version>1.7.2-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>ru.kirkazan.common</groupId>
+                <artifactId>common-exception-handling</artifactId>
+                <version>${common-exception.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
