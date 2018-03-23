@@ -4,11 +4,11 @@ import ru.i_novus.platform.datastorage.temporal.model.Field;
 
 /**
  * @author lgalimova
- * @since 01.02.2018
+ * @since 23.03.2018
  */
-public class DateTimeField extends Field {
+public class BooleanField extends Field {
     @Override
     public String getType() {
-        return "timestamp";
+        return "boolean";
     }
 }

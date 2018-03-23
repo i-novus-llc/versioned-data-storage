@@ -18,6 +18,10 @@
             <groupId>net.n2oapp.criteria</groupId>
             <artifactId>criteria-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>ru.kirkazan.common</groupId>
+            <artifactId>common-exception-handling</artifactId>
+        </dependency>
     </dependencies>
 
 </project>

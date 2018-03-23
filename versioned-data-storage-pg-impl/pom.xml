@@ -19,17 +19,25 @@
             <artifactId>versioned-data-storage-api</artifactId>
             <version>${project.version}</version>
         </dependency>
+
         <dependency>
             <groupId>cz.atria</groupId>
             <artifactId>common-lang</artifactId>
         </dependency>
+
         <dependency>
             <groupId>org.hibernate</groupId>
             <artifactId>hibernate-core</artifactId>
         </dependency>
+
         <dependency>
             <groupId>ru.kirkazan.common</groupId>
             <artifactId>common-exception-handling</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
         </dependency>
     </dependencies>
 

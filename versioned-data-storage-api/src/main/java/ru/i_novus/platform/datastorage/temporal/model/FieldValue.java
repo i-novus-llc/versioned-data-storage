@@ -5,15 +5,15 @@ package ru.i_novus.platform.datastorage.temporal.model;
  * @since 01.02.2018
  */
 public class FieldValue<T> {
-    private String name;
+    private Field field;
     private T value;
 
-    public String getName() {
-        return name;
+    public Field getField() {
+        return field;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setField(Field field) {
+        this.field = field;
     }
 
     public T getValue() {

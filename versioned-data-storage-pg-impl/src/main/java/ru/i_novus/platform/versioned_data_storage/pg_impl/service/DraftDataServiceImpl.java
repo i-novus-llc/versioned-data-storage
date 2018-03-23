@@ -1,16 +1,26 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang.BooleanUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.i_novus.platform.datastorage.temporal.exception.ListCodifiedException;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.model.BooleanField;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.model.DateField;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.model.ReferenceField;
+import ru.kirkazan.common.exception.CodifiedException;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.ExceptionCodes.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.service.QueryConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.addEscapeCharacters;
 
 /**
@@ -30,7 +40,7 @@ public class DraftDataServiceImpl implements DraftDataService {
             for (Object value : rowValue.getFieldValues()) {
                 fieldValues.add((FieldValue) value);
             }
-            final String keys = fieldValues.stream().map(v -> addEscapeCharacters(v.getName())).collect(Collectors.joining(",")) + ",\"FTS\"";
+            final String keys = fieldValues.stream().map(v -> addEscapeCharacters(v.getField().getName())).collect(Collectors.joining(",")) + ",\"FTS\"";
             final String values = fieldValues.stream().map(v -> "?").collect(Collectors.joining(", ")) + "," + getFts(fieldValues);
             dataDao.insertData(draftCode, keys, values, fieldValues);
         }
@@ -46,6 +56,23 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     @Override
     public String applyDraft(String sourceStorageCode, String draftCode, Date publishTime) {
+        String newTable = UUID.randomUUID().toString();
+//        List<String> draftFields = dataDao.getFieldNames(draftCode);
+//        createTable(newTable, draftFields, false);
+//        if(sourceStorageCode != null && draftStructure.equals(actualVersionStructure)) {
+//            insertActualDataFromVersion(sourceStorageCode, draftCode, newTable);
+//            insertOldDataFromVersion(sourceStorageCode, newTable);
+//            insertClosedNowDataFromVersion(sourceStorageCode, draftCode, newTable, publishTime);
+//            insertNewDataFromDraft(sourceStorageCode, draftCode, newTable, publishTime);
+//        } else {
+//            BigInteger count = dataDao.countData(draftCode);
+//            List<String> columnNames = draftStructure.getFields().stream().map(Field::getField).collect(Collectors.toList());
+//            columnNames.add("FTS");
+//            for (int i =0; i<count.intValue(); i+=TRANSACTION_SIZE){
+//                refbookDataDao.insertDataFromDraft(draftCode, i, newTable, TRANSACTION_SIZE, publishTime, columnNames);
+//            }
+//        }
+//        return newTable;
         return null;
     }
 
@@ -66,7 +93,25 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     @Override
     public void updateRow(String draftCode, String systemId, List<FieldValue> data) {
-
+        List<CodifiedException> exceptions = new ArrayList<>();
+        Map<String, String> types = new HashMap<>();
+        validateRow(draftCode, data, systemId, exceptions);
+        List<String> keyList = new ArrayList<>();
+        for (FieldValue fieldValue : data) {
+            String fieldName = fieldValue.getField().getName();
+            if (fieldValue.getValue() == null || fieldValue.getValue().equals("null")) {
+                keyList.add(addEscapeCharacters(fieldName) + " = NULL");
+            } else if (fieldValue.getField() instanceof ReferenceField) {
+                keyList.add(addEscapeCharacters(fieldName) + " = ?\\:\\:jsonb");
+            } else {
+                keyList.add(addEscapeCharacters(fieldName) + " = ?");
+            }
+        }
+        String keys = String.join(",", keyList);
+        if (exceptions.size() != 0) {
+            throw new ListCodifiedException(exceptions);
+        }
+        dataDao.updateData(draftCode, systemId, keys, data, types);
     }
 
     @Override
@@ -102,6 +147,50 @@ public class DraftDataServiceImpl implements DraftDataService {
         }
         dataDao.createFullTextSearchIndex(tableName);
     }
+
+    private void validateRow(String tableName, List<FieldValue> data, String systemId, List<CodifiedException> exceptions) {
+        List<FieldValue> dataCopy = new ArrayList<>(data);
+        dataCopy.removeIf(v -> v.getValue() == null);
+        if (dataCopy.size() == 0)
+            throw new CodifiedException(EMPTY_RECORD_EXCEPTION_CODE);
+
+        Date dateBegin = null;
+        Date dateEnd = null;
+        for (FieldValue fieldValue : data) {
+            Field field = fieldValue.getField();
+            if (DATE_BEGIN.equals(field.getName()))
+                dateBegin = (Date) fieldValue.getValue();
+            if (DATE_END.equals(field.getName()))
+                dateEnd = (Date) fieldValue.getValue();
+            if (BooleanUtils.toBoolean(field.getRequired()) && fieldValue.getValue() == null) {
+                exceptions.add(new CodifiedException(FIELD_IS_REQUIRED_EXCEPTION_CODE, field.getName()));
+            } else {
+                if (!(field instanceof DateField) && !(field instanceof BooleanField)) {
+                    if (field instanceof ReferenceField) {
+                        ObjectMapper mapper = new ObjectMapper();
+                        try {
+                            mapper.readValue(fieldValue.getValue().toString(), new TypeReference<Map<String, String>>() {
+                            });
+                        } catch (IOException e) {
+                            exceptions.add(new CodifiedException(e.getMessage()));
+                        }
+                    }
+                    if (fieldValue.getValue() != null && field.getMaxLength() != null && fieldValue.getValue().toString().length() > field.getMaxLength()) {
+                        //todo выводить значение в текст опасно, оно может быть очень длинным. Плюс надо добавить в сообщение максимальную длину поля.
+                        exceptions.add(new CodifiedException(INCORRECT_FIELD_LENGTH_EXCEPTION_CODE, field.getName(), fieldValue.getValue()));
+                    }
+                }
+            }
+        }
+
+        if (dateBegin != null && dateEnd != null && dateBegin.after(dateEnd)) {
+            exceptions.add(new CodifiedException(BEGIN_END_DATE_EXCEPTION_CODE));
+        }
+
+//        structure.getKeys().stream().forEach(e -> keyValidate(e, tableName, params, structure, sysRecordId, exceptions));
+    }
+
+
 
     private String getFts(List<FieldValue> fields) {
         StringBuilder fullTextSearch = new StringBuilder();

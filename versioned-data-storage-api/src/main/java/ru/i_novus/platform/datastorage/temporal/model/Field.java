@@ -1,13 +1,12 @@
 package ru.i_novus.platform.datastorage.temporal.model;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
-
 /**
  * @author lgalimova
  * @since 01.02.2018
  */
 public abstract class Field {
     private String name;
+    private Integer maxLength;
     private Boolean searchEnabled = false;
     private Boolean required = false;
     private Boolean unique = false;
@@ -47,5 +46,13 @@ public abstract class Field {
 
     public void setUnique(Boolean unique) {
         this.unique = unique;
+    }
+
+    public Integer getMaxLength() {
+        return maxLength;
+    }
+
+    public void setMaxLength(Integer maxLength) {
+        this.maxLength = maxLength;
     }
 }

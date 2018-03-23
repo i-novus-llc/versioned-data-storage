@@ -6,6 +6,7 @@ import ru.i_novus.platform.datastorage.temporal.model.*;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
+import java.math.BigInteger;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -20,6 +21,9 @@ public class DataDao {
         this.entityManager = entityManager;
     }
 
+    public BigInteger countData(String tableName) {
+        return (BigInteger) entityManager.createNativeQuery(String.format(SELECT_COUNT_QUERY_TEMPLATE, addEscapeCharacters(tableName))).getSingleResult();
+    }
 
     public void createDraftTable(String tableName, List<Field> fields) {
         if (Util.isEmpty(fields)) {
@@ -53,7 +57,7 @@ public class DataDao {
         query.executeUpdate();
     }
 
-    public void updateRowFromTable(String tableName, String systemId, String keys, List<FieldValue> data, Map<String, String> types) {
+    public void updateData(String tableName, String systemId, String keys, List<FieldValue> data, Map<String, String> types) {
         Query query = entityManager.createNativeQuery(String.format(UPDATE_QUERY_TEMPLATE, addEscapeCharacters(tableName), keys, "?"));
         int i = 1;
         for (FieldValue fieldValue : data) {

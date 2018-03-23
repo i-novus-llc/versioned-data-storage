@@ -39,26 +39,37 @@
                 <version>3.0.1</version>
                 <scope>provided</scope>
             </dependency>
+
             <dependency>
                 <groupId>net.n2oapp.criteria</groupId>
                 <artifactId>criteria-api</artifactId>
                 <version>${criteria.api.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>org.hibernate</groupId>
                 <artifactId>hibernate-core</artifactId>
                 <scope>provided</scope>
                 <version>${hibernate.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>cz.atria</groupId>
                 <artifactId>common-lang</artifactId>
                 <version>1.7.2-SNAPSHOT</version>
             </dependency>
+
             <dependency>
                 <groupId>ru.kirkazan.common</groupId>
                 <artifactId>common-exception-handling</artifactId>
                 <version>${common-exception.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+                <scope>provided</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
