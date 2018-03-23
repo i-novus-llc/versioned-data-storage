@@ -2,6 +2,7 @@ package ru.i_novus.platform.datastorage.temporal.model.criteria;
 
 import net.n2oapp.criteria.api.Criteria;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.FieldSearchCriteria;
 
 import java.util.Date;
 import java.util.List;
@@ -12,6 +13,7 @@ public class DataCriteria  extends Criteria {
     private final List<Field> fields;
     private final List<FieldSearchCriteria> fieldFilter;
     private final String commonFilter;
+    private final Criteria criteria;
 
     /**
      * @param tableName    наименование таблицы
@@ -19,13 +21,15 @@ public class DataCriteria  extends Criteria {
      * @param fields       список полей в ответе
      * @param fieldFilter  фильтр по отдельным полям
      * @param commonFilter фильтр по всем полям
+     * @param criteria     содержит page, size, sorting
      */
-    public DataCriteria(String tableName, Date date, List<Field> fields, List<FieldSearchCriteria> fieldFilter, String commonFilter) {
+    public DataCriteria(String tableName, Date date, List<Field> fields, List<FieldSearchCriteria> fieldFilter, String commonFilter, Criteria criteria) {
         this.tableName = tableName;
         this.date = date;
         this.fields = fields;
         this.fieldFilter = fieldFilter;
         this.commonFilter = commonFilter;
+        this.criteria = criteria;
     }
 
     public String getTableName() {
@@ -48,4 +52,7 @@ public class DataCriteria  extends Criteria {
         return commonFilter;
     }
 
+    public Criteria getCriteria() {
+        return criteria;
+    }
 }
