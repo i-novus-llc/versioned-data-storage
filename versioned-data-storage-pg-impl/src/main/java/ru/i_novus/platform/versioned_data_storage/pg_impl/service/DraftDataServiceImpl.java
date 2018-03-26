@@ -2,6 +2,7 @@ package ru.i_novus.platform.versioned_data_storage.pg_impl.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import cz.atria.common.lang.Util;
 import org.apache.commons.lang.BooleanUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -128,27 +129,27 @@ public class DraftDataServiceImpl implements DraftDataService {
         dataDao.createTrigger(draftCode);
     }
 
-    private void createTable(String tableName, List<Field> fields, boolean isDraft) {
+    private void createTable(String draftCode, List<Field> fields, boolean isDraft) {
         List<String> fieldNames = fields.stream().map(Field::getName).collect(Collectors.toList());
-        logger.debug("creating table with name: {}", tableName);
+        logger.debug("creating table with name: {}", draftCode);
         if (isDraft) {
-            dataDao.createDraftTable(tableName, fields);
+            dataDao.createDraftTable(draftCode, fields);
         } else {
-            dataDao.createVersionTable(tableName, fields);
+            dataDao.createVersionTable(draftCode, fields);
         }
-        dataDao.createHashIndex(tableName);
+        dataDao.createHashIndex(draftCode);
         if (!fields.isEmpty()) {
-            dataDao.createTrigger(tableName, fieldNames);
+            dataDao.createTrigger(draftCode, fieldNames);
             for (Field field : fields) {
                 if (BooleanUtils.toBoolean(field.getSearchEnabled())) {
-                    dataDao.createIndex(tableName, field.getName());
+                    dataDao.createIndex(draftCode, field.getName());
                 }
             }
         }
-        dataDao.createFullTextSearchIndex(tableName);
+        dataDao.createFullTextSearchIndex(draftCode);
     }
 
-    private void validateRow(String tableName, List<FieldValue> data, String systemId, List<CodifiedException> exceptions) {
+    private void validateRow(String draftCode, List<FieldValue> data, String systemId, List<CodifiedException> exceptions) {
         List<FieldValue> dataCopy = new ArrayList<>(data);
         dataCopy.removeIf(v -> v.getValue() == null);
         if (dataCopy.size() == 0)
@@ -162,7 +163,7 @@ public class DraftDataServiceImpl implements DraftDataService {
                 dateBegin = (Date) fieldValue.getValue();
             if (DATE_END.equals(field.getName()))
                 dateEnd = (Date) fieldValue.getValue();
-            if (BooleanUtils.toBoolean(field.getRequired()) && fieldValue.getValue() == null) {
+            if (BooleanUtils.toBoolean(field.getRequired()) && Util.isEmpty(fieldValue.getValue())) {
                 exceptions.add(new CodifiedException(FIELD_IS_REQUIRED_EXCEPTION_CODE, field.getName()));
             } else {
                 if (!(field instanceof DateField) && !(field instanceof BooleanField)) {
@@ -181,16 +182,24 @@ public class DraftDataServiceImpl implements DraftDataService {
                     }
                 }
             }
-        }
 
+            if (BooleanUtils.toBoolean(field.getUnique())) {
+                if (Util.isEmpty(fieldValue.getValue())) {
+                    exceptions.add(new CodifiedException(FIELD_IS_REQUIRED_EXCEPTION_CODE, field.getName()));
+                } else {
+                    List result = dataDao.getRowsByField(draftCode, field.getName(), fieldValue.getValue(),
+                            dateBegin != null, dateBegin, dateEnd, systemId);
+                    if (result.size() > 0) {
+                        exceptions.add(new CodifiedException(DUPLICATE_UNIQUE_VALUE_EXCEPTION_CODE, fieldValue.getValue()));
+                    }
+                }
+            }
+
+        }
         if (dateBegin != null && dateEnd != null && dateBegin.after(dateEnd)) {
             exceptions.add(new CodifiedException(BEGIN_END_DATE_EXCEPTION_CODE));
         }
-
-//        structure.getKeys().stream().forEach(e -> keyValidate(e, tableName, params, structure, sysRecordId, exceptions));
     }
-
-
 
     private String getFts(List<FieldValue> fields) {
         StringBuilder fullTextSearch = new StringBuilder();

@@ -7,6 +7,7 @@ import ru.i_novus.platform.datastorage.temporal.model.*;
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 import java.math.BigInteger;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -128,5 +129,31 @@ public class DataDao {
     public List<String> getFieldNames(String tableName) {
         List<String> results = entityManager.createNativeQuery(String.format(SELECT_FIELD_NAMES, tableName)).getResultList();
         return results.stream().map(QueryUtil::addEscapeCharacters).collect(Collectors.toList());
+    }
+
+    public List getRowsByField(String tableName, String field, Object uniqueValue, boolean existDateColumns, Date begin, Date end, String id) {
+        String query = SELECT_ROWS_FROM_DATA_BY_FIELD;
+        String rows = addEscapeCharacters(field);
+        if (existDateColumns) {
+            SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy");
+            rows += "," + addEscapeCharacters(DATE_BEGIN) + "," + addEscapeCharacters(DATE_END);
+            query += "and (coalesce(\"DATEBEG\",'-infinity'\\:\\:timestamp),coalesce(\"DATEEND\",'infinity'\\:\\:timestamp)) overlaps ";
+            if (begin != null) {
+                query += "((to_date('" + sdf.format(begin) + "','dd.MM.yyyy') - integer '1'),";
+            } else {
+                query += "('-infinity'\\:\\:timestamp,";
+            }
+            if (end != null) {
+                query += "(to_date('" + sdf.format(end) + "','dd.MM.yyyy') + integer '1'))";
+            } else {
+                query += "'infinity'\\:\\:timestamp)";
+            }
+        }
+        if (id != null) {
+            query += " and " + addEscapeCharacters("SYS_RECORDID") + " != " + id;
+        }
+        Query nativeQuery = entityManager.createNativeQuery(String.format(query, rows, addEscapeCharacters(tableName), addEscapeCharacters(field)));
+        nativeQuery.setParameter(1, uniqueValue);
+        return nativeQuery.getResultList();
     }
 }
