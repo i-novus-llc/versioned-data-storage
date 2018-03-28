@@ -7,6 +7,10 @@ import ru.i_novus.platform.datastorage.temporal.model.Field;
  * @since 01.02.2018
  */
 public class DateField extends Field {
+    public DateField(String name) {
+        super(name);
+    }
+
     @Override
     public String getType() {
         return "date";

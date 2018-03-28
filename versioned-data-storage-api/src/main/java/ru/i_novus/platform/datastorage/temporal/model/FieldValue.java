@@ -8,6 +8,11 @@ public class FieldValue<T> {
     private Field field;
     private T value;
 
+    public FieldValue(Field field, T value) {
+        this.field = field;
+        this.value = value;
+    }
+
     public Field getField() {
         return field;
     }

@@ -11,6 +11,10 @@ public abstract class Field {
     private Boolean required = false;
     private Boolean unique = false;
 
+    public Field(String name) {
+        this.name = name;
+    }
+
     public String getName() {
         return name;
     }

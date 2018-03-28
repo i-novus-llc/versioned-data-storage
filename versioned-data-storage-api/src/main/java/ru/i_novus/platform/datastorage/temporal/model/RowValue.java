@@ -1,5 +1,6 @@
 package ru.i_novus.platform.datastorage.temporal.model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -9,7 +10,7 @@ import java.util.List;
  */
 public abstract class RowValue<T> {
     private T systemId;
-    private List<FieldValue> fieldValues;
+    private List<FieldValue> fieldValues = new ArrayList<>();
 
     public T getSystemId() {
         return systemId;

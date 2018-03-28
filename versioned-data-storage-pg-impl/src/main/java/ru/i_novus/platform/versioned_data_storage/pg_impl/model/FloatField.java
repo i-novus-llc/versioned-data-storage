@@ -7,6 +7,10 @@ import ru.i_novus.platform.datastorage.temporal.model.Field;
  * @since 23.03.2018
  */
 public class FloatField extends Field {
+    public FloatField(String name) {
+        super(name);
+    }
+
     @Override
     public String getType() {
         return "numeric";

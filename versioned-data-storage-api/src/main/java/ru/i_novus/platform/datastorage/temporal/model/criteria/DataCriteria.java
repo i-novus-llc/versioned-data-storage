@@ -8,21 +8,24 @@ import java.util.List;
 
 public class DataCriteria extends Criteria {
     private final String tableName;
-    private final Date date;
+    private final Date bdate;
+    private final Date edate;
     private final List<Field> fields;
     private final List<FieldSearchCriteria> fieldFilter;
     private final String commonFilter;
 
     /**
      * @param tableName    наименование таблицы
-     * @param date         дата версии
+     * @param bdate         дата публикации версии
+     * @param edate         дата создания версии
      * @param fields       список полей в ответе
      * @param fieldFilter  фильтр по отдельным полям
      * @param commonFilter фильтр по всем полям
      */
-    public DataCriteria(String tableName, Date date, List<Field> fields, List<FieldSearchCriteria> fieldFilter, String commonFilter) {
+    public DataCriteria(String tableName, Date bdate, Date edate, List<Field> fields, List<FieldSearchCriteria> fieldFilter, String commonFilter) {
         this.tableName = tableName;
-        this.date = date;
+        this.bdate = bdate;
+        this.edate = edate;
         this.fields = fields;
         this.fieldFilter = fieldFilter;
         this.commonFilter = commonFilter;
@@ -32,8 +35,12 @@ public class DataCriteria extends Criteria {
         return tableName;
     }
 
-    public Date getDate() {
-        return date;
+    public Date getBdate() {
+        return bdate;
+    }
+
+    public Date getEdate() {
+        return edate;
     }
 
     public List<Field> getFields() {

@@ -1,14 +1,21 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.service;
 
 import cz.atria.common.lang.Util;
+import net.n2oapp.criteria.api.Sorting;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.FieldSearchCriteria;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.SearchTypeEnum;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
 import ru.i_novus.platform.datastorage.temporal.model.*;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 import java.math.BigInteger;
+import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.service.QueryConstants.*;
@@ -16,11 +23,112 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.
 
 public class DataDao {
 
+    private Pattern dataRegexp = Pattern.compile("([0-9]{2})\\.([0-9]{2})\\.([0-9]{4})");
     private EntityManager entityManager;
 
     public DataDao(EntityManager entityManager) {
         this.entityManager = entityManager;
     }
+
+    public List<RowValue> getData(DataCriteria criteria) {
+        List<String> fieldNames = criteria.getFields().stream().map(Field::getName).collect(Collectors.toList());
+        String queryStr = "SELECT " + generateSqlQuery("d", fieldNames) +
+                " FROM data." + addEscapeCharacters(criteria.getTableName()) + " d ";
+
+        queryStr += getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter());
+        String orderBy = getDictionaryDataOrderBy((!Util.isEmpty(criteria.getSortings()) ? criteria.getSortings().get(0) : null), "d");
+        Query query = entityManager
+                .createNativeQuery(queryStr + orderBy)
+                .setFirstResult((criteria.getPage() - 1) * criteria.getSize())
+                .setMaxResults(criteria.getSize());
+        List<Object[]> resultList = query.getResultList();
+        return convertToRowValue(criteria.getFields(), resultList);
+    }
+
+    private String getDictionaryDataOrderBy(Sorting sorting, String alias) {
+        String spaceAliasPoint = " " + alias + ".";
+        String orderBy = " order by ";
+        if (sorting != null && sorting.getField() != null) {
+            orderBy = orderBy + formatFieldForQuery(sorting.getField(), alias) + " " + sorting.getDirection().toString() + ", ";
+        }
+        return orderBy + spaceAliasPoint + addEscapeCharacters(DATA_PRIMARY_COLUMN);
+    }
+
+    public BigInteger getDataCount(String search, List<FieldSearchCriteria> filter, String tableName, Date date, Date close) {
+        String queryStr = "SELECT count(*)" +
+                " FROM data." + addEscapeCharacters(tableName) + " d ";
+
+        queryStr += getDataWhereClause(date, close, search, filter);
+        Query query = entityManager.createNativeQuery(queryStr);
+        return (BigInteger) query.getSingleResult();
+    }
+
+    private String getDataWhereClause(Date publishDate, Date closeDate, String search, List<FieldSearchCriteria> filter) {
+
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String result = " WHERE 1=1 ";
+
+        if (publishDate != null) {
+            String publishStr = df.format(publishDate);
+            result += " and (d.\"SYS_PUBLISHTIME\" is null or date_trunc('second', d.\"SYS_PUBLISHTIME\") <= to_timestamp('" + publishStr + "','YYYY-MM-DD HH24:MI:SS') ) " +
+                    "and (date_trunc('second', d.\"SYS_CLOSETIME\") > to_timestamp ('" + publishStr + "', 'YYYY-MM-DD HH24:MI:SS') or d.\"SYS_CLOSETIME\" is null)";
+        }
+        if (closeDate != null) {
+            String closeDateStr = df.format(closeDate);
+            result += " and (date_trunc('second', d.\"SYS_CLOSETIME\") >= to_timestamp ('" + closeDateStr + "', 'YYYY-MM-DD HH24:MI:SS') or d.\"SYS_CLOSETIME\" is null)";
+        }
+        result += getDictionaryFilterQuery(search, filter);
+        return result;
+    }
+
+    private String getDictionaryFilterQuery(String search, List<FieldSearchCriteria> filter) {
+        String queryStr = "";
+        if (!Util.isEmpty(search)) {
+            //full text search
+            String original = new String(search);
+            search = search.trim();
+            String escapedFtsColumn = addEscapeCharacters(FULL_TEXT_SEARCH);
+            if (dataRegexp.matcher(search).matches()) {
+                String[] dateArr = search.split("\\.");
+                String reverseSearch = dateArr[2] + "-" + dateArr[1] + "-" + dateArr[0];
+                queryStr += " and (" + escapedFtsColumn + " @@ to_tsquery('" + search + "') or " + escapedFtsColumn + " @@ to_tsquery('" + reverseSearch + "') ) ";
+            } else {
+
+                search = search.toLowerCase().replaceAll(":", "\\\\:").replaceAll("/", "\\\\/").replace(" ", "+") + ":*";
+                queryStr += " and (" + escapedFtsColumn + " @@ to_tsquery('" + search + "') or " + escapedFtsColumn + " @@ to_tsquery('ru', '" + search + "') or " + escapedFtsColumn + " @@ to_tsquery('ru', '''" + original + "'':*')) ";
+
+            }
+        } else if (!Util.isEmpty(filter)) {
+            for (FieldSearchCriteria searchCriteria : filter) {
+                //todo
+//                String values = searchCriteria.getValues().stream().map(e -> "'" + e + "'").collect(Collectors.joining(","));
+//                FieldValue fieldValue = searchCriteria.getValues().get(0);
+//                String fieldName = fieldValue.getField().getName();
+//                if (fieldValue.getField() instanceof IntegerField || fieldValue.getField() instanceof FloatField ||
+//                        fieldValue.getField() instanceof DateField) {
+//                    queryStr += " and " + addEscapeCharacters(fieldName) + " in (" + values + ")";
+//                } else if (fieldValue.getField() instanceof ReferenceField) {
+//                    queryStr += " and " + addEscapeCharacters(fieldName) + "->> 'value' in (" + values + ")";
+//                    break;
+//                } else if (fieldValue.getField() instanceof BooleanField) {
+//                    if (searchCriteria.getValues().size() == 1 || searchCriteria.getValues().stream().map(Boolean::valueOf).reduce(Boolean::equals).orElse(false)) {
+//                        queryStr += " and " + addEscapeCharacters(fieldName) +
+//                                ((Boolean) (fieldValue.getValue()) ? " IS TRUE " : " IS NOT TRUE");
+//                    }
+//                    break;
+//                } else if (fieldValue.getField() instanceof StringField) {
+//                    if (SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && searchCriteria.getValues().size() == 1)
+//                        queryStr += " and " + addEscapeCharacters(fieldName) + " like '" + searchCriteria.getFormattedValue() + "'";
+//                    else {
+//                        queryStr += " and " + addEscapeCharacters(fieldName) + " in (" + values + ")";
+//                    }
+//                    break;
+//                }
+            }
+        }
+        return queryStr;
+    }
+
 
     public BigInteger countData(String tableName) {
         return (BigInteger) entityManager.createNativeQuery(String.format(SELECT_COUNT_QUERY_TEMPLATE, addEscapeCharacters(tableName))).getSingleResult();
@@ -49,11 +157,15 @@ public class DataDao {
         entityManager.createNativeQuery(String.format(DELETE_COLUMN, tableName, field)).executeUpdate();
     }
 
-    public void insertData(String tableName, String keys, String values, List<FieldValue> data) {
-        Query query = entityManager.createNativeQuery(String.format(INSERT_QUERY_TEMPLATE, addEscapeCharacters(tableName), keys, values));
+    public void insertData(String tableName, String keys, List<String> values, List<RowValue> data) {
+        String stringValues = values.stream().collect(Collectors.joining("),("));
+        Query query = entityManager.createNativeQuery(String.format(INSERT_QUERY_TEMPLATE, addEscapeCharacters(tableName), keys, stringValues));
         int i = 1;
-        for (Object fieldValue : data) {
-            query.setParameter(i++, ((FieldValue) fieldValue).getValue());
+        for (RowValue rowValue : data) {
+            for (Object fieldValue : rowValue.getFieldValues()) {
+                if (((FieldValue) fieldValue).getValue() != null)
+                    query.setParameter(i++, ((FieldValue) fieldValue).getValue());
+            }
         }
         query.executeUpdate();
     }

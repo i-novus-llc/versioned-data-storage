@@ -12,7 +12,7 @@ public class QueryConstants {
 
     Pattern dataRegexp = Pattern.compile("([0-9]{2})\\.([0-9]{2})\\.([0-9]{4})");
 
-    public static final String RELATED_FIELD_NOT_FOUND = "nsi.core.data.related.field.not.found";
+    protected static final int TRANSACTION_SIZE = 1000;
 
     public static final List<String> SYS_RECORDS = Arrays
             .asList("SYS_RECORDID", "SYS_CREATETIME", "SYS_PUBLISHTIME", "SYS_DRAFT", "SYS_ARCHIVE", "SYS_STRUCTURE",
