@@ -61,28 +61,6 @@ public class QueryUtil {
         return resultData;
     }
 
-    public static List<Map<String, Object>> convertToMap(List<Field> fields, List<Object[]> resultList) {
-        List<Map<String, Object>> resultData = new ArrayList<>(resultList.size());
-        for (Object objects : resultList) {
-            Map<String, Object> returnedData = new LinkedHashMap<>();
-            if (objects instanceof Object[]) {
-                Object[] row = (Object[]) objects;
-                for (int i = 0; i < row.length; i++) {
-                    if (fields.get(i) instanceof ReferenceField && fields.get(i).getName().contains("->>")) {
-                        ReferenceField referenceField = (ReferenceField) fields.get(i);
-                        returnedData.put(referenceField.isGetReferenceData() ? formatJsonbAttrValueForMapping(referenceField.getName()) : referenceField.getName().split("->>")[0], row[i]);
-                    } else {
-                        returnedData.put(fields.get(i).getName(), row[i]);
-                    }
-                }
-            } else {
-                returnedData.put(fields.get(0).getName(), objects);
-            }
-            resultData.add(returnedData);
-        }
-        return resultData;
-    }
-
     public static String generateSqlQuery(String alias, List<String> fields) {
         return fields.stream().map(field -> {
             String query = formatFieldForQuery(field, alias);
@@ -114,5 +92,9 @@ public class QueryUtil {
             String[] parts = field.split("->>");
             return parts[0] + "." + StringUtils.strip(parts[1], "'").toUpperCase();
         }
+    }
+
+    public static String getSequenceName(String table) {
+        return addEscapeCharacters(table + "_SYS_RECORDID_seq");
     }
 }

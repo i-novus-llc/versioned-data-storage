@@ -2,10 +2,10 @@ package ru.i_novus.platform.versioned_data_storage.pg_impl.service;
 
 import cz.atria.common.lang.Util;
 import net.n2oapp.criteria.api.Sorting;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.FieldSearchCriteria;
-import ru.i_novus.platform.datastorage.temporal.model.criteria.SearchTypeEnum;
-import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
 import ru.i_novus.platform.datastorage.temporal.model.*;
 
@@ -23,6 +23,7 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.
 
 public class DataDao {
 
+    private static final Logger logger = LoggerFactory.getLogger(DataDao.class);
     private Pattern dataRegexp = Pattern.compile("([0-9]{2})\\.([0-9]{2})\\.([0-9]{4})");
     private EntityManager entityManager;
 
@@ -268,4 +269,119 @@ public class DataDao {
         nativeQuery.setParameter(1, uniqueValue);
         return nativeQuery.getResultList();
     }
+
+    public BigInteger countActualDataFromVersion(String versionTable, String draftTable) {
+        return (BigInteger) entityManager.createNativeQuery(
+                String.format(COUNT_ACTUAL_VAL_FROM_VERSION,
+                        addEscapeCharacters(versionTable),
+                        addEscapeCharacters(draftTable)
+                ))
+                .getSingleResult();
+    }
+
+    public void insertActualDataFromVersion(String tableToInsert, String versionTableFromInsert, String draftTable, int offset, int transactionSize) {
+        String query = String.format(INSERT_ACTUAL_VAL_FROM_VERSION,
+                addEscapeCharacters(tableToInsert),
+                addEscapeCharacters(versionTableFromInsert),
+                addEscapeCharacters(draftTable),
+                offset,
+                transactionSize,
+                getSequenceName(tableToInsert));
+        if(logger.isDebugEnabled()) {
+            logger.debug("insertActualDataFromVersion method query: " + query);
+        }
+        entityManager.createNativeQuery(
+                query)
+                .executeUpdate();
+    }
+
+    public BigInteger countOldDataFromVersion(String versionTable) {
+        return (BigInteger) entityManager.createNativeQuery(
+                String.format(COUNT_OLD_VAL_FROM_VERSION,
+                        addEscapeCharacters(versionTable))).getSingleResult();
+    }
+
+    public void insertOldDataFromVersion(String tableToInsert, String tableFromInsert, int offset, int transactionSize) {
+        String query = String.format(INSERT_OLD_VAL_FROM_VERSION,
+                addEscapeCharacters(tableToInsert),
+                addEscapeCharacters(tableFromInsert),
+                offset,
+                transactionSize,
+                getSequenceName(tableToInsert));
+        if(logger.isDebugEnabled()) {
+            logger.debug("insertOldDataFromVersion method query: " + query);
+        }
+        entityManager.createNativeQuery(
+                query).executeUpdate();
+    }
+
+    public BigInteger countClosedNowDataFromVersion(String versionTable, String draftTable) {
+        return (BigInteger) entityManager.createNativeQuery(String.format(COUNT_CLOSED_NOW_VAL_FROM_VERSION,
+                addEscapeCharacters(versionTable),
+                addEscapeCharacters(draftTable)))
+                .getSingleResult();
+    }
+
+    public void insertClosedNowDataFromVersion(String tableToInsert, String versionTable, String draftTable, int offset, int transactionSize, Date publishTime) {
+        String query = String.format(INSERT_CLOSED_NOW_VAL_FROM_VERSION,
+                addEscapeCharacters(tableToInsert),
+                addEscapeCharacters(versionTable),
+                addEscapeCharacters(draftTable),
+                offset,
+                transactionSize,
+                new SimpleDateFormat("YYYY-MM-dd HH:mm:ss").format(publishTime),
+                getSequenceName(tableToInsert));
+        if(logger.isDebugEnabled()) {
+            logger.debug("insertClosedNowDataFromVersion method query: " + query);
+        }
+        entityManager.createNativeQuery(query)
+                .executeUpdate();
+    }
+
+    public BigInteger countNewValFromDraft(String draftTable, String versionTable) {
+        return (BigInteger) entityManager.createNativeQuery(
+                String.format(COUNT_NEW_VAL_FROM_DRAFT,
+                        addEscapeCharacters(draftTable),
+                        addEscapeCharacters(versionTable)))
+                .getSingleResult();
+
+    }
+
+    public void insertNewDataFromDraft(String tableToInsert, String versionTable, String draftTable, int offset, int transactionSize, Date publishTime) {
+        String query = String.format(INSERT_NEW_VAL_FROM_DRAFT,
+                addEscapeCharacters(draftTable),
+                addEscapeCharacters(versionTable),
+                offset,
+                transactionSize,
+                addEscapeCharacters(tableToInsert),
+                new SimpleDateFormat("YYYY-MM-dd HH:mm:ss").format(publishTime),
+                getSequenceName(tableToInsert));
+        if(logger.isDebugEnabled()) {
+            logger.debug("insertNewDataFromDraft method query: " + query);
+        }
+        entityManager.createNativeQuery(
+                query)
+                .executeUpdate();
+    }
+
+    public void insertDataFromDraft(String draftTable, int offset, String targetTable, int transactionSize, Date publishTime, List<String> columns) {
+        String columnsWithPrefix = columns.stream().map(s -> "row.\"" + s + "\"").reduce((s1,s2) -> s1 +", "+ s2).get();
+        String columnsStr = columns.stream().map(s -> "\"" + s + "\"").reduce((s1,s2) -> s1 +", "+ s2).get();
+        String query = String.format(INSERT_FROM_DRAFT_TEMPLATE,
+                addEscapeCharacters(draftTable),
+                offset,
+                transactionSize,
+                addEscapeCharacters(targetTable),
+                new SimpleDateFormat("YYYY-MM-dd HH:mm:ss").format(publishTime),
+                getSequenceName(targetTable),
+                columnsStr,
+                columnsWithPrefix);
+        if(logger.isDebugEnabled()) {
+            logger.debug("insertDataFromDraft method query: " + query);
+        }
+        entityManager.createNativeQuery(
+                query)
+                .executeUpdate();
+    }
+
 }

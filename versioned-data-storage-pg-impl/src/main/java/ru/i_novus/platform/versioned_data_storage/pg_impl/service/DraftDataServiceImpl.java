@@ -17,6 +17,7 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.model.ReferenceField;
 import ru.kirkazan.common.exception.CodifiedException;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -30,21 +31,25 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.
  */
 public class DraftDataServiceImpl implements DraftDataService {
 
-    private static final Logger logger = LoggerFactory.getLogger(DataDao.class);
+    private static final Logger logger = LoggerFactory.getLogger(DraftDataServiceImpl.class);
     private DataDao dataDao;
 
     @Override
     public String createDraft(List<Field> fields, List<RowValue> data) {
         String draftCode = createDraft(fields);
+        List<String> valueList = new ArrayList<>();
+        String keys = null;
         for (RowValue rowValue : data) {
             List<FieldValue> fieldValues = new ArrayList<>();
             for (Object value : rowValue.getFieldValues()) {
                 fieldValues.add((FieldValue) value);
             }
-            final String keys = fieldValues.stream().map(v -> addEscapeCharacters(v.getField().getName())).collect(Collectors.joining(",")) + ",\"FTS\"";
-            final String values = fieldValues.stream().map(v -> "?").collect(Collectors.joining(", ")) + "," + getFts(fieldValues);
-            dataDao.insertData(draftCode, keys, values, fieldValues);
+            keys = fieldValues.stream().map(v -> addEscapeCharacters(v.getField().getName())).collect(Collectors.joining(",")) + ",\"FTS\"";
+            String values = fieldValues.stream().map(v -> "?").collect(Collectors.joining(", ")) + "," + getFts(fieldValues);
+            valueList.add(values);
         }
+        dataDao.insertData(draftCode, keys, valueList, data);
+
         return draftCode;
     }
 
@@ -57,20 +62,19 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     @Override
     public String applyDraft(String sourceStorageCode, String draftCode, Date publishTime) {
-        String newTable = UUID.randomUUID().toString();
+//        String newTable = UUID.randomUUID().toString();
 //        List<String> draftFields = dataDao.getFieldNames(draftCode);
 //        createTable(newTable, draftFields, false);
-//        if(sourceStorageCode != null && draftStructure.equals(actualVersionStructure)) {
+//        if (sourceStorageCode != null && draftStructure.equals(actualVersionStructure)) {
 //            insertActualDataFromVersion(sourceStorageCode, draftCode, newTable);
 //            insertOldDataFromVersion(sourceStorageCode, newTable);
 //            insertClosedNowDataFromVersion(sourceStorageCode, draftCode, newTable, publishTime);
 //            insertNewDataFromDraft(sourceStorageCode, draftCode, newTable, publishTime);
 //        } else {
 //            BigInteger count = dataDao.countData(draftCode);
-//            List<String> columnNames = draftStructure.getFields().stream().map(Field::getField).collect(Collectors.toList());
-//            columnNames.add("FTS");
-//            for (int i =0; i<count.intValue(); i+=TRANSACTION_SIZE){
-//                refbookDataDao.insertDataFromDraft(draftCode, i, newTable, TRANSACTION_SIZE, publishTime, columnNames);
+//            draftFields.add("FTS");
+//            for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
+//                dataDao.insertDataFromDraft(draftCode, i, newTable, TRANSACTION_SIZE, publishTime, draftFields);
 //            }
 //        }
 //        return newTable;
@@ -79,6 +83,33 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     @Override
     public List<String> addRows(String draftCode, List<RowValue> data) {
+        List<CodifiedException> exceptions = new ArrayList<>();
+
+        List<FieldValue> fieldValues = new ArrayList<>();
+        for (Object value : data.get(0).getFieldValues()) {
+            fieldValues.add((FieldValue) value);
+        }
+        String keys = fieldValues.stream().map(field -> addEscapeCharacters(field.getField().getName())).collect(Collectors.joining(","));
+        List<String> values = new ArrayList<>();
+        for (RowValue rowValue : data) {
+            validateRow(draftCode, rowValue.getFieldValues(), null, exceptions);
+            List<String> rowValues = new ArrayList<>();
+            for (Object fieldValueObj : rowValue.getFieldValues()) {
+                FieldValue fieldValue = (FieldValue) fieldValueObj;
+                if (fieldValue.getValue() == null) {
+                    rowValues.add("null");
+                } else if (fieldValue.getField() instanceof ReferenceField) {
+                    rowValues.add("?\\:\\:jsonb");
+                } else
+                    rowValues.add("?");
+            }
+            values.add(String.join(",", rowValues));
+        }
+
+        if (!exceptions.isEmpty()) {
+            throw new ListCodifiedException(exceptions);
+        }
+        dataDao.insertData(draftCode, keys, values, data);
         return null;
     }
 
@@ -218,6 +249,35 @@ public class DraftDataServiceImpl implements DraftDataService {
         return fullTextSearch.toString();
     }
 
+
+    protected void insertActualDataFromVersion(String actualVersionTable, String draftTable, String newTable) {
+        BigInteger count = dataDao.countActualDataFromVersion(actualVersionTable, draftTable);
+        for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
+            dataDao.insertActualDataFromVersion(newTable, actualVersionTable, draftTable, i, TRANSACTION_SIZE);
+        }
+    }
+
+
+    protected void insertOldDataFromVersion(String actualVersionTable, String newTable) {
+        BigInteger count = dataDao.countOldDataFromVersion(actualVersionTable);
+        for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
+            dataDao.insertOldDataFromVersion(newTable, actualVersionTable, i, TRANSACTION_SIZE);
+        }
+    }
+
+    protected void insertClosedNowDataFromVersion(String actualVersionTable, String draftTable, String newTable, Date publishTime) {
+        BigInteger count = dataDao.countClosedNowDataFromVersion(actualVersionTable, draftTable);
+        for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
+            dataDao.insertClosedNowDataFromVersion(newTable, actualVersionTable, draftTable, i, TRANSACTION_SIZE, publishTime);
+        }
+    }
+
+    protected void insertNewDataFromDraft(String actualVersionTable, String draftTable, String newTable, Date publishTime) {
+        BigInteger count = dataDao.countNewValFromDraft(draftTable, actualVersionTable);
+        for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
+            dataDao.insertNewDataFromDraft(newTable, actualVersionTable, draftTable, i, TRANSACTION_SIZE, publishTime);
+        }
+    }
 
     public void setDataDao(DataDao dataDao) {
         this.dataDao = dataDao;
