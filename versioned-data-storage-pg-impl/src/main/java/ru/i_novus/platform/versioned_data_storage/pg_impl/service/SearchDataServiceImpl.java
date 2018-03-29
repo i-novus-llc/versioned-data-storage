@@ -1,8 +1,7 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.service;
 
 import net.n2oapp.criteria.api.CollectionPage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.RowValue;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
 import ru.i_novus.platform.datastorage.temporal.service.SearchDataService;
@@ -16,16 +15,12 @@ import java.util.*;
  */
 public class SearchDataServiceImpl implements SearchDataService {
 
-    private static final Logger logger = LoggerFactory.getLogger(SearchDataServiceImpl.class);
     private DataDao dataDao;
 
     @Override
     public CollectionPage<RowValue> getPagedData(DataCriteria criteria) {
-        String tableName = criteria.getTableName();
-        Date versionCreateDate = criteria.getBdate();
         if (criteria.getCount() == null) {
-            BigInteger count = dataDao.getDataCount(criteria.getCommonFilter(), criteria.getFieldFilter(), tableName,
-                    versionCreateDate, criteria.getEdate());
+            BigInteger count = dataDao.getDataCount(criteria);
             criteria.setCount(count.intValue());
         }
         List<RowValue> data = dataDao.getData(criteria);
@@ -34,12 +29,14 @@ public class SearchDataServiceImpl implements SearchDataService {
 
     @Override
     public List<RowValue> getData(DataCriteria criteria) {
-        return null;
+        criteria.setPage(0);
+        criteria.setSize(0);
+        return dataDao.getData(criteria);
     }
 
     @Override
-    public RowValue findRow(String storageCode, String systemId) {
-        return null;
+    public RowValue findRow(String storageCode, List<Field> fields, String systemId) {
+        return dataDao.getRowData(storageCode, fields, systemId);
     }
 
     public void setDataDao(DataDao dataDao) {

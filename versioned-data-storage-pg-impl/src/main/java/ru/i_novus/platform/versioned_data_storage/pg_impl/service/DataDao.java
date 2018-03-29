@@ -39,11 +39,22 @@ public class DataDao {
         queryStr += getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter());
         String orderBy = getDictionaryDataOrderBy((!Util.isEmpty(criteria.getSortings()) ? criteria.getSortings().get(0) : null), "d");
         Query query = entityManager
-                .createNativeQuery(queryStr + orderBy)
-                .setFirstResult((criteria.getPage() - 1) * criteria.getSize())
-                .setMaxResults(criteria.getSize());
+                .createNativeQuery(queryStr + orderBy);
+        if (criteria.getPage() > 0 && criteria.getSize() > 0)
+            query.setFirstResult((criteria.getPage() - 1) * criteria.getSize())
+                    .setMaxResults(criteria.getSize());
         List<Object[]> resultList = query.getResultList();
         return convertToRowValue(criteria.getFields(), resultList);
+    }
+
+    public RowValue getRowData(String tableName, List<Field> fields, String systemId) {
+        String keys = fields.stream().map(field -> addEscapeCharacters(field.getName())).collect(Collectors.joining(","));
+        List<Object[]> list = entityManager.createNativeQuery(String.format(SELECT_ROWS_FROM_DATA_BY_FIELD, keys,
+                addEscapeCharacters(tableName), addEscapeCharacters(DATA_PRIMARY_COLUMN)))
+                .setParameter(1, systemId).getResultList();
+        if (list.isEmpty())
+            return null;
+        return convertToRowValue(fields, list).get(0);
     }
 
     private String getDictionaryDataOrderBy(Sorting sorting, String alias) {
@@ -55,11 +66,10 @@ public class DataDao {
         return orderBy + spaceAliasPoint + addEscapeCharacters(DATA_PRIMARY_COLUMN);
     }
 
-    public BigInteger getDataCount(String search, List<FieldSearchCriteria> filter, String tableName, Date date, Date close) {
+    public BigInteger getDataCount(DataCriteria criteria) {
         String queryStr = "SELECT count(*)" +
-                " FROM data." + addEscapeCharacters(tableName) + " d ";
-
-        queryStr += getDataWhereClause(date, close, search, filter);
+                " FROM data." + addEscapeCharacters(criteria.getTableName()) + " d ";
+        queryStr += getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter());
         Query query = entityManager.createNativeQuery(queryStr);
         return (BigInteger) query.getSingleResult();
     }
@@ -287,7 +297,7 @@ public class DataDao {
                 offset,
                 transactionSize,
                 getSequenceName(tableToInsert));
-        if(logger.isDebugEnabled()) {
+        if (logger.isDebugEnabled()) {
             logger.debug("insertActualDataFromVersion method query: " + query);
         }
         entityManager.createNativeQuery(
@@ -308,7 +318,7 @@ public class DataDao {
                 offset,
                 transactionSize,
                 getSequenceName(tableToInsert));
-        if(logger.isDebugEnabled()) {
+        if (logger.isDebugEnabled()) {
             logger.debug("insertOldDataFromVersion method query: " + query);
         }
         entityManager.createNativeQuery(
@@ -331,7 +341,7 @@ public class DataDao {
                 transactionSize,
                 new SimpleDateFormat("YYYY-MM-dd HH:mm:ss").format(publishTime),
                 getSequenceName(tableToInsert));
-        if(logger.isDebugEnabled()) {
+        if (logger.isDebugEnabled()) {
             logger.debug("insertClosedNowDataFromVersion method query: " + query);
         }
         entityManager.createNativeQuery(query)
@@ -356,7 +366,7 @@ public class DataDao {
                 addEscapeCharacters(tableToInsert),
                 new SimpleDateFormat("YYYY-MM-dd HH:mm:ss").format(publishTime),
                 getSequenceName(tableToInsert));
-        if(logger.isDebugEnabled()) {
+        if (logger.isDebugEnabled()) {
             logger.debug("insertNewDataFromDraft method query: " + query);
         }
         entityManager.createNativeQuery(
@@ -365,8 +375,8 @@ public class DataDao {
     }
 
     public void insertDataFromDraft(String draftTable, int offset, String targetTable, int transactionSize, Date publishTime, List<String> columns) {
-        String columnsWithPrefix = columns.stream().map(s -> "row.\"" + s + "\"").reduce((s1,s2) -> s1 +", "+ s2).get();
-        String columnsStr = columns.stream().map(s -> "\"" + s + "\"").reduce((s1,s2) -> s1 +", "+ s2).get();
+        String columnsWithPrefix = columns.stream().map(s -> "row.\"" + s + "\"").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsStr = columns.stream().map(s -> "\"" + s + "\"").reduce((s1, s2) -> s1 + ", " + s2).get();
         String query = String.format(INSERT_FROM_DRAFT_TEMPLATE,
                 addEscapeCharacters(draftTable),
                 offset,
@@ -376,7 +386,7 @@ public class DataDao {
                 getSequenceName(targetTable),
                 columnsStr,
                 columnsWithPrefix);
-        if(logger.isDebugEnabled()) {
+        if (logger.isDebugEnabled()) {
             logger.debug("insertDataFromDraft method query: " + query);
         }
         entityManager.createNativeQuery(
