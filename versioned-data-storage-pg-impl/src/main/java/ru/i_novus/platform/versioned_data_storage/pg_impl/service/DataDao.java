@@ -43,6 +43,25 @@ public class DataDao {
         if (criteria.getPage() > 0 && criteria.getSize() > 0)
             query.setFirstResult((criteria.getPage() - 1) * criteria.getSize())
                     .setMaxResults(criteria.getSize());
+        if (criteria.getBdate() != null) {
+            query.setParameter("bdate", criteria.getBdate());
+        }
+        if (criteria.getEdate() != null) {
+            query.setParameter("edate", criteria.getEdate());
+        }
+        if (!Util.isEmpty(criteria.getCommonFilter())) {
+            String search = criteria.getCommonFilter().trim();
+            if (dataRegexp.matcher(search).matches()) {
+                String[] dateArr = search.split("\\.");
+                String reverseSearch = dateArr[2] + "-" + dateArr[1] + "-" + dateArr[0];
+                query.setParameter("search", criteria.getCommonFilter().trim());
+                query.setParameter("reverseSearch", reverseSearch);
+            } else {
+                search = search.toLowerCase().replaceAll(":", "\\\\:").replaceAll("/", "\\\\/").replace(" ", "+") + ":*";
+                query.setParameter("formattedSearch", search);
+                query.setParameter("search", criteria.getCommonFilter());
+            }
+        }
         List<Object[]> resultList = query.getResultList();
         return convertToRowValue(criteria.getFields(), resultList);
     }
@@ -71,22 +90,36 @@ public class DataDao {
                 " FROM data." + addEscapeCharacters(criteria.getTableName()) + " d ";
         queryStr += getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter());
         Query query = entityManager.createNativeQuery(queryStr);
+        if (criteria.getBdate() != null) {
+            query.setParameter("bdate", criteria.getBdate());
+        }
+        if (criteria.getEdate() != null) {
+            query.setParameter("edate", criteria.getEdate());
+        }
+        if (!Util.isEmpty(criteria.getCommonFilter())) {
+            String search = criteria.getCommonFilter().trim();
+            if (dataRegexp.matcher(search).matches()) {
+                String[] dateArr = search.split("\\.");
+                String reverseSearch = dateArr[2] + "-" + dateArr[1] + "-" + dateArr[0];
+                query.setParameter("search", criteria.getCommonFilter().trim());
+                query.setParameter("reverseSearch", reverseSearch);
+            } else {
+                search = search.toLowerCase().replaceAll(":", "\\\\:").replaceAll("/", "\\\\/").replace(" ", "+") + ":*";
+                query.setParameter("formattedSearch", search);
+                query.setParameter("search", criteria.getCommonFilter());
+            }
+        }
         return (BigInteger) query.getSingleResult();
     }
 
     private String getDataWhereClause(Date publishDate, Date closeDate, String search, List<FieldSearchCriteria> filter) {
-
-        DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         String result = " WHERE 1=1 ";
-
         if (publishDate != null) {
-            String publishStr = df.format(publishDate);
-            result += " and (d.\"SYS_PUBLISHTIME\" is null or date_trunc('second', d.\"SYS_PUBLISHTIME\") <= to_timestamp('" + publishStr + "','YYYY-MM-DD HH24:MI:SS') ) " +
-                    "and (date_trunc('second', d.\"SYS_CLOSETIME\") > to_timestamp ('" + publishStr + "', 'YYYY-MM-DD HH24:MI:SS') or d.\"SYS_CLOSETIME\" is null)";
+            result += " and (d.\"SYS_PUBLISHTIME\" is null or date_trunc('second', d.\"SYS_PUBLISHTIME\") <= to_timestamp(:bdate,'YYYY-MM-DD HH24:MI:SS') ) " +
+                    "and (date_trunc('second', d.\"SYS_CLOSETIME\") > to_timestamp (:bdate, 'YYYY-MM-DD HH24:MI:SS') or d.\"SYS_CLOSETIME\" is null)";
         }
         if (closeDate != null) {
-            String closeDateStr = df.format(closeDate);
-            result += " and (date_trunc('second', d.\"SYS_CLOSETIME\") >= to_timestamp ('" + closeDateStr + "', 'YYYY-MM-DD HH24:MI:SS') or d.\"SYS_CLOSETIME\" is null)";
+            result += " and (date_trunc('second', d.\"SYS_CLOSETIME\") >= to_timestamp (:edate, 'YYYY-MM-DD HH24:MI:SS') or d.\"SYS_CLOSETIME\" is null)";
         }
         result += getDictionaryFilterQuery(search, filter);
         return result;
@@ -100,14 +133,9 @@ public class DataDao {
             search = search.trim();
             String escapedFtsColumn = addEscapeCharacters(FULL_TEXT_SEARCH);
             if (dataRegexp.matcher(search).matches()) {
-                String[] dateArr = search.split("\\.");
-                String reverseSearch = dateArr[2] + "-" + dateArr[1] + "-" + dateArr[0];
-                queryStr += " and (" + escapedFtsColumn + " @@ to_tsquery('" + search + "') or " + escapedFtsColumn + " @@ to_tsquery('" + reverseSearch + "') ) ";
+                queryStr += " and (" + escapedFtsColumn + " @@ to_tsquery(:search) or " + escapedFtsColumn + " @@ to_tsquery(:reverseSearch) ) ";
             } else {
-
-                search = search.toLowerCase().replaceAll(":", "\\\\:").replaceAll("/", "\\\\/").replace(" ", "+") + ":*";
-                queryStr += " and (" + escapedFtsColumn + " @@ to_tsquery('" + search + "') or " + escapedFtsColumn + " @@ to_tsquery('ru', '" + search + "') or " + escapedFtsColumn + " @@ to_tsquery('ru', '''" + original + "'':*')) ";
-
+                queryStr += " and (" + escapedFtsColumn + " @@ to_tsquery(:formattedSearch) or " + escapedFtsColumn + " @@ to_tsquery('ru', :formattedSearch) or " + escapedFtsColumn + " @@ to_tsquery('ru', ''':search'':*')) ";
             }
         } else if (!Util.isEmpty(filter)) {
             for (FieldSearchCriteria searchCriteria : filter) {

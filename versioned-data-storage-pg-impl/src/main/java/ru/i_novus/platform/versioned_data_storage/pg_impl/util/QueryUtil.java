@@ -27,16 +27,16 @@ public class QueryUtil {
                     if (field instanceof BooleanField) {
                         fieldValue = new FieldValue<>(field, (Boolean) row[i]);
                     }
-                    if (field instanceof DateField) {
+                    else if (field instanceof DateField) {
                         fieldValue = new FieldValue<>(field, (Date) row[i]);
                     }
-                    if (field instanceof FloatField) {
+                    else if (field instanceof FloatField) {
                         fieldValue = new FieldValue<>(field, (Float) row[i]);
                     }
-                    if (field instanceof IntegerField) {
+                    else if (field instanceof IntegerField) {
                         fieldValue = new FieldValue<>(field, (Float) row[i]);
                     }
-                    if (field instanceof ReferenceField && field.getName().contains("->>")) {
+                    else if (field instanceof ReferenceField && field.getName().contains("->>")) {
                         ReferenceField referenceField = (ReferenceField) field;
                         ReferenceField newReferenceField;
                         if (referenceField.isGetReferenceData()) {
