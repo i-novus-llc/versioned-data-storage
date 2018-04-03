@@ -12,7 +12,6 @@ import ru.i_novus.platform.datastorage.temporal.model.*;
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 import java.math.BigInteger;
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -66,14 +65,28 @@ public class DataDao {
         return convertToRowValue(criteria.getFields(), resultList);
     }
 
-    public RowValue getRowData(String tableName, List<Field> fields, String systemId) {
-        String keys = fields.stream().map(field -> addEscapeCharacters(field.getName())).collect(Collectors.joining(","));
+    public RowValue getRowData(String tableName, List<String> fieldNames, Object systemId) {
+        String keys = fieldNames.stream().map(field -> addEscapeCharacters(field)).collect(Collectors.joining(","));
         List<Object[]> list = entityManager.createNativeQuery(String.format(SELECT_ROWS_FROM_DATA_BY_FIELD, keys,
                 addEscapeCharacters(tableName), addEscapeCharacters(DATA_PRIMARY_COLUMN)))
                 .setParameter(1, systemId).getResultList();
         if (list.isEmpty())
             return null;
-        return convertToRowValue(fields, list).get(0);
+        List<Object[]> dataTypes = entityManager.createNativeQuery("select column_name, data_type from information_schema.columns " +
+                "where table_schema='data' and table_name=:table")
+                .setParameter("table", tableName)
+                .getResultList();
+        List<Field> fields = new ArrayList<>(fieldNames.size());
+        FieldFactory fieldFactory = new FieldFactory();
+        for (Object[] dataType : dataTypes) {
+            String fieldName = (String) dataType[0];
+            if (fieldNames.contains(fieldName)) {
+                fields.add(fieldFactory.getField(fieldName, (String) dataType[1]));
+            }
+        }
+        RowValue row = convertToRowValue(fields, list).get(0);
+        row.setSystemId(systemId);
+        return row;
     }
 
     private String getDictionaryDataOrderBy(Sorting sorting, String alias) {

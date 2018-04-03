@@ -38,5 +38,5 @@ public interface SearchDataService {
      * @param systemId системный идентификатор записи
      * @return Запись
      */
-    RowValue findRow(String storageCode, List<Field> fields, String systemId);
+    RowValue findRow(String storageCode, List<String> fields, Object systemId);
 }

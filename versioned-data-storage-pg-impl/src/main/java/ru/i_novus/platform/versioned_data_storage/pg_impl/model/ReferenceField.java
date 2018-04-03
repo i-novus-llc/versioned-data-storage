@@ -7,24 +7,14 @@ import ru.i_novus.platform.datastorage.temporal.model.Field;
  * @since 01.02.2018
  */
 public class ReferenceField extends Field {
+    public static final String TYPE = "jsonb";
 
-    private boolean getReferenceData;
-
-    public ReferenceField(String name, boolean getReferenceData) {
+    public ReferenceField(String name) {
         super(name);
-        this.getReferenceData = getReferenceData;
-    }
-
-    public boolean isGetReferenceData() {
-        return getReferenceData;
-    }
-
-    public void setGetReferenceData(boolean getReferenceData) {
-        this.getReferenceData = getReferenceData;
     }
 
     @Override
     public String getType() {
-        return "jsonb";
+        return TYPE;
     }
 }

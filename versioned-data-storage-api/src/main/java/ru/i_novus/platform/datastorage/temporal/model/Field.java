@@ -1,10 +1,12 @@
 package ru.i_novus.platform.datastorage.temporal.model;
 
+import java.io.Serializable;
+
 /**
  * @author lgalimova
  * @since 01.02.2018
  */
-public abstract class Field {
+public abstract class Field implements Serializable {
     private String name;
     private Integer maxLength;
     private Boolean searchEnabled = false;

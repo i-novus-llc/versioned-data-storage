@@ -26,25 +26,15 @@ public class QueryUtil {
                     FieldValue fieldValue;
                     if (field instanceof BooleanField) {
                         fieldValue = new FieldValue<>(field, (Boolean) row[i]);
-                    }
-                    else if (field instanceof DateField) {
+                    } else if (field instanceof DateField) {
                         fieldValue = new FieldValue<>(field, (Date) row[i]);
-                    }
-                    else if (field instanceof FloatField) {
+                    } else if (field instanceof FloatField) {
                         fieldValue = new FieldValue<>(field, (Float) row[i]);
-                    }
-                    else if (field instanceof IntegerField) {
+                    } else if (field instanceof IntegerField) {
                         fieldValue = new FieldValue<>(field, (Float) row[i]);
-                    }
-                    else if (field instanceof ReferenceField && field.getName().contains("->>")) {
+                    } else if (field instanceof ReferenceField && field.getName().contains("->>")) {
                         ReferenceField referenceField = (ReferenceField) field;
-                        ReferenceField newReferenceField;
-                        if (referenceField.isGetReferenceData()) {
-                            newReferenceField = new ReferenceField(formatJsonbAttrValueForMapping(referenceField.getName()), true);
-
-                        } else {
-                            newReferenceField = new ReferenceField(referenceField.getName().split("->>")[0], false);
-                        }
+                        ReferenceField newReferenceField = new ReferenceField(formatJsonbAttrValueForMapping(referenceField.getName()));
                         fieldValue = new FieldValue<>(newReferenceField, (String) row[i]);
                     } else {
                         fieldValue = new FieldValue<>(field, (String) row[i]);

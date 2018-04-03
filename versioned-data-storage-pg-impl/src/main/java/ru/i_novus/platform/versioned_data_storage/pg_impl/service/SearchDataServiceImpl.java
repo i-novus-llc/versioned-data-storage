@@ -35,7 +35,7 @@ public class SearchDataServiceImpl implements SearchDataService {
     }
 
     @Override
-    public RowValue findRow(String storageCode, List<Field> fields, String systemId) {
+    public RowValue findRow(String storageCode, List<String> fields, Object systemId) {
         return dataDao.getRowData(storageCode, fields, systemId);
     }
 

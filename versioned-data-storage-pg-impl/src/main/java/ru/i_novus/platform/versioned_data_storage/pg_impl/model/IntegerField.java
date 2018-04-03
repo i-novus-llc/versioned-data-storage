@@ -7,12 +7,14 @@ import ru.i_novus.platform.datastorage.temporal.model.Field;
  * @since 23.03.2018
  */
 public class IntegerField extends Field {
+    public static final String TYPE = "integer";
+
     public IntegerField(String name) {
         super(name);
     }
 
     @Override
     public String getType() {
-        return "integer";
+        return TYPE;
     }
 }

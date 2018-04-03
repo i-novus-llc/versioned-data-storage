@@ -13,4 +13,23 @@
     <artifactId>versioned-data-storage-ee-adapter</artifactId>
     <packaging>jar</packaging>
 
+    <dependencies>
+        <dependency>
+            <groupId>ru.i-novus.platform</groupId>
+            <artifactId>versioned-data-storage-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>ru.i-novus.platform</groupId>
+            <artifactId>versioned-data-storage-pg-impl</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>javax</groupId>
+            <artifactId>javaee-api</artifactId>
+        </dependency>
+    </dependencies>
+
 </project>
