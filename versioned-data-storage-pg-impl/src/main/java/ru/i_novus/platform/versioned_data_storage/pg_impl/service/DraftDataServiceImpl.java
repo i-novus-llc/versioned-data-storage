@@ -6,6 +6,7 @@ import cz.atria.common.lang.Util;
 import org.apache.commons.lang.BooleanUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 import ru.i_novus.platform.datastorage.temporal.exception.ListCodifiedException;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
@@ -16,7 +17,6 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.model.DateField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.ReferenceField;
 import ru.kirkazan.common.exception.CodifiedException;
 
-import javax.enterprise.inject.Model;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
@@ -38,6 +38,8 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     @Override
     public String createDraft(List<Field> fields, List<RowValue> data) {
+        if (CollectionUtils.isEmpty(data))
+            return createDraft(fields);
         String draftCode = createDraft(fields);
         List<String> valueList = new ArrayList<>();
         String keys = null;
@@ -51,7 +53,6 @@ public class DraftDataServiceImpl implements DraftDataService {
             valueList.add(values);
         }
         dataDao.insertData(draftCode, keys, valueList, data);
-
         return draftCode;
     }
 
@@ -64,23 +65,23 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     @Override
     public String applyDraft(String sourceStorageCode, String draftCode, Date publishTime) {
-//        String newTable = UUID.randomUUID().toString();
-//        List<String> draftFields = dataDao.getFieldNames(draftCode);
-//        createTable(newTable, draftFields, false);
-//        if (sourceStorageCode != null && draftStructure.equals(actualVersionStructure)) {
-//            insertActualDataFromVersion(sourceStorageCode, draftCode, newTable);
-//            insertOldDataFromVersion(sourceStorageCode, newTable);
-//            insertClosedNowDataFromVersion(sourceStorageCode, draftCode, newTable, publishTime);
-//            insertNewDataFromDraft(sourceStorageCode, draftCode, newTable, publishTime);
-//        } else {
-//            BigInteger count = dataDao.countData(draftCode);
-//            draftFields.add("FTS");
-//            for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
-//                dataDao.insertDataFromDraft(draftCode, i, newTable, TRANSACTION_SIZE, publishTime, draftFields);
-//            }
-//        }
-//        return newTable;
-        return null;
+        List<String> draftFields = dataDao.getFieldNames(draftCode);
+        List<String> sourceFields = dataDao.getFieldNames(sourceStorageCode);
+        String newTable = createVersionTable(draftCode);
+        if (sourceStorageCode != null && draftFields.equals(sourceFields)) {
+            insertActualDataFromVersion(sourceStorageCode, draftCode, newTable);
+            insertOldDataFromVersion(sourceStorageCode, newTable);
+            insertClosedNowDataFromVersion(sourceStorageCode, draftCode, newTable, publishTime);
+            insertNewDataFromDraft(sourceStorageCode, draftCode, newTable, publishTime);
+        } else {
+            BigInteger count = dataDao.countData(draftCode);
+            draftFields.add(addEscapeCharacters("FTS"));
+            for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
+                dataDao.insertDataFromDraft(draftCode, i, newTable, TRANSACTION_SIZE, publishTime, draftFields);
+            }
+        }
+        dataDao.dropTable(draftCode);
+        return newTable;
     }
 
     @Override
@@ -151,7 +152,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Override
     public void addField(String draftCode, Field field) {
         dataDao.dropTrigger(draftCode);
-        dataDao.addColumnToTable(draftCode, field);
+        dataDao.addColumnToTable(draftCode, field.getName(), field.getType());
         dataDao.createTrigger(draftCode);
     }
 
@@ -163,13 +164,13 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     private void createTable(String draftCode, List<Field> fields, boolean isDraft) {
-        List<String> fieldNames = fields.stream().map(Field::getName).collect(Collectors.toList());
         logger.debug("creating table with name: {}", draftCode);
         if (isDraft) {
             dataDao.createDraftTable(draftCode, fields);
         } else {
             dataDao.createVersionTable(draftCode, fields);
         }
+        List<String> fieldNames = fields.stream().map(f->addEscapeCharacters(f.getName())).collect(Collectors.toList());
         dataDao.createHashIndex(draftCode);
         if (!fields.isEmpty()) {
             dataDao.createTrigger(draftCode, fieldNames);
@@ -180,6 +181,16 @@ public class DraftDataServiceImpl implements DraftDataService {
             }
         }
         dataDao.createFullTextSearchIndex(draftCode);
+    }
+
+    private String createVersionTable(String draftCode) {
+        String newTable = UUID.randomUUID().toString();
+        dataDao.copyTable(newTable, draftCode);
+        dataDao.addColumnToTable(newTable, "SYS_PUBLISHTIME", "timestamp with time zone");
+        dataDao.addColumnToTable(newTable, "SYS_CLOSETIME", "timestamp with time zone");
+        List<String> fieldNames = dataDao.getFieldNames(newTable);
+        dataDao.createTrigger(newTable, fieldNames);
+        return newTable;
     }
 
     private void validateRow(String draftCode, List<FieldValue> data, String systemId, List<CodifiedException> exceptions) {

@@ -201,8 +201,24 @@ public class DataDao {
                 fieldsString, tableName)).executeUpdate();
     }
 
-    public void addColumnToTable(String tableName, Field field) {
-        entityManager.createNativeQuery(String.format(ADD_NEW_COLUMN, tableName, field.getName(), field.getType())).executeUpdate();
+    public void copyTable(String newTableName, String sourceTableName) {
+        entityManager.createNativeQuery(String.format(COPY_TABLE_TEMPLATE, addEscapeCharacters(newTableName),
+                addEscapeCharacters(sourceTableName))).executeUpdate();
+        entityManager.createNativeQuery(String.format("CREATE SEQUENCE data.\"%s_SYS_RECORDID_seq\" start 1", newTableName)).executeUpdate();
+        List<String> indexes = entityManager.createNativeQuery("select indexdef from pg_indexes where tablename=?;")
+                .setParameter(1, sourceTableName)
+                .getResultList();
+        for (String index : indexes) {
+            entityManager.createNativeQuery(index.replaceAll(sourceTableName, newTableName)).executeUpdate();
+        }
+    }
+
+    public void dropTable(String tableName) {
+        entityManager.createNativeQuery(String.format(DROP_TABLE, addEscapeCharacters(tableName))).executeUpdate();
+    }
+
+    public void addColumnToTable(String tableName, String name, String type) {
+        entityManager.createNativeQuery(String.format(ADD_NEW_COLUMN, tableName, name, type)).executeUpdate();
     }
 
     public void deleteColumnFromTable(String tableName, String field) {
@@ -416,8 +432,8 @@ public class DataDao {
     }
 
     public void insertDataFromDraft(String draftTable, int offset, String targetTable, int transactionSize, Date publishTime, List<String> columns) {
-        String columnsWithPrefix = columns.stream().map(s -> "row.\"" + s + "\"").reduce((s1, s2) -> s1 + ", " + s2).get();
-        String columnsStr = columns.stream().map(s -> "\"" + s + "\"").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String query = String.format(INSERT_FROM_DRAFT_TEMPLATE,
                 addEscapeCharacters(draftTable),
                 offset,

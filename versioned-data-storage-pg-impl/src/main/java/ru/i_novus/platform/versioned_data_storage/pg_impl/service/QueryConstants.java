@@ -37,6 +37,8 @@ public class QueryConstants {
             "\"SYS_HASH\" char(32), " +
             "CONSTRAINT \"%s_pkey\" PRIMARY KEY (\"SYS_RECORDID\"));";
 
+    public static final String COPY_TABLE_TEMPLATE = "create table data.%s as select * from data.%s with no data;";
+
     public static final String DROP_HASH_TRIGGER = "DROP TRIGGER IF EXISTS hash_tg ON data.%s;";
 
     public static final String CREATE_HASH_TRIGGER = "CREATE OR REPLACE FUNCTION data.\"%s_hash_tf\"()\n" +
