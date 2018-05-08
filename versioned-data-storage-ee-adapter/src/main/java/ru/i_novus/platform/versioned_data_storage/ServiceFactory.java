@@ -2,9 +2,11 @@ package ru.i_novus.platform.versioned_data_storage;
 
 import ru.i_novus.platform.datastorage.temporal.service.CompareDataService;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
+import ru.i_novus.platform.datastorage.temporal.service.DropDataService;
 import ru.i_novus.platform.datastorage.temporal.service.SearchDataService;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.service.DataDao;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.service.DraftDataServiceImpl;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.service.DropDataServiceImpl;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.service.SearchDataServiceImpl;
 
 import javax.ejb.Startup;
@@ -37,5 +39,12 @@ public class ServiceFactory implements Serializable {
         DraftDataServiceImpl draftDataService = new DraftDataServiceImpl();
         draftDataService.setDataDao(dataDao);
         return draftDataService;
+    }
+
+    @Produces
+    public DropDataService getDropDataService(){
+        DropDataServiceImpl service = new DropDataServiceImpl();
+        service.setDataDao(dataDao);
+        return service;
     }
 }

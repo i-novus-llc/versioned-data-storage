@@ -29,9 +29,9 @@ public class QueryUtil {
                     } else if (field instanceof DateField) {
                         fieldValue = new FieldValue<>(field, (Date) row[i]);
                     } else if (field instanceof FloatField) {
-                        fieldValue = new FieldValue<>(field, (Float) row[i]);
+                        fieldValue = new FieldValue<>(field, (Number) row[i]);
                     } else if (field instanceof IntegerField) {
-                        fieldValue = new FieldValue<>(field, (Float) row[i]);
+                        fieldValue = new FieldValue<>(field, (Number) row[i]);
                     } else if (field instanceof ReferenceField && field.getName().contains("->>")) {
                         ReferenceField referenceField = (ReferenceField) field;
                         ReferenceField newReferenceField = new ReferenceField(formatJsonbAttrValueForMapping(referenceField.getName()));

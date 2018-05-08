@@ -211,6 +211,8 @@ public class DataDao {
         for (String index : indexes) {
             entityManager.createNativeQuery(index.replaceAll(sourceTableName, newTableName)).executeUpdate();
         }
+        entityManager.createNativeQuery(String.format("ALTER TABLE data.%s ADD PRIMARY KEY (\"SYS_RECORDID\")", addEscapeCharacters(newTableName))).executeUpdate();
+        entityManager.createNativeQuery(String.format("ALTER TABLE data.%s ALTER COLUMN \"SYS_RECORDID\" SET DEFAULT nextval('data.\"%s_SYS_RECORDID_seq\"');", addEscapeCharacters(newTableName), newTableName)).executeUpdate();
     }
 
     public void dropTable(String tableName) {
@@ -236,6 +238,14 @@ public class DataDao {
             }
         }
         query.executeUpdate();
+    }
+
+    public void loadData(String draftCode, String sourceStorageCode, List<String> fields, Date onDate) {
+        String keys = fields.stream().collect(Collectors.joining(","));
+        entityManager.createNativeQuery(String.format(COPY_QUERY_TEMPLATE, addEscapeCharacters(draftCode), keys, keys,
+                addEscapeCharacters(sourceStorageCode),
+                "date_trunc('second', \"SYS_PUBLISHTIME\") <= to_timestamp(:date,'YYYY-MM-DD HH24:MI:SS')"))
+                .setParameter("date", onDate).executeUpdate();
     }
 
     public void updateData(String tableName, String systemId, String keys, List<FieldValue> data, Map<String, String> types) {

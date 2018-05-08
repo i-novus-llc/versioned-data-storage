@@ -44,12 +44,13 @@ public class DraftDataServiceImpl implements DraftDataService {
         List<String> valueList = new ArrayList<>();
         String keys = null;
         for (RowValue rowValue : data) {
-            List<FieldValue> fieldValues = new ArrayList<>();
+            Map<String, FieldValue> fieldValues = new HashMap<>();
             for (Object value : rowValue.getFieldValues()) {
-                fieldValues.add((FieldValue) value);
+                FieldValue fieldValue = (FieldValue) value;
+                fieldValues.put(fieldValue.getField().getName(), (FieldValue) value);
             }
-            keys = fieldValues.stream().map(v -> addEscapeCharacters(v.getField().getName())).collect(Collectors.joining(",")) + ",\"FTS\"";
-            String values = fieldValues.stream().map(v -> "?").collect(Collectors.joining(", ")) + "," + getFts(fieldValues);
+            keys = fields.stream().map(v -> addEscapeCharacters(v.getName())).collect(Collectors.joining(",")) + ",\"FTS\"";
+            String values = fields.stream().map(v -> fieldValues.containsKey(v.getName()) ? "?" : "null").collect(Collectors.joining(", ")) + "," + getFts(new ArrayList<>(fieldValues.values()));
             valueList.add(values);
         }
         dataDao.insertData(draftCode, keys, valueList, data);
@@ -80,7 +81,6 @@ public class DraftDataServiceImpl implements DraftDataService {
                 dataDao.insertDataFromDraft(draftCode, i, newTable, TRANSACTION_SIZE, publishTime, draftFields);
             }
         }
-        dataDao.dropTable(draftCode);
         return newTable;
     }
 
@@ -150,6 +150,21 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     @Override
+    public void loadData(String draftCode, String sourceStorageCode, Date onDate) {
+        List<String> draftFields = dataDao.getFieldNames(draftCode);
+        Collections.sort(draftFields);
+        List<String> sourceFields = dataDao.getFieldNames(draftCode);
+        Collections.sort(sourceFields);
+        if (!draftFields.equals(sourceFields)){
+            throw new CodifiedException(TABLES_NOT_EQUAL);
+        }
+        draftFields.add(addEscapeCharacters(DATA_PRIMARY_COLUMN));
+        draftFields.add(addEscapeCharacters(FULL_TEXT_SEARCH));
+        draftFields.add(addEscapeCharacters(SYS_HASH));
+        dataDao.loadData(draftCode, sourceStorageCode, draftFields, onDate);
+    }
+
+    @Override
     public void addField(String draftCode, Field field) {
         dataDao.dropTrigger(draftCode);
         dataDao.addColumnToTable(draftCode, field.getName(), field.getType());
@@ -170,7 +185,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         } else {
             dataDao.createVersionTable(draftCode, fields);
         }
-        List<String> fieldNames = fields.stream().map(f->addEscapeCharacters(f.getName())).collect(Collectors.toList());
+        List<String> fieldNames = fields.stream().map(f -> addEscapeCharacters(f.getName())).collect(Collectors.toList());
         dataDao.createHashIndex(draftCode);
         if (!fields.isEmpty()) {
             dataDao.createTrigger(draftCode, fieldNames);
@@ -246,7 +261,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     private String getFts(List<FieldValue> fields) {
-        StringBuilder fullTextSearch = new StringBuilder();
+        List<String> fullTextSearch = new ArrayList<>();
         List<String> values = new ArrayList<>();
         for (FieldValue field : fields) {
             Object value = field.getValue();
@@ -255,11 +270,9 @@ public class DraftDataServiceImpl implements DraftDataService {
                 values.add(value.toString());
         }
         for (String value : values) {
-            fullTextSearch.append(" coalesce( to_tsvector('ru', '").append(value).append("'),'')");
-            if (!value.equals(values.get(values.size() - 1)))
-                fullTextSearch.append(" || ' ' ||");
+            fullTextSearch.add(" coalesce( to_tsvector('ru', '" + value + "'),'')");
         }
-        return fullTextSearch.toString();
+        return String.join(" || ' ' ||", fullTextSearch);
     }
 
 

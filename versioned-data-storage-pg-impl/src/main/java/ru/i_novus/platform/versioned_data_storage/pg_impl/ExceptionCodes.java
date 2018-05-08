@@ -18,4 +18,5 @@ public class ExceptionCodes {
     public static final String ACTUAL_VERSION_NOT_FOUND_EXCEPTION_CODE = "nsi.core.dictionary.actual.version.not.found";
     public static final String DATA_INCOMPATIBLE_WITH_TYPE_EXCEPTION_CODE = "nsi.core.data.loader.dataIncompatibleWithType";
     public static final String INVALID_XML_STRUCTURE_EXCEPTION_CODE = "nsi.core.data.xml.structure.error";
+    public static final String TABLES_NOT_EQUAL = "nsi.core.data.loader.structure.notEqual";
 }
