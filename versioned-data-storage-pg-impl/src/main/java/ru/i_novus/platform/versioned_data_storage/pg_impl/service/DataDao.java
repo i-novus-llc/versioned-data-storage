@@ -240,22 +240,20 @@ public class DataDao {
         return query.getResultList();
     }
 
-    public void loadData(String draftCode, String sourceStorageCode, List<String> fields, Date publishDate, Date closeDate) {
+    public void loadData(String draftCode, String sourceStorageCode, List<String> fields, Date onDate) {
         String keys = fields.stream().collect(Collectors.joining(","));
-        String where = getDataWhereClause(publishDate, closeDate, null, null);
-        Query query = entityManager.createNativeQuery(String.format(COPY_QUERY_TEMPLATE, addEscapeCharacters(draftCode), keys, keys,
+        String where = getDataWhereClause(onDate, null, null, null);
+        entityManager.createNativeQuery(String.format(COPY_QUERY_TEMPLATE, addEscapeCharacters(draftCode), keys, keys,
                 addEscapeCharacters(sourceStorageCode), where))
-                .setParameter("bdate", DateUtils.truncate(publishDate, Calendar.SECOND));
-        if (closeDate != null)
-            query.setParameter("edate", DateUtils.truncate(closeDate, Calendar.SECOND));
-        query.executeUpdate();
+                .setParameter("bdate", DateUtils.truncate(onDate, Calendar.SECOND))
+                .executeUpdate();
     }
 
-    public void updateData(String tableName, String keys, RowValue rowValue, Map<String, String> types) {
+    public void updateData(String tableName, String keys, RowValue rowValue) {
         Query query = entityManager.createNativeQuery(String.format(UPDATE_QUERY_TEMPLATE, addEscapeCharacters(tableName), keys, "?"));
         int i = 1;
         for (Object fieldValue : rowValue.getFieldValues()) {
-            query.setParameter(i++, ((FieldValue)fieldValue).getValue());
+            query.setParameter(i++, ((FieldValue) fieldValue).getValue());
         }
         query.setParameter(i, rowValue.getSystemId());
         query.executeUpdate();
@@ -276,7 +274,7 @@ public class DataDao {
         query.executeUpdate();
     }
 
-    public void updateSequence(String tableName){
+    public void updateSequence(String tableName) {
         entityManager.createNativeQuery(String.format("SELECT setval('data.%s', (SELECT max(\"SYS_RECORDID\") FROM data.%s))",
                 getSequenceName(tableName), addEscapeCharacters(tableName))).getSingleResult();
     }

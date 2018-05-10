@@ -7,10 +7,13 @@ import java.util.List;
  * @since 20.03.2018
  */
 public class DataDifference {
+    private List<DiffRowValue> rows;
 
-    private List<FieldValue> created;
+    public DataDifference(List<DiffRowValue> rows) {
+        this.rows = rows;
+    }
 
-    private List<FieldValue> updated;
-
-    private List<FieldValue> deleted;
+    public List<DiffRowValue> getRows() {
+        return rows;
+    }
 }

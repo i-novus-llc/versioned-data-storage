@@ -128,7 +128,6 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Override
     public void updateRow(String draftCode, RowValue value) {
         List<CodifiedException> exceptions = new ArrayList<>();
-        Map<String, String> types = new HashMap<>();
         validateRow(draftCode, value, exceptions);
         List<String> keyList = new ArrayList<>();
         for (Object objectValue : value.getFieldValues()) {
@@ -146,11 +145,11 @@ public class DraftDataServiceImpl implements DraftDataService {
         if (exceptions.size() != 0) {
             throw new ListCodifiedException(exceptions);
         }
-        dataDao.updateData(draftCode, keys, value, types);
+        dataDao.updateData(draftCode, keys, value);
     }
 
     @Override
-    public void loadData(String draftCode, String sourceStorageCode, Date publishDate, Date closeDate) {
+    public void loadData(String draftCode, String sourceStorageCode, Date onDate) {
         List<String> draftFields = dataDao.getFieldNames(draftCode);
         Collections.sort(draftFields);
         List<String> sourceFields = dataDao.getFieldNames(draftCode);
@@ -161,7 +160,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         draftFields.add(addEscapeCharacters(DATA_PRIMARY_COLUMN));
         draftFields.add(addEscapeCharacters(FULL_TEXT_SEARCH));
         draftFields.add(addEscapeCharacters(SYS_HASH));
-        dataDao.loadData(draftCode, sourceStorageCode, draftFields, publishDate, closeDate);
+        dataDao.loadData(draftCode, sourceStorageCode, draftFields, onDate);
         dataDao.updateSequence(draftCode);
     }
 
