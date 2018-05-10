@@ -80,9 +80,10 @@ public interface DraftDataService {
      *
      * @param draftCode код черновика
      * @param sourceStorageCode код хранилища данных, откуда будут загружены данные
-     * @param onDate дата публикации версии
+     * @param publishDate дата публикации версии
+     * @param closeDate дата закрытия версии
      */
-    void loadData(String draftCode, String sourceStorageCode, Date onDate);
+    void loadData(String draftCode, String sourceStorageCode, Date publishDate, Date closeDate);
 
     /**
      * Добавление нового поля в таблицу

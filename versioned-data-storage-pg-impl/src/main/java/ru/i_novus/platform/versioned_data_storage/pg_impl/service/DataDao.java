@@ -2,6 +2,7 @@ package ru.i_novus.platform.versioned_data_storage.pg_impl.service;
 
 import cz.atria.common.lang.Util;
 import net.n2oapp.criteria.api.Sorting;
+import org.apache.commons.lang.time.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
@@ -33,7 +34,7 @@ public class DataDao {
     public List<RowValue> getData(DataCriteria criteria) {
         List<String> fieldNames = criteria.getFields().stream().map(Field::getName).collect(Collectors.toList());
         String queryStr = "SELECT " + generateSqlQuery("d", fieldNames) +
-                " FROM data." + addEscapeCharacters(criteria.getTableName()) + " d ";
+                " FROM data." + addEscapeCharacters(criteria.getTableName()) + " d WHERE ";
 
         queryStr += getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter());
         String orderBy = getDictionaryDataOrderBy((!Util.isEmpty(criteria.getSortings()) ? criteria.getSortings().get(0) : null), "d");
@@ -43,10 +44,10 @@ public class DataDao {
             query.setFirstResult((criteria.getPage() - 1) * criteria.getSize())
                     .setMaxResults(criteria.getSize());
         if (criteria.getBdate() != null) {
-            query.setParameter("bdate", criteria.getBdate());
+            query.setParameter("bdate", DateUtils.truncate(criteria.getBdate(), Calendar.SECOND));
         }
         if (criteria.getEdate() != null) {
-            query.setParameter("edate", criteria.getEdate());
+            query.setParameter("edate", DateUtils.truncate(criteria.getEdate(), Calendar.SECOND));
         }
         if (!Util.isEmpty(criteria.getCommonFilter())) {
             String search = criteria.getCommonFilter().trim();
@@ -100,14 +101,14 @@ public class DataDao {
 
     public BigInteger getDataCount(DataCriteria criteria) {
         String queryStr = "SELECT count(*)" +
-                " FROM data." + addEscapeCharacters(criteria.getTableName()) + " d ";
+                " FROM data." + addEscapeCharacters(criteria.getTableName()) + " d WHERE ";
         queryStr += getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter());
         Query query = entityManager.createNativeQuery(queryStr);
         if (criteria.getBdate() != null) {
-            query.setParameter("bdate", criteria.getBdate());
+            query.setParameter("bdate", DateUtils.truncate(criteria.getBdate(), Calendar.SECOND));
         }
         if (criteria.getEdate() != null) {
-            query.setParameter("edate", criteria.getEdate());
+            query.setParameter("edate", DateUtils.truncate(criteria.getEdate(), Calendar.SECOND));
         }
         if (!Util.isEmpty(criteria.getCommonFilter())) {
             String search = criteria.getCommonFilter().trim();
@@ -126,13 +127,12 @@ public class DataDao {
     }
 
     private String getDataWhereClause(Date publishDate, Date closeDate, String search, List<FieldSearchCriteria> filter) {
-        String result = " WHERE 1=1 ";
+        String result = " 1=1 ";
         if (publishDate != null) {
-            result += " and (d.\"SYS_PUBLISHTIME\" is null or date_trunc('second', d.\"SYS_PUBLISHTIME\") <= to_timestamp(:bdate,'YYYY-MM-DD HH24:MI:SS') ) " +
-                    "and (date_trunc('second', d.\"SYS_CLOSETIME\") > to_timestamp (:bdate, 'YYYY-MM-DD HH24:MI:SS') or d.\"SYS_CLOSETIME\" is null)";
+            result += " and date_trunc('second', d.\"SYS_PUBLISHTIME\") <= :bdate and (date_trunc('second', d.\"SYS_CLOSETIME\") > :bdate or d.\"SYS_CLOSETIME\" is null)";
         }
         if (closeDate != null) {
-            result += " and (date_trunc('second', d.\"SYS_CLOSETIME\") >= to_timestamp (:edate, 'YYYY-MM-DD HH24:MI:SS') or d.\"SYS_CLOSETIME\" is null)";
+            result += " and (date_trunc('second', d.\"SYS_CLOSETIME\") >= :edate or d.\"SYS_CLOSETIME\" is null)";
         }
         result += getDictionaryFilterQuery(search, filter);
         return result;
@@ -240,12 +240,15 @@ public class DataDao {
         query.executeUpdate();
     }
 
-    public void loadData(String draftCode, String sourceStorageCode, List<String> fields, Date onDate) {
+    public void loadData(String draftCode, String sourceStorageCode, List<String> fields, Date publishDate, Date closeDate) {
         String keys = fields.stream().collect(Collectors.joining(","));
-        entityManager.createNativeQuery(String.format(COPY_QUERY_TEMPLATE, addEscapeCharacters(draftCode), keys, keys,
-                addEscapeCharacters(sourceStorageCode),
-                "date_trunc('second', \"SYS_PUBLISHTIME\") <= to_timestamp(:date,'YYYY-MM-DD HH24:MI:SS')"))
-                .setParameter("date", onDate).executeUpdate();
+        String where = getDataWhereClause(publishDate, closeDate, null, null);
+        Query query = entityManager.createNativeQuery(String.format(COPY_QUERY_TEMPLATE, addEscapeCharacters(draftCode), keys, keys,
+                addEscapeCharacters(sourceStorageCode), where))
+                .setParameter("bdate", DateUtils.truncate(publishDate, Calendar.SECOND));
+        if (closeDate != null)
+            query.setParameter("edate", DateUtils.truncate(closeDate, Calendar.SECOND));
+        query.executeUpdate();
     }
 
     public void updateData(String tableName, String systemId, String keys, List<FieldValue> data, Map<String, String> types) {

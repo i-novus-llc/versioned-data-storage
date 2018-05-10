@@ -150,7 +150,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     @Override
-    public void loadData(String draftCode, String sourceStorageCode, Date onDate) {
+    public void loadData(String draftCode, String sourceStorageCode, Date publishDate, Date closeDate) {
         List<String> draftFields = dataDao.getFieldNames(draftCode);
         Collections.sort(draftFields);
         List<String> sourceFields = dataDao.getFieldNames(draftCode);
@@ -161,7 +161,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         draftFields.add(addEscapeCharacters(DATA_PRIMARY_COLUMN));
         draftFields.add(addEscapeCharacters(FULL_TEXT_SEARCH));
         draftFields.add(addEscapeCharacters(SYS_HASH));
-        dataDao.loadData(draftCode, sourceStorageCode, draftFields, onDate);
+        dataDao.loadData(draftCode, sourceStorageCode, draftFields, publishDate, closeDate);
     }
 
     @Override
