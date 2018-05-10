@@ -251,13 +251,13 @@ public class DataDao {
         query.executeUpdate();
     }
 
-    public void updateData(String tableName, String systemId, String keys, List<FieldValue> data, Map<String, String> types) {
+    public void updateData(String tableName, String keys, RowValue rowValue, Map<String, String> types) {
         Query query = entityManager.createNativeQuery(String.format(UPDATE_QUERY_TEMPLATE, addEscapeCharacters(tableName), keys, "?"));
         int i = 1;
-        for (FieldValue fieldValue : data) {
-            query.setParameter(i++, fieldValue.getValue());
+        for (Object fieldValue : rowValue.getFieldValues()) {
+            query.setParameter(i++, ((FieldValue)fieldValue).getValue());
         }
-        query.setParameter(i, systemId);
+        query.setParameter(i, rowValue.getSystemId());
         query.executeUpdate();
     }
 
@@ -324,7 +324,7 @@ public class DataDao {
         return results.stream().map(QueryUtil::addEscapeCharacters).collect(Collectors.toList());
     }
 
-    public List getRowsByField(String tableName, String field, Object uniqueValue, boolean existDateColumns, Date begin, Date end, String id) {
+    public List getRowsByField(String tableName, String field, Object uniqueValue, boolean existDateColumns, Date begin, Date end, Object id) {
         String query = SELECT_ROWS_FROM_DATA_BY_FIELD;
         String rows = addEscapeCharacters(field);
         if (existDateColumns) {

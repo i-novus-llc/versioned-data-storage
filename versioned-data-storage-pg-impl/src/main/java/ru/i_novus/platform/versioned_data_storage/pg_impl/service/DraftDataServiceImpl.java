@@ -95,7 +95,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         String keys = fieldValues.stream().map(field -> addEscapeCharacters(field.getField().getName())).collect(Collectors.joining(","));
         List<String> values = new ArrayList<>();
         for (RowValue rowValue : data) {
-            validateRow(draftCode, rowValue.getFieldValues(), null, exceptions);
+            validateRow(draftCode, rowValue, exceptions);
             List<String> rowValues = new ArrayList<>();
             for (Object fieldValueObj : rowValue.getFieldValues()) {
                 FieldValue fieldValue = (FieldValue) fieldValueObj;
@@ -127,12 +127,13 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     @Override
-    public void updateRow(String draftCode, String systemId, List<FieldValue> data) {
+    public void updateRow(String draftCode, RowValue value) {
         List<CodifiedException> exceptions = new ArrayList<>();
         Map<String, String> types = new HashMap<>();
-        validateRow(draftCode, data, systemId, exceptions);
+        validateRow(draftCode, value, exceptions);
         List<String> keyList = new ArrayList<>();
-        for (FieldValue fieldValue : data) {
+        for (Object objectValue : value.getFieldValues()) {
+            FieldValue fieldValue = (FieldValue) objectValue;
             String fieldName = fieldValue.getField().getName();
             if (fieldValue.getValue() == null || fieldValue.getValue().equals("null")) {
                 keyList.add(addEscapeCharacters(fieldName) + " = NULL");
@@ -146,7 +147,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         if (exceptions.size() != 0) {
             throw new ListCodifiedException(exceptions);
         }
-        dataDao.updateData(draftCode, systemId, keys, data, types);
+        dataDao.updateData(draftCode, keys, value, types);
     }
 
     @Override
@@ -155,7 +156,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         Collections.sort(draftFields);
         List<String> sourceFields = dataDao.getFieldNames(draftCode);
         Collections.sort(sourceFields);
-        if (!draftFields.equals(sourceFields)){
+        if (!draftFields.equals(sourceFields)) {
             throw new CodifiedException(TABLES_NOT_EQUAL);
         }
         draftFields.add(addEscapeCharacters(DATA_PRIMARY_COLUMN));
@@ -208,15 +209,16 @@ public class DraftDataServiceImpl implements DraftDataService {
         return newTable;
     }
 
-    private void validateRow(String draftCode, List<FieldValue> data, String systemId, List<CodifiedException> exceptions) {
-        List<FieldValue> dataCopy = new ArrayList<>(data);
+    private void validateRow(String draftCode, RowValue row, List<CodifiedException> exceptions) {
+        List<FieldValue> dataCopy = new ArrayList<>(row.getFieldValues());
         dataCopy.removeIf(v -> v.getValue() == null);
         if (dataCopy.size() == 0)
             throw new CodifiedException(EMPTY_RECORD_EXCEPTION_CODE);
 
         Date dateBegin = null;
         Date dateEnd = null;
-        for (FieldValue fieldValue : data) {
+        for (Object objectValue : row.getFieldValues()) {
+            FieldValue fieldValue = (FieldValue) objectValue;
             Field field = fieldValue.getField();
             if (DATE_BEGIN.equals(field.getName()))
                 dateBegin = (Date) fieldValue.getValue();
@@ -247,7 +249,7 @@ public class DraftDataServiceImpl implements DraftDataService {
                     exceptions.add(new CodifiedException(FIELD_IS_REQUIRED_EXCEPTION_CODE, field.getName()));
                 } else {
                     List result = dataDao.getRowsByField(draftCode, field.getName(), fieldValue.getValue(),
-                            dateBegin != null, dateBegin, dateEnd, systemId);
+                            dateBegin != null, dateBegin, dateEnd, row.getSystemId());
                     if (result.size() > 0) {
                         exceptions.add(new CodifiedException(DUPLICATE_UNIQUE_VALUE_EXCEPTION_CODE, fieldValue.getValue()));
                     }

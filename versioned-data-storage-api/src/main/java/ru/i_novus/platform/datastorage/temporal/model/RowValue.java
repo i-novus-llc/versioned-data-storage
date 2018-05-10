@@ -12,6 +12,14 @@ public abstract class RowValue<T> {
     private T systemId;
     private List<FieldValue> fieldValues = new ArrayList<>();
 
+    public RowValue() {
+    }
+
+    public RowValue(T systemId, List<FieldValue> fieldValues) {
+        this.systemId = systemId;
+        this.fieldValues = fieldValues;
+    }
+
     public T getSystemId() {
         return systemId;
     }

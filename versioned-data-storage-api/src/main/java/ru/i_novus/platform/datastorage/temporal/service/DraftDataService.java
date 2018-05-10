@@ -1,7 +1,6 @@
 package ru.i_novus.platform.datastorage.temporal.service;
 
 import ru.i_novus.platform.datastorage.temporal.model.Field;
-import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.RowValue;
 
 import java.util.Date;
@@ -70,10 +69,9 @@ public interface DraftDataService {
      * Изменение записи таблицы
      *
      * @param draftCode код черновика
-     * @param systemId  системный идентификатор записи
      * @param data      новые значения
      */
-    void updateRow(String draftCode, String systemId, List<FieldValue> data);
+    void updateRow(String draftCode, RowValue data);
 
     /**
      * Загрузить данные в черновик из хранилища
