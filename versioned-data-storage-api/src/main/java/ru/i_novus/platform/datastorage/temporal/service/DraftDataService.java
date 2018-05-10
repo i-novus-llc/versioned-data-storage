@@ -48,7 +48,7 @@ public interface DraftDataService {
      * @param data      данные строки
      * @return Системные идентификаторы добавленных записей
      */
-    List<String> addRows(String draftCode, List<RowValue> data);
+    List<Object> addRows(String draftCode, List<RowValue> data);
 
     /**
      * Удалить записи из таблицы
@@ -56,7 +56,7 @@ public interface DraftDataService {
      * @param draftCode код черновика
      * @param systemIds системный идентификатор записи
      */
-    void deleteRows(String draftCode, List<String> systemIds);
+    void deleteRows(String draftCode, List<Object> systemIds);
 
     /**
      * Удалить все записи из таблицы

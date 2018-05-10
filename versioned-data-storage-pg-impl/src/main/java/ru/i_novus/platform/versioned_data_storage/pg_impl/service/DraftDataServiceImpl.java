@@ -85,7 +85,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     @Override
-    public List<String> addRows(String draftCode, List<RowValue> data) {
+    public List<Object> addRows(String draftCode, List<RowValue> data) {
         List<CodifiedException> exceptions = new ArrayList<>();
 
         List<FieldValue> fieldValues = new ArrayList<>();
@@ -112,12 +112,11 @@ public class DraftDataServiceImpl implements DraftDataService {
         if (!exceptions.isEmpty()) {
             throw new ListCodifiedException(exceptions);
         }
-        dataDao.insertData(draftCode, keys, values, data);
-        return null;
+        return dataDao.insertData(draftCode, keys, values, data);
     }
 
     @Override
-    public void deleteRows(String draftCode, List<String> systemIds) {
+    public void deleteRows(String draftCode, List<Object> systemIds) {
         dataDao.deleteData(draftCode, systemIds);
     }
 
@@ -163,6 +162,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         draftFields.add(addEscapeCharacters(FULL_TEXT_SEARCH));
         draftFields.add(addEscapeCharacters(SYS_HASH));
         dataDao.loadData(draftCode, sourceStorageCode, draftFields, publishDate, closeDate);
+        dataDao.updateSequence(draftCode);
     }
 
     @Override

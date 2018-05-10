@@ -227,7 +227,7 @@ public class DataDao {
         entityManager.createNativeQuery(String.format(DELETE_COLUMN, tableName, field)).executeUpdate();
     }
 
-    public void insertData(String tableName, String keys, List<String> values, List<RowValue> data) {
+    public List<Object> insertData(String tableName, String keys, List<String> values, List<RowValue> data) {
         String stringValues = values.stream().collect(Collectors.joining("),("));
         Query query = entityManager.createNativeQuery(String.format(INSERT_QUERY_TEMPLATE, addEscapeCharacters(tableName), keys, stringValues));
         int i = 1;
@@ -237,7 +237,7 @@ public class DataDao {
                     query.setParameter(i++, ((FieldValue) fieldValue).getValue());
             }
         }
-        query.executeUpdate();
+        return query.getResultList();
     }
 
     public void loadData(String draftCode, String sourceStorageCode, List<String> fields, Date publishDate, Date closeDate) {
@@ -266,14 +266,19 @@ public class DataDao {
         query.executeUpdate();
     }
 
-    public void deleteData(String tableName, List<String> systemIds) {
+    public void deleteData(String tableName, List<Object> systemIds) {
         String ids = systemIds.stream().map(id -> "?").collect(Collectors.joining(","));
         Query query = entityManager.createNativeQuery(String.format(DELETE_QUERY_TEMPLATE, addEscapeCharacters(tableName), ids));
         int i = 1;
-        for (String systemId : systemIds) {
+        for (Object systemId : systemIds) {
             query.setParameter(i++, systemId);
         }
         query.executeUpdate();
+    }
+
+    public void updateSequence(String tableName){
+        entityManager.createNativeQuery(String.format("SELECT setval('data.%s', (SELECT max(\"SYS_RECORDID\") FROM data.%s))",
+                getSequenceName(tableName), addEscapeCharacters(tableName))).getSingleResult();
     }
 
     public void createTrigger(String tableName) {
