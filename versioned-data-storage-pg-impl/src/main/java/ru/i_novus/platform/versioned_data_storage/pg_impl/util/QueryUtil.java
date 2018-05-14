@@ -1,11 +1,13 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.util;
 
+import net.n2oapp.criteria.api.Criteria;
 import org.apache.commons.lang.StringUtils;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.RowValue;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -86,5 +88,18 @@ public class QueryUtil {
 
     public static String getSequenceName(String table) {
         return addEscapeCharacters(table + "_SYS_RECORDID_seq");
+    }
+
+    public static Date truncateDateTo(Date date, ChronoUnit unit) {
+        return Date.from(date.toInstant().truncatedTo(unit));
+    }
+
+    public static int getOffset(Criteria criteria) {
+        if (criteria != null) {
+            if (criteria.getPage() <= 0 || criteria.getSize() <= 0)
+                throw new IllegalStateException("Criteria page and size should be greater than zero");
+            return (criteria.getPage() - 1) * criteria.getSize();
+        }
+        return 0;
     }
 }

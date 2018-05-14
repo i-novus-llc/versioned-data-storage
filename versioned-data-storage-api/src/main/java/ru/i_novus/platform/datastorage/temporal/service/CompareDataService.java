@@ -2,8 +2,7 @@ package ru.i_novus.platform.datastorage.temporal.service;
 
 import ru.i_novus.platform.datastorage.temporal.model.DataDifference;
 import ru.i_novus.platform.datastorage.temporal.model.MetaDifference;
-
-import java.util.Date;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.CompareDataCriteria;
 
 /**
  * Сервис сравнения наборов данных и структур данных в хранилищах.
@@ -17,12 +16,10 @@ public interface CompareDataService {
     /**
      * Сравнение актуальных на заданные даты данных
      *
-     * @param storageCode    код хранилища данных
-     * @param baseDataDate   дата актуальности для исходных данных
-     * @param targetDataDate дата актуальности для целевого набора данных
+     * @param criteria параметры запроса
      * @return Результат сравнения
      */
-    DataDifference getDataDifference(String storageCode, Date baseDataDate, Date targetDataDate);
+    DataDifference getDataDifference(CompareDataCriteria criteria);
 
     /**
      * Сравненние структур данных в двух хранилищах

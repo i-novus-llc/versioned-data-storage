@@ -41,19 +41,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         if (CollectionUtils.isEmpty(data))
             return createDraft(fields);
         String draftCode = createDraft(fields);
-        List<String> valueList = new ArrayList<>();
-        String keys = null;
-        for (RowValue rowValue : data) {
-            Map<String, FieldValue> fieldValues = new HashMap<>();
-            for (Object value : rowValue.getFieldValues()) {
-                FieldValue fieldValue = (FieldValue) value;
-                fieldValues.put(fieldValue.getField().getName(), (FieldValue) value);
-            }
-            keys = fields.stream().map(v -> addEscapeCharacters(v.getName())).collect(Collectors.joining(",")) + ",\"FTS\"";
-            String values = fields.stream().map(v -> fieldValues.containsKey(v.getName()) ? "?" : "null").collect(Collectors.joining(", ")) + "," + getFts(new ArrayList<>(fieldValues.values()));
-            valueList.add(values);
-        }
-        dataDao.insertData(draftCode, keys, valueList, data);
+        addRows(draftCode, data);
         return draftCode;
     }
 
@@ -85,17 +73,13 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     @Override
-    public List<Object> addRows(String draftCode, List<RowValue> data) {
+    public void addRows(String draftCode, List<RowValue> data) {
         List<CodifiedException> exceptions = new ArrayList<>();
-
-        List<FieldValue> fieldValues = new ArrayList<>();
-        for (Object value : data.get(0).getFieldValues()) {
-            fieldValues.add((FieldValue) value);
-        }
-        String keys = fieldValues.stream().map(field -> addEscapeCharacters(field.getField().getName())).collect(Collectors.joining(","));
+        List<String> fieldNames = dataDao.getFieldNames(draftCode);
+        String keys = fieldNames.stream().collect(Collectors.joining(","));
         List<String> values = new ArrayList<>();
         for (RowValue rowValue : data) {
-            validateRow(draftCode, rowValue, exceptions);
+//            validateRow(draftCode, rowValue, exceptions);
             List<String> rowValues = new ArrayList<>();
             for (Object fieldValueObj : rowValue.getFieldValues()) {
                 FieldValue fieldValue = (FieldValue) fieldValueObj;
@@ -112,7 +96,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         if (!exceptions.isEmpty()) {
             throw new ListCodifiedException(exceptions);
         }
-        return dataDao.insertData(draftCode, keys, values, data);
+        dataDao.insertData(draftCode, keys, values, data);
     }
 
     @Override
@@ -271,7 +255,7 @@ public class DraftDataServiceImpl implements DraftDataService {
                 values.add(value.toString());
         }
         for (String value : values) {
-            fullTextSearch.add(" coalesce( to_tsvector('ru', '" + value + "'),'')");
+            fullTextSearch.add(" coalesce( to_tsvector('ru', '" + value.replaceAll("\"", "") + "'),'')");
         }
         return String.join(" || ' ' ||", fullTextSearch);
     }

@@ -48,7 +48,7 @@ public interface DraftDataService {
      * @param data      данные строки
      * @return Системные идентификаторы добавленных записей
      */
-    List<Object> addRows(String draftCode, List<RowValue> data);
+    void addRows(String draftCode, List<RowValue> data);
 
     /**
      * Удалить записи из таблицы

@@ -1,10 +1,12 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.service;
 
 import cz.atria.common.lang.Util;
+import net.n2oapp.criteria.api.CollectionPage;
 import net.n2oapp.criteria.api.Sorting;
-import org.apache.commons.lang.time.DateUtils;
+import org.apache.commons.lang.BooleanUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.CompareDataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.FieldSearchCriteria;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
@@ -14,6 +16,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.Query;
 import java.math.BigInteger;
 import java.text.SimpleDateFormat;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -41,13 +44,13 @@ public class DataDao {
         Query query = entityManager
                 .createNativeQuery(queryStr + orderBy);
         if (criteria.getPage() > 0 && criteria.getSize() > 0)
-            query.setFirstResult((criteria.getPage() - 1) * criteria.getSize())
+            query.setFirstResult(getOffset(criteria))
                     .setMaxResults(criteria.getSize());
         if (criteria.getBdate() != null) {
-            query.setParameter("bdate", DateUtils.truncate(criteria.getBdate(), Calendar.SECOND));
+            query.setParameter("bdate", truncateDateTo(criteria.getBdate(), ChronoUnit.SECONDS));
         }
         if (criteria.getEdate() != null) {
-            query.setParameter("edate", DateUtils.truncate(criteria.getEdate(), Calendar.SECOND));
+            query.setParameter("edate", truncateDateTo(criteria.getEdate(), ChronoUnit.SECONDS));
         }
         if (!Util.isEmpty(criteria.getCommonFilter())) {
             String search = criteria.getCommonFilter().trim();
@@ -105,10 +108,10 @@ public class DataDao {
         queryStr += getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter());
         Query query = entityManager.createNativeQuery(queryStr);
         if (criteria.getBdate() != null) {
-            query.setParameter("bdate", DateUtils.truncate(criteria.getBdate(), Calendar.SECOND));
+            query.setParameter("bdate", truncateDateTo(criteria.getBdate(), ChronoUnit.SECONDS));
         }
         if (criteria.getEdate() != null) {
-            query.setParameter("edate", DateUtils.truncate(criteria.getEdate(), Calendar.SECOND));
+            query.setParameter("edate", truncateDateTo(criteria.getEdate(), ChronoUnit.SECONDS));
         }
         if (!Util.isEmpty(criteria.getCommonFilter())) {
             String search = criteria.getCommonFilter().trim();
@@ -227,9 +230,9 @@ public class DataDao {
         entityManager.createNativeQuery(String.format(DELETE_COLUMN, tableName, field)).executeUpdate();
     }
 
-    public List<Object> insertData(String tableName, String keys, List<String> values, List<RowValue> data) {
+    public List<Object> insertDataWithId(String tableName, String keys, List<String> values, List<RowValue> data) {
         String stringValues = values.stream().collect(Collectors.joining("),("));
-        Query query = entityManager.createNativeQuery(String.format(INSERT_QUERY_TEMPLATE, addEscapeCharacters(tableName), keys, stringValues));
+        Query query = entityManager.createNativeQuery(String.format(INSERT_QUERY_TEMPLATE_WITH_ID, addEscapeCharacters(tableName), keys, stringValues));
         int i = 1;
         for (RowValue rowValue : data) {
             for (Object fieldValue : rowValue.getFieldValues()) {
@@ -240,20 +243,44 @@ public class DataDao {
         return query.getResultList();
     }
 
+    public void insertData(String tableName, String keys, List<String> values, List<RowValue> data) {
+        int i = 1;
+        int batchSize = 500;
+        for (int firstIndex = 0, maxIndex = batchSize; firstIndex < values.size(); firstIndex = maxIndex, maxIndex = firstIndex + batchSize) {
+            if (maxIndex > values.size())
+                maxIndex = values.size();
+            List<String> subValues = values.subList(firstIndex, maxIndex);
+            List<RowValue> subData = data.subList(firstIndex, maxIndex);
+            String stringValues = subValues.stream().collect(Collectors.joining("),("));
+            Query query = entityManager.createNativeQuery(String.format(INSERT_QUERY_TEMPLATE, addEscapeCharacters(tableName), keys, stringValues));
+            for (RowValue rowValue : subData) {
+                for (Object fieldValue : rowValue.getFieldValues()) {
+                    if (((FieldValue) fieldValue).getValue() != null)
+                        query.setParameter(i++, ((FieldValue) fieldValue).getValue());
+                }
+            }
+            query.executeUpdate();
+            i = 1;
+        }
+    }
+
     public void loadData(String draftCode, String sourceStorageCode, List<String> fields, Date onDate) {
         String keys = fields.stream().collect(Collectors.joining(","));
         String where = getDataWhereClause(onDate, null, null, null);
         entityManager.createNativeQuery(String.format(COPY_QUERY_TEMPLATE, addEscapeCharacters(draftCode), keys, keys,
                 addEscapeCharacters(sourceStorageCode), where))
-                .setParameter("bdate", DateUtils.truncate(onDate, Calendar.SECOND))
+                .setParameter("bdate", truncateDateTo(onDate, ChronoUnit.SECONDS))
                 .executeUpdate();
+
     }
 
     public void updateData(String tableName, String keys, RowValue rowValue) {
         Query query = entityManager.createNativeQuery(String.format(UPDATE_QUERY_TEMPLATE, addEscapeCharacters(tableName), keys, "?"));
         int i = 1;
-        for (Object fieldValue : rowValue.getFieldValues()) {
-            query.setParameter(i++, ((FieldValue) fieldValue).getValue());
+        for (Object obj : rowValue.getFieldValues()) {
+            FieldValue fieldValue = (FieldValue) obj;
+            if (fieldValue.getValue() != null)
+                query.setParameter(i++, fieldValue.getValue());
         }
         query.setParameter(i, rowValue.getSystemId());
         query.executeUpdate();
@@ -412,7 +439,7 @@ public class DataDao {
                 addEscapeCharacters(draftTable),
                 offset,
                 transactionSize,
-                new SimpleDateFormat("YYYY-MM-dd HH:mm:ss").format(publishTime),
+                new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(publishTime),
                 getSequenceName(tableToInsert));
         if (logger.isDebugEnabled()) {
             logger.debug("insertClosedNowDataFromVersion method query: " + query);
@@ -437,7 +464,7 @@ public class DataDao {
                 offset,
                 transactionSize,
                 addEscapeCharacters(tableToInsert),
-                new SimpleDateFormat("YYYY-MM-dd HH:mm:ss").format(publishTime),
+                new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(publishTime),
                 getSequenceName(tableToInsert));
         if (logger.isDebugEnabled()) {
             logger.debug("insertNewDataFromDraft method query: " + query);
@@ -455,7 +482,7 @@ public class DataDao {
                 offset,
                 transactionSize,
                 addEscapeCharacters(targetTable),
-                new SimpleDateFormat("YYYY-MM-dd HH:mm:ss").format(publishTime),
+                new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(publishTime),
                 getSequenceName(targetTable),
                 columnsStr,
                 columnsWithPrefix);
@@ -465,6 +492,96 @@ public class DataDao {
         entityManager.createNativeQuery(
                 query)
                 .executeUpdate();
+    }
+
+    public DataDifference getDataDifference(CompareDataCriteria criteria) {
+        DataDifference dataDifference;
+        List<String> fields = criteria.getFields().stream().map(Field::getName).collect(Collectors.toList());
+        Map<String, Field> fieldMap = new HashMap<>();
+        for (Field field : criteria.getFields()) {
+            fieldMap.put(field.getName(), field);
+        }
+        String countSelect = "SELECT count(*)";
+        String orderBy = " order by " + criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t1")).collect(Collectors.joining(",")) + "," +
+                criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t2")).collect(Collectors.joining(","));
+        String dataSelect = "select t1." + addEscapeCharacters(DATA_PRIMARY_COLUMN) + " as sysId1," + generateSqlQuery("t1", fields) + ", "
+                + "t2." + addEscapeCharacters(DATA_PRIMARY_COLUMN) + " as sysId2, " + generateSqlQuery("t2", fields);
+        String primaryEquality = criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t1") + "=" + formatFieldForQuery(f, "t2")).collect(Collectors.joining(","));
+        String basePrimaryIsNull = criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t1") + " is null ").collect(Collectors.joining(" and "));
+        String targetPrimaryIsNull = criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t2") + " is null ").collect(Collectors.joining(" and "));
+        String baseFilter = "date_trunc('second', t1.\"SYS_PUBLISHTIME\") <= :baseDate and (date_trunc('second', t1.\"SYS_CLOSETIME\") > :baseDate or t1.\"SYS_CLOSETIME\" is null) ";
+        String targetFilter = "date_trunc('second', t2.\"SYS_PUBLISHTIME\") <= :targetDate and (date_trunc('second', t2.\"SYS_CLOSETIME\") > :targetDate or t2.\"SYS_CLOSETIME\" is null) ";
+        String query = " from data." + addEscapeCharacters(criteria.getStorageCode()) + " t1 " +
+                " full join data." + addEscapeCharacters(criteria.getStorageCode()) + " t2 on " + primaryEquality +
+                " and " + baseFilter +
+                " and " + targetFilter +
+                " where ";
+        if (criteria.getStatus() == null)
+            query += basePrimaryIsNull + " and " + targetFilter +
+                    " or " + targetPrimaryIsNull + " and " + baseFilter +
+                    " or (" + primaryEquality + " and t1.\"SYS_HASH\"<>t2.\"SYS_HASH\") ";
+        Query countQuery = entityManager.createNativeQuery(countSelect + query);
+        countQuery.setParameter("baseDate", truncateDateTo(criteria.getBaseDataDate(), ChronoUnit.SECONDS));
+        countQuery.setParameter("targetDate", truncateDateTo(criteria.getTargetDataDate(), ChronoUnit.SECONDS));
+        BigInteger count = (BigInteger) countQuery.getSingleResult();
+        if (BooleanUtils.toBoolean(criteria.getCountOnly())) {
+            dataDifference = new DataDifference(new CollectionPage<>(count.intValue(), null, criteria));
+        } else {
+            Query dataQuery = entityManager.createNativeQuery(dataSelect + query + orderBy)
+                    .setFirstResult(getOffset(criteria))
+                    .setMaxResults(criteria.getSize());
+            dataQuery.setParameter("baseDate", truncateDateTo(criteria.getBaseDataDate(), ChronoUnit.SECONDS));
+            dataQuery.setParameter("targetDate", truncateDateTo(criteria.getTargetDataDate(), ChronoUnit.SECONDS));
+            List<Object[]> resultList = dataQuery.getResultList();
+            List<DiffRowValue> rowValues = new ArrayList<>();
+            if (!resultList.isEmpty()) {
+                for (Object[] row : resultList) {
+                    List<DiffFieldValue> fieldValues = new ArrayList<>();
+                    //get old/new versions data exclude sys_recordid
+                    int i = 1;
+                    List<String> primaryFields = criteria.getPrimaryFields();
+                    DiffStatusEnum rowStatus = null;
+                    for (String field : fields) {
+                        DiffFieldValue fieldValue = new DiffFieldValue();
+                        fieldValue.setField(fieldMap.get(field));
+                        Object oldValue = row[i];
+                        Object newValue = row[row.length / 2 + i];
+                        fieldValue.setOldValue(oldValue);
+                        fieldValue.setNewValue(newValue);
+                        if (primaryFields.contains(field)) {
+                            if (oldValue == null) {
+                                rowStatus = DiffStatusEnum.INSERTED;
+                            } else if (newValue == null) {
+                                rowStatus = DiffStatusEnum.DELETED;
+                            } else if (oldValue.equals(newValue)) {
+                                rowStatus = DiffStatusEnum.UPDATED;
+                            }
+                        }
+                        fieldValues.add(fieldValue);
+                        i++;
+                    }
+                    for (DiffFieldValue fieldValue : fieldValues) {
+                        if (DiffStatusEnum.INSERTED.equals(rowStatus))
+                            fieldValue.setStatus(DiffStatusEnum.INSERTED);
+                        else if (DiffStatusEnum.DELETED.equals(rowStatus))
+                            fieldValue.setStatus(DiffStatusEnum.DELETED);
+                        else {
+                            if (!fieldValue.getOldValue().equals(fieldValue.getNewValue())) {
+                                fieldValue.setStatus(DiffStatusEnum.UPDATED);
+                            } else {
+                                //if value is not changed store only new value
+                                fieldValue.setOldValue(null);
+                            }
+                        }
+                    }
+                    rowValues.add(new DiffRowValue(fieldValues, rowStatus));
+
+                }
+            }
+            dataDifference = new DataDifference(new CollectionPage<>(count.intValue(), rowValues, criteria));
+        }
+
+        return dataDifference;
     }
 
 }

@@ -4,17 +4,11 @@ import ru.i_novus.platform.datastorage.temporal.service.CompareDataService;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
 import ru.i_novus.platform.datastorage.temporal.service.DropDataService;
 import ru.i_novus.platform.datastorage.temporal.service.SearchDataService;
-import ru.i_novus.platform.versioned_data_storage.pg_impl.service.DataDao;
-import ru.i_novus.platform.versioned_data_storage.pg_impl.service.DraftDataServiceImpl;
-import ru.i_novus.platform.versioned_data_storage.pg_impl.service.DropDataServiceImpl;
-import ru.i_novus.platform.versioned_data_storage.pg_impl.service.SearchDataServiceImpl;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.service.*;
 
-import javax.ejb.Startup;
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.context.SessionScoped;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.io.Serializable;
 
 /**
@@ -42,8 +36,15 @@ public class ServiceFactory implements Serializable {
     }
 
     @Produces
-    public DropDataService getDropDataService(){
+    public DropDataService getDropDataService() {
         DropDataServiceImpl service = new DropDataServiceImpl();
+        service.setDataDao(dataDao);
+        return service;
+    }
+
+    @Produces
+    public CompareDataService getCompareDataService() {
+        CompareDataServiceImpl service = new CompareDataServiceImpl();
         service.setDataDao(dataDao);
         return service;
     }

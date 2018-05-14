@@ -1,19 +1,19 @@
 package ru.i_novus.platform.datastorage.temporal.model;
 
-import java.util.List;
+import net.n2oapp.criteria.api.CollectionPage;
 
 /**
  * @author lgalimova
  * @since 20.03.2018
  */
 public class DataDifference {
-    private List<DiffRowValue> rows;
+    private CollectionPage<DiffRowValue> rows;
 
-    public DataDifference(List<DiffRowValue> rows) {
+    public DataDifference(CollectionPage<DiffRowValue> rows) {
         this.rows = rows;
     }
 
-    public List<DiffRowValue> getRows() {
+    public CollectionPage<DiffRowValue> getRows() {
         return rows;
     }
 }
