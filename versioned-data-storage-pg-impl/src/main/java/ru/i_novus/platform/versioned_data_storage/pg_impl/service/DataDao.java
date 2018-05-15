@@ -9,6 +9,8 @@ import org.slf4j.LoggerFactory;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.CompareDataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.FieldSearchCriteria;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.SearchTypeEnum;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
 import ru.i_novus.platform.datastorage.temporal.model.*;
 
@@ -46,25 +48,7 @@ public class DataDao {
         if (criteria.getPage() > 0 && criteria.getSize() > 0)
             query.setFirstResult(getOffset(criteria))
                     .setMaxResults(criteria.getSize());
-        if (criteria.getBdate() != null) {
-            query.setParameter("bdate", truncateDateTo(criteria.getBdate(), ChronoUnit.SECONDS));
-        }
-        if (criteria.getEdate() != null) {
-            query.setParameter("edate", truncateDateTo(criteria.getEdate(), ChronoUnit.SECONDS));
-        }
-        if (!Util.isEmpty(criteria.getCommonFilter())) {
-            String search = criteria.getCommonFilter().trim();
-            if (dataRegexp.matcher(search).matches()) {
-                String[] dateArr = search.split("\\.");
-                String reverseSearch = dateArr[2] + "-" + dateArr[1] + "-" + dateArr[0];
-                query.setParameter("search", criteria.getCommonFilter().trim());
-                query.setParameter("reverseSearch", reverseSearch);
-            } else {
-                search = search.toLowerCase().replaceAll(":", "\\\\:").replaceAll("/", "\\\\/").replace(" ", "+") + ":*";
-                query.setParameter("formattedSearch", search);
-                query.setParameter("search", criteria.getCommonFilter());
-            }
-        }
+        setDataParameters(criteria, query);
         List<Object[]> resultList = query.getResultList();
         return convertToRowValue(criteria.getFields(), resultList);
     }
@@ -107,6 +91,23 @@ public class DataDao {
                 " FROM data." + addEscapeCharacters(criteria.getTableName()) + " d WHERE ";
         queryStr += getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter());
         Query query = entityManager.createNativeQuery(queryStr);
+        setDataParameters(criteria, query);
+        return (BigInteger) query.getSingleResult();
+    }
+
+    private String getDataWhereClause(Date publishDate, Date closeDate, String search, List<FieldSearchCriteria> filter) {
+        String result = " 1=1 ";
+        if (publishDate != null) {
+            result += " and date_trunc('second', d.\"SYS_PUBLISHTIME\") <= :bdate and (date_trunc('second', d.\"SYS_CLOSETIME\") > :bdate or d.\"SYS_CLOSETIME\" is null)";
+        }
+        if (closeDate != null) {
+            result += " and (date_trunc('second', d.\"SYS_CLOSETIME\") >= :edate or d.\"SYS_CLOSETIME\" is null)";
+        }
+        result += getDictionaryFilterQuery(search, filter);
+        return result;
+    }
+
+    private void setDataParameters(DataCriteria criteria, Query query) {
         if (criteria.getBdate() != null) {
             query.setParameter("bdate", truncateDateTo(criteria.getBdate(), ChronoUnit.SECONDS));
         }
@@ -126,26 +127,23 @@ public class DataDao {
                 query.setParameter("search", criteria.getCommonFilter());
             }
         }
-        return (BigInteger) query.getSingleResult();
-    }
-
-    private String getDataWhereClause(Date publishDate, Date closeDate, String search, List<FieldSearchCriteria> filter) {
-        String result = " 1=1 ";
-        if (publishDate != null) {
-            result += " and date_trunc('second', d.\"SYS_PUBLISHTIME\") <= :bdate and (date_trunc('second', d.\"SYS_CLOSETIME\") > :bdate or d.\"SYS_CLOSETIME\" is null)";
+        if (!Util.isEmpty(criteria.getFieldFilter())) {
+            for (FieldSearchCriteria searchCriteria : criteria.getFieldFilter()) {
+                FieldValue fieldValue = searchCriteria.getValues().get(0);
+                Field field = fieldValue.getField();
+                if (field instanceof StringField && SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && searchCriteria.getValues().size() == 1) {
+                    query.setParameter(field.getName(), "%" + fieldValue.getValue().toString().trim() + "%");
+                } else if (!(field instanceof BooleanField)) {
+                    query.setParameter(field.getName(), searchCriteria.getValues().stream().map(f -> f.getValue()).collect(Collectors.toList()));
+                }
+            }
         }
-        if (closeDate != null) {
-            result += " and (date_trunc('second', d.\"SYS_CLOSETIME\") >= :edate or d.\"SYS_CLOSETIME\" is null)";
-        }
-        result += getDictionaryFilterQuery(search, filter);
-        return result;
     }
 
     private String getDictionaryFilterQuery(String search, List<FieldSearchCriteria> filter) {
         String queryStr = "";
         if (!Util.isEmpty(search)) {
             //full text search
-            String original = new String(search);
             search = search.trim();
             String escapedFtsColumn = addEscapeCharacters(FULL_TEXT_SEARCH);
             if (dataRegexp.matcher(search).matches()) {
@@ -155,30 +153,28 @@ public class DataDao {
             }
         } else if (!Util.isEmpty(filter)) {
             for (FieldSearchCriteria searchCriteria : filter) {
-                //todo
-//                String values = searchCriteria.getValues().stream().map(e -> "'" + e + "'").collect(Collectors.joining(","));
-//                FieldValue fieldValue = searchCriteria.getValues().get(0);
-//                String fieldName = fieldValue.getField().getName();
-//                if (fieldValue.getField() instanceof IntegerField || fieldValue.getField() instanceof FloatField ||
-//                        fieldValue.getField() instanceof DateField) {
-//                    queryStr += " and " + addEscapeCharacters(fieldName) + " in (" + values + ")";
-//                } else if (fieldValue.getField() instanceof ReferenceField) {
-//                    queryStr += " and " + addEscapeCharacters(fieldName) + "->> 'value' in (" + values + ")";
-//                    break;
-//                } else if (fieldValue.getField() instanceof BooleanField) {
-//                    if (searchCriteria.getValues().size() == 1 || searchCriteria.getValues().stream().map(Boolean::valueOf).reduce(Boolean::equals).orElse(false)) {
-//                        queryStr += " and " + addEscapeCharacters(fieldName) +
-//                                ((Boolean) (fieldValue.getValue()) ? " IS TRUE " : " IS NOT TRUE");
-//                    }
-//                    break;
-//                } else if (fieldValue.getField() instanceof StringField) {
-//                    if (SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && searchCriteria.getValues().size() == 1)
-//                        queryStr += " and " + addEscapeCharacters(fieldName) + " like '" + searchCriteria.getFormattedValue() + "'";
-//                    else {
-//                        queryStr += " and " + addEscapeCharacters(fieldName) + " in (" + values + ")";
-//                    }
-//                    break;
-//                }
+                FieldValue fieldValue = searchCriteria.getValues().get(0);
+                String fieldName = fieldValue.getField().getName();
+                if (fieldValue.getField() instanceof IntegerField || fieldValue.getField() instanceof FloatField ||
+                        fieldValue.getField() instanceof DateField) {
+                    queryStr += " and " + addEscapeCharacters(fieldName) + " in (:" + fieldName + ")";
+                } else if (fieldValue.getField() instanceof ReferenceField) {
+                    queryStr += " and " + addEscapeCharacters(fieldName) + "->> 'value' in (:" + fieldName + ")";
+                    break;
+                } else if (fieldValue.getField() instanceof BooleanField) {
+                    if (searchCriteria.getValues().size() == 1) {
+                        queryStr += " and " + addEscapeCharacters(fieldName) +
+                                ((Boolean) (fieldValue.getValue()) ? " IS TRUE " : " IS NOT TRUE");
+                    }
+                    break;
+                } else if (fieldValue.getField() instanceof StringField) {
+                    if (SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && searchCriteria.getValues().size() == 1)
+                        queryStr += " and " + addEscapeCharacters(fieldName) + " like :" + fieldName + "";
+                    else {
+                        queryStr += " and " + addEscapeCharacters(fieldName) + " in (:" + fieldName + ")";
+                    }
+                    break;
+                }
             }
         }
         return queryStr;
@@ -566,7 +562,11 @@ public class DataDao {
                         else if (DiffStatusEnum.DELETED.equals(rowStatus))
                             fieldValue.setStatus(DiffStatusEnum.DELETED);
                         else {
-                            if (!fieldValue.getOldValue().equals(fieldValue.getNewValue())) {
+                            Object oldValue = fieldValue.getOldValue();
+                            Object newValue = fieldValue.getNewValue();
+                            if (oldValue == null && newValue == null)
+                                continue;
+                            if (oldValue == null || newValue == null || !oldValue.equals(newValue)) {
                                 fieldValue.setStatus(DiffStatusEnum.UPDATED);
                             } else {
                                 //if value is not changed store only new value
