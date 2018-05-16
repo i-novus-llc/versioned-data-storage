@@ -516,6 +516,13 @@ public class DataDao {
             query += basePrimaryIsNull + " and " + targetFilter +
                     " or " + targetPrimaryIsNull + " and " + baseFilter +
                     " or (" + primaryEquality + " and t1.\"SYS_HASH\"<>t2.\"SYS_HASH\") ";
+        else if (DiffStatusEnum.UPDATED.equals(criteria.getStatus())){
+            query += primaryEquality + " and t1.\"SYS_HASH\"<>t2.\"SYS_HASH\" ";
+        } else if (DiffStatusEnum.INSERTED.equals(criteria.getStatus())){
+            query += basePrimaryIsNull + " and " + targetFilter;
+        } else if (DiffStatusEnum.DELETED.equals(criteria.getStatus())){
+            query += targetPrimaryIsNull + " and " + baseFilter;
+        }
         Query countQuery = entityManager.createNativeQuery(countSelect + query);
         countQuery.setParameter("baseDate", truncateDateTo(criteria.getBaseDataDate(), ChronoUnit.SECONDS));
         countQuery.setParameter("targetDate", truncateDateTo(criteria.getTargetDataDate(), ChronoUnit.SECONDS));
