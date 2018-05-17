@@ -129,6 +129,9 @@ public class DataDao {
         }
         if (!Util.isEmpty(criteria.getFieldFilter())) {
             for (FieldSearchCriteria searchCriteria : criteria.getFieldFilter()) {
+                List<FieldValue> values = searchCriteria.getValues().stream().filter(v -> v.getValue() != null).collect(Collectors.toList());
+                if (values.isEmpty())
+                    continue;
                 FieldValue fieldValue = searchCriteria.getValues().get(0);
                 Field field = fieldValue.getField();
                 if (field instanceof StringField && SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && searchCriteria.getValues().size() == 1) {
@@ -155,25 +158,29 @@ public class DataDao {
             for (FieldSearchCriteria searchCriteria : filter) {
                 FieldValue fieldValue = searchCriteria.getValues().get(0);
                 String fieldName = fieldValue.getField().getName();
-                if (fieldValue.getField() instanceof IntegerField || fieldValue.getField() instanceof FloatField ||
+                if (fieldValue.getValue() == null) {
+                    queryStr += " and " + addEscapeCharacters(fieldName) + " is null";
+                } else if (fieldValue.getField() instanceof IntegerField || fieldValue.getField() instanceof FloatField ||
                         fieldValue.getField() instanceof DateField) {
                     queryStr += " and " + addEscapeCharacters(fieldName) + " in (:" + fieldName + ")";
                 } else if (fieldValue.getField() instanceof ReferenceField) {
                     queryStr += " and " + addEscapeCharacters(fieldName) + "->> 'value' in (:" + fieldName + ")";
-                    break;
+                } else if (fieldValue.getField() instanceof TreeField) {
+                    //todo
+                    if (SearchTypeEnum.MORE.equals(searchCriteria.getType()))
+                        queryStr += " and " + addEscapeCharacters(fieldName) + "~ '" + fieldValue.getValue() + ".*{1}'";
+
                 } else if (fieldValue.getField() instanceof BooleanField) {
                     if (searchCriteria.getValues().size() == 1) {
                         queryStr += " and " + addEscapeCharacters(fieldName) +
                                 ((Boolean) (fieldValue.getValue()) ? " IS TRUE " : " IS NOT TRUE");
                     }
-                    break;
                 } else if (fieldValue.getField() instanceof StringField) {
                     if (SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && searchCriteria.getValues().size() == 1)
                         queryStr += " and " + addEscapeCharacters(fieldName) + " like :" + fieldName + "";
                     else {
                         queryStr += " and " + addEscapeCharacters(fieldName) + " in (:" + fieldName + ")";
                     }
-                    break;
                 }
             }
         }
@@ -338,6 +345,12 @@ public class DataDao {
         entityManager.createNativeQuery(String.format(CREATE_FTS_INDEX, addEscapeCharacters(tableName + "_fts_idx"),
                 addEscapeCharacters(tableName),
                 addEscapeCharacters(FULL_TEXT_SEARCH))).executeUpdate();
+    }
+
+    public void createLtreeIndex(String tableName, String field) {
+        entityManager.createNativeQuery(String.format(CREATE_LTREE_INDEX, addEscapeCharacters(tableName + "_" + field.toLowerCase() + "_idx"),
+                addEscapeCharacters(tableName),
+                addEscapeCharacters(field))).executeUpdate();
     }
 
     public void createHashIndex(String tableName) {
@@ -516,11 +529,11 @@ public class DataDao {
             query += basePrimaryIsNull + " and " + targetFilter +
                     " or " + targetPrimaryIsNull + " and " + baseFilter +
                     " or (" + primaryEquality + " and t1.\"SYS_HASH\"<>t2.\"SYS_HASH\") ";
-        else if (DiffStatusEnum.UPDATED.equals(criteria.getStatus())){
+        else if (DiffStatusEnum.UPDATED.equals(criteria.getStatus())) {
             query += primaryEquality + " and t1.\"SYS_HASH\"<>t2.\"SYS_HASH\" ";
-        } else if (DiffStatusEnum.INSERTED.equals(criteria.getStatus())){
+        } else if (DiffStatusEnum.INSERTED.equals(criteria.getStatus())) {
             query += basePrimaryIsNull + " and " + targetFilter;
-        } else if (DiffStatusEnum.DELETED.equals(criteria.getStatus())){
+        } else if (DiffStatusEnum.DELETED.equals(criteria.getStatus())) {
             query += targetPrimaryIsNull + " and " + baseFilter;
         }
         Query countQuery = entityManager.createNativeQuery(countSelect + query);

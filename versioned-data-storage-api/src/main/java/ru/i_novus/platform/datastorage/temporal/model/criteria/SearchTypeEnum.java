@@ -3,9 +3,11 @@ package ru.i_novus.platform.datastorage.temporal.model.criteria;
 /**
  * @author lgalimova
  * @since 21.03.2017
+ * MORE - using with Tree field, return all direct children
+ * LESS - using with Tree field, return all direct parent
  */
 public enum SearchTypeEnum {
-    EXACT, LIKE;
+    EXACT, LIKE, MORE, LESS;
 
     public static SearchTypeEnum getByText(String value) {
         for (SearchTypeEnum searchTypeEnum : values()) {

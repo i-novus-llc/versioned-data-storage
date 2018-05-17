@@ -15,8 +15,8 @@ public class QueryConstants {
     protected static final int TRANSACTION_SIZE = 1000;
 
     public static final List<String> SYS_RECORDS = Arrays
-            .asList("SYS_RECORDID", "SYS_CREATETIME", "SYS_PUBLISHTIME", "SYS_DRAFT", "SYS_ARCHIVE", "SYS_STRUCTURE",
-                    "SYS_VERSIONMAJOR", "SYS_VERSIONMINOR", "FTS");
+            .asList("SYS_RECORDID", "SYS_CREATETIME", "SYS_PUBLISHTIME", "SYS_CLOSETIME", "SYS_DRAFT", "SYS_ARCHIVE", "SYS_STRUCTURE",
+                    "SYS_VERSIONMAJOR", "SYS_VERSIONMINOR", "SYS_HASH", "SYS_PATH", "FTS");
 
     public static final String CREATE_TABLE_TEMPLATE = "CREATE TABLE data.%s (\"SYS_RECORDID\" bigserial NOT NULL, " +
             "%s, " +
@@ -98,6 +98,7 @@ public class QueryConstants {
     public static final String CREATE_TABLE_INDEX = "CREATE INDEX %s ON data.%s(%s);";
     public static final String DROP_TABLE_INDEX = "DROP INDEX IF EXISTS data.%s;";
     public static final String CREATE_FTS_INDEX = "CREATE INDEX %s ON data.%s USING gin (%s);";
+    public static final String CREATE_LTREE_INDEX = "CREATE INDEX %s ON data.%s USING gist (%s);";
     public static final String IF_TABLE_INDEX_EXISTS = "SELECT exists(SELECT *\n" +
             "              FROM\n" +
             "                pg_class t,\n" +

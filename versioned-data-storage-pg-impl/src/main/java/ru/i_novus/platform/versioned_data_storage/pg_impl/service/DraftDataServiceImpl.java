@@ -15,6 +15,7 @@ import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.BooleanField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.DateField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.ReferenceField;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.model.TreeField;
 import ru.kirkazan.common.exception.CodifiedException;
 
 import java.io.IOException;
@@ -87,8 +88,12 @@ public class DraftDataServiceImpl implements DraftDataService {
                     rowValues.add("null");
                 } else if (fieldValue.getField() instanceof ReferenceField) {
                     rowValues.add("?\\:\\:jsonb");
-                } else
+                } else if (fieldValue.getField() instanceof TreeField) {
+//                    rowValues.add("'" + fieldValue.getValue().toString() + "'");
+                    rowValues.add("?\\:\\:ltree");
+                } else {
                     rowValues.add("?");
+                }
             }
             values.add(String.join(",", rowValues));
         }
@@ -169,12 +174,14 @@ public class DraftDataServiceImpl implements DraftDataService {
         } else {
             dataDao.createVersionTable(draftCode, fields);
         }
-        List<String> fieldNames = fields.stream().map(f -> addEscapeCharacters(f.getName())).collect(Collectors.toList());
+        List<String> fieldNames = fields.stream().map(f -> addEscapeCharacters(f.getName())).filter(f -> !QueryConstants.SYS_RECORDS.contains(f)).collect(Collectors.toList());
         dataDao.createHashIndex(draftCode);
         if (!fields.isEmpty()) {
             dataDao.createTrigger(draftCode, fieldNames);
             for (Field field : fields) {
-                if (BooleanUtils.toBoolean(field.getSearchEnabled())) {
+                if (field instanceof TreeField)
+                    dataDao.createLtreeIndex(draftCode, field.getName());
+                else if (BooleanUtils.toBoolean(field.getSearchEnabled())) {
                     dataDao.createIndex(draftCode, field.getName());
                 }
             }
