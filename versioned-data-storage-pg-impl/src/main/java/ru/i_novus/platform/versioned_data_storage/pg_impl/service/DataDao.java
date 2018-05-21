@@ -366,6 +366,21 @@ public class DataDao {
         return entityManager.createNativeQuery(String.format(SELECT_FIELD_TYPE, tableName, field)).getSingleResult().toString();
     }
 
+    public void alterDataType(String tableName, String field, String oldType, String newType) {
+        String escapedField = addEscapeCharacters(field);
+        String using = "";
+        if (DateField.TYPE.equals(oldType) && (StringField.TYPE.equals(newType) || IntegerStringField.TYPE.equals(newType))) {
+            using = "to_char(" + escapedField + ", '" + DATE_FORMAT_FOR_USING_CONVERTING + "')";
+        } else if (StringField.TYPE.equals(oldType) || IntegerStringField.TYPE.equals(oldType)
+                || StringField.TYPE.equals(newType) || IntegerStringField.TYPE.equals(newType)) {
+            using = escapedField + "\\:\\:" + newType;
+        } else {
+            using = escapedField + "\\:\\:varchar\\:\\:" + newType;
+        }
+        entityManager.createNativeQuery(String.format(ALTER_COLUMN_WITH_USING, addEscapeCharacters(tableName),
+                escapedField, newType, using)).executeUpdate();
+    }
+
     public List getRowsByField(String tableName, String field, Object uniqueValue, boolean existDateColumns, Date begin, Date end, Object id) {
         String query = SELECT_ROWS_FROM_DATA_BY_FIELD;
         String rows = addEscapeCharacters(field);
@@ -390,6 +405,14 @@ public class DataDao {
         Query nativeQuery = entityManager.createNativeQuery(String.format(query, rows, addEscapeCharacters(tableName), addEscapeCharacters(field)));
         nativeQuery.setParameter(1, uniqueValue);
         return nativeQuery.getResultList();
+    }
+
+    public boolean ifFieldIsNotEmpty(String tableName, String fieldName) {
+        return (boolean) entityManager
+                .createNativeQuery(String.format(IF_FIELD_IS_NOT_EMPTY, addEscapeCharacters(tableName),
+                        addEscapeCharacters(tableName),
+                        addEscapeCharacters(fieldName)))
+                .getSingleResult();
     }
 
     public BigInteger countActualDataFromVersion(String versionTable, String draftTable) {

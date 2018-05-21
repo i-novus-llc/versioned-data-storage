@@ -97,4 +97,7 @@ public interface DraftDataService {
      * @param fieldName наименование удаляемого поля
      */
     void deleteField(String draftCode, String fieldName);
+
+    void updateField(String draftCode, Field field);
+
 }

@@ -12,12 +12,10 @@ import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
-import ru.i_novus.platform.versioned_data_storage.pg_impl.model.BooleanField;
-import ru.i_novus.platform.versioned_data_storage.pg_impl.model.DateField;
-import ru.i_novus.platform.versioned_data_storage.pg_impl.model.ReferenceField;
-import ru.i_novus.platform.versioned_data_storage.pg_impl.model.TreeField;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 import ru.kirkazan.common.exception.CodifiedException;
 
+import javax.persistence.PersistenceException;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
@@ -26,6 +24,7 @@ import java.util.stream.Collectors;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.ExceptionCodes.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.service.QueryConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.addEscapeCharacters;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.isCompatibleTypes;
 
 /**
  * @author lgalimova
@@ -171,6 +170,26 @@ public class DraftDataServiceImpl implements DraftDataService {
         dataDao.dropTrigger(draftCode);
         dataDao.deleteColumnFromTable(draftCode, fieldName);
         dataDao.createTrigger(draftCode);
+    }
+
+    @Override
+    public void updateField(String draftCode, Field field) {
+        String oldType = dataDao.getFieldType(draftCode, field.getName());
+        String newType = field.getType();
+        boolean ifFieldIsNotEmpty = dataDao.ifFieldIsNotEmpty(draftCode, field.getName());
+        if (ifFieldIsNotEmpty) {
+            boolean isCompatible = isCompatibleTypes(oldType, newType);
+            if (!isCompatible) {
+                throw new CodifiedException(INCOMPATIBLE_NEW_DATA_TYPE_EXCEPTION_CODE, field.getName());
+            }
+        }
+        try {
+            dataDao.dropTrigger(draftCode);
+            dataDao.alterDataType(draftCode, field.getName(), oldType, newType);
+            dataDao.createTrigger(draftCode);
+        } catch (PersistenceException pe) {
+            throw new CodifiedException(INCOMPATIBLE_NEW_DATA_TYPE_EXCEPTION_CODE, field.getName());
+        }
     }
 
     private void createTable(String draftCode, List<Field> fields, boolean isDraft) {

@@ -106,4 +106,18 @@ public class QueryUtil {
         }
         return 0;
     }
+
+    public static boolean isCompatibleTypes(String oldDataType, String newDataType) {
+        if (ReferenceField.TYPE.equals(newDataType) || ListField.TYPE.equals(newDataType) || ReferenceField.TYPE.equals(oldDataType) || ListField.TYPE.equals(oldDataType)) {
+            return false;
+        }
+        if (oldDataType.equals(newDataType) || StringField.TYPE.equals(newDataType)) {
+            return true;
+        }
+        if ((StringField.TYPE.equals(oldDataType) || IntegerStringField.TYPE.equals(oldDataType))
+                && (IntegerField.TYPE.equals(newDataType)) || IntegerStringField.TYPE.equals(newDataType)) {
+            return true;
+        }
+        return false;
+    }
 }
