@@ -37,8 +37,7 @@ public class DataDao {
     }
 
     public List<RowValue> getData(DataCriteria criteria) {
-        List<String> fieldNames = criteria.getFields().stream().map(Field::getName).collect(Collectors.toList());
-        String queryStr = "SELECT " + generateSqlQuery("d", fieldNames) +
+        String queryStr = "SELECT " + generateSqlQuery("d", criteria.getFields()) +
                 " FROM data." + addEscapeCharacters(criteria.getTableName()) + " d WHERE ";
 
         queryStr += getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter());
@@ -129,15 +128,16 @@ public class DataDao {
         }
         if (!Util.isEmpty(criteria.getFieldFilter())) {
             for (FieldSearchCriteria searchCriteria : criteria.getFieldFilter()) {
-                List<FieldValue> values = searchCriteria.getValues().stream().filter(v -> v.getValue() != null).collect(Collectors.toList());
-                if (values.isEmpty())
+                if (searchCriteria.getValues() == null || searchCriteria.getValues().get(0) == null)
                     continue;
-                FieldValue fieldValue = searchCriteria.getValues().get(0);
-                Field field = fieldValue.getField();
+                Field field = searchCriteria.getField();
                 if (field instanceof StringField && SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && searchCriteria.getValues().size() == 1) {
-                    query.setParameter(field.getName(), "%" + fieldValue.getValue().toString().trim() + "%");
+                    query.setParameter(field.getName(), "%" + searchCriteria.getValues().get(0).toString().trim() + "%");
+                } else if (field instanceof TreeField) {
+                    String v = searchCriteria.getValues().stream().map(Object::toString).collect(Collectors.joining(",", "{", "}"));
+                    query.setParameter(field.getName(), v);
                 } else if (!(field instanceof BooleanField)) {
-                    query.setParameter(field.getName(), searchCriteria.getValues().stream().map(f -> f.getValue()).collect(Collectors.toList()));
+                    query.setParameter(field.getName(), searchCriteria.getValues());
                 }
             }
         }
@@ -156,30 +156,29 @@ public class DataDao {
             }
         } else if (!Util.isEmpty(filter)) {
             for (FieldSearchCriteria searchCriteria : filter) {
-                FieldValue fieldValue = searchCriteria.getValues().get(0);
-                String fieldName = fieldValue.getField().getName();
-                if (fieldValue.getValue() == null) {
-                    queryStr += " and " + addEscapeCharacters(fieldName) + " is null";
-                } else if (fieldValue.getField() instanceof IntegerField || fieldValue.getField() instanceof FloatField ||
-                        fieldValue.getField() instanceof DateField) {
-                    queryStr += " and " + addEscapeCharacters(fieldName) + " in (:" + fieldName + ")";
-                } else if (fieldValue.getField() instanceof ReferenceField) {
-                    queryStr += " and " + addEscapeCharacters(fieldName) + "->> 'value' in (:" + fieldName + ")";
-                } else if (fieldValue.getField() instanceof TreeField) {
-                    //todo
-                    if (SearchTypeEnum.MORE.equals(searchCriteria.getType()))
-                        queryStr += " and " + addEscapeCharacters(fieldName) + "~ '" + fieldValue.getValue() + ".*{1}'";
-
-                } else if (fieldValue.getField() instanceof BooleanField) {
-                    if (searchCriteria.getValues().size() == 1) {
-                        queryStr += " and " + addEscapeCharacters(fieldName) +
-                                ((Boolean) (fieldValue.getValue()) ? " IS TRUE " : " IS NOT TRUE");
+                Field field = searchCriteria.getField();
+                String fieldName = searchCriteria.getField().getName();
+                String escapedFieldName = addEscapeCharacters(fieldName);
+                if (searchCriteria.getValues() == null || searchCriteria.getValues().get(0) == null) {
+                    queryStr += " and " + escapedFieldName + " is null";
+                } else if (field instanceof IntegerField || field instanceof FloatField || field instanceof DateField) {
+                    queryStr += " and " + escapedFieldName + " in (:" + fieldName + ")";
+                } else if (field instanceof ReferenceField) {
+                    queryStr += " and " + escapedFieldName + "->> 'value' in (:" + fieldName + ")";
+                } else if (field instanceof TreeField) {
+                    if (SearchTypeEnum.LESS.equals(searchCriteria.getType())) {
+                        queryStr += " and " + escapedFieldName + "@> (cast(:" + fieldName + " AS ltree[]))";
                     }
-                } else if (fieldValue.getField() instanceof StringField) {
+                } else if (field instanceof BooleanField) {
+                    if (searchCriteria.getValues().size() == 1) {
+                        queryStr += " and " + escapedFieldName +
+                                ((Boolean) (searchCriteria.getValues().get(0)) ? " IS TRUE " : " IS NOT TRUE");
+                    }
+                } else if (field instanceof StringField) {
                     if (SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && searchCriteria.getValues().size() == 1)
-                        queryStr += " and " + addEscapeCharacters(fieldName) + " like :" + fieldName + "";
+                        queryStr += " and " + escapedFieldName + " like :" + fieldName + "";
                     else {
-                        queryStr += " and " + addEscapeCharacters(fieldName) + " in (:" + fieldName + ")";
+                        queryStr += " and " + escapedFieldName + " in (:" + fieldName + ")";
                     }
                 }
             }
@@ -513,8 +512,8 @@ public class DataDao {
         String countSelect = "SELECT count(*)";
         String orderBy = " order by " + criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t1")).collect(Collectors.joining(",")) + "," +
                 criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t2")).collect(Collectors.joining(","));
-        String dataSelect = "select t1." + addEscapeCharacters(DATA_PRIMARY_COLUMN) + " as sysId1," + generateSqlQuery("t1", fields) + ", "
-                + "t2." + addEscapeCharacters(DATA_PRIMARY_COLUMN) + " as sysId2, " + generateSqlQuery("t2", fields);
+        String dataSelect = "select t1." + addEscapeCharacters(DATA_PRIMARY_COLUMN) + " as sysId1," + generateSqlQuery("t1", criteria.getFields()) + ", "
+                + "t2." + addEscapeCharacters(DATA_PRIMARY_COLUMN) + " as sysId2, " + generateSqlQuery("t2", criteria.getFields());
         String primaryEquality = criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t1") + "=" + formatFieldForQuery(f, "t2")).collect(Collectors.joining(","));
         String basePrimaryIsNull = criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t1") + " is null ").collect(Collectors.joining(" and "));
         String targetPrimaryIsNull = criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t2") + " is null ").collect(Collectors.joining(" and "));

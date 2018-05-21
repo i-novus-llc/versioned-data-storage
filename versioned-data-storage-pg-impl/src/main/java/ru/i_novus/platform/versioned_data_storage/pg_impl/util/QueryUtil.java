@@ -24,42 +24,47 @@ public class QueryUtil {
             if (objects instanceof Object[]) {
                 Object[] row = (Object[]) objects;
                 for (int i = 0; i < row.length; i++) {
-                    Field field = fields.get(i);
-                    FieldValue fieldValue;
-                    if (field instanceof BooleanField) {
-                        fieldValue = new FieldValue<>(field, (Boolean) row[i]);
-                    } else if (field instanceof DateField) {
-                        fieldValue = new FieldValue<>(field, (Date) row[i]);
-                    } else if (field instanceof FloatField) {
-                        fieldValue = new FieldValue<>(field, (Number) row[i]);
-                    } else if (field instanceof IntegerField) {
-                        fieldValue = new FieldValue<>(field, (Number) row[i]);
-                    } else if (field instanceof ReferenceField && field.getName().contains("->>")) {
-                        ReferenceField referenceField = (ReferenceField) field;
-                        ReferenceField newReferenceField = new ReferenceField(formatJsonbAttrValueForMapping(referenceField.getName()));
-                        fieldValue = new FieldValue<>(newReferenceField, (String) row[i]);
-                    } else {
-                        fieldValue = new FieldValue<>(field, (String) row[i]);
-                    }
-                    rowValue.getFieldValues().add(fieldValue);
+                    rowValue.getFieldValues().add(getFieldValue(fields.get(i), row[i]));
                 }
             }
-            //todo ?
-//            else {
-//                returnedData.put(fields.get(0).getName(), objects);
-//            }
+            else {
+                rowValue.getFieldValues().add(getFieldValue(fields.get(0), objects));
+            }
             resultData.add(rowValue);
         }
         return resultData;
     }
 
-    public static String generateSqlQuery(String alias, List<String> fields) {
+    public static FieldValue getFieldValue(Field field, Object value){
+        FieldValue fieldValue;
+        if (field instanceof BooleanField) {
+            fieldValue = new FieldValue<>(field, (Boolean) value);
+        } else if (field instanceof DateField) {
+            fieldValue = new FieldValue<>(field, (Date) value);
+        } else if (field instanceof FloatField) {
+            fieldValue = new FieldValue<>(field, (Number) value);
+        } else if (field instanceof IntegerField) {
+            fieldValue = new FieldValue<>(field, (Number) value);
+        } else if (field instanceof ReferenceField && field.getName().contains("->>")) {
+            ReferenceField referenceField = (ReferenceField) field;
+            ReferenceField newReferenceField = new ReferenceField(formatJsonbAttrValueForMapping(referenceField.getName()));
+            fieldValue = new FieldValue<>(newReferenceField, value.toString());
+        } else {
+            fieldValue = new FieldValue<>(field, value.toString());
+        }
+        return fieldValue;
+    }
+
+    public static String generateSqlQuery(String alias, List<Field> fields) {
         return fields.stream().map(field -> {
-            String query = formatFieldForQuery(field, alias);
-            if (field.contains("->>"))
-                return query + " as " + addEscapeCharacters(alias + formatJsonbAttrValueForMapping(field));
+            String query = formatFieldForQuery(field.getName(), alias);
+            if (field instanceof TreeField){
+                query += "\\:\\:text";
+            }
+            if (field.getName().contains("->>"))
+                return query + " as " + addEscapeCharacters(alias + formatJsonbAttrValueForMapping(field.getName()));
             else
-                return query + " as " + addEscapeCharacters(alias + field);
+                return query + " as " + addEscapeCharacters(alias + field.getName());
         }).collect(Collectors.joining(", "));
     }
 

@@ -1,6 +1,6 @@
 package ru.i_novus.platform.datastorage.temporal.model.criteria;
 
-import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
+import ru.i_novus.platform.datastorage.temporal.model.Field;
 
 import java.io.Serializable;
 import java.util.List;
@@ -11,15 +11,33 @@ import java.util.List;
  * @since 01.02.2018
  */
 public class FieldSearchCriteria implements Serializable {
-    private List<FieldValue> values; //length 1 for LIKE!
+    private Field field;
+    private List<?> values;
     private SearchTypeEnum type = SearchTypeEnum.EXACT;
 
+    public FieldSearchCriteria(Field field) {
+        this.field = field;
+    }
 
-    public List<FieldValue> getValues() {
+    public FieldSearchCriteria(Field field, SearchTypeEnum type, List<?> values) {
+        this.field = field;
+        this.type = type;
+        this.values = values;
+    }
+
+    public Field getField() {
+        return field;
+    }
+
+    public void setField(Field field) {
+        this.field = field;
+    }
+
+    public List<? extends Object> getValues() {
         return values;
     }
 
-    public void setValues(List<FieldValue> values) {
+    public void setValues(List<? extends Object> values) {
         this.values = values;
     }
 
