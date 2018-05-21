@@ -26,8 +26,7 @@ public class QueryUtil {
                 for (int i = 0; i < row.length; i++) {
                     rowValue.getFieldValues().add(getFieldValue(fields.get(i), row[i]));
                 }
-            }
-            else {
+            } else {
                 rowValue.getFieldValues().add(getFieldValue(fields.get(0), objects));
             }
             resultData.add(rowValue);
@@ -35,7 +34,7 @@ public class QueryUtil {
         return resultData;
     }
 
-    public static FieldValue getFieldValue(Field field, Object value){
+    public static FieldValue getFieldValue(Field field, Object value) {
         FieldValue fieldValue;
         if (field instanceof BooleanField) {
             fieldValue = new FieldValue<>(field, (Boolean) value);
@@ -50,7 +49,7 @@ public class QueryUtil {
             ReferenceField newReferenceField = new ReferenceField(formatJsonbAttrValueForMapping(referenceField.getName()));
             fieldValue = new FieldValue<>(newReferenceField, value.toString());
         } else {
-            fieldValue = new FieldValue<>(field, value.toString());
+            fieldValue = new FieldValue<>(field, value != null ? value.toString() : null);
         }
         return fieldValue;
     }
@@ -58,7 +57,7 @@ public class QueryUtil {
     public static String generateSqlQuery(String alias, List<Field> fields) {
         return fields.stream().map(field -> {
             String query = formatFieldForQuery(field.getName(), alias);
-            if (field instanceof TreeField){
+            if (field instanceof TreeField) {
                 query += "\\:\\:text";
             }
             if (field.getName().contains("->>"))

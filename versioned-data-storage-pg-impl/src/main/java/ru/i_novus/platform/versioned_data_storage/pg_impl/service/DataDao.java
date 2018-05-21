@@ -362,6 +362,10 @@ public class DataDao {
         return results.stream().map(QueryUtil::addEscapeCharacters).collect(Collectors.toList());
     }
 
+    public String getFieldType(String tableName, String field) {
+        return entityManager.createNativeQuery(String.format(SELECT_FIELD_TYPE, tableName, field)).getSingleResult().toString();
+    }
+
     public List getRowsByField(String tableName, String field, Object uniqueValue, boolean existDateColumns, Date begin, Date end, Object id) {
         String query = SELECT_ROWS_FROM_DATA_BY_FIELD;
         String rows = addEscapeCharacters(field);

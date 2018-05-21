@@ -19,4 +19,7 @@ public class ExceptionCodes {
     public static final String DATA_INCOMPATIBLE_WITH_TYPE_EXCEPTION_CODE = "nsi.core.data.loader.dataIncompatibleWithType";
     public static final String INVALID_XML_STRUCTURE_EXCEPTION_CODE = "nsi.core.data.xml.structure.error";
     public static final String TABLES_NOT_EQUAL = "nsi.core.data.loader.structure.notEqual";
+    public static final String COLUMN_ALREADY_EXISTS = "nsi.core.data.loader.field.duplicate";
+    public static final String COLUMN_NOT_EXISTS = "nsi.core.data.loader.field.notExist";
+    public static final String SYS_FIELD_CONFLICT = "nsi.core.data.loader.field.sysConflict";
 }

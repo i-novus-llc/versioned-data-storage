@@ -14,9 +14,7 @@ public class QueryConstants {
 
     protected static final int TRANSACTION_SIZE = 1000;
 
-    public static final List<String> SYS_RECORDS = Arrays
-            .asList("SYS_RECORDID", "SYS_CREATETIME", "SYS_PUBLISHTIME", "SYS_CLOSETIME", "SYS_DRAFT", "SYS_ARCHIVE", "SYS_STRUCTURE",
-                    "SYS_VERSIONMAJOR", "SYS_VERSIONMINOR", "SYS_HASH", "SYS_PATH", "FTS");
+    public static final List<String> SYS_RECORDS = Arrays.asList("SYS_RECORDID", "SYS_PUBLISHTIME", "SYS_CLOSETIME", "SYS_HASH", "SYS_PATH", "FTS");
 
     public static final String CREATE_TABLE_TEMPLATE = "CREATE TABLE data.%s (\"SYS_RECORDID\" bigserial NOT NULL, " +
             "%s, " +
@@ -90,6 +88,7 @@ public class QueryConstants {
     public static final String IF_FIELD_IS_NOT_EMPTY = "SELECT exists(SELECT * FROM data.%s WHERE %s.%s IS NOT NULL);";
     public static final String IF_RELATED_VALUE_EXISTS = "SELECT exists(SELECT * FROM data.%s where %s.%s = %s)";
     public static final String SELECT_FIELD_NAMES = "SELECT column_name FROM \"information_schema\".\"columns\" WHERE table_name = '%s' AND column_name NOT IN ('SYS_RECORDID', 'FTS', 'SYS_HASH', 'SYS_PUBLISHTIME', 'SYS_CLOSETIME')";
+    public static final String SELECT_FIELD_TYPE = "SELECT data_type FROM \"information_schema\".\"columns\" WHERE table_name = '%s' AND column_name='%s'";
 
     public static final String INSERT_QUERY_FROM_DRAFT_TEMPLATE = "INSERT INTO data.%s SELECT %s FROM data.%s WHERE \"SYS_CLOSETIME\" IS NULL;";
     public static final String SELECT_COUNT_QUERY_TEMPLATE = "SELECT count(*) FROM data.%s;";
@@ -119,8 +118,6 @@ public class QueryConstants {
             "                i.relname\n" +
             ");";
 
-    public static final String MAJOR = "SYS_VERSIONMAJOR";
-    public static final String MINOR = "SYS_VERSIONMINOR";
     public static final String SYS_PUBLISHTIME = "SYS_PUBLISHTIME";
     public static final String SYS_CLOSETIME = "SYS_CLOSETIME";
     public static final String SYS_HASH = "SYS_HASH";

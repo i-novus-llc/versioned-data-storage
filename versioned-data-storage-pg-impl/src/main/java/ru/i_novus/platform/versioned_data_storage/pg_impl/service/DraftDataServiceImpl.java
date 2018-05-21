@@ -155,6 +155,10 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     @Override
     public void addField(String draftCode, Field field) {
+        if (SYS_RECORDS.contains(field.getName()))
+            throw new CodifiedException(SYS_FIELD_CONFLICT);
+        if (dataDao.getFieldNames(draftCode).contains(field.getName()))
+            throw new CodifiedException(COLUMN_ALREADY_EXISTS);
         dataDao.dropTrigger(draftCode);
         dataDao.addColumnToTable(draftCode, field.getName(), field.getType());
         dataDao.createTrigger(draftCode);
@@ -162,6 +166,8 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     @Override
     public void deleteField(String draftCode, String fieldName) {
+        if (!dataDao.getFieldNames(draftCode).contains(addEscapeCharacters(fieldName)))
+            throw new CodifiedException(COLUMN_NOT_EXISTS);
         dataDao.dropTrigger(draftCode);
         dataDao.deleteColumnFromTable(draftCode, fieldName);
         dataDao.createTrigger(draftCode);
