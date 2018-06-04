@@ -12,6 +12,10 @@ public class DropDataServiceImpl implements DropDataService {
 
     private DataDao dataDao;
 
+    public DropDataServiceImpl(DataDao dataDao) {
+        this.dataDao = dataDao;
+    }
+
     @Override
     public void drop(Set<String> storageCodes) {
         for (String storageCode : storageCodes) {

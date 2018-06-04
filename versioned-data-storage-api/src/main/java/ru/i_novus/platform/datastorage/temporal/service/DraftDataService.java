@@ -14,14 +14,6 @@ import java.util.List;
  * @since 31.01.2018
  */
 public interface DraftDataService {
-    /**
-     * Создание черновика версии с данными
-     *
-     * @param fields список полей
-     * @param data   данные
-     * @return Уникальный код черновика
-     */
-    String createDraft(List<Field> fields, List<RowValue> data);
 
     /**
      * Создание черновика версии без данных

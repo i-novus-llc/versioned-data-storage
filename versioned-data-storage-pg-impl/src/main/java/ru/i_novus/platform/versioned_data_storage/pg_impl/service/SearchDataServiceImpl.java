@@ -17,6 +17,10 @@ public class SearchDataServiceImpl implements SearchDataService {
 
     private DataDao dataDao;
 
+    public SearchDataServiceImpl(DataDao dataDao) {
+        this.dataDao = dataDao;
+    }
+
     @Override
     public CollectionPage<RowValue> getPagedData(DataCriteria criteria) {
         if (criteria.getCount() == null) {

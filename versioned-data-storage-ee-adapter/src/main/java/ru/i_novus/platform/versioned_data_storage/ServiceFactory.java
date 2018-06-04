@@ -23,29 +23,21 @@ public class ServiceFactory implements Serializable {
 
     @Produces
     public SearchDataService getSearchDataService() {
-        SearchDataServiceImpl searchDataService = new SearchDataServiceImpl();
-        searchDataService.setDataDao(dataDao);
-        return searchDataService;
+        return new SearchDataServiceImpl(dataDao);
     }
 
     @Produces
     public DraftDataService getDraftDataService() {
-        DraftDataServiceImpl draftDataService = new DraftDataServiceImpl();
-        draftDataService.setDataDao(dataDao);
-        return draftDataService;
+        return new DraftDataServiceImpl(dataDao);
     }
 
     @Produces
     public DropDataService getDropDataService() {
-        DropDataServiceImpl service = new DropDataServiceImpl();
-        service.setDataDao(dataDao);
-        return service;
+        return new DropDataServiceImpl(dataDao);
     }
 
     @Produces
     public CompareDataService getCompareDataService() {
-        CompareDataServiceImpl service = new CompareDataServiceImpl();
-        service.setDataDao(dataDao);
-        return service;
+        return new CompareDataServiceImpl(dataDao);
     }
 }

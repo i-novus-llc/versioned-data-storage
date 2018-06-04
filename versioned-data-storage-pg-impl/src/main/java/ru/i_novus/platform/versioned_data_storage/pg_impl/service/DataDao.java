@@ -16,6 +16,7 @@ import ru.i_novus.platform.datastorage.temporal.model.*;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
+import javax.transaction.Transactional;
 import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 import java.time.temporal.ChronoUnit;
@@ -191,6 +192,7 @@ public class DataDao {
         return (BigInteger) entityManager.createNativeQuery(String.format(SELECT_COUNT_QUERY_TEMPLATE, addEscapeCharacters(tableName))).getSingleResult();
     }
 
+    @Transactional
     public void createDraftTable(String tableName, List<Field> fields) {
         if (Util.isEmpty(fields)) {
             entityManager.createNativeQuery(String.format(CREATE_EMPTY_DRAFT_TABLE_TEMPLATE, addEscapeCharacters(tableName), tableName)).executeUpdate();
@@ -200,12 +202,14 @@ public class DataDao {
         }
     }
 
+    @Transactional
     public void createVersionTable(String tableName, List<Field> fields) {
         String fieldsString = fields.stream().map(f -> addEscapeCharacters(f.getName()) + " " + f.getType()).collect(Collectors.joining(", "));
         entityManager.createNativeQuery(String.format(CREATE_TABLE_TEMPLATE, addEscapeCharacters(tableName),
                 fieldsString, tableName)).executeUpdate();
     }
 
+    @Transactional
     public void copyTable(String newTableName, String sourceTableName) {
         entityManager.createNativeQuery(String.format(COPY_TABLE_TEMPLATE, addEscapeCharacters(newTableName),
                 addEscapeCharacters(sourceTableName))).executeUpdate();
@@ -220,14 +224,17 @@ public class DataDao {
         entityManager.createNativeQuery(String.format("ALTER TABLE data.%s ALTER COLUMN \"SYS_RECORDID\" SET DEFAULT nextval('data.\"%s_SYS_RECORDID_seq\"');", addEscapeCharacters(newTableName), newTableName)).executeUpdate();
     }
 
+    @Transactional
     public void dropTable(String tableName) {
         entityManager.createNativeQuery(String.format(DROP_TABLE, addEscapeCharacters(tableName))).executeUpdate();
     }
 
+    @Transactional
     public void addColumnToTable(String tableName, String name, String type) {
         entityManager.createNativeQuery(String.format(ADD_NEW_COLUMN, tableName, name, type)).executeUpdate();
     }
 
+    @Transactional
     public void deleteColumnFromTable(String tableName, String field) {
         entityManager.createNativeQuery(String.format(DELETE_COLUMN, tableName, field)).executeUpdate();
     }
@@ -245,6 +252,7 @@ public class DataDao {
         return query.getResultList();
     }
 
+    @Transactional
     public void insertData(String tableName, String keys, List<String> values, List<RowValue> data) {
         int i = 1;
         int batchSize = 500;
@@ -266,16 +274,19 @@ public class DataDao {
         }
     }
 
+    @Transactional
     public void loadData(String draftCode, String sourceStorageCode, List<String> fields, Date onDate) {
         String keys = fields.stream().collect(Collectors.joining(","));
+        String values = fields.stream().map(f -> "d." + f).collect(Collectors.joining(","));
         String where = getDataWhereClause(onDate, null, null, null);
-        entityManager.createNativeQuery(String.format(COPY_QUERY_TEMPLATE, addEscapeCharacters(draftCode), keys, keys,
+        entityManager.createNativeQuery(String.format(COPY_QUERY_TEMPLATE, addEscapeCharacters(draftCode), keys, values,
                 addEscapeCharacters(sourceStorageCode), where))
                 .setParameter("bdate", truncateDateTo(onDate, ChronoUnit.SECONDS))
                 .executeUpdate();
 
     }
 
+    @Transactional
     public void updateData(String tableName, String keys, RowValue rowValue) {
         Query query = entityManager.createNativeQuery(String.format(UPDATE_QUERY_TEMPLATE, addEscapeCharacters(tableName), keys, "?"));
         int i = 1;
@@ -288,11 +299,13 @@ public class DataDao {
         query.executeUpdate();
     }
 
+    @Transactional
     public void deleteData(String tableName) {
         Query query = entityManager.createNativeQuery(String.format(DELETE_ALL_RECORDS_FROM_TABLE_QUERY_TEMPLATE, addEscapeCharacters(tableName)));
         query.executeUpdate();
     }
 
+    @Transactional
     public void deleteData(String tableName, List<Object> systemIds) {
         String ids = systemIds.stream().map(id -> "?").collect(Collectors.joining(","));
         Query query = entityManager.createNativeQuery(String.format(DELETE_QUERY_TEMPLATE, addEscapeCharacters(tableName), ids));
@@ -303,15 +316,18 @@ public class DataDao {
         query.executeUpdate();
     }
 
+    @Transactional
     public void updateSequence(String tableName) {
         entityManager.createNativeQuery(String.format("SELECT setval('data.%s', (SELECT max(\"SYS_RECORDID\") FROM data.%s))",
                 getSequenceName(tableName), addEscapeCharacters(tableName))).getSingleResult();
     }
 
+    @Transactional
     public void createTrigger(String tableName) {
         createTrigger(tableName, getFieldNames(tableName));
     }
 
+    @Transactional
     public void createTrigger(String tableName, List<String> fields) {
         String escapedTableName = addEscapeCharacters(tableName);
         entityManager.createNativeQuery(String.format(CREATE_HASH_TRIGGER,
@@ -329,29 +345,34 @@ public class DataDao {
                 tableName)).executeUpdate();
     }
 
+    @Transactional
     public void dropTrigger(String tableName) {
         String escapedTableName = addEscapeCharacters(tableName);
         entityManager.createNativeQuery(String.format(DROP_HASH_TRIGGER, escapedTableName)).executeUpdate();
         entityManager.createNativeQuery(String.format(DROP_FTS_TRIGGER, escapedTableName)).executeUpdate();
     }
 
+    @Transactional
     public void createIndex(String tableName, String field) {
         entityManager.createNativeQuery(String.format(CREATE_TABLE_INDEX, addEscapeCharacters(tableName + "_" + field.toLowerCase() + "_idx"),
                 addEscapeCharacters(tableName), addEscapeCharacters(field))).executeUpdate();
     }
 
+    @Transactional
     public void createFullTextSearchIndex(String tableName) {
         entityManager.createNativeQuery(String.format(CREATE_FTS_INDEX, addEscapeCharacters(tableName + "_fts_idx"),
                 addEscapeCharacters(tableName),
                 addEscapeCharacters(FULL_TEXT_SEARCH))).executeUpdate();
     }
 
+    @Transactional
     public void createLtreeIndex(String tableName, String field) {
         entityManager.createNativeQuery(String.format(CREATE_LTREE_INDEX, addEscapeCharacters(tableName + "_" + field.toLowerCase() + "_idx"),
                 addEscapeCharacters(tableName),
                 addEscapeCharacters(field))).executeUpdate();
     }
 
+    @Transactional
     public void createHashIndex(String tableName) {
         entityManager.createNativeQuery(String.format(CREATE_TABLE_HASH_INDEX, addEscapeCharacters(tableName + "_sys_hash_ix"),
                 addEscapeCharacters(tableName))).executeUpdate();
@@ -366,6 +387,7 @@ public class DataDao {
         return entityManager.createNativeQuery(String.format(SELECT_FIELD_TYPE, tableName, field)).getSingleResult().toString();
     }
 
+    @Transactional
     public void alterDataType(String tableName, String field, String oldType, String newType) {
         String escapedField = addEscapeCharacters(field);
         String using = "";
@@ -424,6 +446,7 @@ public class DataDao {
                 .getSingleResult();
     }
 
+    @Transactional
     public void insertActualDataFromVersion(String tableToInsert, String versionTableFromInsert, String draftTable, int offset, int transactionSize) {
         String query = String.format(INSERT_ACTUAL_VAL_FROM_VERSION,
                 addEscapeCharacters(tableToInsert),
@@ -446,6 +469,7 @@ public class DataDao {
                         addEscapeCharacters(versionTable))).getSingleResult();
     }
 
+    @Transactional
     public void insertOldDataFromVersion(String tableToInsert, String tableFromInsert, int offset, int transactionSize) {
         String query = String.format(INSERT_OLD_VAL_FROM_VERSION,
                 addEscapeCharacters(tableToInsert),
@@ -467,6 +491,7 @@ public class DataDao {
                 .getSingleResult();
     }
 
+    @Transactional
     public void insertClosedNowDataFromVersion(String tableToInsert, String versionTable, String draftTable, int offset, int transactionSize, Date publishTime) {
         String query = String.format(INSERT_CLOSED_NOW_VAL_FROM_VERSION,
                 addEscapeCharacters(tableToInsert),
@@ -492,6 +517,7 @@ public class DataDao {
 
     }
 
+    @Transactional
     public void insertNewDataFromDraft(String tableToInsert, String versionTable, String draftTable, int offset, int transactionSize, Date publishTime) {
         String query = String.format(INSERT_NEW_VAL_FROM_DRAFT,
                 addEscapeCharacters(draftTable),
@@ -509,6 +535,7 @@ public class DataDao {
                 .executeUpdate();
     }
 
+    @Transactional
     public void insertDataFromDraft(String draftTable, int offset, String targetTable, int transactionSize, Date publishTime, List<String> columns) {
         String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();

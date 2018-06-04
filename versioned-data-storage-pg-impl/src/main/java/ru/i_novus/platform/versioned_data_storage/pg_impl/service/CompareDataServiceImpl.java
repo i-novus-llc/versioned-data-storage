@@ -1,7 +1,6 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.service;
 
 import ru.i_novus.platform.datastorage.temporal.model.DataDifference;
-import ru.i_novus.platform.datastorage.temporal.model.MetaDifference;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.CompareDataCriteria;
 import ru.i_novus.platform.datastorage.temporal.service.CompareDataService;
 
@@ -13,14 +12,13 @@ public class CompareDataServiceImpl implements CompareDataService {
 
     private DataDao dataDao;
 
-    @Override
-    public DataDifference getDataDifference(CompareDataCriteria criteria) {
-        return dataDao.getDataDifference(criteria);
+    public CompareDataServiceImpl(DataDao dataDao) {
+        this.dataDao = dataDao;
     }
 
     @Override
-    public MetaDifference getMetaDifference(String baseStorageCode, String targetStorageCode) {
-        return null;
+    public DataDifference getDataDifference(CompareDataCriteria criteria) {
+        return dataDao.getDataDifference(criteria);
     }
 
     public void setDataDao(DataDao dataDao) {

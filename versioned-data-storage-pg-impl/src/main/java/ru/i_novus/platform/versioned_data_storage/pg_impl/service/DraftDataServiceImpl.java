@@ -6,7 +6,6 @@ import cz.atria.common.lang.Util;
 import org.apache.commons.lang.BooleanUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.CollectionUtils;
 import ru.i_novus.platform.datastorage.temporal.exception.ListCodifiedException;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
@@ -16,6 +15,7 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 import ru.kirkazan.common.exception.CodifiedException;
 
 import javax.persistence.PersistenceException;
+import javax.transaction.Transactional;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
@@ -36,16 +36,12 @@ public class DraftDataServiceImpl implements DraftDataService {
     private static final Logger logger = LoggerFactory.getLogger(DraftDataServiceImpl.class);
     private DataDao dataDao;
 
-    @Override
-    public String createDraft(List<Field> fields, List<RowValue> data) {
-        if (CollectionUtils.isEmpty(data))
-            return createDraft(fields);
-        String draftCode = createDraft(fields);
-        addRows(draftCode, data);
-        return draftCode;
+    public DraftDataServiceImpl(DataDao dataDao) {
+        this.dataDao = dataDao;
     }
 
     @Override
+    @Transactional
     public String createDraft(List<Field> fields) {
         String draftCode = UUID.randomUUID().toString();
         createTable(draftCode, fields, true);
@@ -275,21 +271,6 @@ public class DraftDataServiceImpl implements DraftDataService {
         if (dateBegin != null && dateEnd != null && dateBegin.after(dateEnd)) {
             exceptions.add(new CodifiedException(BEGIN_END_DATE_EXCEPTION_CODE));
         }
-    }
-
-    private String getFts(List<FieldValue> fields) {
-        List<String> fullTextSearch = new ArrayList<>();
-        List<String> values = new ArrayList<>();
-        for (FieldValue field : fields) {
-            Object value = field.getValue();
-            //todo check value type
-            if (value != null)
-                values.add(value.toString());
-        }
-        for (String value : values) {
-            fullTextSearch.add(" coalesce( to_tsvector('ru', '" + value.replaceAll("\"", "") + "'),'')");
-        }
-        return String.join(" || ' ' ||", fullTextSearch);
     }
 
 

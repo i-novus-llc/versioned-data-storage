@@ -15,6 +15,6 @@ public class BooleanField extends Field {
 
     @Override
     public String getType() {
-        return "boolean";
+        return TYPE;
     }
 }
