@@ -68,9 +68,9 @@ public interface DraftDataService {
     /**
      * Загрузить данные в черновик из хранилища
      *
-     * @param draftCode код черновика
+     * @param draftCode         код черновика
      * @param sourceStorageCode код хранилища данных, откуда будут загружены данные
-     * @param onDate дата публикации версии
+     * @param onDate            дата публикации версии
      */
     void loadData(String draftCode, String sourceStorageCode, Date onDate);
 
@@ -91,5 +91,15 @@ public interface DraftDataService {
     void deleteField(String draftCode, String fieldName);
 
     void updateField(String draftCode, Field field);
+
+    /**
+     * Проверка уникальности значений поля хранилища
+     *
+     * @param storageCode код хранилища данных
+     * @param fieldName   наименование поля
+     * @param publishTime дата публикации версии
+     * @return возврщает true, если значения поля уникальн., иначе false. Null считается уникальным значением.
+     */
+    boolean isFieldUnique(String storageCode, String fieldName, Date publishTime);
 
 }

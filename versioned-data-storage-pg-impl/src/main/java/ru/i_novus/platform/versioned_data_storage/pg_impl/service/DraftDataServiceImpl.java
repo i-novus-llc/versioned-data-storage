@@ -188,6 +188,11 @@ public class DraftDataServiceImpl implements DraftDataService {
         }
     }
 
+    @Override
+    public boolean isFieldUnique(String storageCode, String fieldName, Date publishTime) {
+        return dataDao.isFieldUnique(storageCode, fieldName, publishTime);
+    }
+
     private void createTable(String draftCode, List<Field> fields, boolean isDraft) {
         logger.debug("creating table with name: {}", draftCode);
         if (isDraft) {

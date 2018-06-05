@@ -316,6 +316,19 @@ public class DataDao {
         query.executeUpdate();
     }
 
+    public boolean isFieldUnique(String storageCode, String fieldName, Date publishTime) {
+        return entityManager.createNativeQuery(
+                "SELECT " + addEscapeCharacters(fieldName) + ", COUNT(*)" +
+                        " FROM data." + addEscapeCharacters(storageCode) + " d WHERE " + getDataWhereClause(publishTime, null, null, null) +
+                        " GROUP BY 1" +
+                        " HAVING COUNT(*) > 1"
+        )
+                .setParameter("bdate", publishTime)
+                .getResultList().isEmpty();
+
+    }
+
+
     @Transactional
     public void updateSequence(String tableName) {
         entityManager.createNativeQuery(String.format("SELECT setval('data.%s', (SELECT max(\"SYS_RECORDID\") FROM data.%s))",
