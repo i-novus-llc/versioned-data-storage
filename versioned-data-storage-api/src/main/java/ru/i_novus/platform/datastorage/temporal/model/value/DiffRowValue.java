@@ -1,4 +1,6 @@
-package ru.i_novus.platform.datastorage.temporal.model;
+package ru.i_novus.platform.datastorage.temporal.model.value;
+
+import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
 
 import java.io.Serializable;
 import java.util.List;

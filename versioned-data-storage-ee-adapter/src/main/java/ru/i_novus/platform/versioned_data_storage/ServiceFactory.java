@@ -1,9 +1,6 @@
 package ru.i_novus.platform.versioned_data_storage;
 
-import ru.i_novus.platform.datastorage.temporal.service.CompareDataService;
-import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
-import ru.i_novus.platform.datastorage.temporal.service.DropDataService;
-import ru.i_novus.platform.datastorage.temporal.service.SearchDataService;
+import ru.i_novus.platform.datastorage.temporal.service.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.service.*;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -39,5 +36,10 @@ public class ServiceFactory implements Serializable {
     @Produces
     public CompareDataService getCompareDataService() {
         return new CompareDataServiceImpl(dataDao);
+    }
+
+    @Produces
+    public FieldFactory getFieldFactory(){
+        return new FieldFactoryImpl();
     }
 }

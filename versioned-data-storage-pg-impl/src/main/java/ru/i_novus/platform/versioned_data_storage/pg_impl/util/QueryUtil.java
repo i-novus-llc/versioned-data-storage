@@ -4,7 +4,7 @@ import net.n2oapp.criteria.api.Criteria;
 import org.apache.commons.lang.StringUtils;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
-import ru.i_novus.platform.datastorage.temporal.model.RowValue;
+import ru.i_novus.platform.datastorage.temporal.model.value.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 
 import java.time.temporal.ChronoUnit;
@@ -35,21 +35,22 @@ public class QueryUtil {
     }
 
     public static FieldValue getFieldValue(Field field, Object value) {
-        FieldValue fieldValue;
+        FieldValue fieldValue = null;
+        String name = field.getName();
         if (field instanceof BooleanField) {
-            fieldValue = new FieldValue<>(field, (Boolean) value);
+            fieldValue = new BooleanFieldValue(name, (Boolean) value);
         } else if (field instanceof DateField) {
-            fieldValue = new FieldValue<>(field, (Date) value);
+            fieldValue = new DateFieldValue(name, (Date) value);
         } else if (field instanceof FloatField) {
-            fieldValue = new FieldValue<>(field, (Number) value);
+            fieldValue = new FloatFieldValue(name, (Number) value);
         } else if (field instanceof IntegerField) {
-            fieldValue = new FieldValue<>(field, (Number) value);
+            fieldValue = new IntegerFieldValue(name, (Number) value);
         } else if (field instanceof ReferenceField && field.getName().contains("->>")) {
-            ReferenceField referenceField = (ReferenceField) field;
-            ReferenceField newReferenceField = new ReferenceField(formatJsonbAttrValueForMapping(referenceField.getName()));
-            fieldValue = new FieldValue<>(newReferenceField, value.toString());
+//            ReferenceField referenceField = (ReferenceField) field;
+//            ReferenceField newReferenceField = new ReferenceField(formatJsonbAttrValueForMapping(referenceField.getName()));
+//            fieldValue = new ReferenceFieldValue(name, value.toString());
         } else {
-            fieldValue = new FieldValue<>(field, value != null ? value.toString() : null);
+            fieldValue = new StringFieldValue(name, value != null ? value.toString() : null);
         }
         return fieldValue;
     }
@@ -119,5 +120,23 @@ public class QueryUtil {
             return true;
         }
         return false;
+    }
+
+    public static Field getField(String name, String type) {
+        switch (type) {
+            case BooleanField.TYPE:
+                return new BooleanField(name);
+            case DateField.TYPE:
+                return new DateField(name);
+            case FloatField.TYPE:
+                return new FloatField(name);
+            case IntegerField.TYPE:
+                return new IntegerField(name);
+            case ReferenceField.TYPE:
+                return new ReferenceField(name);
+            default:
+                return new StringField(name);
+        }
+
     }
 }

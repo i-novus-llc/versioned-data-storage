@@ -1,4 +1,4 @@
-package ru.i_novus.platform.datastorage.temporal.model;
+package ru.i_novus.platform.datastorage.temporal.enums;
 
 /**
  * @author lgalimova

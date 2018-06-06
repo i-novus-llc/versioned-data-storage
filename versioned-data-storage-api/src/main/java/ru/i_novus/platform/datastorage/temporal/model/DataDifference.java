@@ -1,6 +1,7 @@
 package ru.i_novus.platform.datastorage.temporal.model;
 
 import net.n2oapp.criteria.api.CollectionPage;
+import ru.i_novus.platform.datastorage.temporal.model.value.DiffRowValue;
 
 /**
  * @author lgalimova

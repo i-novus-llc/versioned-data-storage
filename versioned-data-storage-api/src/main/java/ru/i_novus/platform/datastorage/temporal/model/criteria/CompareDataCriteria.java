@@ -1,7 +1,7 @@
 package ru.i_novus.platform.datastorage.temporal.model.criteria;
 
 import net.n2oapp.criteria.api.Criteria;
-import ru.i_novus.platform.datastorage.temporal.model.DiffStatusEnum;
+import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 
 import java.util.Date;

@@ -1,4 +1,6 @@
-package ru.i_novus.platform.datastorage.temporal.model;
+package ru.i_novus.platform.datastorage.temporal.model.value;
+
+import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
 
 import java.util.ArrayList;
 import java.util.List;

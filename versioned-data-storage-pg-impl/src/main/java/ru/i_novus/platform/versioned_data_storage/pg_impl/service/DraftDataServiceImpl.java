@@ -1,22 +1,18 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import cz.atria.common.lang.Util;
 import org.apache.commons.lang.BooleanUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.i_novus.platform.datastorage.temporal.exception.ListCodifiedException;
-import ru.i_novus.platform.datastorage.temporal.model.Field;
-import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
-import ru.i_novus.platform.datastorage.temporal.model.RowValue;
+import ru.i_novus.platform.datastorage.temporal.model.*;
+import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
+import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
+import ru.i_novus.platform.datastorage.temporal.model.value.TreeFieldValue;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 import ru.kirkazan.common.exception.CodifiedException;
 
 import javax.persistence.PersistenceException;
-import javax.transaction.Transactional;
-import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -41,7 +37,6 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     @Override
-    @Transactional
     public String createDraft(List<Field> fields) {
         String draftCode = UUID.randomUUID().toString();
         createTable(draftCode, fields, true);
@@ -81,9 +76,9 @@ public class DraftDataServiceImpl implements DraftDataService {
                 FieldValue fieldValue = (FieldValue) fieldValueObj;
                 if (fieldValue.getValue() == null) {
                     rowValues.add("null");
-                } else if (fieldValue.getField() instanceof ReferenceField) {
+                } else if (fieldValue instanceof ReferenceFieldValue) {
                     rowValues.add("?\\:\\:jsonb");
-                } else if (fieldValue.getField() instanceof TreeField) {
+                } else if (fieldValue instanceof TreeFieldValue) {
 //                    rowValues.add("'" + fieldValue.getValue().toString() + "'");
                     rowValues.add("?\\:\\:ltree");
                 } else {
@@ -112,14 +107,14 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Override
     public void updateRow(String draftCode, RowValue value) {
         List<CodifiedException> exceptions = new ArrayList<>();
-        validateRow(draftCode, value, exceptions);
+//        validateRow(draftCode, value, exceptions);
         List<String> keyList = new ArrayList<>();
         for (Object objectValue : value.getFieldValues()) {
             FieldValue fieldValue = (FieldValue) objectValue;
-            String fieldName = fieldValue.getField().getName();
+            String fieldName = fieldValue.getField();
             if (fieldValue.getValue() == null || fieldValue.getValue().equals("null")) {
                 keyList.add(addEscapeCharacters(fieldName) + " = NULL");
-            } else if (fieldValue.getField() instanceof ReferenceField) {
+            } else if (fieldValue instanceof ReferenceFieldValue) {
                 keyList.add(addEscapeCharacters(fieldName) + " = ?\\:\\:jsonb");
             } else {
                 keyList.add(addEscapeCharacters(fieldName) + " = ?");
@@ -224,7 +219,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         dataDao.createTrigger(newTable, fieldNames);
         return newTable;
     }
-
+/*
     private void validateRow(String draftCode, RowValue row, List<CodifiedException> exceptions) {
         List<FieldValue> dataCopy = new ArrayList<>(row.getFieldValues());
         dataCopy.removeIf(v -> v.getValue() == null);
@@ -235,10 +230,10 @@ public class DraftDataServiceImpl implements DraftDataService {
         Date dateEnd = null;
         for (Object objectValue : row.getFieldValues()) {
             FieldValue fieldValue = (FieldValue) objectValue;
-            Field field = fieldValue.getField();
-            if (DATE_BEGIN.equals(field.getName()))
+            String field = fieldValue.getField();
+            if (DATE_BEGIN.equals(field))
                 dateBegin = (Date) fieldValue.getValue();
-            if (DATE_END.equals(field.getName()))
+            if (DATE_END.equals(field))
                 dateEnd = (Date) fieldValue.getValue();
             if (BooleanUtils.toBoolean(field.getRequired()) && Util.isEmpty(fieldValue.getValue())) {
                 exceptions.add(new CodifiedException(FIELD_IS_REQUIRED_EXCEPTION_CODE, field.getName()));
@@ -276,7 +271,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         if (dateBegin != null && dateEnd != null && dateBegin.after(dateEnd)) {
             exceptions.add(new CodifiedException(BEGIN_END_DATE_EXCEPTION_CODE));
         }
-    }
+    } */
 
 
     protected void insertActualDataFromVersion(String actualVersionTable, String draftTable, String newTable) {

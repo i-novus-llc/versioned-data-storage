@@ -1,7 +1,7 @@
 package ru.i_novus.platform.datastorage.temporal.service;
 
 import ru.i_novus.platform.datastorage.temporal.model.Field;
-import ru.i_novus.platform.datastorage.temporal.model.RowValue;
+import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 
 import java.util.Date;
 import java.util.List;
