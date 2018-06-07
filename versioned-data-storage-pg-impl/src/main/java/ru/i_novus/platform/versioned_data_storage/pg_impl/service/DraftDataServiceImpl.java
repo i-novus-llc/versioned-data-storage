@@ -14,12 +14,14 @@ import ru.kirkazan.common.exception.CodifiedException;
 
 import javax.persistence.PersistenceException;
 import java.math.BigInteger;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.ExceptionCodes.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.service.QueryConstants.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.addEscapeCharacters;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.addDoubleQuotes;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.addSingleQuotes;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.isCompatibleTypes;
 
 /**
@@ -55,7 +57,7 @@ public class DraftDataServiceImpl implements DraftDataService {
             insertNewDataFromDraft(sourceStorageCode, draftCode, newTable, publishTime);
         } else {
             BigInteger count = dataDao.countData(draftCode);
-            draftFields.add(addEscapeCharacters("FTS"));
+            draftFields.add(addDoubleQuotes("FTS"));
             for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
                 dataDao.insertDataFromDraft(draftCode, i, newTable, TRANSACTION_SIZE, publishTime, draftFields);
             }
@@ -69,6 +71,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         List<String> fieldNames = dataDao.getFieldNames(draftCode);
         String keys = fieldNames.stream().collect(Collectors.joining(","));
         List<String> values = new ArrayList<>();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         for (RowValue rowValue : data) {
 //            validateRow(draftCode, rowValue, exceptions);
             List<String> rowValues = new ArrayList<>();
@@ -77,7 +80,19 @@ public class DraftDataServiceImpl implements DraftDataService {
                 if (fieldValue.getValue() == null) {
                     rowValues.add("null");
                 } else if (fieldValue instanceof ReferenceFieldValue) {
-                    rowValues.add("?\\:\\:jsonb");
+                    Reference refValue = ((ReferenceFieldValue) fieldValue).getValue();
+                    if (refValue.getValue() == null)
+                        rowValues.add("null");
+                    else {
+//                    rowValues.add("?\\:\\:jsonb");
+                        if (refValue.getDisplayField() != null)
+                            rowValues.add(String.format("(select jsonb_build_object('value', ? , 'displayValue', (select d.%s from data.%s d where d.%s=? and %s)))",
+                                    addDoubleQuotes(refValue.getDisplayField()),
+                                    addDoubleQuotes(refValue.getStorageCode()), addDoubleQuotes(refValue.getKeyField()),
+                                    dataDao.getDataWhereClause(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(sdf.format(refValue.getDate())))));
+                        else
+                            rowValues.add("(select jsonb_build_object('value', ?))");
+                    }
                 } else if (fieldValue instanceof TreeFieldValue) {
 //                    rowValues.add("'" + fieldValue.getValue().toString() + "'");
                     rowValues.add("?\\:\\:ltree");
@@ -113,11 +128,11 @@ public class DraftDataServiceImpl implements DraftDataService {
             FieldValue fieldValue = (FieldValue) objectValue;
             String fieldName = fieldValue.getField();
             if (fieldValue.getValue() == null || fieldValue.getValue().equals("null")) {
-                keyList.add(addEscapeCharacters(fieldName) + " = NULL");
+                keyList.add(addDoubleQuotes(fieldName) + " = NULL");
             } else if (fieldValue instanceof ReferenceFieldValue) {
-                keyList.add(addEscapeCharacters(fieldName) + " = ?\\:\\:jsonb");
+                keyList.add(addDoubleQuotes(fieldName) + " = ?\\:\\:jsonb");
             } else {
-                keyList.add(addEscapeCharacters(fieldName) + " = ?");
+                keyList.add(addDoubleQuotes(fieldName) + " = ?");
             }
         }
         String keys = String.join(",", keyList);
@@ -136,9 +151,9 @@ public class DraftDataServiceImpl implements DraftDataService {
         if (!draftFields.equals(sourceFields)) {
             throw new CodifiedException(TABLES_NOT_EQUAL);
         }
-        draftFields.add(addEscapeCharacters(DATA_PRIMARY_COLUMN));
-        draftFields.add(addEscapeCharacters(FULL_TEXT_SEARCH));
-        draftFields.add(addEscapeCharacters(SYS_HASH));
+        draftFields.add(addDoubleQuotes(DATA_PRIMARY_COLUMN));
+        draftFields.add(addDoubleQuotes(FULL_TEXT_SEARCH));
+        draftFields.add(addDoubleQuotes(SYS_HASH));
         dataDao.loadData(draftCode, sourceStorageCode, draftFields, onDate);
         dataDao.updateSequence(draftCode);
     }
@@ -156,7 +171,7 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     @Override
     public void deleteField(String draftCode, String fieldName) {
-        if (!dataDao.getFieldNames(draftCode).contains(addEscapeCharacters(fieldName)))
+        if (!dataDao.getFieldNames(draftCode).contains(addDoubleQuotes(fieldName)))
             throw new CodifiedException(COLUMN_NOT_EXISTS);
         dataDao.dropTrigger(draftCode);
         dataDao.deleteColumnFromTable(draftCode, fieldName);
@@ -195,7 +210,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         } else {
             dataDao.createVersionTable(draftCode, fields);
         }
-        List<String> fieldNames = fields.stream().map(f -> addEscapeCharacters(f.getName())).filter(f -> !QueryConstants.SYS_RECORDS.contains(f)).collect(Collectors.toList());
+        List<String> fieldNames = fields.stream().map(f -> addDoubleQuotes(f.getName())).filter(f -> !QueryConstants.SYS_RECORDS.contains(f)).collect(Collectors.toList());
         dataDao.createHashIndex(draftCode);
         if (!fields.isEmpty()) {
             dataDao.createTrigger(draftCode, fieldNames);
@@ -301,9 +316,5 @@ public class DraftDataServiceImpl implements DraftDataService {
         for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
             dataDao.insertNewDataFromDraft(newTable, actualVersionTable, draftTable, i, TRANSACTION_SIZE, publishTime);
         }
-    }
-
-    public void setDataDao(DataDao dataDao) {
-        this.dataDao = dataDao;
     }
 }

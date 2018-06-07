@@ -41,8 +41,4 @@ public class SearchDataServiceImpl implements SearchDataService {
     public RowValue findRow(String storageCode, List<String> fields, Object systemId) {
         return dataDao.getRowData(storageCode, fields, systemId);
     }
-
-    public void setDataDao(DataDao dataDao) {
-        this.dataDao = dataDao;
-    }
 }

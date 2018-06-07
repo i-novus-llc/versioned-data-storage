@@ -150,6 +150,8 @@ public class QueryConstants {
 
     public static final String COUNT_OLD_VAL_FROM_VERSION = " select count(*) from data.%s where \"SYS_CLOSETIME\" is not null;\n";
 
+    public static final String SELECT_ROWS_FROM_DATA = " select %s from data.%s d where %s";
+
     public static final String SELECT_ROWS_FROM_DATA_BY_FIELD = " select %s from data.%s where %s=? ";
 
     public static final String SELECT_RELATION_ROW_FROM_DATA = " select %s from data.%s where %s=? limit 1;\n";

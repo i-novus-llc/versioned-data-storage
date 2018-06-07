@@ -4,6 +4,7 @@ import net.n2oapp.criteria.api.Criteria;
 import org.apache.commons.lang.StringUtils;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
+import ru.i_novus.platform.datastorage.temporal.model.Reference;
 import ru.i_novus.platform.datastorage.temporal.model.value.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 
@@ -21,10 +22,17 @@ public class QueryUtil {
         List<RowValue> resultData = new ArrayList<>(data.size());
         for (Object objects : data) {
             RowValue rowValue = new LongRowValue();
+            Iterator<Field> fieldIterator = fields.iterator();
             if (objects instanceof Object[]) {
                 Object[] row = (Object[]) objects;
                 for (int i = 0; i < row.length; i++) {
-                    rowValue.getFieldValues().add(getFieldValue(fields.get(i), row[i]));
+                    Field field = fieldIterator.next();
+                    Object value = row[i];
+                    if (field instanceof ReferenceField) {
+                        value = new Reference(row[i], row[i + 1]);
+                        i++;
+                    }
+                    rowValue.getFieldValues().add(getFieldValue(field, value));
                 }
             } else {
                 rowValue.getFieldValues().add(getFieldValue(fields.get(0), objects));
@@ -45,10 +53,8 @@ public class QueryUtil {
             fieldValue = new FloatFieldValue(name, (Number) value);
         } else if (field instanceof IntegerField) {
             fieldValue = new IntegerFieldValue(name, (Number) value);
-        } else if (field instanceof ReferenceField && field.getName().contains("->>")) {
-//            ReferenceField referenceField = (ReferenceField) field;
-//            ReferenceField newReferenceField = new ReferenceField(formatJsonbAttrValueForMapping(referenceField.getName()));
-//            fieldValue = new ReferenceFieldValue(name, value.toString());
+        } else if (field instanceof ReferenceField) {
+            fieldValue = new ReferenceFieldValue(name, (Reference) value);
         } else {
             fieldValue = new StringFieldValue(name, value != null ? value.toString() : null);
         }
@@ -56,30 +62,41 @@ public class QueryUtil {
     }
 
     public static String generateSqlQuery(String alias, List<Field> fields) {
-        return fields.stream().map(field -> {
+        List<String> queryFields = new ArrayList<>();
+        for (Field field : fields) {
             String query = formatFieldForQuery(field.getName(), alias);
-            if (field instanceof TreeField) {
-                query += "\\:\\:text";
+            if (field instanceof ReferenceField) {
+                String queryValue = query + "->>'value' as " + addDoubleQuotes(alias + field.getName() + ".value");
+                String queryDisplayValue = query + "->>'displayValue' as " + addDoubleQuotes(alias + field.getName() + ".displayValue");
+                queryFields.add(queryValue);
+                queryFields.add(queryDisplayValue);
+            } else {
+                if (field instanceof TreeField) {
+                    query += "\\:\\:text";
+                }
+                query += " as " + addDoubleQuotes(alias + field.getName());
+                queryFields.add(query);
             }
-            if (field.getName().contains("->>"))
-                return query + " as " + addEscapeCharacters(alias + formatJsonbAttrValueForMapping(field.getName()));
-            else
-                return query + " as " + addEscapeCharacters(alias + field.getName());
-        }).collect(Collectors.joining(", "));
+        }
+        return String.join(",", queryFields);
     }
 
     public static String formatFieldForQuery(String field, String alias) {
         alias = alias + ".";
         if (field.contains("->>")) {
             String[] queryParts = field.split("->>");
-            return alias + addEscapeCharacters(queryParts[0]) + "->>" + queryParts[1];
+            return alias + addDoubleQuotes(queryParts[0]) + "->>" + queryParts[1];
         } else {
-            return alias + addEscapeCharacters(field);
+            return alias + addDoubleQuotes(field);
         }
     }
 
-    public static String addEscapeCharacters(String source) {
+    public static String addDoubleQuotes(String source) {
         return "\"" + source + "\"";
+    }
+
+    public static String addSingleQuotes(String source) {
+        return "'" + source + "'";
     }
 
     public static String formatJsonbAttrValueForMapping(String field) {
@@ -92,7 +109,7 @@ public class QueryUtil {
     }
 
     public static String getSequenceName(String table) {
-        return addEscapeCharacters(table + "_SYS_RECORDID_seq");
+        return addDoubleQuotes(table + "_SYS_RECORDID_seq");
     }
 
     public static Date truncateDateTo(Date date, ChronoUnit unit) {

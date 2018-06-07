@@ -18,6 +18,8 @@ public class Reference implements Serializable {
     private String displayField;
     //значение ключа связи
     private Object value;
+    //значение отображаемого значения
+    private Object displayValue;
 
     public Reference(String storageCode, Date date, String keyField, String displayField) {
         this.storageCode = storageCode;
@@ -32,6 +34,11 @@ public class Reference implements Serializable {
         this.keyField = keyField;
         this.displayField = displayField;
         this.value = value;
+    }
+
+    public Reference(Object value, Object displayValue) {
+        this.value = value;
+        this.displayValue = displayValue;
     }
 
     public String getStorageCode() {
@@ -56,5 +63,13 @@ public class Reference implements Serializable {
 
     public void setValue(Object value) {
         this.value = value;
+    }
+
+    public Object getDisplayValue() {
+        return displayValue;
+    }
+
+    public void setDisplayValue(Object displayValue) {
+        this.displayValue = displayValue;
     }
 }

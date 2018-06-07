@@ -22,8 +22,4 @@ public class DropDataServiceImpl implements DropDataService {
             dataDao.dropTable(storageCode);
         }
     }
-
-    public void setDataDao(DataDao dataDao) {
-        this.dataDao = dataDao;
-    }
 }

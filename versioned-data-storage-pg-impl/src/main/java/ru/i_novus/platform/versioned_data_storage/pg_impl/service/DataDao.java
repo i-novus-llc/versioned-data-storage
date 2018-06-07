@@ -13,6 +13,7 @@ import ru.i_novus.platform.datastorage.temporal.model.criteria.FieldSearchCriter
 import ru.i_novus.platform.datastorage.temporal.model.criteria.SearchTypeEnum;
 import ru.i_novus.platform.datastorage.temporal.model.value.DiffFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.DiffRowValue;
+import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
@@ -22,7 +23,6 @@ import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
-import javax.transaction.Transactional;
 import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 import java.time.temporal.ChronoUnit;
@@ -45,7 +45,7 @@ public class DataDao {
 
     public List<RowValue> getData(DataCriteria criteria) {
         String queryStr = "SELECT " + generateSqlQuery("d", criteria.getFields()) +
-                " FROM data." + addEscapeCharacters(criteria.getTableName()) + " d WHERE ";
+                " FROM data." + addDoubleQuotes(criteria.getTableName()) + " d WHERE ";
 
         queryStr += getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter());
         String orderBy = getDictionaryDataOrderBy((!Util.isEmpty(criteria.getSortings()) ? criteria.getSortings().get(0) : null), "d");
@@ -60,9 +60,9 @@ public class DataDao {
     }
 
     public RowValue getRowData(String tableName, List<String> fieldNames, Object systemId) {
-        String keys = fieldNames.stream().map(field -> addEscapeCharacters(field)).collect(Collectors.joining(","));
+        String keys = fieldNames.stream().map(field -> addDoubleQuotes(field)).collect(Collectors.joining(","));
         List<Object[]> list = entityManager.createNativeQuery(String.format(SELECT_ROWS_FROM_DATA_BY_FIELD, keys,
-                addEscapeCharacters(tableName), addEscapeCharacters(DATA_PRIMARY_COLUMN)))
+                addDoubleQuotes(tableName), addDoubleQuotes(DATA_PRIMARY_COLUMN)))
                 .setParameter(1, systemId).getResultList();
         if (list.isEmpty())
             return null;
@@ -88,19 +88,19 @@ public class DataDao {
         if (sorting != null && sorting.getField() != null) {
             orderBy = orderBy + formatFieldForQuery(sorting.getField(), alias) + " " + sorting.getDirection().toString() + ", ";
         }
-        return orderBy + spaceAliasPoint + addEscapeCharacters(DATA_PRIMARY_COLUMN);
+        return orderBy + spaceAliasPoint + addDoubleQuotes(DATA_PRIMARY_COLUMN);
     }
 
     public BigInteger getDataCount(DataCriteria criteria) {
         String queryStr = "SELECT count(*)" +
-                " FROM data." + addEscapeCharacters(criteria.getTableName()) + " d WHERE ";
+                " FROM data." + addDoubleQuotes(criteria.getTableName()) + " d WHERE ";
         queryStr += getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter());
         Query query = entityManager.createNativeQuery(queryStr);
         setDataParameters(criteria, query);
         return (BigInteger) query.getSingleResult();
     }
 
-    private String getDataWhereClause(Date publishDate, Date closeDate, String search, List<FieldSearchCriteria> filter) {
+    public String getDataWhereClause(Date publishDate, Date closeDate, String search, List<FieldSearchCriteria> filter) {
         String result = " 1=1 ";
         if (publishDate != null) {
             result += " and date_trunc('second', d.\"SYS_PUBLISHTIME\") <= :bdate and (date_trunc('second', d.\"SYS_CLOSETIME\") > :bdate or d.\"SYS_CLOSETIME\" is null)";
@@ -154,7 +154,7 @@ public class DataDao {
         if (!Util.isEmpty(search)) {
             //full text search
             search = search.trim();
-            String escapedFtsColumn = addEscapeCharacters(FULL_TEXT_SEARCH);
+            String escapedFtsColumn = addDoubleQuotes(FULL_TEXT_SEARCH);
             if (dataRegexp.matcher(search).matches()) {
                 queryStr += " and (" + escapedFtsColumn + " @@ to_tsquery(:search) or " + escapedFtsColumn + " @@ to_tsquery(:reverseSearch) ) ";
             } else {
@@ -164,7 +164,7 @@ public class DataDao {
             for (FieldSearchCriteria searchCriteria : filter) {
                 Field field = searchCriteria.getField();
                 String fieldName = searchCriteria.getField().getName();
-                String escapedFieldName = addEscapeCharacters(fieldName);
+                String escapedFieldName = addDoubleQuotes(fieldName);
                 if (searchCriteria.getValues() == null || searchCriteria.getValues().get(0) == null) {
                     queryStr += " and " + escapedFieldName + " is null";
                 } else if (field instanceof IntegerField || field instanceof FloatField || field instanceof DateField) {
@@ -194,29 +194,29 @@ public class DataDao {
 
 
     public BigInteger countData(String tableName) {
-        return (BigInteger) entityManager.createNativeQuery(String.format(SELECT_COUNT_QUERY_TEMPLATE, addEscapeCharacters(tableName))).getSingleResult();
+        return (BigInteger) entityManager.createNativeQuery(String.format(SELECT_COUNT_QUERY_TEMPLATE, addDoubleQuotes(tableName))).getSingleResult();
     }
 
     public void createDraftTable(String tableName, List<Field> fields) {
         if (Util.isEmpty(fields)) {
-            entityManager.createNativeQuery(String.format(CREATE_EMPTY_DRAFT_TABLE_TEMPLATE, addEscapeCharacters(tableName), tableName)).executeUpdate();
+            entityManager.createNativeQuery(String.format(CREATE_EMPTY_DRAFT_TABLE_TEMPLATE, addDoubleQuotes(tableName), tableName)).executeUpdate();
         } else {
-            String fieldsString = fields.stream().map(f -> addEscapeCharacters(f.getName()) + " " + f.getType()).collect(Collectors.joining(", "));
-            entityManager.createNativeQuery(String.format(CREATE_DRAFT_TABLE_TEMPLATE, addEscapeCharacters(tableName), fieldsString, tableName)).executeUpdate();
+            String fieldsString = fields.stream().map(f -> addDoubleQuotes(f.getName()) + " " + f.getType()).collect(Collectors.joining(", "));
+            entityManager.createNativeQuery(String.format(CREATE_DRAFT_TABLE_TEMPLATE, addDoubleQuotes(tableName), fieldsString, tableName)).executeUpdate();
         }
     }
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void createVersionTable(String tableName, List<Field> fields) {
-        String fieldsString = fields.stream().map(f -> addEscapeCharacters(f.getName()) + " " + f.getType()).collect(Collectors.joining(", "));
-        entityManager.createNativeQuery(String.format(CREATE_TABLE_TEMPLATE, addEscapeCharacters(tableName),
+        String fieldsString = fields.stream().map(f -> addDoubleQuotes(f.getName()) + " " + f.getType()).collect(Collectors.joining(", "));
+        entityManager.createNativeQuery(String.format(CREATE_TABLE_TEMPLATE, addDoubleQuotes(tableName),
                 fieldsString, tableName)).executeUpdate();
     }
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void copyTable(String newTableName, String sourceTableName) {
-        entityManager.createNativeQuery(String.format(COPY_TABLE_TEMPLATE, addEscapeCharacters(newTableName),
-                addEscapeCharacters(sourceTableName))).executeUpdate();
+        entityManager.createNativeQuery(String.format(COPY_TABLE_TEMPLATE, addDoubleQuotes(newTableName),
+                addDoubleQuotes(sourceTableName))).executeUpdate();
         entityManager.createNativeQuery(String.format("CREATE SEQUENCE data.\"%s_SYS_RECORDID_seq\" start 1", newTableName)).executeUpdate();
         List<String> indexes = entityManager.createNativeQuery("select indexdef from pg_indexes where tablename=?;")
                 .setParameter(1, sourceTableName)
@@ -224,13 +224,13 @@ public class DataDao {
         for (String index : indexes) {
             entityManager.createNativeQuery(index.replaceAll(sourceTableName, newTableName)).executeUpdate();
         }
-        entityManager.createNativeQuery(String.format("ALTER TABLE data.%s ADD PRIMARY KEY (\"SYS_RECORDID\")", addEscapeCharacters(newTableName))).executeUpdate();
-        entityManager.createNativeQuery(String.format("ALTER TABLE data.%s ALTER COLUMN \"SYS_RECORDID\" SET DEFAULT nextval('data.\"%s_SYS_RECORDID_seq\"');", addEscapeCharacters(newTableName), newTableName)).executeUpdate();
+        entityManager.createNativeQuery(String.format("ALTER TABLE data.%s ADD PRIMARY KEY (\"SYS_RECORDID\")", addDoubleQuotes(newTableName))).executeUpdate();
+        entityManager.createNativeQuery(String.format("ALTER TABLE data.%s ALTER COLUMN \"SYS_RECORDID\" SET DEFAULT nextval('data.\"%s_SYS_RECORDID_seq\"');", addDoubleQuotes(newTableName), newTableName)).executeUpdate();
     }
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void dropTable(String tableName) {
-        entityManager.createNativeQuery(String.format(DROP_TABLE, addEscapeCharacters(tableName))).executeUpdate();
+        entityManager.createNativeQuery(String.format(DROP_TABLE, addDoubleQuotes(tableName))).executeUpdate();
     }
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
@@ -245,7 +245,7 @@ public class DataDao {
 
     public List<Object> insertDataWithId(String tableName, String keys, List<String> values, List<RowValue> data) {
         String stringValues = values.stream().collect(Collectors.joining("),("));
-        Query query = entityManager.createNativeQuery(String.format(INSERT_QUERY_TEMPLATE_WITH_ID, addEscapeCharacters(tableName), keys, stringValues));
+        Query query = entityManager.createNativeQuery(String.format(INSERT_QUERY_TEMPLATE_WITH_ID, addDoubleQuotes(tableName), keys, stringValues));
         int i = 1;
         for (RowValue rowValue : data) {
             for (Object fieldValue : rowValue.getFieldValues()) {
@@ -265,11 +265,18 @@ public class DataDao {
             List<String> subValues = values.subList(firstIndex, maxIndex);
             List<RowValue> subData = data.subList(firstIndex, maxIndex);
             String stringValues = subValues.stream().collect(Collectors.joining("),("));
-            Query query = entityManager.createNativeQuery(String.format(INSERT_QUERY_TEMPLATE, addEscapeCharacters(tableName), keys, stringValues));
+            Query query = entityManager.createNativeQuery(String.format(INSERT_QUERY_TEMPLATE, addDoubleQuotes(tableName), keys, stringValues));
             for (RowValue rowValue : subData) {
-                for (Object fieldValue : rowValue.getFieldValues()) {
-                    if (((FieldValue) fieldValue).getValue() != null)
-                        query.setParameter(i++, ((FieldValue) fieldValue).getValue());
+                for (Object value : rowValue.getFieldValues()) {
+                    FieldValue fieldValue = (FieldValue) value;
+                    if (fieldValue.getValue() != null) {
+                        if (fieldValue instanceof ReferenceFieldValue) {
+                            query.setParameter(i++, ((ReferenceFieldValue)fieldValue).getValue().getValue());
+                            query.setParameter(i++, ((ReferenceFieldValue)fieldValue).getValue().getValue());
+
+                        } else
+                            query.setParameter(i++, fieldValue.getValue());
+                    }
                 }
             }
             query.executeUpdate();
@@ -282,8 +289,8 @@ public class DataDao {
         String keys = fields.stream().collect(Collectors.joining(","));
         String values = fields.stream().map(f -> "d." + f).collect(Collectors.joining(","));
         String where = getDataWhereClause(onDate, null, null, null);
-        entityManager.createNativeQuery(String.format(COPY_QUERY_TEMPLATE, addEscapeCharacters(draftCode), keys, values,
-                addEscapeCharacters(sourceStorageCode), where))
+        entityManager.createNativeQuery(String.format(COPY_QUERY_TEMPLATE, addDoubleQuotes(draftCode), keys, values,
+                addDoubleQuotes(sourceStorageCode), where))
                 .setParameter("bdate", truncateDateTo(onDate, ChronoUnit.SECONDS))
                 .executeUpdate();
 
@@ -291,7 +298,7 @@ public class DataDao {
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void updateData(String tableName, String keys, RowValue rowValue) {
-        Query query = entityManager.createNativeQuery(String.format(UPDATE_QUERY_TEMPLATE, addEscapeCharacters(tableName), keys, "?"));
+        Query query = entityManager.createNativeQuery(String.format(UPDATE_QUERY_TEMPLATE, addDoubleQuotes(tableName), keys, "?"));
         int i = 1;
         for (Object obj : rowValue.getFieldValues()) {
             FieldValue fieldValue = (FieldValue) obj;
@@ -304,14 +311,14 @@ public class DataDao {
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void deleteData(String tableName) {
-        Query query = entityManager.createNativeQuery(String.format(DELETE_ALL_RECORDS_FROM_TABLE_QUERY_TEMPLATE, addEscapeCharacters(tableName)));
+        Query query = entityManager.createNativeQuery(String.format(DELETE_ALL_RECORDS_FROM_TABLE_QUERY_TEMPLATE, addDoubleQuotes(tableName)));
         query.executeUpdate();
     }
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void deleteData(String tableName, List<Object> systemIds) {
         String ids = systemIds.stream().map(id -> "?").collect(Collectors.joining(","));
-        Query query = entityManager.createNativeQuery(String.format(DELETE_QUERY_TEMPLATE, addEscapeCharacters(tableName), ids));
+        Query query = entityManager.createNativeQuery(String.format(DELETE_QUERY_TEMPLATE, addDoubleQuotes(tableName), ids));
         int i = 1;
         for (Object systemId : systemIds) {
             query.setParameter(i++, systemId);
@@ -321,8 +328,8 @@ public class DataDao {
 
     public boolean isFieldUnique(String storageCode, String fieldName, Date publishTime) {
         return entityManager.createNativeQuery(
-                "SELECT " + addEscapeCharacters(fieldName) + ", COUNT(*)" +
-                        " FROM data." + addEscapeCharacters(storageCode) + " d WHERE " + getDataWhereClause(publishTime, null, null, null) +
+                "SELECT " + addDoubleQuotes(fieldName) + ", COUNT(*)" +
+                        " FROM data." + addDoubleQuotes(storageCode) + " d WHERE " + getDataWhereClause(publishTime, null, null, null) +
                         " GROUP BY 1" +
                         " HAVING COUNT(*) > 1"
         )
@@ -335,7 +342,7 @@ public class DataDao {
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void updateSequence(String tableName) {
         entityManager.createNativeQuery(String.format("SELECT setval('data.%s', (SELECT max(\"SYS_RECORDID\") FROM data.%s))",
-                getSequenceName(tableName), addEscapeCharacters(tableName))).getSingleResult();
+                getSequenceName(tableName), addDoubleQuotes(tableName))).getSingleResult();
     }
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
@@ -345,7 +352,7 @@ public class DataDao {
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void createTrigger(String tableName, List<String> fields) {
-        String escapedTableName = addEscapeCharacters(tableName);
+        String escapedTableName = addDoubleQuotes(tableName);
         entityManager.createNativeQuery(String.format(CREATE_HASH_TRIGGER,
                 tableName,
                 fields.stream().map(field -> "NEW." + field).collect(Collectors.joining(", ")),
@@ -363,40 +370,40 @@ public class DataDao {
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void dropTrigger(String tableName) {
-        String escapedTableName = addEscapeCharacters(tableName);
+        String escapedTableName = addDoubleQuotes(tableName);
         entityManager.createNativeQuery(String.format(DROP_HASH_TRIGGER, escapedTableName)).executeUpdate();
         entityManager.createNativeQuery(String.format(DROP_FTS_TRIGGER, escapedTableName)).executeUpdate();
     }
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void createIndex(String tableName, String field) {
-        entityManager.createNativeQuery(String.format(CREATE_TABLE_INDEX, addEscapeCharacters(tableName + "_" + field.toLowerCase() + "_idx"),
-                addEscapeCharacters(tableName), addEscapeCharacters(field))).executeUpdate();
+        entityManager.createNativeQuery(String.format(CREATE_TABLE_INDEX, addDoubleQuotes(tableName + "_" + field.toLowerCase() + "_idx"),
+                addDoubleQuotes(tableName), addDoubleQuotes(field))).executeUpdate();
     }
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void createFullTextSearchIndex(String tableName) {
-        entityManager.createNativeQuery(String.format(CREATE_FTS_INDEX, addEscapeCharacters(tableName + "_fts_idx"),
-                addEscapeCharacters(tableName),
-                addEscapeCharacters(FULL_TEXT_SEARCH))).executeUpdate();
+        entityManager.createNativeQuery(String.format(CREATE_FTS_INDEX, addDoubleQuotes(tableName + "_fts_idx"),
+                addDoubleQuotes(tableName),
+                addDoubleQuotes(FULL_TEXT_SEARCH))).executeUpdate();
     }
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void createLtreeIndex(String tableName, String field) {
-        entityManager.createNativeQuery(String.format(CREATE_LTREE_INDEX, addEscapeCharacters(tableName + "_" + field.toLowerCase() + "_idx"),
-                addEscapeCharacters(tableName),
-                addEscapeCharacters(field))).executeUpdate();
+        entityManager.createNativeQuery(String.format(CREATE_LTREE_INDEX, addDoubleQuotes(tableName + "_" + field.toLowerCase() + "_idx"),
+                addDoubleQuotes(tableName),
+                addDoubleQuotes(field))).executeUpdate();
     }
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void createHashIndex(String tableName) {
-        entityManager.createNativeQuery(String.format(CREATE_TABLE_HASH_INDEX, addEscapeCharacters(tableName + "_sys_hash_ix"),
-                addEscapeCharacters(tableName))).executeUpdate();
+        entityManager.createNativeQuery(String.format(CREATE_TABLE_HASH_INDEX, addDoubleQuotes(tableName + "_sys_hash_ix"),
+                addDoubleQuotes(tableName))).executeUpdate();
     }
 
     public List<String> getFieldNames(String tableName) {
         List<String> results = entityManager.createNativeQuery(String.format(SELECT_FIELD_NAMES, tableName)).getResultList();
-        return results.stream().map(QueryUtil::addEscapeCharacters).collect(Collectors.toList());
+        return results.stream().map(QueryUtil::addDoubleQuotes).collect(Collectors.toList());
     }
 
     public String getFieldType(String tableName, String field) {
@@ -404,7 +411,7 @@ public class DataDao {
     }
 
     public void alterDataType(String tableName, String field, String oldType, String newType) {
-        String escapedField = addEscapeCharacters(field);
+        String escapedField = addDoubleQuotes(field);
         String using = "";
         if (DateField.TYPE.equals(oldType) && (StringField.TYPE.equals(newType) || IntegerStringField.TYPE.equals(newType))) {
             using = "to_char(" + escapedField + ", '" + DATE_FORMAT_FOR_USING_CONVERTING + "')";
@@ -414,16 +421,16 @@ public class DataDao {
         } else {
             using = escapedField + "\\:\\:varchar\\:\\:" + newType;
         }
-        entityManager.createNativeQuery(String.format(ALTER_COLUMN_WITH_USING, addEscapeCharacters(tableName),
+        entityManager.createNativeQuery(String.format(ALTER_COLUMN_WITH_USING, addDoubleQuotes(tableName),
                 escapedField, newType, using)).executeUpdate();
     }
 
     public List getRowsByField(String tableName, String field, Object uniqueValue, boolean existDateColumns, Date begin, Date end, Object id) {
         String query = SELECT_ROWS_FROM_DATA_BY_FIELD;
-        String rows = addEscapeCharacters(field);
+        String rows = addDoubleQuotes(field);
         if (existDateColumns) {
             SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy");
-            rows += "," + addEscapeCharacters(DATE_BEGIN) + "," + addEscapeCharacters(DATE_END);
+            rows += "," + addDoubleQuotes(DATE_BEGIN) + "," + addDoubleQuotes(DATE_END);
             query += "and (coalesce(\"DATEBEG\",'-infinity'\\:\\:timestamp),coalesce(\"DATEEND\",'infinity'\\:\\:timestamp)) overlaps ";
             if (begin != null) {
                 query += "((to_date('" + sdf.format(begin) + "','dd.MM.yyyy') - integer '1'),";
@@ -437,35 +444,35 @@ public class DataDao {
             }
         }
         if (id != null) {
-            query += " and " + addEscapeCharacters("SYS_RECORDID") + " != " + id;
+            query += " and " + addDoubleQuotes("SYS_RECORDID") + " != " + id;
         }
-        Query nativeQuery = entityManager.createNativeQuery(String.format(query, rows, addEscapeCharacters(tableName), addEscapeCharacters(field)));
+        Query nativeQuery = entityManager.createNativeQuery(String.format(query, rows, addDoubleQuotes(tableName), addDoubleQuotes(field)));
         nativeQuery.setParameter(1, uniqueValue);
         return nativeQuery.getResultList();
     }
 
     public boolean ifFieldIsNotEmpty(String tableName, String fieldName) {
         return (boolean) entityManager
-                .createNativeQuery(String.format(IF_FIELD_IS_NOT_EMPTY, addEscapeCharacters(tableName),
-                        addEscapeCharacters(tableName),
-                        addEscapeCharacters(fieldName)))
+                .createNativeQuery(String.format(IF_FIELD_IS_NOT_EMPTY, addDoubleQuotes(tableName),
+                        addDoubleQuotes(tableName),
+                        addDoubleQuotes(fieldName)))
                 .getSingleResult();
     }
 
     public BigInteger countActualDataFromVersion(String versionTable, String draftTable) {
         return (BigInteger) entityManager.createNativeQuery(
                 String.format(COUNT_ACTUAL_VAL_FROM_VERSION,
-                        addEscapeCharacters(versionTable),
-                        addEscapeCharacters(draftTable)
+                        addDoubleQuotes(versionTable),
+                        addDoubleQuotes(draftTable)
                 ))
                 .getSingleResult();
     }
 
     public void insertActualDataFromVersion(String tableToInsert, String versionTableFromInsert, String draftTable, int offset, int transactionSize) {
         String query = String.format(INSERT_ACTUAL_VAL_FROM_VERSION,
-                addEscapeCharacters(tableToInsert),
-                addEscapeCharacters(versionTableFromInsert),
-                addEscapeCharacters(draftTable),
+                addDoubleQuotes(tableToInsert),
+                addDoubleQuotes(versionTableFromInsert),
+                addDoubleQuotes(draftTable),
                 offset,
                 transactionSize,
                 getSequenceName(tableToInsert));
@@ -480,13 +487,13 @@ public class DataDao {
     public BigInteger countOldDataFromVersion(String versionTable) {
         return (BigInteger) entityManager.createNativeQuery(
                 String.format(COUNT_OLD_VAL_FROM_VERSION,
-                        addEscapeCharacters(versionTable))).getSingleResult();
+                        addDoubleQuotes(versionTable))).getSingleResult();
     }
 
     public void insertOldDataFromVersion(String tableToInsert, String tableFromInsert, int offset, int transactionSize) {
         String query = String.format(INSERT_OLD_VAL_FROM_VERSION,
-                addEscapeCharacters(tableToInsert),
-                addEscapeCharacters(tableFromInsert),
+                addDoubleQuotes(tableToInsert),
+                addDoubleQuotes(tableFromInsert),
                 offset,
                 transactionSize,
                 getSequenceName(tableToInsert));
@@ -499,16 +506,16 @@ public class DataDao {
 
     public BigInteger countClosedNowDataFromVersion(String versionTable, String draftTable) {
         return (BigInteger) entityManager.createNativeQuery(String.format(COUNT_CLOSED_NOW_VAL_FROM_VERSION,
-                addEscapeCharacters(versionTable),
-                addEscapeCharacters(draftTable)))
+                addDoubleQuotes(versionTable),
+                addDoubleQuotes(draftTable)))
                 .getSingleResult();
     }
 
     public void insertClosedNowDataFromVersion(String tableToInsert, String versionTable, String draftTable, int offset, int transactionSize, Date publishTime) {
         String query = String.format(INSERT_CLOSED_NOW_VAL_FROM_VERSION,
-                addEscapeCharacters(tableToInsert),
-                addEscapeCharacters(versionTable),
-                addEscapeCharacters(draftTable),
+                addDoubleQuotes(tableToInsert),
+                addDoubleQuotes(versionTable),
+                addDoubleQuotes(draftTable),
                 offset,
                 transactionSize,
                 new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(publishTime),
@@ -523,19 +530,19 @@ public class DataDao {
     public BigInteger countNewValFromDraft(String draftTable, String versionTable) {
         return (BigInteger) entityManager.createNativeQuery(
                 String.format(COUNT_NEW_VAL_FROM_DRAFT,
-                        addEscapeCharacters(draftTable),
-                        addEscapeCharacters(versionTable)))
+                        addDoubleQuotes(draftTable),
+                        addDoubleQuotes(versionTable)))
                 .getSingleResult();
 
     }
 
     public void insertNewDataFromDraft(String tableToInsert, String versionTable, String draftTable, int offset, int transactionSize, Date publishTime) {
         String query = String.format(INSERT_NEW_VAL_FROM_DRAFT,
-                addEscapeCharacters(draftTable),
-                addEscapeCharacters(versionTable),
+                addDoubleQuotes(draftTable),
+                addDoubleQuotes(versionTable),
                 offset,
                 transactionSize,
-                addEscapeCharacters(tableToInsert),
+                addDoubleQuotes(tableToInsert),
                 new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(publishTime),
                 getSequenceName(tableToInsert));
         if (logger.isDebugEnabled()) {
@@ -550,10 +557,10 @@ public class DataDao {
         String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String query = String.format(INSERT_FROM_DRAFT_TEMPLATE,
-                addEscapeCharacters(draftTable),
+                addDoubleQuotes(draftTable),
                 offset,
                 transactionSize,
-                addEscapeCharacters(targetTable),
+                addDoubleQuotes(targetTable),
                 new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(publishTime),
                 getSequenceName(targetTable),
                 columnsStr,
@@ -576,15 +583,15 @@ public class DataDao {
         String countSelect = "SELECT count(*)";
         String orderBy = " order by " + criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t1")).collect(Collectors.joining(",")) + "," +
                 criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t2")).collect(Collectors.joining(","));
-        String dataSelect = "select t1." + addEscapeCharacters(DATA_PRIMARY_COLUMN) + " as sysId1," + generateSqlQuery("t1", criteria.getFields()) + ", "
-                + "t2." + addEscapeCharacters(DATA_PRIMARY_COLUMN) + " as sysId2, " + generateSqlQuery("t2", criteria.getFields());
+        String dataSelect = "select t1." + addDoubleQuotes(DATA_PRIMARY_COLUMN) + " as sysId1," + generateSqlQuery("t1", criteria.getFields()) + ", "
+                + "t2." + addDoubleQuotes(DATA_PRIMARY_COLUMN) + " as sysId2, " + generateSqlQuery("t2", criteria.getFields());
         String primaryEquality = criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t1") + "=" + formatFieldForQuery(f, "t2")).collect(Collectors.joining(","));
         String basePrimaryIsNull = criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t1") + " is null ").collect(Collectors.joining(" and "));
         String targetPrimaryIsNull = criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t2") + " is null ").collect(Collectors.joining(" and "));
         String baseFilter = "date_trunc('second', t1.\"SYS_PUBLISHTIME\") <= :baseDate and (date_trunc('second', t1.\"SYS_CLOSETIME\") > :baseDate or t1.\"SYS_CLOSETIME\" is null) ";
         String targetFilter = "date_trunc('second', t2.\"SYS_PUBLISHTIME\") <= :targetDate and (date_trunc('second', t2.\"SYS_CLOSETIME\") > :targetDate or t2.\"SYS_CLOSETIME\" is null) ";
-        String query = " from data." + addEscapeCharacters(criteria.getStorageCode()) + " t1 " +
-                " full join data." + addEscapeCharacters(criteria.getStorageCode()) + " t2 on " + primaryEquality +
+        String query = " from data." + addDoubleQuotes(criteria.getStorageCode()) + " t1 " +
+                " full join data." + addDoubleQuotes(criteria.getStorageCode()) + " t2 on " + primaryEquality +
                 " and " + baseFilter +
                 " and " + targetFilter +
                 " where ";

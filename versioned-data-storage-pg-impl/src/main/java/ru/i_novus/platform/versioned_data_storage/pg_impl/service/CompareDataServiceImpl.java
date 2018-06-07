@@ -20,8 +20,4 @@ public class CompareDataServiceImpl implements CompareDataService {
     public DataDifference getDataDifference(CompareDataCriteria criteria) {
         return dataDao.getDataDifference(criteria);
     }
-
-    public void setDataDao(DataDao dataDao) {
-        this.dataDao = dataDao;
-    }
 }
