@@ -197,13 +197,14 @@ public class DraftDataServiceImpl implements DraftDataService {
     public void updateField(String draftCode, Field field) {
         String oldType = dataDao.getFieldType(draftCode, field.getName());
         String newType = field.getType();
+        //todo
         boolean ifFieldIsNotEmpty = dataDao.ifFieldIsNotEmpty(draftCode, field.getName());
-        if (ifFieldIsNotEmpty) {
-            boolean isCompatible = isCompatibleTypes(oldType, newType);
-            if (!isCompatible) {
-                throw new CodifiedException(INCOMPATIBLE_NEW_DATA_TYPE_EXCEPTION_CODE, field.getName());
-            }
-        }
+//        if (ifFieldIsNotEmpty) {
+//            boolean isCompatible = isCompatibleTypes(oldType, newType);
+//            if (!isCompatible) {
+//                throw new CodifiedException(INCOMPATIBLE_NEW_DATA_TYPE_EXCEPTION_CODE, field.getName());
+//            }
+//        }
         try {
             dataDao.dropTrigger(draftCode);
             dataDao.alterDataType(draftCode, field.getName(), oldType, newType);

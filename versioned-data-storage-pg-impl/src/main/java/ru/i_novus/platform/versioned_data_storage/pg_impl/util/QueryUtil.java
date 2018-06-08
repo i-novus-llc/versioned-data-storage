@@ -4,13 +4,13 @@ import net.n2oapp.criteria.api.Criteria;
 import org.apache.commons.lang.StringUtils;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
+import ru.i_novus.platform.datastorage.temporal.model.LongRowValue;
 import ru.i_novus.platform.datastorage.temporal.model.Reference;
 import ru.i_novus.platform.datastorage.temporal.model.value.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author lgalimova
@@ -28,7 +28,7 @@ public class QueryUtil {
                 for (int i = 0; i < row.length; i++) {
                     Field field = fieldIterator.next();
                     Object value = row[i];
-                    if (i==0){
+                    if (i == 0) {
                         //SYS_RECORD_ID
                         rowValue.setSystemId(Long.parseLong(row[i].toString()));
                         continue;
@@ -67,6 +67,8 @@ public class QueryUtil {
     }
 
     public static String generateSqlQuery(String alias, List<Field> fields) {
+        if (StringUtils.isEmpty(alias))
+            alias = "";
         List<String> queryFields = new ArrayList<>();
         for (Field field : fields) {
             String query = formatFieldForQuery(field.getName(), alias);
@@ -87,7 +89,8 @@ public class QueryUtil {
     }
 
     public static String formatFieldForQuery(String field, String alias) {
-        alias = alias + ".";
+        if (!StringUtils.isEmpty(alias))
+            alias = alias + ".";
         if (field.contains("->>")) {
             String[] queryParts = field.split("->>");
             return alias + addDoubleQuotes(queryParts[0]) + "->>" + queryParts[1];
@@ -131,9 +134,9 @@ public class QueryUtil {
     }
 
     public static boolean isCompatibleTypes(String oldDataType, String newDataType) {
-        if (ReferenceField.TYPE.equals(newDataType) || ListField.TYPE.equals(newDataType) || ReferenceField.TYPE.equals(oldDataType) || ListField.TYPE.equals(oldDataType)) {
-            return false;
-        }
+//        if (ReferenceField.TYPE.equals(newDataType) || ListField.TYPE.equals(newDataType) || ReferenceField.TYPE.equals(oldDataType) || ListField.TYPE.equals(oldDataType)) {
+//            return false;
+//        }
         if (oldDataType.equals(newDataType) || StringField.TYPE.equals(newDataType)) {
             return true;
         }

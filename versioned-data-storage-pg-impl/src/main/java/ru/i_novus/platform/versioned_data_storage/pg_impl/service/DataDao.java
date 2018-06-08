@@ -62,12 +62,6 @@ public class DataDao {
     }
 
     public RowValue getRowData(String tableName, List<String> fieldNames, Object systemId) {
-        String keys = fieldNames.stream().map(field -> addDoubleQuotes(field)).collect(Collectors.joining(","));
-        List<Object[]> list = entityManager.createNativeQuery(String.format(SELECT_ROWS_FROM_DATA_BY_FIELD, keys,
-                addDoubleQuotes(tableName), addDoubleQuotes(DATA_PRIMARY_COLUMN)))
-                .setParameter(1, systemId).getResultList();
-        if (list.isEmpty())
-            return null;
         List<Object[]> dataTypes = entityManager.createNativeQuery("select column_name, data_type from information_schema.columns " +
                 "where table_schema='data' and table_name=:table")
                 .setParameter("table", tableName)
@@ -79,6 +73,15 @@ public class DataDao {
                 fields.add(getField(fieldName, (String) dataType[1]));
             }
         }
+        fields.add(0, new IntegerField(DATA_PRIMARY_COLUMN));
+        String keys = generateSqlQuery(null, fields);
+        List<Object[]> list = entityManager.createNativeQuery(String.format(SELECT_ROWS_FROM_DATA_BY_FIELD, keys,
+                addDoubleQuotes(tableName), addDoubleQuotes(DATA_PRIMARY_COLUMN)))
+                .setParameter(1, systemId).getResultList();
+        if (list.isEmpty())
+            return null;
+
+
         RowValue row = convertToRowValue(fields, list).get(0);
         row.setSystemId(systemId);
         return row;
@@ -273,7 +276,7 @@ public class DataDao {
                     FieldValue fieldValue = (FieldValue) value;
                     if (fieldValue.getValue() != null) {
                         if (fieldValue instanceof ReferenceFieldValue) {
-                            query.setParameter(i++, ((ReferenceFieldValue)fieldValue).getValue().getValue());
+                            query.setParameter(i++, ((ReferenceFieldValue) fieldValue).getValue().getValue());
 
                         } else
                             query.setParameter(i++, fieldValue.getValue());
@@ -305,7 +308,7 @@ public class DataDao {
             FieldValue fieldValue = (FieldValue) obj;
             if (fieldValue.getValue() != null)
                 if (fieldValue instanceof ReferenceFieldValue) {
-                    query.setParameter(i++, ((ReferenceFieldValue)fieldValue).getValue().getValue());
+                    query.setParameter(i++, ((ReferenceFieldValue) fieldValue).getValue().getValue());
 
                 } else
                     query.setParameter(i++, fieldValue.getValue());
@@ -423,6 +426,10 @@ public class DataDao {
         } else if (StringField.TYPE.equals(oldType) || IntegerStringField.TYPE.equals(oldType)
                 || StringField.TYPE.equals(newType) || IntegerStringField.TYPE.equals(newType)) {
             using = escapedField + "\\:\\:" + newType;
+        } else if (ReferenceField.TYPE.equals(oldType)) {
+            using = "(" + escapedField + "->>'value')" + "\\:\\:varchar\\:\\:" + newType;
+        } else if (ReferenceField.TYPE.equals(newType)) {
+            using = "jsonb_build_object('value'," + escapedField + ")";
         } else {
             using = escapedField + "\\:\\:varchar\\:\\:" + newType;
         }
