@@ -44,7 +44,9 @@ public class DataDao {
     }
 
     public List<RowValue> getData(DataCriteria criteria) {
-        String queryStr = "SELECT " + generateSqlQuery("d", criteria.getFields()) +
+        List<Field> fields = new ArrayList<>(criteria.getFields());
+        fields.add(0, new IntegerField(DATA_PRIMARY_COLUMN));
+        String queryStr = "SELECT " + generateSqlQuery("d", fields) +
                 " FROM data." + addDoubleQuotes(criteria.getTableName()) + " d WHERE ";
 
         queryStr += getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter());
@@ -56,7 +58,7 @@ public class DataDao {
                     .setMaxResults(criteria.getSize());
         setDataParameters(criteria, query);
         List<Object[]> resultList = query.getResultList();
-        return convertToRowValue(criteria.getFields(), resultList);
+        return convertToRowValue(fields, resultList);
     }
 
     public RowValue getRowData(String tableName, List<String> fieldNames, Object systemId) {
@@ -272,7 +274,6 @@ public class DataDao {
                     if (fieldValue.getValue() != null) {
                         if (fieldValue instanceof ReferenceFieldValue) {
                             query.setParameter(i++, ((ReferenceFieldValue)fieldValue).getValue().getValue());
-                            query.setParameter(i++, ((ReferenceFieldValue)fieldValue).getValue().getValue());
 
                         } else
                             query.setParameter(i++, fieldValue.getValue());
@@ -303,7 +304,11 @@ public class DataDao {
         for (Object obj : rowValue.getFieldValues()) {
             FieldValue fieldValue = (FieldValue) obj;
             if (fieldValue.getValue() != null)
-                query.setParameter(i++, fieldValue.getValue());
+                if (fieldValue instanceof ReferenceFieldValue) {
+                    query.setParameter(i++, ((ReferenceFieldValue)fieldValue).getValue().getValue());
+
+                } else
+                    query.setParameter(i++, fieldValue.getValue());
         }
         query.setParameter(i, rowValue.getSystemId());
         query.executeUpdate();

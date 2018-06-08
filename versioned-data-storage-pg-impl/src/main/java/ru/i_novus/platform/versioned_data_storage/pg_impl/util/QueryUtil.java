@@ -21,13 +21,18 @@ public class QueryUtil {
     public static List<RowValue> convertToRowValue(List<Field> fields, List<Object[]> data) {
         List<RowValue> resultData = new ArrayList<>(data.size());
         for (Object objects : data) {
-            RowValue rowValue = new LongRowValue();
+            LongRowValue rowValue = new LongRowValue();
             Iterator<Field> fieldIterator = fields.iterator();
             if (objects instanceof Object[]) {
                 Object[] row = (Object[]) objects;
                 for (int i = 0; i < row.length; i++) {
                     Field field = fieldIterator.next();
                     Object value = row[i];
+                    if (i==0){
+                        //SYS_RECORD_ID
+                        rowValue.setSystemId(Long.parseLong(row[i].toString()));
+                        continue;
+                    }
                     if (field instanceof ReferenceField) {
                         value = new Reference(row[i], row[i + 1]);
                         i++;
@@ -74,7 +79,7 @@ public class QueryUtil {
                 if (field instanceof TreeField) {
                     query += "\\:\\:text";
                 }
-                query += " as " + addDoubleQuotes(alias + field.getName());
+                query += " as " + addDoubleQuotes(alias + field.getName() + fields.indexOf(field));
                 queryFields.add(query);
             }
         }

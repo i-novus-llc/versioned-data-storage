@@ -84,9 +84,9 @@ public class DraftDataServiceImpl implements DraftDataService {
                     if (refValue.getValue() == null)
                         rowValues.add("null");
                     else {
-//                    rowValues.add("?\\:\\:jsonb");
                         if (refValue.getDisplayField() != null)
-                            rowValues.add(String.format("(select jsonb_build_object('value', ? , 'displayValue', (select d.%s from data.%s d where d.%s=? and %s)))",
+                            rowValues.add(String.format("(select jsonb_build_object('value', d.%s , 'displayValue', d.%s, 'hash', d.\"SYS_HASH\") from data.%s d where d.%s=? and %s)",
+                                    addDoubleQuotes(refValue.getKeyField()),
                                     addDoubleQuotes(refValue.getDisplayField()),
                                     addDoubleQuotes(refValue.getStorageCode()), addDoubleQuotes(refValue.getKeyField()),
                                     dataDao.getDataWhereClause(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(sdf.format(refValue.getDate())))));
@@ -94,7 +94,6 @@ public class DraftDataServiceImpl implements DraftDataService {
                             rowValues.add("(select jsonb_build_object('value', ?))");
                     }
                 } else if (fieldValue instanceof TreeFieldValue) {
-//                    rowValues.add("'" + fieldValue.getValue().toString() + "'");
                     rowValues.add("?\\:\\:ltree");
                 } else {
                     rowValues.add("?");
@@ -123,22 +122,38 @@ public class DraftDataServiceImpl implements DraftDataService {
     public void updateRow(String draftCode, RowValue value) {
         List<CodifiedException> exceptions = new ArrayList<>();
 //        validateRow(draftCode, value, exceptions);
+        if (value.getSystemId() == null)
+            exceptions.add(new CodifiedException(FIELD_IS_REQUIRED_EXCEPTION_CODE, DATA_PRIMARY_COLUMN));
         List<String> keyList = new ArrayList<>();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         for (Object objectValue : value.getFieldValues()) {
             FieldValue fieldValue = (FieldValue) objectValue;
             String fieldName = fieldValue.getField();
             if (fieldValue.getValue() == null || fieldValue.getValue().equals("null")) {
                 keyList.add(addDoubleQuotes(fieldName) + " = NULL");
             } else if (fieldValue instanceof ReferenceFieldValue) {
-                keyList.add(addDoubleQuotes(fieldName) + " = ?\\:\\:jsonb");
+                Reference refValue = ((ReferenceFieldValue) fieldValue).getValue();
+                if (refValue.getValue() == null)
+                    keyList.add(addDoubleQuotes(fieldName) + " = NULL");
+                else {
+                    if (refValue.getDisplayField() != null)
+                        keyList.add(addDoubleQuotes(fieldName) + String.format("=(select jsonb_build_object('value', d.%s , 'displayValue', d.%s, 'hash', d.\"SYS_HASH\") from data.%s d where d.%s=? and %s)",
+                                addDoubleQuotes(refValue.getKeyField()),
+                                addDoubleQuotes(refValue.getDisplayField()),
+                                addDoubleQuotes(refValue.getStorageCode()),
+                                addDoubleQuotes(refValue.getKeyField()),
+                                dataDao.getDataWhereClause(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(sdf.format(refValue.getDate())))));
+                    else
+                        keyList.add(addDoubleQuotes(fieldName) + "=(select jsonb_build_object('value', ?))");
+                }
             } else {
                 keyList.add(addDoubleQuotes(fieldName) + " = ?");
             }
         }
-        String keys = String.join(",", keyList);
         if (exceptions.size() != 0) {
             throw new ListCodifiedException(exceptions);
         }
+        String keys = String.join(",", keyList);
         dataDao.updateData(draftCode, keys, value);
     }
 
