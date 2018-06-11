@@ -197,6 +197,8 @@ public class DraftDataServiceImpl implements DraftDataService {
     public void updateField(String draftCode, Field field) {
         String oldType = dataDao.getFieldType(draftCode, field.getName());
         String newType = field.getType();
+        if (oldType.equals(newType))
+            return;
         //todo
         boolean ifFieldIsNotEmpty = dataDao.ifFieldIsNotEmpty(draftCode, field.getName());
 //        if (ifFieldIsNotEmpty) {

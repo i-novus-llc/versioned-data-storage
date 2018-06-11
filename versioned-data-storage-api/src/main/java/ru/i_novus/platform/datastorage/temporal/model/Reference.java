@@ -36,6 +36,15 @@ public class Reference implements Serializable {
         this.value = value;
     }
 
+    public Reference(String storageCode, Date date, String keyField, String displayField, Object value, Object displayValue) {
+        this.storageCode = storageCode;
+        this.date = date;
+        this.keyField = keyField;
+        this.displayField = displayField;
+        this.value = value;
+        this.displayValue = displayValue;
+    }
+
     public Reference(Object value, Object displayValue) {
         this.value = value;
         this.displayValue = displayValue;

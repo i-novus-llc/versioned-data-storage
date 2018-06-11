@@ -308,8 +308,8 @@ public class DataDao {
             FieldValue fieldValue = (FieldValue) obj;
             if (fieldValue.getValue() != null)
                 if (fieldValue instanceof ReferenceFieldValue) {
-                    query.setParameter(i++, ((ReferenceFieldValue) fieldValue).getValue().getValue());
-
+                    if (((ReferenceFieldValue) fieldValue).getValue().getValue() != null)
+                        query.setParameter(i++, ((ReferenceFieldValue) fieldValue).getValue().getValue());
                 } else
                     query.setParameter(i++, fieldValue.getValue());
         }
