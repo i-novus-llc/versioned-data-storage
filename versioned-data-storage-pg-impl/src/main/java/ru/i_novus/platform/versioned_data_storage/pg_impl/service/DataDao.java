@@ -429,7 +429,7 @@ public class DataDao {
         } else if (ReferenceField.TYPE.equals(oldType)) {
             using = "(" + escapedField + "->>'value')" + "\\:\\:varchar\\:\\:" + newType;
         } else if (ReferenceField.TYPE.equals(newType)) {
-            using = "jsonb_build_object('value'," + escapedField + ")";
+            using = "nullif(jsonb_build_object('value'," + escapedField + "),jsonb_build_object('value',null))";
         } else {
             using = escapedField + "\\:\\:varchar\\:\\:" + newType;
         }
