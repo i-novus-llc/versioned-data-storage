@@ -113,7 +113,7 @@ public class DataDao {
         if (closeDate != null) {
             result += " and (date_trunc('second', d.\"SYS_CLOSETIME\") >= :edate or d.\"SYS_CLOSETIME\" is null)";
         }
-        result += getDictionaryFilterQuery(search, filter);
+        result += getDictionaryFilterQuery(search, filter).getQuery();
         return result;
     }
 
@@ -364,7 +364,7 @@ public class DataDao {
     public boolean isFieldUnique(String storageCode, String fieldName, Date publishTime) {
         return entityManager.createNativeQuery(
                 "SELECT " + addDoubleQuotes(fieldName) + ", COUNT(*)" +
-                        " FROM data." + addDoubleQuotes(storageCode) + " d  " + getDataWhereClauseStr(publishTime, null, null, null) +
+                        " FROM data." + addDoubleQuotes(storageCode) + " d  WHERE " + getDataWhereClauseStr(publishTime, null, null, null) +
                         " GROUP BY 1" +
                         " HAVING COUNT(*) > 1"
         )
