@@ -364,7 +364,7 @@ public class DataDao {
     public boolean isFieldUnique(String storageCode, String fieldName, Date publishTime) {
         return entityManager.createNativeQuery(
                 "SELECT " + addDoubleQuotes(fieldName) + ", COUNT(*)" +
-                        " FROM data." + addDoubleQuotes(storageCode) + " d  " + getDataWhereClause(publishTime, null, null, null) +
+                        " FROM data." + addDoubleQuotes(storageCode) + " d  " + getDataWhereClauseStr(publishTime, null, null, null) +
                         " GROUP BY 1" +
                         " HAVING COUNT(*) > 1"
         )
