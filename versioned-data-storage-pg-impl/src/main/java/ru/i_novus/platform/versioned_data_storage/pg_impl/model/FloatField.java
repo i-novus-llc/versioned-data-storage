@@ -8,7 +8,7 @@ import ru.i_novus.platform.datastorage.temporal.model.value.FloatFieldValue;
  * @author lgalimova
  * @since 23.03.2018
  */
-public class FloatField extends Field {
+public class FloatField extends Field<Float> {
     public static final String TYPE = "numeric";
 
     public FloatField(String name) {
@@ -21,10 +21,7 @@ public class FloatField extends Field {
     }
 
     @Override
-    public FieldValue valueOf(Object value) {
-        if(value instanceof String) {
-            return new FloatFieldValue(getName(), Float.valueOf((String)value));
-        }
-        return new FloatFieldValue(getName(), (Float)value);
+    public FieldValue valueOf(Float value) {
+        return new FloatFieldValue(getName(), value);
     }
 }

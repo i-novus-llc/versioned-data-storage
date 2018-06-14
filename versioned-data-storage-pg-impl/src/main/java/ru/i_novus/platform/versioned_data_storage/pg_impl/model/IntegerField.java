@@ -8,7 +8,7 @@ import ru.i_novus.platform.datastorage.temporal.model.value.IntegerFieldValue;
  * @author lgalimova
  * @since 23.03.2018
  */
-public class IntegerField extends Field {
+public class IntegerField extends Field<Integer> {
     public static final String TYPE = "integer";
 
     public IntegerField(String name) {
@@ -21,7 +21,7 @@ public class IntegerField extends Field {
     }
 
     @Override
-    public FieldValue valueOf(Object value) {
-        return new IntegerFieldValue(getName(), (Integer)value);
+    public FieldValue valueOf(Integer value) {
+        return new IntegerFieldValue(getName(), value);
     }
 }

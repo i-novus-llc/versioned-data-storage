@@ -8,7 +8,7 @@ import ru.i_novus.platform.datastorage.temporal.model.value.BooleanFieldValue;
  * @author lgalimova
  * @since 23.03.2018
  */
-public class BooleanField extends Field {
+public class BooleanField extends Field<Boolean> {
     public static final String TYPE = "boolean";
 
     public BooleanField(String name) {
@@ -21,11 +21,7 @@ public class BooleanField extends Field {
     }
 
     @Override
-    public FieldValue valueOf(Object value) {
-        if (value instanceof String) {
-            return new BooleanFieldValue(getName(), Boolean.valueOf((String)value));
-        } else {
-            return new BooleanFieldValue(getName(), (Boolean) value);
-        }
+    public FieldValue valueOf(Boolean value) {
+        return new BooleanFieldValue(getName(), value);
     }
 }

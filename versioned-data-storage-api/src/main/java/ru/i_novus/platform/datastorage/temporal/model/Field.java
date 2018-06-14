@@ -6,7 +6,7 @@ import java.io.Serializable;
  * @author lgalimova
  * @since 01.02.2018
  */
-public abstract class Field implements Serializable {
+public abstract class Field<T> implements Serializable {
     private String name;
     private Integer maxLength;
     private Boolean searchEnabled = false;
@@ -30,7 +30,7 @@ public abstract class Field implements Serializable {
      */
     public abstract String getType();
 
-    public abstract FieldValue valueOf(Object value);
+    public abstract FieldValue valueOf(T value);
 
     public Boolean getSearchEnabled() {
         return searchEnabled;

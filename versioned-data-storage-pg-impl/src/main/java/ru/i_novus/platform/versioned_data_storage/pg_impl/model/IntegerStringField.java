@@ -8,7 +8,7 @@ import ru.i_novus.platform.datastorage.temporal.model.value.StringFieldValue;
  * @author lgalimova
  * @since 21.05.2018
  */
-public class IntegerStringField extends Field {
+public class IntegerStringField extends Field<String> {
     public static final String TYPE = "varchar";
 
     public IntegerStringField(String name) {
@@ -21,8 +21,7 @@ public class IntegerStringField extends Field {
     }
 
     @Override
-    public FieldValue valueOf(Object value) {
-        assert value instanceof String;
-        return new StringFieldValue(getName(), (String)value);
+    public FieldValue valueOf(String value) {
+        return new StringFieldValue(getName(), value);
     }
 }

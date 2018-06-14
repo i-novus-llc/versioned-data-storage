@@ -12,7 +12,7 @@ import java.util.List;
  * @author lgalimova
  * @since 01.02.2018
  */
-public class DateField extends Field {
+public class DateField extends Field<Date> {
     public static final String TYPE = "date";
 
     public DateField(String name) {
@@ -25,7 +25,7 @@ public class DateField extends Field {
     }
 
     @Override
-    public FieldValue valueOf(Object value) {
-        return new DateFieldValue(getName(), (Date) value);
+    public FieldValue valueOf(Date value) {
+        return new DateFieldValue(getName(), value);
     }
 }
