@@ -15,15 +15,15 @@ public class DataCriteria extends Criteria {
     private final String commonFilter;
 
     /**
-     * @param tableName    наименование таблицы
+     * @param storageCode    наименование таблицы
      * @param bdate         дата публикации версии
      * @param edate         дата создания версии
      * @param fields       список полей в ответе
      * @param fieldFilter  фильтр по отдельным полям
      * @param commonFilter фильтр по всем полям
      */
-    public DataCriteria(String tableName, Date bdate, Date edate, List<Field> fields, List<FieldSearchCriteria> fieldFilter, String commonFilter) {
-        this.tableName = tableName;
+    public DataCriteria(String storageCode, Date bdate, Date edate, List<Field> fields, List<FieldSearchCriteria> fieldFilter, String commonFilter) {
+        this.tableName = storageCode;
         this.bdate = bdate;
         this.edate = edate;
         this.fields = fields;

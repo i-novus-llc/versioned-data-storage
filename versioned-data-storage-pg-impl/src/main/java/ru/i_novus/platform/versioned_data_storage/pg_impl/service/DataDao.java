@@ -23,6 +23,7 @@ import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
+import javax.transaction.Transactional;
 import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 import java.time.temporal.ChronoUnit;
@@ -46,17 +47,16 @@ public class DataDao {
     public List<RowValue> getData(DataCriteria criteria) {
         List<Field> fields = new ArrayList<>(criteria.getFields());
         fields.add(0, new IntegerField(DATA_PRIMARY_COLUMN));
-        String queryStr = "SELECT " + generateSqlQuery("d", fields) +
-                " FROM data." + addDoubleQuotes(criteria.getTableName()) + " d WHERE ";
+        QueryWithParams queryWithParams = new QueryWithParams("SELECT " + generateSqlQuery("d", fields) +
+                " FROM data." + addDoubleQuotes(criteria.getTableName()) + " d ", null);
 
-        queryStr += getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter());
-        String orderBy = getDictionaryDataOrderBy((!Util.isEmpty(criteria.getSortings()) ? criteria.getSortings().get(0) : null), "d");
-        Query query = entityManager
-                .createNativeQuery(queryStr + orderBy);
+        queryWithParams.concat(getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter()));
+        queryWithParams.concat(new QueryWithParams(getDictionaryDataOrderBy((!Util.isEmpty(criteria.getSortings()) ? criteria.getSortings().get(0) : null), "d"), null));
+        Query query = queryWithParams.createQuery(entityManager);
         if (criteria.getPage() > 0 && criteria.getSize() > 0)
             query.setFirstResult(getOffset(criteria))
                     .setMaxResults(criteria.getSize());
-        setDataParameters(criteria, query);
+        //setDataParameters(criteria, query);
         List<Object[]> resultList = query.getResultList();
         return convertToRowValue(fields, resultList);
     }
@@ -97,15 +97,15 @@ public class DataDao {
     }
 
     public BigInteger getDataCount(DataCriteria criteria) {
-        String queryStr = "SELECT count(*)" +
-                " FROM data." + addDoubleQuotes(criteria.getTableName()) + " d WHERE ";
-        queryStr += getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter());
-        Query query = entityManager.createNativeQuery(queryStr);
-        setDataParameters(criteria, query);
-        return (BigInteger) query.getSingleResult();
+        QueryWithParams queryWithParams = new QueryWithParams("SELECT count(*)" +
+                " FROM data." + addDoubleQuotes(criteria.getTableName()) + " d ", null);
+        queryWithParams.concat(getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter()));
+        //setDataParameters(criteria, query);
+        return (BigInteger) queryWithParams.createQuery(entityManager).getSingleResult();
     }
 
-    public String getDataWhereClause(Date publishDate, Date closeDate, String search, List<FieldSearchCriteria> filter) {
+    @Deprecated//todo о избавиться
+    public String getDataWhereClauseStr(Date publishDate, Date closeDate, String search, List<FieldSearchCriteria> filter) {
         String result = " 1=1 ";
         if (publishDate != null) {
             result += " and date_trunc('second', d.\"SYS_PUBLISHTIME\") <= :bdate and (date_trunc('second', d.\"SYS_CLOSETIME\") > :bdate or d.\"SYS_CLOSETIME\" is null)";
@@ -117,13 +117,24 @@ public class DataDao {
         return result;
     }
 
+    private QueryWithParams getDataWhereClause(Date publishDate, Date closeDate, String search, List<FieldSearchCriteria> filter) {
+        Map<String, Object> params = new HashMap<>();
+        String result = " WHERE 1=1 ";
+        if (publishDate != null) {
+            result += " and date_trunc('second', d.\"SYS_PUBLISHTIME\") <= :bdate and (date_trunc('second', d.\"SYS_CLOSETIME\") > :bdate or d.\"SYS_CLOSETIME\" is null)";
+            params.put("bdate",  truncateDateTo(publishDate, ChronoUnit.SECONDS));
+        }
+        if (closeDate != null) {
+            result += " and (date_trunc('second', d.\"SYS_CLOSETIME\") >= :edate or d.\"SYS_CLOSETIME\" is null)";
+            params.put("edate",  truncateDateTo(closeDate, ChronoUnit.SECONDS));
+        }
+        QueryWithParams queryWithParams = new QueryWithParams(result, params);
+        queryWithParams.concat(getDictionaryFilterQuery(search, filter));
+        return queryWithParams;
+    }
+
     private void setDataParameters(DataCriteria criteria, Query query) {
-        if (criteria.getBdate() != null) {
-            query.setParameter("bdate", truncateDateTo(criteria.getBdate(), ChronoUnit.SECONDS));
-        }
-        if (criteria.getEdate() != null) {
-            query.setParameter("edate", truncateDateTo(criteria.getEdate(), ChronoUnit.SECONDS));
-        }
+
         if (!Util.isEmpty(criteria.getCommonFilter())) {
             String search = criteria.getCommonFilter().trim();
             if (dataRegexp.matcher(search).matches()) {
@@ -154,7 +165,8 @@ public class DataDao {
         }
     }
 
-    private String getDictionaryFilterQuery(String search, List<FieldSearchCriteria> filter) {
+    private QueryWithParams getDictionaryFilterQuery(String search, List<FieldSearchCriteria> filter) {
+        Map<String, Object> params = new HashMap<>();
         String queryStr = "";
         if (!Util.isEmpty(search)) {
             //full text search
@@ -162,8 +174,15 @@ public class DataDao {
             String escapedFtsColumn = addDoubleQuotes(FULL_TEXT_SEARCH);
             if (dataRegexp.matcher(search).matches()) {
                 queryStr += " and (" + escapedFtsColumn + " @@ to_tsquery(:search) or " + escapedFtsColumn + " @@ to_tsquery(:reverseSearch) ) ";
+                String[] dateArr = search.split("\\.");
+                String reverseSearch = dateArr[2] + "-" + dateArr[1] + "-" + dateArr[0];
+                params.put("search", search.trim());
+                params.put("reverseSearch", reverseSearch);
             } else {
-                queryStr += " and (" + escapedFtsColumn + " @@ to_tsquery(:formattedSearch) or " + escapedFtsColumn + " @@ to_tsquery('ru', :formattedSearch) or " + escapedFtsColumn + " @@ to_tsquery('ru', ''':search'':*')) ";
+                String formattedSearch = search.toLowerCase().replaceAll(":", "\\\\:").replaceAll("/", "\\\\/").replace(" ", "+") + "\\\\:*";
+                queryStr += " and (" + escapedFtsColumn + " @@ to_tsquery(:formattedSearch) or " + escapedFtsColumn + " @@ to_tsquery('russian', :formattedSearch) or " + escapedFtsColumn + " @@ to_tsquery('russian', :original)) ";
+                params.put("formattedSearch", "'" + formattedSearch + "'");
+                params.put("original", "'''" + search + "''\\\\:*'");
             }
         } else if (!Util.isEmpty(filter)) {
             for (FieldSearchCriteria searchCriteria : filter) {
@@ -179,6 +198,8 @@ public class DataDao {
                 } else if (field instanceof TreeField) {
                     if (SearchTypeEnum.LESS.equals(searchCriteria.getType())) {
                         queryStr += " and " + escapedFieldName + "@> (cast(:" + fieldName + " AS ltree[]))";
+                        String v = searchCriteria.getValues().stream().map(Object::toString).collect(Collectors.joining(",", "{", "}"));
+                        params.put(field.getName(), v);
                     }
                 } else if (field instanceof BooleanField) {
                     if (searchCriteria.getValues().size() == 1) {
@@ -186,15 +207,21 @@ public class DataDao {
                                 ((Boolean) (searchCriteria.getValues().get(0)) ? " IS TRUE " : " IS NOT TRUE");
                     }
                 } else if (field instanceof StringField) {
-                    if (SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && searchCriteria.getValues().size() == 1)
+                    if (SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && searchCriteria.getValues().size() == 1) {
                         queryStr += " and " + escapedFieldName + " like :" + fieldName + "";
-                    else {
+                        params.put(field.getName(), "%" + searchCriteria.getValues().get(0).toString().trim() + "%");
+                    } else {
                         queryStr += " and " + escapedFieldName + " in (:" + fieldName + ")";
+                        params.put(field.getName(), searchCriteria.getValues());
                     }
+                }
+                else {
+                    params.put(field.getName(), searchCriteria.getValues());
+
                 }
             }
         }
-        return queryStr;
+        return new QueryWithParams(queryStr, params);
     }
 
 
@@ -202,6 +229,7 @@ public class DataDao {
         return (BigInteger) entityManager.createNativeQuery(String.format(SELECT_COUNT_QUERY_TEMPLATE, addDoubleQuotes(tableName))).getSingleResult();
     }
 
+    @Transactional
     public void createDraftTable(String tableName, List<Field> fields) {
         if (Util.isEmpty(fields)) {
             entityManager.createNativeQuery(String.format(CREATE_EMPTY_DRAFT_TABLE_TEMPLATE, addDoubleQuotes(tableName), tableName)).executeUpdate();
@@ -261,6 +289,7 @@ public class DataDao {
         return query.getResultList();
     }
 
+    @Transactional
     public void insertData(String tableName, String keys, List<String> values, List<RowValue> data) {
         int i = 1;
         int batchSize = 500;
@@ -292,12 +321,10 @@ public class DataDao {
     public void loadData(String draftCode, String sourceStorageCode, List<String> fields, Date onDate) {
         String keys = fields.stream().collect(Collectors.joining(","));
         String values = fields.stream().map(f -> "d." + f).collect(Collectors.joining(","));
-        String where = getDataWhereClause(onDate, null, null, null);
-        entityManager.createNativeQuery(String.format(COPY_QUERY_TEMPLATE, addDoubleQuotes(draftCode), keys, values,
-                addDoubleQuotes(sourceStorageCode), where))
-                .setParameter("bdate", truncateDateTo(onDate, ChronoUnit.SECONDS))
-                .executeUpdate();
-
+        QueryWithParams queryWithParams = new QueryWithParams(String.format(COPY_QUERY_TEMPLATE, addDoubleQuotes(draftCode), keys, values,
+                addDoubleQuotes(sourceStorageCode)), null);
+        queryWithParams.concat(getDataWhereClause(onDate, null, null, null));
+        queryWithParams.createQuery(entityManager).executeUpdate();
     }
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
@@ -337,7 +364,7 @@ public class DataDao {
     public boolean isFieldUnique(String storageCode, String fieldName, Date publishTime) {
         return entityManager.createNativeQuery(
                 "SELECT " + addDoubleQuotes(fieldName) + ", COUNT(*)" +
-                        " FROM data." + addDoubleQuotes(storageCode) + " d WHERE " + getDataWhereClause(publishTime, null, null, null) +
+                        " FROM data." + addDoubleQuotes(storageCode) + " d  " + getDataWhereClause(publishTime, null, null, null) +
                         " GROUP BY 1" +
                         " HAVING COUNT(*) > 1"
         )
@@ -369,7 +396,7 @@ public class DataDao {
                 tableName)).executeUpdate();
         entityManager.createNativeQuery(String.format(CREATE_FTS_TRIGGER,
                 tableName,
-                fields.stream().map(field -> "coalesce( to_tsvector('ru', NEW." + field + "\\:\\:text),'')")
+                fields.stream().map(field -> "coalesce( to_tsvector('russian', NEW." + field + "\\:\\:text),'')")
                         .collect(Collectors.joining(" || ' ' || ")),
                 fields.stream().collect(Collectors.joining(", ")),
                 escapedTableName,
@@ -684,6 +711,53 @@ public class DataDao {
         }
 
         return dataDifference;
+    }
+
+
+    private class QueryWithParams {
+
+        private String query;
+        private Map<String, Object> params;
+
+        public QueryWithParams(String query, Map<String, Object> params) {
+            this.query = query;
+            this.params = params;
+        }
+
+        public void concat(QueryWithParams queryWithParams) {
+            this.query = this.query + " " + queryWithParams.getQuery();
+            if(this.params == null) {
+                this.params = queryWithParams.getParams();
+            } else if (queryWithParams.getParams() != null) {
+                params.putAll(queryWithParams.getParams());
+            }
+        }
+
+        public Query createQuery(EntityManager entityManager) {
+            Query query = entityManager.createNativeQuery(getQuery());
+            if (getParams() != null) {
+                for(Map.Entry<String, Object> paramEntry : getParams().entrySet()) {
+                    query = query.setParameter(paramEntry.getKey(), paramEntry.getValue());
+                }
+            }
+            return query;
+        }
+
+        public String getQuery() {
+            return query;
+        }
+
+        public void setQuery(String query) {
+            this.query = query;
+        }
+
+        public Map<String, Object> getParams() {
+            return params;
+        }
+
+        public void setParams(Map<String, Object> params) {
+            this.params = params;
+        }
     }
 
 }

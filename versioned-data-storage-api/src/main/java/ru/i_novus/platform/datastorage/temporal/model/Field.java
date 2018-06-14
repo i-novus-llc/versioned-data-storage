@@ -30,6 +30,8 @@ public abstract class Field implements Serializable {
      */
     public abstract String getType();
 
+    public abstract FieldValue valueOf(Object value);
+
     public Boolean getSearchEnabled() {
         return searchEnabled;
     }

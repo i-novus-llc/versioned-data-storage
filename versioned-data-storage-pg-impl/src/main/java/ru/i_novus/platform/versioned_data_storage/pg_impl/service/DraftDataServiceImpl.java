@@ -13,6 +13,7 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 import ru.kirkazan.common.exception.CodifiedException;
 
 import javax.persistence.PersistenceException;
+import javax.transaction.Transactional;
 import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -39,6 +40,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     @Override
+    @Transactional
     public String createDraft(List<Field> fields) {
         String draftCode = UUID.randomUUID().toString();
         createTable(draftCode, fields, true);
@@ -89,7 +91,7 @@ public class DraftDataServiceImpl implements DraftDataService {
                                     addDoubleQuotes(refValue.getKeyField()),
                                     addDoubleQuotes(refValue.getDisplayField()),
                                     addDoubleQuotes(refValue.getStorageCode()), addDoubleQuotes(refValue.getKeyField()),
-                                    dataDao.getDataWhereClause(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(sdf.format(refValue.getDate())))));
+                                    dataDao.getDataWhereClauseStr(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(sdf.format(refValue.getDate())))));
                         else
                             rowValues.add("(select jsonb_build_object('value', ?))");
                     }
@@ -118,7 +120,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         dataDao.deleteData(draftCode);
     }
 
-    @Override
+    @Override//
     public void updateRow(String draftCode, RowValue value) {
         List<CodifiedException> exceptions = new ArrayList<>();
 //        validateRow(draftCode, value, exceptions);
@@ -142,7 +144,7 @@ public class DraftDataServiceImpl implements DraftDataService {
                                 addDoubleQuotes(refValue.getDisplayField()),
                                 addDoubleQuotes(refValue.getStorageCode()),
                                 addDoubleQuotes(refValue.getKeyField()),
-                                dataDao.getDataWhereClause(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(sdf.format(refValue.getDate())))));
+                                dataDao.getDataWhereClauseStr(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(sdf.format(refValue.getDate())))));
                     else
                         keyList.add(addDoubleQuotes(fieldName) + "=(select jsonb_build_object('value', ?))");
                 }
