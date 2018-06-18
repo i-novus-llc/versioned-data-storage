@@ -48,7 +48,7 @@ public class QueryUtil {
     }
 
     public static FieldValue getFieldValue(Field field, Object value) {
-        FieldValue fieldValue = null;
+        FieldValue fieldValue;
         String name = field.getName();
         if (field instanceof BooleanField) {
             fieldValue = new BooleanFieldValue(name, (Boolean) value);
