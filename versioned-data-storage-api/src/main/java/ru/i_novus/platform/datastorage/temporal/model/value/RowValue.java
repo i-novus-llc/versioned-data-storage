@@ -4,6 +4,8 @@ import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * @author lgalimova
@@ -36,5 +38,28 @@ public abstract class RowValue<T> {
 
     public void setFieldValues(List<FieldValue> fieldValues) {
         this.fieldValues = fieldValues;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        RowValue<?> rowValue = (RowValue<?>) o;
+        return Objects.equals(systemId, rowValue.systemId) &&
+                Objects.equals(fieldValues, rowValue.fieldValues);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(systemId, fieldValues);
+    }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("RowValue{");
+        sb.append("systemId=").append(systemId);
+        sb.append(", fieldValues=").append(fieldValues.stream().map(FieldValue::toString).collect(Collectors.joining(", ")));
+        sb.append('}');
+        return sb.toString();
     }
 }

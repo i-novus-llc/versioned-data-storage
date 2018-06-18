@@ -2,6 +2,7 @@ package ru.i_novus.platform.datastorage.temporal.model;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.Objects;
 
 /**
  * @author lgalimova
@@ -17,9 +18,9 @@ public class Reference implements Serializable {
     //поле, отображаемое в ссылке
     private String displayField;
     //значение ключа связи
-    private Object value;
+    private String value;
     //значение отображаемого значения
-    private Object displayValue;
+    private String displayValue;
 
     public Reference(String storageCode, Date date, String keyField, String displayField) {
         this.storageCode = storageCode;
@@ -28,7 +29,7 @@ public class Reference implements Serializable {
         this.displayField = displayField;
     }
 
-    public Reference(String storageCode, Date date, String keyField, String displayField, Object value) {
+    public Reference(String storageCode, Date date, String keyField, String displayField, String value) {
         this.storageCode = storageCode;
         this.date = date;
         this.keyField = keyField;
@@ -36,7 +37,7 @@ public class Reference implements Serializable {
         this.value = value;
     }
 
-    public Reference(String storageCode, Date date, String keyField, String displayField, Object value, Object displayValue) {
+    public Reference(String storageCode, Date date, String keyField, String displayField, String value, String displayValue) {
         this.storageCode = storageCode;
         this.date = date;
         this.keyField = keyField;
@@ -45,7 +46,7 @@ public class Reference implements Serializable {
         this.displayValue = displayValue;
     }
 
-    public Reference(Object value, Object displayValue) {
+    public Reference(String value, String displayValue) {
         this.value = value;
         this.displayValue = displayValue;
     }
@@ -66,11 +67,11 @@ public class Reference implements Serializable {
         return displayField;
     }
 
-    public Object getValue() {
+    public String getValue() {
         return value;
     }
 
-    public void setValue(Object value) {
+    public void setValue(String value) {
         this.value = value;
     }
 
@@ -78,7 +79,38 @@ public class Reference implements Serializable {
         return displayValue;
     }
 
-    public void setDisplayValue(Object displayValue) {
+    public void setDisplayValue(String displayValue) {
         this.displayValue = displayValue;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Reference reference = (Reference) o;
+        return Objects.equals(storageCode, reference.storageCode) &&
+                Objects.equals(date, reference.date) &&
+                Objects.equals(keyField, reference.keyField) &&
+                Objects.equals(displayField, reference.displayField) &&
+                Objects.equals(value, reference.value) &&
+                Objects.equals(displayValue, reference.displayValue);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(storageCode, date, keyField, displayField, value, displayValue);
+    }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("Reference{");
+        sb.append("storageCode='").append(storageCode).append('\'');
+        sb.append(", date=").append(date);
+        sb.append(", keyField='").append(keyField).append('\'');
+        sb.append(", displayField='").append(displayField).append('\'');
+        sb.append(", value=").append(value);
+        sb.append(", displayValue=").append(displayValue);
+        sb.append('}');
+        return sb.toString();
     }
 }

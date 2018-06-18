@@ -30,6 +30,7 @@
         <module>versioned-data-storage-api</module>
         <module>versioned-data-storage-pg-impl</module>
         <module>versioned-data-storage-ee-adapter</module>
+        <module>versioned-data-storage-spring-adapter</module>
     </modules>
 
     <dependencyManagement>

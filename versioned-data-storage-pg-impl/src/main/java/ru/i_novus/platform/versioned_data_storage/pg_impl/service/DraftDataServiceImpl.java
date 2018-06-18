@@ -70,44 +70,12 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Override
     public void addRows(String draftCode, List<RowValue> data) {
         List<CodifiedException> exceptions = new ArrayList<>();
-        List<String> fieldNames = dataDao.getFieldNames(draftCode);
-        String keys = fieldNames.stream().collect(Collectors.joining(","));
-        List<String> values = new ArrayList<>();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        for (RowValue rowValue : data) {
-//            validateRow(draftCode, rowValue, exceptions);
-            List<String> rowValues = new ArrayList<>();
-            for (Object fieldValueObj : rowValue.getFieldValues()) {
-                FieldValue fieldValue = (FieldValue) fieldValueObj;
-                if (fieldValue.getValue() == null) {
-                    rowValues.add("null");
-                } else if (fieldValue instanceof ReferenceFieldValue) {
-                    Reference refValue = ((ReferenceFieldValue) fieldValue).getValue();
-                    if (refValue.getValue() == null)
-                        rowValues.add("null");
-                    else {
-                        if (refValue.getDisplayField() != null)
-                            rowValues.add(String.format("(select jsonb_build_object('value', d.%s , 'displayValue', d.%s, 'hash', d.\"SYS_HASH\") from data.%s d where d.%s=? and %s)",
-                                    addDoubleQuotes(refValue.getKeyField()),
-                                    addDoubleQuotes(refValue.getDisplayField()),
-                                    addDoubleQuotes(refValue.getStorageCode()), addDoubleQuotes(refValue.getKeyField()),
-                                    dataDao.getDataWhereClauseStr(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(sdf.format(refValue.getDate())))));
-                        else
-                            rowValues.add("(select jsonb_build_object('value', ?))");
-                    }
-                } else if (fieldValue instanceof TreeFieldValue) {
-                    rowValues.add("?\\:\\:ltree");
-                } else {
-                    rowValues.add("?");
-                }
-            }
-            values.add(String.join(",", rowValues));
-        }
+        //validateRow
 
         if (!exceptions.isEmpty()) {
             throw new ListCodifiedException(exceptions);
         }
-        dataDao.insertData(draftCode, keys, values, data);
+        dataDao.insertData(draftCode, data);
     }
 
     @Override
@@ -126,37 +94,11 @@ public class DraftDataServiceImpl implements DraftDataService {
 //        validateRow(draftCode, value, exceptions);
         if (value.getSystemId() == null)
             exceptions.add(new CodifiedException(FIELD_IS_REQUIRED_EXCEPTION_CODE, DATA_PRIMARY_COLUMN));
-        List<String> keyList = new ArrayList<>();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        for (Object objectValue : value.getFieldValues()) {
-            FieldValue fieldValue = (FieldValue) objectValue;
-            String fieldName = fieldValue.getField();
-            if (fieldValue.getValue() == null || fieldValue.getValue().equals("null")) {
-                keyList.add(addDoubleQuotes(fieldName) + " = NULL");
-            } else if (fieldValue instanceof ReferenceFieldValue) {
-                Reference refValue = ((ReferenceFieldValue) fieldValue).getValue();
-                if (refValue.getValue() == null)
-                    keyList.add(addDoubleQuotes(fieldName) + " = NULL");
-                else {
-                    if (refValue.getDisplayField() != null)
-                        keyList.add(addDoubleQuotes(fieldName) + String.format("=(select jsonb_build_object('value', d.%s , 'displayValue', d.%s, 'hash', d.\"SYS_HASH\") from data.%s d where d.%s=? and %s)",
-                                addDoubleQuotes(refValue.getKeyField()),
-                                addDoubleQuotes(refValue.getDisplayField()),
-                                addDoubleQuotes(refValue.getStorageCode()),
-                                addDoubleQuotes(refValue.getKeyField()),
-                                dataDao.getDataWhereClauseStr(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(sdf.format(refValue.getDate())))));
-                    else
-                        keyList.add(addDoubleQuotes(fieldName) + "=(select jsonb_build_object('value', ?))");
-                }
-            } else {
-                keyList.add(addDoubleQuotes(fieldName) + " = ?");
-            }
-        }
+
         if (exceptions.size() != 0) {
             throw new ListCodifiedException(exceptions);
         }
-        String keys = String.join(",", keyList);
-        dataDao.updateData(draftCode, keys, value);
+        dataDao.updateData(draftCode, value);
     }
 
     @Override

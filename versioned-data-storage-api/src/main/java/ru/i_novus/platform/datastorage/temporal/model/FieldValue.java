@@ -44,4 +44,13 @@ public abstract class FieldValue<T> {
     public int hashCode() {
         return Objects.hash(field, value);
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("FieldValue{");
+        sb.append("field='").append(field).append('\'');
+        sb.append(", value=").append(value);
+        sb.append('}');
+        return sb.toString();
+    }
 }

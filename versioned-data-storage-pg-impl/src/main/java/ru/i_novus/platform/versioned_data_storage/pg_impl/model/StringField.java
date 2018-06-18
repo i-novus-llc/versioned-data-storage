@@ -22,7 +22,6 @@ public class StringField extends Field<String> {
 
     @Override
     public FieldValue valueOf(String value) {
-        assert value instanceof String;
-        return new StringFieldValue(getName(), (String)value);
+        return new StringFieldValue(getName(), value);
     }
 }

@@ -4,6 +4,7 @@ import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.DateFieldValue;
 
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -12,7 +13,7 @@ import java.util.List;
  * @author lgalimova
  * @since 01.02.2018
  */
-public class DateField extends Field<Date> {
+public class DateField extends Field<LocalDate> {
     public static final String TYPE = "date";
 
     public DateField(String name) {
@@ -25,7 +26,7 @@ public class DateField extends Field<Date> {
     }
 
     @Override
-    public FieldValue valueOf(Date value) {
+    public FieldValue valueOf(LocalDate value) {
         return new DateFieldValue(getName(), value);
     }
 }

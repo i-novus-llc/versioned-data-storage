@@ -7,14 +7,12 @@ import org.apache.commons.lang.BooleanUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
+import ru.i_novus.platform.datastorage.temporal.exception.ListCodifiedException;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.CompareDataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.FieldSearchCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.SearchTypeEnum;
-import ru.i_novus.platform.datastorage.temporal.model.value.DiffFieldValue;
-import ru.i_novus.platform.datastorage.temporal.model.value.DiffRowValue;
-import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
-import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
+import ru.i_novus.platform.datastorage.temporal.model.value.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
 import ru.i_novus.platform.datastorage.temporal.model.*;
@@ -246,7 +244,7 @@ public class DataDao {
                 fieldsString, tableName)).executeUpdate();
     }
 
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional
     public void copyTable(String newTableName, String sourceTableName) {
         entityManager.createNativeQuery(String.format(COPY_TABLE_TEMPLATE, addDoubleQuotes(newTableName),
                 addDoubleQuotes(sourceTableName))).executeUpdate();
@@ -266,7 +264,7 @@ public class DataDao {
         entityManager.createNativeQuery(String.format(DROP_TABLE, addDoubleQuotes(tableName))).executeUpdate();
     }
 
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional
     public void addColumnToTable(String tableName, String name, String type) {
         entityManager.createNativeQuery(String.format(ADD_NEW_COLUMN, tableName, name, type)).executeUpdate();
     }
@@ -290,7 +288,41 @@ public class DataDao {
     }
 
     @Transactional
-    public void insertData(String tableName, String keys, List<String> values, List<RowValue> data) {
+    public void insertData(String tableName, List<RowValue> data) {
+        List<String> fieldNames = getFieldNames(tableName);
+        String keys = fieldNames.stream().collect(Collectors.joining(","));
+
+        List<String> values = new ArrayList<>();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        for (RowValue rowValue : data) {
+//            validateRow(draftCode, rowValue, exceptions);
+            List<String> rowValues = new ArrayList<>();
+            for (Object fieldValueObj : rowValue.getFieldValues()) {
+                FieldValue fieldValue = (FieldValue) fieldValueObj;
+                if (fieldValue.getValue() == null) {
+                    rowValues.add("null");
+                } else if (fieldValue instanceof ReferenceFieldValue) {
+                    Reference refValue = ((ReferenceFieldValue) fieldValue).getValue();
+                    if (refValue.getValue() == null)
+                        rowValues.add("null");
+                    else {
+                        if (refValue.getDisplayField() != null)
+                            rowValues.add(String.format("(select jsonb_build_object('value', d.%s , 'displayValue', d.%s, 'hash', d.\"SYS_HASH\") from data.%s d where d.%s=?\\:\\:"+getFieldType(refValue.getStorageCode(), refValue.getKeyField())+" and %s)",
+                                    addDoubleQuotes(refValue.getKeyField()),
+                                    addDoubleQuotes(refValue.getDisplayField()),
+                                    addDoubleQuotes(refValue.getStorageCode()), addDoubleQuotes(refValue.getKeyField()),
+                                    getDataWhereClauseStr(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(sdf.format(refValue.getDate())))));
+                        else
+                            rowValues.add("(select jsonb_build_object('value', ?))");
+                    }
+                } else if (fieldValue instanceof TreeFieldValue) {
+                    rowValues.add("?\\:\\:ltree");
+                } else {
+                    rowValues.add("?");
+                }
+            }
+            values.add(String.join(",", rowValues));
+        }
         int i = 1;
         int batchSize = 500;
         for (int firstIndex = 0, maxIndex = batchSize; firstIndex < values.size(); firstIndex = maxIndex, maxIndex = firstIndex + batchSize) {
@@ -327,8 +359,36 @@ public class DataDao {
         queryWithParams.createQuery(entityManager).executeUpdate();
     }
 
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void updateData(String tableName, String keys, RowValue rowValue) {
+    @Transactional
+    public void updateData(String tableName, RowValue rowValue) {
+        List<String> keyList = new ArrayList<>();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        for (Object objectValue : rowValue.getFieldValues()) {
+            FieldValue fieldValue = (FieldValue) objectValue;
+            String fieldName = fieldValue.getField();
+            if (fieldValue.getValue() == null || fieldValue.getValue().equals("null")) {
+                keyList.add(addDoubleQuotes(fieldName) + " = NULL");
+            } else if (fieldValue instanceof ReferenceFieldValue) {
+                Reference refValue = ((ReferenceFieldValue) fieldValue).getValue();
+                if (refValue.getValue() == null)
+                    keyList.add(addDoubleQuotes(fieldName) + " = NULL");
+                else {
+                    if (refValue.getDisplayField() != null)
+                        keyList.add(addDoubleQuotes(fieldName) + String.format("=(select jsonb_build_object('value', d.%s , 'displayValue', d.%s, 'hash', d.\"SYS_HASH\") from data.%s d where d.%s=?\\:\\:"+getFieldType(refValue.getStorageCode(), refValue.getKeyField())+" and %s)",
+                                addDoubleQuotes(refValue.getKeyField()),
+                                addDoubleQuotes(refValue.getDisplayField()),
+                                addDoubleQuotes(refValue.getStorageCode()),
+                                addDoubleQuotes(refValue.getKeyField()),
+                                getDataWhereClauseStr(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(sdf.format(refValue.getDate())))));
+                    else
+                        keyList.add(addDoubleQuotes(fieldName) + "=(select jsonb_build_object('value', ?))");
+                }
+            } else {
+                keyList.add(addDoubleQuotes(fieldName) + " = ?");
+            }
+        }
+
+        String keys = String.join(",", keyList);
         Query query = entityManager.createNativeQuery(String.format(UPDATE_QUERY_TEMPLATE, addDoubleQuotes(tableName), keys, "?"));
         int i = 1;
         for (Object obj : rowValue.getFieldValues()) {
@@ -385,7 +445,7 @@ public class DataDao {
         createTrigger(tableName, getFieldNames(tableName));
     }
 
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional
     public void createTrigger(String tableName, List<String> fields) {
         String escapedTableName = addDoubleQuotes(tableName);
         entityManager.createNativeQuery(String.format(CREATE_HASH_TRIGGER,
@@ -592,6 +652,7 @@ public class DataDao {
                 .executeUpdate();
     }
 
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void insertDataFromDraft(String draftTable, int offset, String targetTable, int transactionSize, Date publishTime, List<String> columns) {
         String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();

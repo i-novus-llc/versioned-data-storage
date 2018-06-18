@@ -9,8 +9,11 @@ import ru.i_novus.platform.datastorage.temporal.model.Reference;
 import ru.i_novus.platform.datastorage.temporal.model.value.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 
+import java.sql.*;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.Date;
 
 /**
  * @author lgalimova
@@ -34,7 +37,7 @@ public class QueryUtil {
                         continue;
                     }
                     if (field instanceof ReferenceField) {
-                        value = new Reference(row[i], row[i + 1]);
+                        value = new Reference(row[i].toString(), row[i + 1].toString());
                         i++;
                     }
                     rowValue.getFieldValues().add(getFieldValue(field, value));
@@ -53,7 +56,7 @@ public class QueryUtil {
         if (field instanceof BooleanField) {
             fieldValue = new BooleanFieldValue(name, (Boolean) value);
         } else if (field instanceof DateField) {
-            fieldValue = new DateFieldValue(name, (Date) value);
+            fieldValue = new DateFieldValue(name, ((java.sql.Date)value).toLocalDate());
         } else if (field instanceof FloatField) {
             fieldValue = new FloatFieldValue(name, (Number) value);
         } else if (field instanceof IntegerField) {

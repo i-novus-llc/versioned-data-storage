@@ -4,11 +4,13 @@ import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.FloatFieldValue;
 
+import java.math.BigDecimal;
+
 /**
  * @author lgalimova
  * @since 23.03.2018
  */
-public class FloatField extends Field<Float> {
+public class FloatField extends Field<Number> {
     public static final String TYPE = "numeric";
 
     public FloatField(String name) {
@@ -21,7 +23,7 @@ public class FloatField extends Field<Float> {
     }
 
     @Override
-    public FieldValue valueOf(Float value) {
-        return new FloatFieldValue(getName(), value);
+    public FieldValue valueOf(Number value) {
+        return new FloatFieldValue(getName(), new BigDecimal(value.toString()));
     }
 }
