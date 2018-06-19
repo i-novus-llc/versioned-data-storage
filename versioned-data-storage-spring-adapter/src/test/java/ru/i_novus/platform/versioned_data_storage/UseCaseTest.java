@@ -23,6 +23,8 @@ import ru.i_novus.platform.versioned_data_storage.config.VersionedDataStorageCon
 import ru.i_novus.platform.versioned_data_storage.pg_impl.service.FieldFactoryImpl;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -90,8 +92,11 @@ public class UseCaseTest {
 
         logger.info("<<<<<<<<<<<<<<< 2 этап >>>>>>>>>>>>>>>>>>>>>");
         Date s_a_publishTime = new Date();
+        Date beforeSAPublishDate = Date.from(s_a_publishTime.toInstant().minus(1, ChronoUnit.DAYS));
         String s_a_storageCode = draftDataService.applyDraft(null, d_a_draftCode, s_a_publishTime);
-        Collection<RowValue> s_a_actualRows = searchDataService.getData(new DataCriteria(s_a_storageCode, null, null, d_a_fields, null, null));
+        Collection<RowValue> s_a_actualRows = searchDataService.getData(new DataCriteria(s_a_storageCode, beforeSAPublishDate, null, d_a_fields, null, null));
+        Assert.assertEquals(0, s_a_actualRows.size());
+        s_a_actualRows = searchDataService.getData(new DataCriteria(s_a_storageCode, s_a_publishTime, null, d_a_fields, null, null));
         assertRows(d_a_rows, s_a_actualRows);
         logger.info("<<<<<<<<<<<<<<< 2 этап завершен >>>>>>>>>>>>>>>>>>>>>");
 
@@ -113,11 +118,16 @@ public class UseCaseTest {
         d_b_rowValue = new LongRowValue(
                 d_b_id.valueOf(1),
                 d_b_name.valueOf("name"),
-                d_b_ref.valueOf(new Reference(s_a_storageCode, s_a_publishTime, d_a_id.getName(), d_a_name.getName(), "2", "test2"))
+                d_b_ref.valueOf(new Reference(s_a_storageCode, s_a_publishTime, d_a_id.getName(), d_a_name.getName(), "2"))
         );
         d_b_rowValue.setSystemId(systemId);
         draftDataService.updateRow(d_b_draftCode, d_b_rowValue);
         d_b_actualRows = searchDataService.getData(new DataCriteria(d_b_draftCode, null, null, d_b_fields, null, "name"));
+        d_b_rowValue.getFieldValues().forEach(value -> {
+            if(value instanceof ReferenceFieldValue) {
+                ((ReferenceFieldValue) value).getValue().setDisplayValue("test2");
+            }
+        });
         assertRows(Arrays.asList(d_b_rowValue), d_b_actualRows);
         logger.info("<<<<<<<<<<<<<<< 2 этап завершен >>>>>>>>>>>>>>>>>>>>>");
 
