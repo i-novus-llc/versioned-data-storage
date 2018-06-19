@@ -117,6 +117,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         dataDao.updateSequence(draftCode);
     }
 
+    @Transactional
     @Override
     public void addField(String draftCode, Field field) {
         if (SYS_RECORDS.contains(field.getName()))
@@ -128,6 +129,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         dataDao.createTrigger(draftCode);
     }
 
+    @Transactional
     @Override
     public void deleteField(String draftCode, String fieldName) {
         if (!dataDao.getFieldNames(draftCode).contains(addDoubleQuotes(fieldName)))
@@ -137,6 +139,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         dataDao.createTrigger(draftCode);
     }
 
+    @Transactional
     @Override
     public void updateField(String draftCode, Field field) {
         String oldType = dataDao.getFieldType(draftCode, field.getName());
