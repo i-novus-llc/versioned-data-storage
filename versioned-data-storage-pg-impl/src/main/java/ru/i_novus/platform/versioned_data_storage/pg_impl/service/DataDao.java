@@ -7,7 +7,6 @@ import org.apache.commons.lang.BooleanUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
-import ru.i_novus.platform.datastorage.temporal.exception.ListCodifiedException;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.CompareDataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.FieldSearchCriteria;
@@ -194,6 +193,7 @@ public class DataDao {
                     params.put(field.getName(), searchCriteria.getValues());
                 } else if (field instanceof ReferenceField) {
                     queryStr += " and " + escapedFieldName + "->> 'value' in (:" + fieldName + ")";
+                    params.put(field.getName(), searchCriteria.getValues().stream().map(Object::toString).collect(Collectors.toList()));
                 } else if (field instanceof TreeField) {
                     if (SearchTypeEnum.LESS.equals(searchCriteria.getType())) {
                         queryStr += " and " + escapedFieldName + "@> (cast(:" + fieldName + " AS ltree[]))";
