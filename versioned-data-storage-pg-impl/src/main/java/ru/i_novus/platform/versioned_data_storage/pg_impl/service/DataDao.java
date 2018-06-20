@@ -191,6 +191,7 @@ public class DataDao {
                     queryStr += " and " + escapedFieldName + " is null";
                 } else if (field instanceof IntegerField || field instanceof FloatField || field instanceof DateField) {
                     queryStr += " and " + escapedFieldName + " in (:" + fieldName + ")";
+                    params.put(field.getName(), searchCriteria.getValues());
                 } else if (field instanceof ReferenceField) {
                     queryStr += " and " + escapedFieldName + "->> 'value' in (:" + fieldName + ")";
                 } else if (field instanceof TreeField) {
