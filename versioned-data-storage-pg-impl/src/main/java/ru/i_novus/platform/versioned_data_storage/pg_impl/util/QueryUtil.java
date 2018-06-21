@@ -37,7 +37,7 @@ public class QueryUtil {
                         continue;
                     }
                     if (field instanceof ReferenceField) {
-                        value = new Reference(row[i].toString(), row[i + 1].toString());
+                        value = new Reference(row[i] != null ? row[i].toString() : null, row[i + 1] != null ? row[i + 1].toString() : null);
                         i++;
                     }
                     rowValue.getFieldValues().add(getFieldValue(field, value));
@@ -56,7 +56,7 @@ public class QueryUtil {
         if (field instanceof BooleanField) {
             fieldValue = new BooleanFieldValue(name, (Boolean) value);
         } else if (field instanceof DateField) {
-            fieldValue = new DateFieldValue(name, ((java.sql.Date)value).toLocalDate());
+            fieldValue = new DateFieldValue(name, ((java.sql.Date) value).toLocalDate());
         } else if (field instanceof FloatField) {
             fieldValue = new FloatFieldValue(name, (Number) value);
         } else if (field instanceof IntegerField) {

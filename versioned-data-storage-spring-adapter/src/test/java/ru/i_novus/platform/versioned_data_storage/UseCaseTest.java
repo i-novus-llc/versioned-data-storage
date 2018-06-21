@@ -51,6 +51,7 @@ public class UseCaseTest {
      * 2 этап. Создание хранилища S_A из черновика D_A
      * 3 этап. Создание черновика D_B с данными и с ссылкой на S_A
      * 4 этап. Создание хранилища S_B из черновика D_B
+     *
      * @throws Exception
      */
     @Test
@@ -124,12 +125,12 @@ public class UseCaseTest {
         draftDataService.updateRow(d_b_draftCode, d_b_rowValue);
         d_b_actualRows = searchDataService.getData(new DataCriteria(d_b_draftCode, null, null, d_b_fields, null, "name"));
         d_b_rowValue.getFieldValues().forEach(value -> {
-            if(value instanceof ReferenceFieldValue) {
+            if (value instanceof ReferenceFieldValue) {
                 ((ReferenceFieldValue) value).getValue().setDisplayValue("test2");
             }
         });
         assertRows(Arrays.asList(d_b_rowValue), d_b_actualRows);
-        logger.info("<<<<<<<<<<<<<<< 2 этап завершен >>>>>>>>>>>>>>>>>>>>>");
+        logger.info("<<<<<<<<<<<<<<< 3 этап завершен >>>>>>>>>>>>>>>>>>>>>");
 
 
         logger.info("<<<<<<<<<<<<<<< 4 этап >>>>>>>>>>>>>>>>>>>>>");
@@ -139,6 +140,40 @@ public class UseCaseTest {
         assertRows(Arrays.asList(d_b_rowValue), s_b_actualRows);
         logger.info("<<<<<<<<<<<<<<< 4 этап завершен >>>>>>>>>>>>>>>>>>>>>");
 
+    }
+
+    @Test
+    public void testUpdateDraft() {
+        String existingStorageCode = createStorage();
+        List<Field> fields = new ArrayList<>();
+        Field code = fieldFactory.createField("CODE", FieldType.STRING);
+        Field name = fieldFactory.createField("NAME", FieldType.STRING);
+        Field ref = fieldFactory.createField("REF", FieldType.STRING);
+        fields.add(code);
+        fields.add(name);
+        fields.add(ref);
+
+        String draftCode = draftDataService.createDraft(fields);
+        Field ref_new = fieldFactory.createField("REF", FieldType.REFERENCE);
+        draftDataService.updateField(draftCode, ref_new);
+        fields.remove(ref);
+        fields.add(ref_new);
+        Field date_col = fieldFactory.createField("DATE_COL", FieldType.DATE);
+        draftDataService.addField(draftCode, date_col);
+        fields.add(date_col);
+        List<RowValue> rows = new ArrayList<>();
+        RowValue rowValue = new LongRowValue(
+                code.valueOf("001"),
+                name.valueOf("name"),
+                ref_new.valueOf(new Reference(existingStorageCode, new Date(), "ID", "NAME", "1", "test")),
+                date_col.valueOf(LocalDate.now()));
+        rows.add(rowValue);
+        draftDataService.addRows(draftCode, rows);
+        List<RowValue> actualRows = searchDataService.getData(new DataCriteria(draftCode, null, null, fields, null, null));
+        assertRows(rows, actualRows);
+        String storageCode = draftDataService.applyDraft(null, draftCode, new Date());
+        actualRows = searchDataService.getData(new DataCriteria(storageCode, null, null, fields, null, null));
+        assertRows(rows, actualRows);
     }
 
     private void assertRows(List<RowValue> expectedRows, Collection<RowValue> actualRows) {
@@ -165,7 +200,7 @@ public class UseCaseTest {
                 return false;
 
             }).findAny().isPresent();
-            if(!isPresent) {
+            if (!isPresent) {
                 return false;
             }
 
@@ -175,6 +210,35 @@ public class UseCaseTest {
 
     }
 
+    private String createStorage() {
+        List<Field> d_a_fields = new ArrayList<>();
+        Field d_a_id = fieldFactory.createField("ID", FieldType.INTEGER);
+        Field d_a_name = fieldFactory.createField("NAME", FieldType.STRING);
+        Field d_a_dateCol = fieldFactory.createField("DATE_COL", FieldType.DATE);
+        Field d_a_boolCol = fieldFactory.createField("BOOL_COL", FieldType.BOOLEAN);
+        Field d_a_floatCol = fieldFactory.createField("FLOAT_COL", FieldType.FLOAT);
+        d_a_fields.add(d_a_id);
+        d_a_fields.add(d_a_name);
+        d_a_fields.add(d_a_dateCol);
+        d_a_fields.add(d_a_boolCol);
+        d_a_fields.add(d_a_floatCol);
 
+        String d_a_draftCode = draftDataService.createDraft(d_a_fields);
+        List<RowValue> d_a_rows = new ArrayList<>();
+        d_a_rows.add(new LongRowValue(
+                d_a_id.valueOf(1),
+                d_a_name.valueOf("test"),
+                d_a_dateCol.valueOf(LocalDate.now()),
+                d_a_boolCol.valueOf(true),
+                d_a_floatCol.valueOf(5f)));
+        d_a_rows.add(new LongRowValue(
+                d_a_id.valueOf(2),
+                d_a_name.valueOf("test2"),
+                d_a_dateCol.valueOf(LocalDate.now()),
+                d_a_boolCol.valueOf(true),
+                d_a_floatCol.valueOf(4f)));
+        draftDataService.addRows(d_a_draftCode, d_a_rows);
+        return draftDataService.applyDraft(null, d_a_draftCode, new Date());
+    }
 
 }
