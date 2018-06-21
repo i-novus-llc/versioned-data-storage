@@ -2,10 +2,7 @@ package ru.i_novus.platform.versioned_data_storage.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import ru.i_novus.platform.datastorage.temporal.service.CompareDataService;
-import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
-import ru.i_novus.platform.datastorage.temporal.service.DropDataService;
-import ru.i_novus.platform.datastorage.temporal.service.SearchDataService;
+import ru.i_novus.platform.datastorage.temporal.service.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.service.*;
 
 import javax.persistence.EntityManager;
@@ -49,6 +46,11 @@ public class VersionedDataStorageConfig {
     public CompareDataService getCompareDataService() {
         CompareDataServiceImpl service = new CompareDataServiceImpl(dataDao());
         return service;
+    }
+
+    @Bean
+    public FieldFactory getFieldFactory(){
+        return new FieldFactoryImpl();
     }
 
 }
