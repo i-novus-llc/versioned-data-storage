@@ -9,6 +9,7 @@ import java.util.List;
 
 public class CompareDataCriteria extends Criteria {
     private String storageCode;
+    private String draftCode;
     private Date baseDataDate;
     private Date targetDataDate;
     private List<String> primaryFields;
@@ -70,6 +71,14 @@ public class CompareDataCriteria extends Criteria {
 
     public void setFields(List<Field> fields) {
         this.fields = fields;
+    }
+
+    public String getDraftCode() {
+        return draftCode;
+    }
+
+    public void setDraftCode(String draftCode) {
+        this.draftCode = draftCode;
     }
 }
 

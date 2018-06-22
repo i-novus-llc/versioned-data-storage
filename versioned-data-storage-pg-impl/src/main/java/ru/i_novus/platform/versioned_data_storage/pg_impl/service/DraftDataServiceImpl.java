@@ -5,9 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.i_novus.platform.datastorage.temporal.exception.ListCodifiedException;
 import ru.i_novus.platform.datastorage.temporal.model.*;
-import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
-import ru.i_novus.platform.datastorage.temporal.model.value.TreeFieldValue;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 import ru.kirkazan.common.exception.CodifiedException;
@@ -15,15 +13,12 @@ import ru.kirkazan.common.exception.CodifiedException;
 import javax.persistence.PersistenceException;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.ExceptionCodes.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.service.QueryConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.addDoubleQuotes;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.addSingleQuotes;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.isCompatibleTypes;
 
 /**
  * @author lgalimova
@@ -49,15 +44,14 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     @Override
     public String applyDraft(String sourceStorageCode, String draftCode, Date publishTime) {
-        List<String> draftFields = dataDao.getFieldNames(draftCode);
-        List<String> sourceFields = dataDao.getFieldNames(sourceStorageCode);
         String newTable = createVersionTable(draftCode);
-        if (sourceStorageCode != null && draftFields.equals(sourceFields)) {
+        if (sourceStorageCode != null && dataDao.tableStructureEquals(sourceStorageCode, draftCode)) {
             insertActualDataFromVersion(sourceStorageCode, draftCode, newTable);
             insertOldDataFromVersion(sourceStorageCode, newTable);
             insertClosedNowDataFromVersion(sourceStorageCode, draftCode, newTable, publishTime);
             insertNewDataFromDraft(sourceStorageCode, draftCode, newTable, publishTime);
         } else {
+            List<String> draftFields = dataDao.getFieldNames(draftCode);
             BigInteger count = dataDao.countData(draftCode);
             draftFields.add(addDoubleQuotes("FTS"));
             for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {

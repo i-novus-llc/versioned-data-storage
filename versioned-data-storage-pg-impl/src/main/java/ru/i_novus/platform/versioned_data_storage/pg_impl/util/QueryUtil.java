@@ -56,7 +56,7 @@ public class QueryUtil {
         if (field instanceof BooleanField) {
             fieldValue = new BooleanFieldValue(name, (Boolean) value);
         } else if (field instanceof DateField) {
-            fieldValue = new DateFieldValue(name, ((java.sql.Date) value).toLocalDate());
+            fieldValue = new DateFieldValue(name, value != null ? ((java.sql.Date) value).toLocalDate() : null);
         } else if (field instanceof FloatField) {
             fieldValue = new FloatFieldValue(name, (Number) value);
         } else if (field instanceof IntegerField) {

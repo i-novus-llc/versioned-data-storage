@@ -59,15 +59,11 @@ public class DataDao {
     }
 
     public RowValue getRowData(String tableName, List<String> fieldNames, Object systemId) {
-        List<Object[]> dataTypes = entityManager.createNativeQuery("select column_name, data_type from information_schema.columns " +
-                "where table_schema='data' and table_name=:table")
-                .setParameter("table", tableName)
-                .getResultList();
+        Map<String, String> dataTypes = getColumnDataTypes(tableName);
         List<Field> fields = new ArrayList<>(fieldNames.size());
-        for (Object[] dataType : dataTypes) {
-            String fieldName = (String) dataType[0];
+        for (String fieldName : dataTypes.keySet()) {
             if (fieldNames.contains(fieldName)) {
-                fields.add(getField(fieldName, (String) dataType[1]));
+                fields.add(getField(fieldName, dataTypes.get(fieldName)));
             }
         }
         fields.add(0, new IntegerField(DATA_PRIMARY_COLUMN));
@@ -82,6 +78,26 @@ public class DataDao {
         RowValue row = convertToRowValue(fields, list).get(0);
         row.setSystemId(systemId);
         return row;
+    }
+
+    public boolean tableStructureEquals(String tableName1, String tableName2) {
+        Map<String, String> dataTypes1 = getColumnDataTypes(tableName1);
+        Map<String, String> dataTypes2 = getColumnDataTypes(tableName2);
+        return dataTypes1.equals(dataTypes2);
+    }
+
+    private Map<String, String> getColumnDataTypes(String tableName) {
+        List<Object[]> dataTypes = entityManager.createNativeQuery("select column_name, data_type from information_schema.columns " +
+                "where table_schema='data' and table_name=:table")
+                .setParameter("table", tableName)
+                .getResultList();
+        Map<String, String> map = new HashMap<>();
+        for (Object[] dataType : dataTypes) {
+            String fieldName = (String) dataType[0];
+            if (!SYS_RECORDS.contains(fieldName))
+                map.put(fieldName, (String) dataType[1]);
+        }
+        return map;
     }
 
     private String getDictionaryDataOrderBy(Sorting sorting, String alias) {
@@ -119,11 +135,11 @@ public class DataDao {
         String result = " WHERE 1=1 ";
         if (publishDate != null) {
             result += " and date_trunc('second', d.\"SYS_PUBLISHTIME\") <= :bdate and (date_trunc('second', d.\"SYS_CLOSETIME\") > :bdate or d.\"SYS_CLOSETIME\" is null)";
-            params.put("bdate",  truncateDateTo(publishDate, ChronoUnit.SECONDS));
+            params.put("bdate", truncateDateTo(publishDate, ChronoUnit.SECONDS));
         }
         if (closeDate != null) {
             result += " and (date_trunc('second', d.\"SYS_CLOSETIME\") >= :edate or d.\"SYS_CLOSETIME\" is null)";
-            params.put("edate",  truncateDateTo(closeDate, ChronoUnit.SECONDS));
+            params.put("edate", truncateDateTo(closeDate, ChronoUnit.SECONDS));
         }
         QueryWithParams queryWithParams = new QueryWithParams(result, params);
         queryWithParams.concat(getDictionaryFilterQuery(search, filter));
@@ -213,8 +229,7 @@ public class DataDao {
                         queryStr += " and " + escapedFieldName + " in (:" + fieldName + ")";
                         params.put(field.getName(), searchCriteria.getValues());
                     }
-                }
-                else {
+                } else {
                     params.put(field.getName(), searchCriteria.getValues());
 
                 }
@@ -308,7 +323,7 @@ public class DataDao {
                         rowValues.add("null");
                     else {
                         if (refValue.getDisplayField() != null)
-                            rowValues.add(String.format("(select jsonb_build_object('value', d.%s , 'displayValue', d.%s, 'hash', d.\"SYS_HASH\") from data.%s d where d.%s=?\\:\\:"+getFieldType(refValue.getStorageCode(), refValue.getKeyField())+" and %s)",
+                            rowValues.add(String.format("(select jsonb_build_object('value', d.%s , 'displayValue', d.%s, 'hash', d.\"SYS_HASH\") from data.%s d where d.%s=?\\:\\:" + getFieldType(refValue.getStorageCode(), refValue.getKeyField()) + " and %s)",
                                     addDoubleQuotes(refValue.getKeyField()),
                                     addDoubleQuotes(refValue.getDisplayField()),
                                     addDoubleQuotes(refValue.getStorageCode()), addDoubleQuotes(refValue.getKeyField()),
@@ -375,7 +390,7 @@ public class DataDao {
                     keyList.add(addDoubleQuotes(fieldName) + " = NULL");
                 else {
                     if (refValue.getDisplayField() != null)
-                        keyList.add(addDoubleQuotes(fieldName) + String.format("=(select jsonb_build_object('value', d.%s , 'displayValue', d.%s, 'hash', d.\"SYS_HASH\") from data.%s d where d.%s=?\\:\\:"+getFieldType(refValue.getStorageCode(), refValue.getKeyField())+" and %s)",
+                        keyList.add(addDoubleQuotes(fieldName) + String.format("=(select jsonb_build_object('value', d.%s , 'displayValue', d.%s, 'hash', d.\"SYS_HASH\") from data.%s d where d.%s=?\\:\\:" + getFieldType(refValue.getStorageCode(), refValue.getKeyField()) + " and %s)",
                                 addDoubleQuotes(refValue.getKeyField()),
                                 addDoubleQuotes(refValue.getDisplayField()),
                                 addDoubleQuotes(refValue.getStorageCode()),
@@ -681,44 +696,49 @@ public class DataDao {
         for (Field field : criteria.getFields()) {
             fieldMap.put(field.getName(), field);
         }
+        String baseStorage = criteria.getStorageCode();
+        String targetStorage = criteria.getDraftCode() != null ? criteria.getDraftCode() : criteria.getStorageCode();
         String countSelect = "SELECT count(*)";
-        String orderBy = " order by " + criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t1")).collect(Collectors.joining(",")) + "," +
-                criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t2")).collect(Collectors.joining(","));
         String dataSelect = "select t1." + addDoubleQuotes(DATA_PRIMARY_COLUMN) + " as sysId1," + generateSqlQuery("t1", criteria.getFields()) + ", "
                 + "t2." + addDoubleQuotes(DATA_PRIMARY_COLUMN) + " as sysId2, " + generateSqlQuery("t2", criteria.getFields());
         String primaryEquality = criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t1") + "=" + formatFieldForQuery(f, "t2")).collect(Collectors.joining(","));
         String basePrimaryIsNull = criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t1") + " is null ").collect(Collectors.joining(" and "));
         String targetPrimaryIsNull = criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t2") + " is null ").collect(Collectors.joining(" and "));
-        String baseFilter = "date_trunc('second', t1.\"SYS_PUBLISHTIME\") <= :baseDate and (date_trunc('second', t1.\"SYS_CLOSETIME\") > :baseDate or t1.\"SYS_CLOSETIME\" is null) ";
-        String targetFilter = "date_trunc('second', t2.\"SYS_PUBLISHTIME\") <= :targetDate and (date_trunc('second', t2.\"SYS_CLOSETIME\") > :targetDate or t2.\"SYS_CLOSETIME\" is null) ";
-        String query = " from data." + addDoubleQuotes(criteria.getStorageCode()) + " t1 " +
-                " full join data." + addDoubleQuotes(criteria.getStorageCode()) + " t2 on " + primaryEquality +
-                " and " + baseFilter +
-                " and " + targetFilter +
+        String baseFilter = " and date_trunc('second', t1.\"SYS_PUBLISHTIME\") <= :baseDate and (date_trunc('second', t1.\"SYS_CLOSETIME\") > :baseDate or t1.\"SYS_CLOSETIME\" is null) ";
+        String targetFilter = criteria.getDraftCode() == null ?
+                " and date_trunc('second', t2.\"SYS_PUBLISHTIME\") <= :targetDate and (date_trunc('second', t2.\"SYS_CLOSETIME\") > :targetDate or t2.\"SYS_CLOSETIME\" is null) " : "";
+        String query = " from data." + addDoubleQuotes(baseStorage) + " t1 " +
+                " full join data." + addDoubleQuotes(targetStorage) + " t2 on " + primaryEquality +
+                baseFilter +
+                targetFilter +
                 " where ";
         if (criteria.getStatus() == null)
-            query += basePrimaryIsNull + " and " + targetFilter +
-                    " or " + targetPrimaryIsNull + " and " + baseFilter +
+            query += basePrimaryIsNull + targetFilter +
+                    " or " + targetPrimaryIsNull + baseFilter +
                     " or (" + primaryEquality + " and t1.\"SYS_HASH\"<>t2.\"SYS_HASH\") ";
         else if (DiffStatusEnum.UPDATED.equals(criteria.getStatus())) {
             query += primaryEquality + " and t1.\"SYS_HASH\"<>t2.\"SYS_HASH\" ";
         } else if (DiffStatusEnum.INSERTED.equals(criteria.getStatus())) {
-            query += basePrimaryIsNull + " and " + targetFilter;
+            query += basePrimaryIsNull + targetFilter;
         } else if (DiffStatusEnum.DELETED.equals(criteria.getStatus())) {
-            query += targetPrimaryIsNull + " and " + baseFilter;
+            query += targetPrimaryIsNull + baseFilter;
         }
         Query countQuery = entityManager.createNativeQuery(countSelect + query);
         countQuery.setParameter("baseDate", truncateDateTo(criteria.getBaseDataDate(), ChronoUnit.SECONDS));
-        countQuery.setParameter("targetDate", truncateDateTo(criteria.getTargetDataDate(), ChronoUnit.SECONDS));
+        if (criteria.getTargetDataDate() != null)
+            countQuery.setParameter("targetDate", truncateDateTo(criteria.getTargetDataDate(), ChronoUnit.SECONDS));
         BigInteger count = (BigInteger) countQuery.getSingleResult();
         if (BooleanUtils.toBoolean(criteria.getCountOnly())) {
             dataDifference = new DataDifference(new CollectionPage<>(count.intValue(), null, criteria));
         } else {
+            String orderBy = " order by " + criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t1")).collect(Collectors.joining(",")) + "," +
+                    criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t2")).collect(Collectors.joining(","));
             Query dataQuery = entityManager.createNativeQuery(dataSelect + query + orderBy)
                     .setFirstResult(getOffset(criteria))
                     .setMaxResults(criteria.getSize());
             dataQuery.setParameter("baseDate", truncateDateTo(criteria.getBaseDataDate(), ChronoUnit.SECONDS));
-            dataQuery.setParameter("targetDate", truncateDateTo(criteria.getTargetDataDate(), ChronoUnit.SECONDS));
+            if (criteria.getTargetDataDate() != null)
+                dataQuery.setParameter("targetDate", truncateDateTo(criteria.getTargetDataDate(), ChronoUnit.SECONDS));
             List<Object[]> resultList = dataQuery.getResultList();
             List<DiffRowValue> rowValues = new ArrayList<>();
             if (!resultList.isEmpty()) {
@@ -788,7 +808,7 @@ public class DataDao {
 
         public void concat(QueryWithParams queryWithParams) {
             this.query = this.query + " " + queryWithParams.getQuery();
-            if(this.params == null) {
+            if (this.params == null) {
                 this.params = queryWithParams.getParams();
             } else if (queryWithParams.getParams() != null) {
                 params.putAll(queryWithParams.getParams());
@@ -798,7 +818,7 @@ public class DataDao {
         public Query createQuery(EntityManager entityManager) {
             Query query = entityManager.createNativeQuery(getQuery());
             if (getParams() != null) {
-                for(Map.Entry<String, Object> paramEntry : getParams().entrySet()) {
+                for (Map.Entry<String, Object> paramEntry : getParams().entrySet()) {
                     query = query.setParameter(paramEntry.getKey(), paramEntry.getValue());
                 }
             }
