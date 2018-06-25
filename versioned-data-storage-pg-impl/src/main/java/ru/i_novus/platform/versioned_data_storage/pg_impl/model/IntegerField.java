@@ -9,7 +9,7 @@ import ru.i_novus.platform.datastorage.temporal.model.value.IntegerFieldValue;
  * @since 23.03.2018
  */
 public class IntegerField extends Field<Integer> {
-    public static final String TYPE = "integer";
+    public static final String TYPE = "bigint";
 
     public IntegerField(String name) {
         super(name);
