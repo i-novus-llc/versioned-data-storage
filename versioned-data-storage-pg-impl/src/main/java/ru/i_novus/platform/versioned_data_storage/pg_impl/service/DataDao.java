@@ -223,8 +223,8 @@ public class DataDao {
                     }
                 } else if (field instanceof StringField) {
                     if (SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && searchCriteria.getValues().size() == 1) {
-                        queryStr += " and " + escapedFieldName + " like :" + fieldName + "";
-                        params.put(field.getName(), "%" + searchCriteria.getValues().get(0).toString().trim() + "%");
+                        queryStr += " and lower(" + escapedFieldName + ") like :" + fieldName + "";
+                        params.put(field.getName(), "%" + searchCriteria.getValues().get(0).toString().trim().toLowerCase() + "%");
                     } else {
                         queryStr += " and " + escapedFieldName + " in (:" + fieldName + ")";
                         params.put(field.getName(), searchCriteria.getValues());
