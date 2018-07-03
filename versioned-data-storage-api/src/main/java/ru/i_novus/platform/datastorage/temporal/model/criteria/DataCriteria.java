@@ -54,4 +54,32 @@ public class DataCriteria extends Criteria {
     public String getCommonFilter() {
         return commonFilter;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        DataCriteria criteria = (DataCriteria) o;
+
+        if (tableName != null ? !tableName.equals(criteria.tableName) : criteria.tableName != null) return false;
+        if (bdate != null ? !bdate.equals(criteria.bdate) : criteria.bdate != null) return false;
+        if (edate != null ? !edate.equals(criteria.edate) : criteria.edate != null) return false;
+        if (fields != null ? !fields.equals(criteria.fields) : criteria.fields != null) return false;
+        if (fieldFilter != null ? !fieldFilter.equals(criteria.fieldFilter) : criteria.fieldFilter != null)
+            return false;
+        return !(commonFilter != null ? !commonFilter.equals(criteria.commonFilter) : criteria.commonFilter != null);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = tableName != null ? tableName.hashCode() : 0;
+        result = 31 * result + (bdate != null ? bdate.hashCode() : 0);
+        result = 31 * result + (edate != null ? edate.hashCode() : 0);
+        result = 31 * result + (fields != null ? fields.hashCode() : 0);
+        result = 31 * result + (fieldFilter != null ? fieldFilter.hashCode() : 0);
+        result = 31 * result + (commonFilter != null ? commonFilter.hashCode() : 0);
+        return result;
+    }
 }

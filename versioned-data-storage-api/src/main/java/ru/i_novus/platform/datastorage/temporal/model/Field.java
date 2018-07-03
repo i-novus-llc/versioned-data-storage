@@ -63,4 +63,30 @@ public abstract class Field<T> implements Serializable {
     public void setMaxLength(Integer maxLength) {
         this.maxLength = maxLength;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Field<?> field = (Field<?>) o;
+
+        if (name != null ? !name.equals(field.name) : field.name != null) return false;
+        if (maxLength != null ? !maxLength.equals(field.maxLength) : field.maxLength != null) return false;
+        if (searchEnabled != null ? !searchEnabled.equals(field.searchEnabled) : field.searchEnabled != null)
+            return false;
+        if (required != null ? !required.equals(field.required) : field.required != null) return false;
+        return !(unique != null ? !unique.equals(field.unique) : field.unique != null);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = name != null ? name.hashCode() : 0;
+        result = 31 * result + (maxLength != null ? maxLength.hashCode() : 0);
+        result = 31 * result + (searchEnabled != null ? searchEnabled.hashCode() : 0);
+        result = 31 * result + (required != null ? required.hashCode() : 0);
+        result = 31 * result + (unique != null ? unique.hashCode() : 0);
+        return result;
+    }
 }

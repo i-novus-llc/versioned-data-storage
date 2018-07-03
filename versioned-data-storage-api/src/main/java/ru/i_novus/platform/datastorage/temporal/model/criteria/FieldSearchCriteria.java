@@ -48,4 +48,25 @@ public class FieldSearchCriteria implements Serializable {
     public void setType(SearchTypeEnum type) {
         this.type = type;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        FieldSearchCriteria that = (FieldSearchCriteria) o;
+
+        if (field != null ? !field.equals(that.field) : that.field != null) return false;
+        if (values != null ? !values.equals(that.values) : that.values != null) return false;
+        return type == that.type;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = field != null ? field.hashCode() : 0;
+        result = 31 * result + (values != null ? values.hashCode() : 0);
+        result = 31 * result + (type != null ? type.hashCode() : 0);
+        return result;
+    }
 }
