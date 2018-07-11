@@ -472,7 +472,7 @@ public class DataDao {
                 tableName)).executeUpdate();
         entityManager.createNativeQuery(String.format(CREATE_FTS_TRIGGER,
                 tableName,
-                fields.stream().map(field -> "coalesce( to_tsvector('russian', NEW." + field + "\\:\\:text),'')")
+                fields.stream().map(field -> "coalesce( to_tsvector('ru', NEW." + field + "\\:\\:text),'')")
                         .collect(Collectors.joining(" || ' ' || ")),
                 fields.stream().collect(Collectors.joining(", ")),
                 escapedTableName,
