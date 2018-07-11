@@ -193,7 +193,7 @@ public class DataDao {
                 params.put("reverseSearch", reverseSearch);
             } else {
                 String formattedSearch = search.toLowerCase().replaceAll(":", "\\\\:").replaceAll("/", "\\\\/").replace(" ", "+") + "\\\\:*";
-                queryStr += " and (" + escapedFtsColumn + " @@ to_tsquery(:formattedSearch) or " + escapedFtsColumn + " @@ to_tsquery('russian', :formattedSearch) or " + escapedFtsColumn + " @@ to_tsquery('russian', :original)) ";
+                queryStr += " and (" + escapedFtsColumn + " @@ to_tsquery(:formattedSearch) or " + escapedFtsColumn + " @@ to_tsquery('ru', :formattedSearch) or " + escapedFtsColumn + " @@ to_tsquery('ru', :original)) ";
                 params.put("formattedSearch", "'" + formattedSearch + "'");
                 params.put("original", "'''" + search + "''\\\\:*'");
             }
