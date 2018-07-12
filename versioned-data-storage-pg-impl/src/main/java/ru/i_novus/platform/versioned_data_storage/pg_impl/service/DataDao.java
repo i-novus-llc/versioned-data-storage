@@ -353,7 +353,9 @@ public class DataDao {
                     FieldValue fieldValue = (FieldValue) value;
                     if (fieldValue.getValue() != null) {
                         if (fieldValue instanceof ReferenceFieldValue) {
-                            query.setParameter(i++, ((ReferenceFieldValue) fieldValue).getValue().getValue());
+                            Reference refValue = ((ReferenceFieldValue) fieldValue).getValue();
+                            if (refValue.getValue() != null)
+                                query.setParameter(i++, ((ReferenceFieldValue) fieldValue).getValue().getValue());
 
                         } else
                             query.setParameter(i++, fieldValue.getValue());
@@ -438,15 +440,15 @@ public class DataDao {
     }
 
     public boolean isFieldUnique(String storageCode, String fieldName, Date publishTime) {
-        return entityManager.createNativeQuery(
-                "SELECT " + addDoubleQuotes(fieldName) + ", COUNT(*)" +
+        Query query = entityManager.createNativeQuery(
+                "SELECT " + addDoubleQuotes(fieldName) + "\\:\\:text, COUNT(*)" +
                         " FROM data." + addDoubleQuotes(storageCode) + " d  WHERE " + getDataWhereClauseStr(publishTime, null, null, null) +
                         " GROUP BY 1" +
                         " HAVING COUNT(*) > 1"
-        )
-                .setParameter("bdate", publishTime)
-                .getResultList().isEmpty();
-
+        );
+        if (publishTime != null)
+            query.setParameter("bdate", publishTime);
+        return query.getResultList().isEmpty();
     }
 
 
