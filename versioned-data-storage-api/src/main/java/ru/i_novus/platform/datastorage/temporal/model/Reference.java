@@ -103,14 +103,12 @@ public class Reference implements Serializable {
 
     @Override
     public String toString() {
-        final StringBuffer sb = new StringBuffer("Reference{");
-        sb.append("storageCode='").append(storageCode).append('\'');
-        sb.append(", date=").append(date);
-        sb.append(", keyField='").append(keyField).append('\'');
-        sb.append(", displayField='").append(displayField).append('\'');
-        sb.append(", value=").append(value);
-        sb.append(", displayValue=").append(displayValue);
-        sb.append('}');
-        return sb.toString();
+        return "Reference{" + "storageCode='" + storageCode + '\'' +
+                ", date=" + date +
+                ", keyField='" + keyField + '\'' +
+                ", displayField='" + displayField + '\'' +
+                ", value=" + value +
+                ", displayValue=" + displayValue +
+                '}';
     }
 }

@@ -56,10 +56,8 @@ public abstract class RowValue<T> {
 
     @Override
     public String toString() {
-        final StringBuffer sb = new StringBuffer("RowValue{");
-        sb.append("systemId=").append(systemId);
-        sb.append(", fieldValues=").append(fieldValues.stream().map(FieldValue::toString).collect(Collectors.joining(", ")));
-        sb.append('}');
-        return sb.toString();
+        return "RowValue{" + "systemId=" + systemId +
+                ", fieldValues=" + fieldValues.stream().map(FieldValue::toString).collect(Collectors.joining(", ")) +
+                '}';
     }
 }
