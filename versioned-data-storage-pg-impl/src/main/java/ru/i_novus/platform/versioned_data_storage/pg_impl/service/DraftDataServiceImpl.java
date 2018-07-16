@@ -4,10 +4,10 @@ import org.apache.commons.lang.BooleanUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.i_novus.platform.datastorage.temporal.exception.ListCodifiedException;
-import ru.i_novus.platform.datastorage.temporal.model.*;
+import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
-import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.model.TreeField;
 import ru.kirkazan.common.exception.CodifiedException;
 
 import javax.persistence.PersistenceException;
@@ -140,20 +140,12 @@ public class DraftDataServiceImpl implements DraftDataService {
         String newType = field.getType();
         if (oldType.equals(newType))
             return;
-        //todo
-        boolean ifFieldIsNotEmpty = dataDao.ifFieldIsNotEmpty(draftCode, field.getName());
-//        if (ifFieldIsNotEmpty) {
-//            boolean isCompatible = isCompatibleTypes(oldType, newType);
-//            if (!isCompatible) {
-//                throw new CodifiedException(INCOMPATIBLE_NEW_DATA_TYPE_EXCEPTION_CODE, field.getName());
-//            }
-//        }
         try {
             dataDao.dropTrigger(draftCode);
             dataDao.alterDataType(draftCode, field.getName(), oldType, newType);
             dataDao.createTrigger(draftCode);
         } catch (PersistenceException pe) {
-            throw new CodifiedException(INCOMPATIBLE_NEW_DATA_TYPE_EXCEPTION_CODE, field.getName());
+            throw new CodifiedException(INCOMPATIBLE_NEW_DATA_TYPE_EXCEPTION_CODE, pe, field.getName());
         }
     }
 
@@ -193,62 +185,8 @@ public class DraftDataServiceImpl implements DraftDataService {
         dataDao.createTrigger(newTable, fieldNames);
         return newTable;
     }
-/*
-    private void validateRow(String draftCode, RowValue row, List<CodifiedException> exceptions) {
-        List<FieldValue> dataCopy = new ArrayList<>(row.getFieldValues());
-        dataCopy.removeIf(v -> v.getValue() == null);
-        if (dataCopy.size() == 0)
-            throw new CodifiedException(EMPTY_RECORD_EXCEPTION_CODE);
 
-        Date dateBegin = null;
-        Date dateEnd = null;
-        for (Object objectValue : row.getFieldValues()) {
-            FieldValue fieldValue = (FieldValue) objectValue;
-            String field = fieldValue.getField();
-            if (DATE_BEGIN.equals(field))
-                dateBegin = (Date) fieldValue.getValue();
-            if (DATE_END.equals(field))
-                dateEnd = (Date) fieldValue.getValue();
-            if (BooleanUtils.toBoolean(field.getRequired()) && Util.isEmpty(fieldValue.getValue())) {
-                exceptions.add(new CodifiedException(FIELD_IS_REQUIRED_EXCEPTION_CODE, field.getName()));
-            } else {
-                if (!(field instanceof DateField) && !(field instanceof BooleanField)) {
-                    if (field instanceof ReferenceField) {
-                        ObjectMapper mapper = new ObjectMapper();
-                        try {
-                            mapper.readValue(fieldValue.getValue().toString(), new TypeReference<Map<String, String>>() {
-                            });
-                        } catch (IOException e) {
-                            exceptions.add(new CodifiedException(e.getMessage()));
-                        }
-                    }
-                    if (fieldValue.getValue() != null && field.getMaxLength() != null && fieldValue.getValue().toString().length() > field.getMaxLength()) {
-                        //todo выводить значение в текст опасно, оно может быть очень длинным. Плюс надо добавить в сообщение максимальную длину поля.
-                        exceptions.add(new CodifiedException(INCORRECT_FIELD_LENGTH_EXCEPTION_CODE, field.getName(), fieldValue.getValue()));
-                    }
-                }
-            }
-
-            if (BooleanUtils.toBoolean(field.getUnique())) {
-                if (Util.isEmpty(fieldValue.getValue())) {
-                    exceptions.add(new CodifiedException(FIELD_IS_REQUIRED_EXCEPTION_CODE, field.getName()));
-                } else {
-                    List result = dataDao.getRowsByField(draftCode, field.getName(), fieldValue.getValue(),
-                            dateBegin != null, dateBegin, dateEnd, row.getSystemId());
-                    if (result.size() > 0) {
-                        exceptions.add(new CodifiedException(DUPLICATE_UNIQUE_VALUE_EXCEPTION_CODE, fieldValue.getValue()));
-                    }
-                }
-            }
-
-        }
-        if (dateBegin != null && dateEnd != null && dateBegin.after(dateEnd)) {
-            exceptions.add(new CodifiedException(BEGIN_END_DATE_EXCEPTION_CODE));
-        }
-    } */
-
-
-    protected void insertActualDataFromVersion(String actualVersionTable, String draftTable, String newTable) {
+    private void insertActualDataFromVersion(String actualVersionTable, String draftTable, String newTable) {
         BigInteger count = dataDao.countActualDataFromVersion(actualVersionTable, draftTable);
         for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
             dataDao.insertActualDataFromVersion(newTable, actualVersionTable, draftTable, i, TRANSACTION_SIZE);
@@ -256,21 +194,21 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
 
-    protected void insertOldDataFromVersion(String actualVersionTable, String newTable) {
+    private void insertOldDataFromVersion(String actualVersionTable, String newTable) {
         BigInteger count = dataDao.countOldDataFromVersion(actualVersionTable);
         for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
             dataDao.insertOldDataFromVersion(newTable, actualVersionTable, i, TRANSACTION_SIZE);
         }
     }
 
-    protected void insertClosedNowDataFromVersion(String actualVersionTable, String draftTable, String newTable, Date publishTime) {
+    private void insertClosedNowDataFromVersion(String actualVersionTable, String draftTable, String newTable, Date publishTime) {
         BigInteger count = dataDao.countClosedNowDataFromVersion(actualVersionTable, draftTable);
         for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
             dataDao.insertClosedNowDataFromVersion(newTable, actualVersionTable, draftTable, i, TRANSACTION_SIZE, publishTime);
         }
     }
 
-    protected void insertNewDataFromDraft(String actualVersionTable, String draftTable, String newTable, Date publishTime) {
+    private void insertNewDataFromDraft(String actualVersionTable, String draftTable, String newTable, Date publishTime) {
         BigInteger count = dataDao.countNewValFromDraft(draftTable, actualVersionTable);
         for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
             dataDao.insertNewDataFromDraft(newTable, actualVersionTable, draftTable, i, TRANSACTION_SIZE, publishTime);

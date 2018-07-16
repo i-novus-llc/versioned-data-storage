@@ -26,26 +26,22 @@ public class VersionedDataStorageConfig {
 
     @Bean
     public SearchDataService getSearchDataService() {
-        SearchDataServiceImpl searchDataService = new SearchDataServiceImpl(dataDao());
-        return searchDataService;
+        return new SearchDataServiceImpl(dataDao());
     }
 
     @Bean
     public DraftDataService getDraftDataService() {
-        DraftDataServiceImpl draftDataService = new DraftDataServiceImpl(dataDao());
-        return draftDataService;
+        return new DraftDataServiceImpl(dataDao());
     }
 
     @Bean
     public DropDataService getDropDataService() {
-        DropDataServiceImpl service = new DropDataServiceImpl(dataDao());
-        return service;
+        return new DropDataServiceImpl(dataDao());
     }
 
     @Bean
     public CompareDataService getCompareDataService() {
-        CompareDataServiceImpl service = new CompareDataServiceImpl(dataDao());
-        return service;
+        return new CompareDataServiceImpl(dataDao());
     }
 
     @Bean

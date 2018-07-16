@@ -7,6 +7,10 @@ import org.apache.commons.lang.BooleanUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
+import ru.i_novus.platform.datastorage.temporal.model.DataDifference;
+import ru.i_novus.platform.datastorage.temporal.model.Field;
+import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
+import ru.i_novus.platform.datastorage.temporal.model.Reference;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.CompareDataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.FieldSearchCriteria;
@@ -14,7 +18,6 @@ import ru.i_novus.platform.datastorage.temporal.model.criteria.SearchTypeEnum;
 import ru.i_novus.platform.datastorage.temporal.model.value.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
-import ru.i_novus.platform.datastorage.temporal.model.*;
 
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
@@ -53,7 +56,6 @@ public class DataDao {
         if (criteria.getPage() > 0 && criteria.getSize() > 0)
             query.setFirstResult(getOffset(criteria))
                     .setMaxResults(criteria.getSize());
-        //setDataParameters(criteria, query);
         List<Object[]> resultList = query.getResultList();
         return convertToRowValue(fields, resultList);
     }
@@ -61,9 +63,11 @@ public class DataDao {
     public RowValue getRowData(String tableName, List<String> fieldNames, Object systemId) {
         Map<String, String> dataTypes = getColumnDataTypes(tableName);
         List<Field> fields = new ArrayList<>(fieldNames.size());
-        for (String fieldName : dataTypes.keySet()) {
+
+        for (Map.Entry<String, String> entry : dataTypes.entrySet()) {
+            String fieldName = entry.getKey();
             if (fieldNames.contains(fieldName)) {
-                fields.add(getField(fieldName, dataTypes.get(fieldName)));
+                fields.add(getField(fieldName, entry.getValue()));
             }
         }
         fields.add(0, new IntegerField(DATA_PRIMARY_COLUMN));
@@ -113,7 +117,6 @@ public class DataDao {
         QueryWithParams queryWithParams = new QueryWithParams("SELECT count(*)" +
                 " FROM data." + addDoubleQuotes(criteria.getTableName()) + " d ", null);
         queryWithParams.concat(getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter()));
-        //setDataParameters(criteria, query);
         return (BigInteger) queryWithParams.createQuery(entityManager).getSingleResult();
     }
 
@@ -144,38 +147,6 @@ public class DataDao {
         QueryWithParams queryWithParams = new QueryWithParams(result, params);
         queryWithParams.concat(getDictionaryFilterQuery(search, filter));
         return queryWithParams;
-    }
-
-    private void setDataParameters(DataCriteria criteria, Query query) {
-
-        if (!Util.isEmpty(criteria.getCommonFilter())) {
-            String search = criteria.getCommonFilter().trim();
-            if (dataRegexp.matcher(search).matches()) {
-                String[] dateArr = search.split("\\.");
-                String reverseSearch = dateArr[2] + "-" + dateArr[1] + "-" + dateArr[0];
-                query.setParameter("search", criteria.getCommonFilter().trim());
-                query.setParameter("reverseSearch", reverseSearch);
-            } else {
-                search = search.toLowerCase().replaceAll(":", "\\\\:").replaceAll("/", "\\\\/").replace(" ", "+") + ":*";
-                query.setParameter("formattedSearch", search);
-                query.setParameter("search", criteria.getCommonFilter());
-            }
-        }
-        if (!Util.isEmpty(criteria.getFieldFilter())) {
-            for (FieldSearchCriteria searchCriteria : criteria.getFieldFilter()) {
-                if (searchCriteria.getValues() == null || searchCriteria.getValues().get(0) == null)
-                    continue;
-                Field field = searchCriteria.getField();
-                if (field instanceof StringField && SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && searchCriteria.getValues().size() == 1) {
-                    query.setParameter(field.getName(), "%" + searchCriteria.getValues().get(0).toString().trim() + "%");
-                } else if (field instanceof TreeField) {
-                    String v = searchCriteria.getValues().stream().map(Object::toString).collect(Collectors.joining(",", "{", "}"));
-                    query.setParameter(field.getName(), v);
-                } else if (!(field instanceof BooleanField)) {
-                    query.setParameter(field.getName(), searchCriteria.getValues());
-                }
-            }
-        }
     }
 
     private QueryWithParams getDictionaryFilterQuery(String search, List<FieldSearchCriteria> filter) {

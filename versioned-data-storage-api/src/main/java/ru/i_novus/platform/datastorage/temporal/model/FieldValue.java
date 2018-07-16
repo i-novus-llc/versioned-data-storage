@@ -47,10 +47,9 @@ public abstract class FieldValue<T> {
 
     @Override
     public String toString() {
-        final StringBuffer sb = new StringBuffer("FieldValue{");
-        sb.append("field='").append(field).append('\'');
-        sb.append(", value=").append(value);
-        sb.append('}');
-        return sb.toString();
+        return "FieldValue{" +
+                "field='" + field + '\'' +
+                ", value=" + value +
+                '}';
     }
 }
