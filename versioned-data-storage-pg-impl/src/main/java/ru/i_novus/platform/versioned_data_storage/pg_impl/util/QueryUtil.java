@@ -9,11 +9,11 @@ import ru.i_novus.platform.datastorage.temporal.model.Reference;
 import ru.i_novus.platform.datastorage.temporal.model.value.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 
-import java.sql.*;
-import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * @author lgalimova
@@ -60,7 +60,7 @@ public class QueryUtil {
         } else if (field instanceof FloatField) {
             fieldValue = new FloatFieldValue(name, (Number) value);
         } else if (field instanceof IntegerField) {
-            fieldValue = new IntegerFieldValue(name, (Number) value);
+            fieldValue = new IntegerFieldValue(name, value != null ? Integer.valueOf(value.toString()) : null);
         } else if (field instanceof ReferenceField) {
             fieldValue = new ReferenceFieldValue(name, (Reference) value);
         } else {
