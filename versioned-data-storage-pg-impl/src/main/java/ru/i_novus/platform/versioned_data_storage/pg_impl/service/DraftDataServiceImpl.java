@@ -7,6 +7,7 @@ import ru.i_novus.platform.datastorage.temporal.exception.ListCodifiedException;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.model.BooleanField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.TreeField;
 import ru.kirkazan.common.exception.CodifiedException;
 
@@ -119,7 +120,8 @@ public class DraftDataServiceImpl implements DraftDataService {
         if (dataDao.getFieldNames(draftCode).contains(field.getName()))
             throw new CodifiedException(COLUMN_ALREADY_EXISTS);
         dataDao.dropTrigger(draftCode);
-        dataDao.addColumnToTable(draftCode, field.getName(), field.getType());
+        String defaultValue = (field instanceof BooleanField)? "false" : null;
+        dataDao.addColumnToTable(draftCode, field.getName(), field.getType(), defaultValue);
         dataDao.createTrigger(draftCode);
     }
 
@@ -179,8 +181,8 @@ public class DraftDataServiceImpl implements DraftDataService {
     private String createVersionTable(String draftCode) {
         String newTable = UUID.randomUUID().toString();
         dataDao.copyTable(newTable, draftCode);
-        dataDao.addColumnToTable(newTable, "SYS_PUBLISHTIME", "timestamp with time zone");
-        dataDao.addColumnToTable(newTable, "SYS_CLOSETIME", "timestamp with time zone");
+        dataDao.addColumnToTable(newTable, "SYS_PUBLISHTIME", "timestamp with time zone", null);
+        dataDao.addColumnToTable(newTable, "SYS_CLOSETIME", "timestamp with time zone", null);
         List<String> fieldNames = dataDao.getFieldNames(newTable);
         dataDao.createTrigger(newTable, fieldNames);
         return newTable;

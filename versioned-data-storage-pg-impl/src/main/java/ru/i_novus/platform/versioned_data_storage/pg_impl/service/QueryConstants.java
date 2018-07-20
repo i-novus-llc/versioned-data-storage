@@ -75,6 +75,7 @@ public class QueryConstants {
 
     public static final String ADD_FULL_TEXT_SEARCH = "UPDATE data.%s SET \"FTS\"=%s";
     public static final String ADD_NEW_COLUMN = "ALTER TABLE data.\"%s\" ADD COLUMN \"%s\" %s;";
+    public static final String ADD_NEW_COLUMN_WITH_DEFAULT = "ALTER TABLE data.\"%s\" ADD COLUMN \"%s\" %s DEFAULT %s;";
     public static final String DELETE_COLUMN = "ALTER TABLE data.\"%s\" DROP COLUMN \"%s\" CASCADE;";
     public static final String ALTER_COLUMN_WITH_USING = "ALTER TABLE data.%s ALTER COLUMN %s SET DATA TYPE %s USING %s";
     public static final String INSERT_QUERY_TEMPLATE_WITH_ID = "INSERT INTO data.%s (%s) VALUES(%s) returning \"SYS_RECORDID\";";

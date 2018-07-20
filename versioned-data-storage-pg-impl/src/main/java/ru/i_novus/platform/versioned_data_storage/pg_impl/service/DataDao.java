@@ -252,8 +252,11 @@ public class DataDao {
     }
 
     @Transactional
-    public void addColumnToTable(String tableName, String name, String type) {
-        entityManager.createNativeQuery(String.format(ADD_NEW_COLUMN, tableName, name, type)).executeUpdate();
+    public void addColumnToTable(String tableName, String name, String type, String defaultValue) {
+        if (defaultValue != null)
+            entityManager.createNativeQuery(String.format(ADD_NEW_COLUMN_WITH_DEFAULT, tableName, name, type, defaultValue)).executeUpdate();
+        else
+            entityManager.createNativeQuery(String.format(ADD_NEW_COLUMN, tableName, name, type)).executeUpdate();
     }
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
