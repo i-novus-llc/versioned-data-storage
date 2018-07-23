@@ -3,6 +3,7 @@ package ru.i_novus.platform.versioned_data_storage;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.postgresql.util.PSQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,7 @@ import ru.i_novus.platform.datastorage.temporal.service.SearchDataService;
 import ru.i_novus.platform.versioned_data_storage.config.VersionedDataStorageConfig;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.service.FieldFactoryImpl;
 
+import javax.persistence.PersistenceException;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
@@ -241,4 +243,33 @@ public class UseCaseTest {
         return draftDataService.applyDraft(null, d_a_draftCode, new Date());
     }
 
+    /**
+     * Запись двух одинаковых строк в один черновик
+     * Ожидается ошибка БД - нарушение уникальности "SYS_HASH"(код 23505)
+     */
+    @Test
+    public void testCreateUniqueHash() throws Exception{
+        List<Field> d_a_fields = new ArrayList<>();
+        Field d_a_id = fieldFactory.createField("ID", FieldType.INTEGER);
+        Field d_a_name = fieldFactory.createField("NAME", FieldType.STRING);
+        d_a_fields.add(d_a_id);
+        d_a_fields.add(d_a_name);
+
+        String d_a_draftCode = draftDataService.createDraft(d_a_fields);
+        List<RowValue> d_a_rows = new ArrayList<>();
+        d_a_rows.add(new LongRowValue(
+                d_a_id.valueOf(1),
+                d_a_name.valueOf("test")));
+        draftDataService.addRows(d_a_draftCode, d_a_rows);
+        try {
+            draftDataService.addRows(d_a_draftCode, d_a_rows);
+            Assert.fail("Two equals row error");
+        } catch (PersistenceException e) {
+            if (!(e.getCause().getCause() instanceof PSQLException &&
+                    "23505".equals(((PSQLException)e.getCause().getCause()).getSQLState()))){
+                Assert.fail("Two equals row error");
+            }
+        }
+        draftDataService.applyDraft(null, d_a_draftCode, new Date());
+    }
 }

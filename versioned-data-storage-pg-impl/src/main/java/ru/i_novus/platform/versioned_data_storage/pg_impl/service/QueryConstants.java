@@ -26,13 +26,13 @@ public class QueryConstants {
 
     public static final String CREATE_EMPTY_DRAFT_TABLE_TEMPLATE = "CREATE TABLE data.%s (\"SYS_RECORDID\" bigserial NOT NULL, " +
             "\"FTS\" tsvector, " +
-            "\"SYS_HASH\" char(32), " +
+            "\"SYS_HASH\" char(32) UNIQUE, " +
             "CONSTRAINT \"%s_pkey\" PRIMARY KEY (\"SYS_RECORDID\"));";
 
     public static final String CREATE_DRAFT_TABLE_TEMPLATE = "CREATE TABLE data.%s (\"SYS_RECORDID\" bigserial NOT NULL, " +
             "%s, " +
             "\"FTS\" tsvector, " +
-            "\"SYS_HASH\" char(32), " +
+            "\"SYS_HASH\" char(32) UNIQUE, " +
             "CONSTRAINT \"%s_pkey\" PRIMARY KEY (\"SYS_RECORDID\"));";
 
     public static final String COPY_TABLE_TEMPLATE = "create table data.%s as select * from data.%s with no data;";

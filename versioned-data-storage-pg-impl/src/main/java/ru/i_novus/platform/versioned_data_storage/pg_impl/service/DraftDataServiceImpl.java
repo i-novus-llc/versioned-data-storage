@@ -39,7 +39,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Transactional
     public String createDraft(List<Field> fields) {
         String draftCode = UUID.randomUUID().toString();
-        createTable(draftCode, fields, true);
+        createDraftTable(draftCode, fields);
         return draftCode;
     }
 
@@ -156,15 +156,11 @@ public class DraftDataServiceImpl implements DraftDataService {
         return dataDao.isFieldUnique(storageCode, fieldName, publishTime);
     }
 
-    private void createTable(String draftCode, List<Field> fields, boolean isDraft) {
+    private void createDraftTable(String draftCode, List<Field> fields) {
         logger.debug("creating table with name: {}", draftCode);
-        if (isDraft) {
-            dataDao.createDraftTable(draftCode, fields);
-        } else {
-            dataDao.createVersionTable(draftCode, fields);
-        }
+        dataDao.createDraftTable(draftCode, fields);
+
         List<String> fieldNames = fields.stream().map(f -> addDoubleQuotes(f.getName())).filter(f -> !QueryConstants.SYS_RECORDS.contains(f)).collect(Collectors.toList());
-        dataDao.createHashIndex(draftCode);
         if (!fields.isEmpty()) {
             dataDao.createTrigger(draftCode, fieldNames);
             for (Field field : fields) {
