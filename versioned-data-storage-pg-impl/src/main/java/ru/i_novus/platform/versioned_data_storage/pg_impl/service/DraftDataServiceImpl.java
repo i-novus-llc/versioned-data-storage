@@ -46,13 +46,13 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Override
     public String applyDraft(String sourceStorageCode, String draftCode, Date publishTime) {
         String newTable = createVersionTable(draftCode);
+        List<String> draftFields = dataDao.getFieldNames(draftCode);
         if (sourceStorageCode != null && dataDao.tableStructureEquals(sourceStorageCode, draftCode)) {
-            insertActualDataFromVersion(sourceStorageCode, draftCode, newTable);
-            insertOldDataFromVersion(sourceStorageCode, newTable);
-            insertClosedNowDataFromVersion(sourceStorageCode, draftCode, newTable, publishTime);
-            insertNewDataFromDraft(sourceStorageCode, draftCode, newTable, publishTime);
+            insertActualDataFromVersion(sourceStorageCode, draftCode, newTable, draftFields);
+            insertOldDataFromVersion(sourceStorageCode, newTable, draftFields);
+            insertClosedNowDataFromVersion(sourceStorageCode, draftCode, newTable, draftFields, publishTime);
+            insertNewDataFromDraft(sourceStorageCode, draftCode, newTable, draftFields, publishTime);
         } else {
-            List<String> draftFields = dataDao.getFieldNames(draftCode);
             BigInteger count = dataDao.countData(draftCode);
             draftFields.add(addDoubleQuotes("FTS"));
             for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
@@ -99,9 +99,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Override
     public void loadData(String draftCode, String sourceStorageCode, Date onDate) {
         List<String> draftFields = dataDao.getFieldNames(draftCode);
-        Collections.sort(draftFields);
         List<String> sourceFields = dataDao.getFieldNames(draftCode);
-        Collections.sort(sourceFields);
         if (!draftFields.equals(sourceFields)) {
             throw new CodifiedException(TABLES_NOT_EQUAL);
         }
@@ -120,7 +118,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         if (dataDao.getFieldNames(draftCode).contains(field.getName()))
             throw new CodifiedException(COLUMN_ALREADY_EXISTS);
         dataDao.dropTrigger(draftCode);
-        String defaultValue = (field instanceof BooleanField)? "false" : null;
+        String defaultValue = (field instanceof BooleanField) ? "false" : null;
         dataDao.addColumnToTable(draftCode, field.getName(), field.getType(), defaultValue);
         dataDao.createTrigger(draftCode);
     }
@@ -164,6 +162,7 @@ public class DraftDataServiceImpl implements DraftDataService {
             dataDao.createVersionTable(draftCode, fields);
         }
         List<String> fieldNames = fields.stream().map(f -> addDoubleQuotes(f.getName())).filter(f -> !QueryConstants.SYS_RECORDS.contains(f)).collect(Collectors.toList());
+        Collections.sort(fieldNames);
         dataDao.createHashIndex(draftCode);
         if (!fields.isEmpty()) {
             dataDao.createTrigger(draftCode, fieldNames);
@@ -188,32 +187,34 @@ public class DraftDataServiceImpl implements DraftDataService {
         return newTable;
     }
 
-    private void insertActualDataFromVersion(String actualVersionTable, String draftTable, String newTable) {
+    private void insertActualDataFromVersion(String actualVersionTable, String draftTable, String newTable, List<String> columns) {
         BigInteger count = dataDao.countActualDataFromVersion(actualVersionTable, draftTable);
         for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
-            dataDao.insertActualDataFromVersion(newTable, actualVersionTable, draftTable, i, TRANSACTION_SIZE);
+            dataDao.insertActualDataFromVersion(newTable, actualVersionTable, draftTable, columns, i, TRANSACTION_SIZE);
         }
     }
 
 
-    private void insertOldDataFromVersion(String actualVersionTable, String newTable) {
+    private void insertOldDataFromVersion(String actualVersionTable, String newTable, List<String> columns) {
         BigInteger count = dataDao.countOldDataFromVersion(actualVersionTable);
         for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
-            dataDao.insertOldDataFromVersion(newTable, actualVersionTable, i, TRANSACTION_SIZE);
+            dataDao.insertOldDataFromVersion(newTable, actualVersionTable, columns, i, TRANSACTION_SIZE);
         }
     }
 
-    private void insertClosedNowDataFromVersion(String actualVersionTable, String draftTable, String newTable, Date publishTime) {
+    private void insertClosedNowDataFromVersion(String actualVersionTable, String draftTable, String newTable,
+                                                List<String> columns, Date publishTime) {
         BigInteger count = dataDao.countClosedNowDataFromVersion(actualVersionTable, draftTable);
         for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
-            dataDao.insertClosedNowDataFromVersion(newTable, actualVersionTable, draftTable, i, TRANSACTION_SIZE, publishTime);
+            dataDao.insertClosedNowDataFromVersion(newTable, actualVersionTable, draftTable, columns, i, TRANSACTION_SIZE, publishTime);
         }
     }
 
-    private void insertNewDataFromDraft(String actualVersionTable, String draftTable, String newTable, Date publishTime) {
+    private void insertNewDataFromDraft(String actualVersionTable, String draftTable, String newTable,
+                                        List<String> columns, Date publishTime) {
         BigInteger count = dataDao.countNewValFromDraft(draftTable, actualVersionTable);
         for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
-            dataDao.insertNewDataFromDraft(newTable, actualVersionTable, draftTable, i, TRANSACTION_SIZE, publishTime);
+            dataDao.insertNewDataFromDraft(newTable, actualVersionTable, draftTable, columns, i, TRANSACTION_SIZE, publishTime);
         }
     }
 }

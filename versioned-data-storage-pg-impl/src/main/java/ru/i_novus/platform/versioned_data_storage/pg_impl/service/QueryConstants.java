@@ -73,7 +73,6 @@ public class QueryConstants {
             "  FOR EACH ROW\n" +
             "  EXECUTE PROCEDURE data.\"%s_fts_vector_tf\"();";
 
-    public static final String ADD_FULL_TEXT_SEARCH = "UPDATE data.%s SET \"FTS\"=%s";
     public static final String ADD_NEW_COLUMN = "ALTER TABLE data.\"%s\" ADD COLUMN \"%s\" %s;";
     public static final String ADD_NEW_COLUMN_WITH_DEFAULT = "ALTER TABLE data.\"%s\" ADD COLUMN \"%s\" %s DEFAULT %s;";
     public static final String DELETE_COLUMN = "ALTER TABLE data.\"%s\" DROP COLUMN \"%s\" CASCADE;";
@@ -159,17 +158,17 @@ public class QueryConstants {
 
     public static final String INSERT_OLD_VAL_FROM_VERSION = " DO $$\n" +
             "DECLARE tbl_cursor refcursor;\n" +
-            " row data.%1$s%%rowtype;\n" +
+            " row record;\n" +
             " i int;\n" +
             "BEGIN\n" +
-            "    OPEN tbl_cursor FOR select * from data.%2$s where \"SYS_CLOSETIME\" is not null;\n" +
+            "    OPEN tbl_cursor FOR select \"SYS_RECORDID\", %6$s, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\" from data.%2$s where \"SYS_CLOSETIME\" is not null;\n" +
             "    MOVE FORWARD %3$s FROM tbl_cursor;\t\n" +
             "    i\\:=0;\t\n" +
             "    while i<%4$s loop\n" +
             "       FETCH FROM tbl_cursor INTO row;\t\n" +
             "       EXIT WHEN NOT FOUND;\n" +
             "       row.\"SYS_RECORDID\"\\:=nextval('data.%5$s');" +
-            "       insert into data.%1$s values( row.*);   \n" +
+            "       insert into data.%1$s(\"SYS_RECORDID\", %6$s, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\") values(row.\"SYS_RECORDID\", %7$s, row.\"FTS\", row.\"SYS_HASH\", row.\"SYS_PUBLISHTIME\", row.\"SYS_CLOSETIME\");   \n" +
             "       i\\:=i+1;\n" +
             "    end loop;\n" +
             "    CLOSE tbl_cursor;\n" +
@@ -197,17 +196,17 @@ public class QueryConstants {
 
     public static final String INSERT_ACTUAL_VAL_FROM_VERSION = " DO $$\n" +
             "DECLARE tbl_cursor refcursor;\n" +
-            " row data.%1$s%%rowtype;\n" +
+            " row record;\n" +
             " i int;\n" +
             "BEGIN\n" +
-            "    OPEN tbl_cursor FOR select v.* from data.%2$s v join data.%3$s d on d.\"SYS_HASH\" = v.\"SYS_HASH\"  where v.\"SYS_CLOSETIME\" is null;\n" +
+            "    OPEN tbl_cursor FOR select v.\"SYS_RECORDID\", %9$s, v.\"FTS\", v.\"SYS_HASH\", v.\"SYS_PUBLISHTIME\" from data.%2$s v join data.%3$s d on d.\"SYS_HASH\" = v.\"SYS_HASH\"  where v.\"SYS_CLOSETIME\" is null;\n" +
             "    MOVE FORWARD %4$s FROM tbl_cursor;\t\n" +
             "    i\\:=0;\t\n" +
             "    while i<%5$s loop\n" +
             "       FETCH FROM tbl_cursor INTO row;\t\n" +
             "       EXIT WHEN NOT FOUND;\n" +
             "       row.\"SYS_RECORDID\"\\:=nextval('data.%6$s');" +
-            "       insert into data.%1$s  values( row.*);   \n" +
+            "       insert into data.%1$s (\"SYS_RECORDID\", %7$s, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\") values(row.\"SYS_RECORDID\", %8$s, row.\"FTS\", row.\"SYS_HASH\", row.\"SYS_PUBLISHTIME\");   \n" +
             "       i\\:=i+1;\n" +
             "    end loop;\n" +
             "    CLOSE tbl_cursor;\n" +
@@ -218,17 +217,17 @@ public class QueryConstants {
     public static final String
             INSERT_NEW_VAL_FROM_DRAFT = " DO $$\n" +
             "DECLARE tbl_cursor refcursor;\n" +
-            " row data.%1$s%%rowtype;\n" +
+            " row record;\n" +
             " i int;\n" +
             "BEGIN\n" +
-            "    OPEN tbl_cursor FOR select d.* from data.%1$s d  where not exists(select 1 from data.%2$s v where v.\"SYS_HASH\" = d.\"SYS_HASH\" and v.\"SYS_CLOSETIME\" is null);\n" +
+            "    OPEN tbl_cursor FOR select \"SYS_RECORDID\", %8$s, \"FTS\", \"SYS_HASH\" from data.%1$s d  where not exists(select 1 from data.%2$s v where v.\"SYS_HASH\" = d.\"SYS_HASH\" and v.\"SYS_CLOSETIME\" is null);\n" +
             "    MOVE FORWARD %3$s FROM tbl_cursor;\t\n" +
             "    i\\:=0;\t\n" +
             "    while i<%4$s loop\n" +
             "       FETCH FROM tbl_cursor INTO row;\t\n" +
             "       EXIT WHEN NOT FOUND;\n" +
             "       row.\"SYS_RECORDID\"\\:=nextval('data.%7$s');" +
-            "       insert into data.%5$s  values( row.*, to_timestamp('%6$s', 'YYYY-MM-DD HH24:MI:SS'), null\\:\\:timestamp with time zone );   \n" +
+            "       insert into data.%5$s(\"SYS_RECORDID\", %8$s, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\") values(row.\"SYS_RECORDID\", %9$s, row.\"FTS\", row.\"SYS_HASH\", to_timestamp('%6$s', 'YYYY-MM-DD HH24:MI:SS'), null\\:\\:timestamp with time zone);   \n" +
             "       i\\:=i+1;\n" +
             "    end loop;\n" +
             "    CLOSE tbl_cursor;\n" +
@@ -241,10 +240,10 @@ public class QueryConstants {
 
     public static final String INSERT_CLOSED_NOW_VAL_FROM_VERSION = " DO $$\n" +
             "DECLARE tbl_cursor refcursor;\n" +
-            " row data.%1$s%%rowtype;\n" +
+            " row record;\n" +
             " i int;\n" +
             "BEGIN\n" +
-            "    OPEN tbl_cursor FOR select v.* from data.%2$s v  where v.\"SYS_CLOSETIME\" is null and not exists(select 1 from data.%3$s d where d.\"SYS_HASH\" = v.\"SYS_HASH\");\n" +
+            "    OPEN tbl_cursor FOR select \"SYS_RECORDID\", %8$s, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\" from data.%2$s v  where v.\"SYS_CLOSETIME\" is null and not exists(select 1 from data.%3$s d where d.\"SYS_HASH\" = v.\"SYS_HASH\");\n" +
             "    MOVE FORWARD %4$s FROM tbl_cursor;\t\n" +
             "    i\\:=0;\t\n" +
             "    while i<%5$s loop\n" +
@@ -252,7 +251,7 @@ public class QueryConstants {
             "       EXIT WHEN NOT FOUND;\n" +
             "       row.\"SYS_RECORDID\"\\:=nextval('data.%7$s');" +
             "       row.\"SYS_CLOSETIME\" \\:= to_timestamp('%6$s', 'YYYY-MM-DD HH24:MI:SS');\n" +
-            "       insert into data.%1$s  values( row.*);   \n" +
+            "       insert into data.%1$s(\"SYS_RECORDID\", %8$s, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\") values(row.\"SYS_RECORDID\", %9$s, row.\"FTS\", row.\"SYS_HASH\", row.\"SYS_PUBLISHTIME\", row.\"SYS_CLOSETIME\");   \n" +
             "       i\\:=i+1;\n" +
             "    end loop;\n" +
             "    CLOSE tbl_cursor;\n" +

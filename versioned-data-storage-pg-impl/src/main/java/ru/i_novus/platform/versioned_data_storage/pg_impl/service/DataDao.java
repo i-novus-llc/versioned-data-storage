@@ -264,54 +264,46 @@ public class DataDao {
         entityManager.createNativeQuery(String.format(DELETE_COLUMN, tableName, field)).executeUpdate();
     }
 
-    public List<Object> insertDataWithId(String tableName, String keys, List<String> values, List<RowValue> data) {
-        String stringValues = values.stream().collect(Collectors.joining("),("));
-        Query query = entityManager.createNativeQuery(String.format(INSERT_QUERY_TEMPLATE_WITH_ID, addDoubleQuotes(tableName), keys, stringValues));
-        int i = 1;
-        for (RowValue rowValue : data) {
-            for (Object fieldValue : rowValue.getFieldValues()) {
-                if (((FieldValue) fieldValue).getValue() != null)
-                    query.setParameter(i++, ((FieldValue) fieldValue).getValue());
-            }
-        }
-        return query.getResultList();
-    }
-
     @Transactional
     public void insertData(String tableName, List<RowValue> data) {
         List<String> fieldNames = getFieldNames(tableName);
         String keys = fieldNames.stream().collect(Collectors.joining(","));
-
         List<String> values = new ArrayList<>();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         for (RowValue rowValue : data) {
-//            validateRow(draftCode, rowValue, exceptions);
-            List<String> rowValues = new ArrayList<>();
+            String[] rowValues = new String[rowValue.getFieldValues().size()];
+            if (rowValue.getFieldValues().size() != fieldNames.size()) {
+                throw new IllegalStateException("Количество значений не совпадает с количеством полей");
+            }
             for (Object fieldValueObj : rowValue.getFieldValues()) {
                 FieldValue fieldValue = (FieldValue) fieldValueObj;
+                int index = fieldNames.indexOf(addDoubleQuotes(fieldValue.getField()));
+                if (index == -1) {
+                    throw new IllegalArgumentException("Поле" + fieldValue.getField() + " отсутсвует в таблице " + tableName);
+                }
                 if (fieldValue.getValue() == null) {
-                    rowValues.add("null");
+                    rowValues[index] = "null";
                 } else if (fieldValue instanceof ReferenceFieldValue) {
                     Reference refValue = ((ReferenceFieldValue) fieldValue).getValue();
                     if (refValue.getValue() == null)
-                        rowValues.add("null");
+                        rowValues[index] = "null";
                     else {
                         if (refValue.getDisplayField() != null)
-                            rowValues.add(String.format("(select jsonb_build_object('value', d.%s , 'displayValue', d.%s, 'hash', d.\"SYS_HASH\") from data.%s d where d.%s=?\\:\\:" + getFieldType(refValue.getStorageCode(), refValue.getKeyField()) + " and %s)",
+                            rowValues[index] =  String.format("(select jsonb_build_object('value', d.%s , 'displayValue', d.%s, 'hash', d.\"SYS_HASH\") from data.%s d where d.%s=?\\:\\:" + getFieldType(refValue.getStorageCode(), refValue.getKeyField()) + " and %s)",
                                     addDoubleQuotes(refValue.getKeyField()),
                                     addDoubleQuotes(refValue.getDisplayField()),
                                     addDoubleQuotes(refValue.getStorageCode()), addDoubleQuotes(refValue.getKeyField()),
-                                    getDataWhereClauseStr(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(sdf.format(refValue.getDate())))));
+                                    getDataWhereClauseStr(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(sdf.format(refValue.getDate()))));
                         else
-                            rowValues.add("(select jsonb_build_object('value', ?))");
+                            rowValues[index] =  "(select jsonb_build_object('value', ?))";
                     }
                 } else if (fieldValue instanceof TreeFieldValue) {
-                    rowValues.add("?\\:\\:ltree");
+                    rowValues[index] =  "?\\:\\:ltree";
                 } else {
-                    rowValues.add("?");
+                    rowValues[index] =  "?";
                 }
             }
-            values.add(String.join(",", rowValues));
+            values.add(String.join(",", Arrays.asList(rowValues)));
         }
         int i = 1;
         int batchSize = 500;
@@ -490,6 +482,7 @@ public class DataDao {
 
     public List<String> getFieldNames(String tableName) {
         List<String> results = entityManager.createNativeQuery(String.format(SELECT_FIELD_NAMES, tableName)).getResultList();
+        Collections.sort(results);
         return results.stream().map(QueryUtil::addDoubleQuotes).collect(Collectors.toList());
     }
 
@@ -559,14 +552,22 @@ public class DataDao {
                 .getSingleResult();
     }
 
-    public void insertActualDataFromVersion(String tableToInsert, String versionTableFromInsert, String draftTable, int offset, int transactionSize) {
+    public void insertActualDataFromVersion(String tableToInsert, String versionTableFromInsert, String draftTable,
+                                            List<String> columns, int offset, int transactionSize) {
+        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsWithPrefixValue = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsWithPrefix = columns.stream().map(s -> "v." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String query = String.format(INSERT_ACTUAL_VAL_FROM_VERSION,
                 addDoubleQuotes(tableToInsert),
                 addDoubleQuotes(versionTableFromInsert),
                 addDoubleQuotes(draftTable),
                 offset,
                 transactionSize,
-                getSequenceName(tableToInsert));
+                getSequenceName(tableToInsert),
+                columnsStr,
+                columnsWithPrefixValue,
+                columnsWithPrefix
+        );
         if (logger.isDebugEnabled()) {
             logger.debug("insertActualDataFromVersion method query: " + query);
         }
@@ -581,13 +582,18 @@ public class DataDao {
                         addDoubleQuotes(versionTable))).getSingleResult();
     }
 
-    public void insertOldDataFromVersion(String tableToInsert, String tableFromInsert, int offset, int transactionSize) {
+    public void insertOldDataFromVersion(String tableToInsert, String tableFromInsert, List<String> columns,
+                                         int offset, int transactionSize) {
+        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String query = String.format(INSERT_OLD_VAL_FROM_VERSION,
                 addDoubleQuotes(tableToInsert),
                 addDoubleQuotes(tableFromInsert),
                 offset,
                 transactionSize,
-                getSequenceName(tableToInsert));
+                getSequenceName(tableToInsert),
+                columnsStr,
+                columnsWithPrefix);
         if (logger.isDebugEnabled()) {
             logger.debug("insertOldDataFromVersion method query: " + query);
         }
@@ -602,7 +608,10 @@ public class DataDao {
                 .getSingleResult();
     }
 
-    public void insertClosedNowDataFromVersion(String tableToInsert, String versionTable, String draftTable, int offset, int transactionSize, Date publishTime) {
+    public void insertClosedNowDataFromVersion(String tableToInsert, String versionTable, String draftTable,
+                                               List<String> columns, int offset, int transactionSize, Date publishTime) {
+        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String query = String.format(INSERT_CLOSED_NOW_VAL_FROM_VERSION,
                 addDoubleQuotes(tableToInsert),
                 addDoubleQuotes(versionTable),
@@ -610,7 +619,9 @@ public class DataDao {
                 offset,
                 transactionSize,
                 new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(publishTime),
-                getSequenceName(tableToInsert));
+                getSequenceName(tableToInsert),
+                columnsStr,
+                columnsWithPrefix);
         if (logger.isDebugEnabled()) {
             logger.debug("insertClosedNowDataFromVersion method query: " + query);
         }
@@ -627,7 +638,10 @@ public class DataDao {
 
     }
 
-    public void insertNewDataFromDraft(String tableToInsert, String versionTable, String draftTable, int offset, int transactionSize, Date publishTime) {
+    public void insertNewDataFromDraft(String tableToInsert, String versionTable, String draftTable,
+                                       List<String> columns, int offset, int transactionSize, Date publishTime) {
+        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String query = String.format(INSERT_NEW_VAL_FROM_DRAFT,
                 addDoubleQuotes(draftTable),
                 addDoubleQuotes(versionTable),
@@ -635,7 +649,9 @@ public class DataDao {
                 transactionSize,
                 addDoubleQuotes(tableToInsert),
                 new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(publishTime),
-                getSequenceName(tableToInsert));
+                getSequenceName(tableToInsert),
+                columnsStr,
+                columnsWithPrefix);
         if (logger.isDebugEnabled()) {
             logger.debug("insertNewDataFromDraft method query: " + query);
         }
