@@ -6,6 +6,7 @@ import net.n2oapp.criteria.api.Sorting;
 import org.apache.commons.lang.BooleanUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
 import ru.i_novus.platform.datastorage.temporal.model.DataDifference;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
@@ -257,29 +258,18 @@ public class DataDao {
         entityManager.createNativeQuery(String.format(DELETE_COLUMN, tableName, field)).executeUpdate();
     }
 
-    public List<Object> insertDataWithId(String tableName, String keys, List<String> values, List<RowValue> data) {
-        String stringValues = values.stream().collect(Collectors.joining("),("));
-        Query query = entityManager.createNativeQuery(String.format(INSERT_QUERY_TEMPLATE_WITH_ID, addDoubleQuotes(tableName), keys, stringValues));
-        int i = 1;
-        for (RowValue rowValue : data) {
-            for (Object fieldValue : rowValue.getFieldValues()) {
-                if (((FieldValue) fieldValue).getValue() != null)
-                    query.setParameter(i++, ((FieldValue) fieldValue).getValue());
-            }
-        }
-        return query.getResultList();
-    }
-
     @Transactional
     public void insertData(String tableName, List<RowValue> data) {
-        List<String> fieldNames = getFieldNames(tableName);
-        String keys = fieldNames.stream().collect(Collectors.joining(","));
-
+        if (CollectionUtils.isEmpty(data))
+            return;
+        List<String> keys = new ArrayList<>();
         List<String> values = new ArrayList<>();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        for (Object fieldValue : data.iterator().next().getFieldValues()) {
+            keys.add(addDoubleQuotes(((FieldValue)fieldValue).getField()));
+        }
         for (RowValue rowValue : data) {
-//            validateRow(draftCode, rowValue, exceptions);
-            List<String> rowValues = new ArrayList<>();
+            List<String> rowValues = new ArrayList<>(rowValue.getFieldValues().size());
             for (Object fieldValueObj : rowValue.getFieldValues()) {
                 FieldValue fieldValue = (FieldValue) fieldValueObj;
                 if (fieldValue.getValue() == null) {
@@ -314,7 +304,7 @@ public class DataDao {
             List<String> subValues = values.subList(firstIndex, maxIndex);
             List<RowValue> subData = data.subList(firstIndex, maxIndex);
             String stringValues = subValues.stream().collect(Collectors.joining("),("));
-            Query query = entityManager.createNativeQuery(String.format(INSERT_QUERY_TEMPLATE, addDoubleQuotes(tableName), keys, stringValues));
+            Query query = entityManager.createNativeQuery(String.format(INSERT_QUERY_TEMPLATE, addDoubleQuotes(tableName), String.join(",", keys), stringValues));
             for (RowValue rowValue : subData) {
                 for (Object value : rowValue.getFieldValues()) {
                     FieldValue fieldValue = (FieldValue) value;
@@ -483,6 +473,7 @@ public class DataDao {
 
     public List<String> getFieldNames(String tableName) {
         List<String> results = entityManager.createNativeQuery(String.format(SELECT_FIELD_NAMES, tableName)).getResultList();
+        Collections.sort(results);
         return results.stream().map(QueryUtil::addDoubleQuotes).collect(Collectors.toList());
     }
 
@@ -552,14 +543,22 @@ public class DataDao {
                 .getSingleResult();
     }
 
-    public void insertActualDataFromVersion(String tableToInsert, String versionTableFromInsert, String draftTable, int offset, int transactionSize) {
+    public void insertActualDataFromVersion(String tableToInsert, String versionTableFromInsert, String draftTable,
+                                            List<String> columns, int offset, int transactionSize) {
+        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsWithPrefixValue = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsWithPrefix = columns.stream().map(s -> "v." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String query = String.format(INSERT_ACTUAL_VAL_FROM_VERSION,
                 addDoubleQuotes(tableToInsert),
                 addDoubleQuotes(versionTableFromInsert),
                 addDoubleQuotes(draftTable),
                 offset,
                 transactionSize,
-                getSequenceName(tableToInsert));
+                getSequenceName(tableToInsert),
+                columnsStr,
+                columnsWithPrefixValue,
+                columnsWithPrefix
+        );
         if (logger.isDebugEnabled()) {
             logger.debug("insertActualDataFromVersion method query: " + query);
         }
@@ -574,13 +573,18 @@ public class DataDao {
                         addDoubleQuotes(versionTable))).getSingleResult();
     }
 
-    public void insertOldDataFromVersion(String tableToInsert, String tableFromInsert, int offset, int transactionSize) {
+    public void insertOldDataFromVersion(String tableToInsert, String tableFromInsert, List<String> columns,
+                                         int offset, int transactionSize) {
+        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String query = String.format(INSERT_OLD_VAL_FROM_VERSION,
                 addDoubleQuotes(tableToInsert),
                 addDoubleQuotes(tableFromInsert),
                 offset,
                 transactionSize,
-                getSequenceName(tableToInsert));
+                getSequenceName(tableToInsert),
+                columnsStr,
+                columnsWithPrefix);
         if (logger.isDebugEnabled()) {
             logger.debug("insertOldDataFromVersion method query: " + query);
         }
@@ -595,7 +599,10 @@ public class DataDao {
                 .getSingleResult();
     }
 
-    public void insertClosedNowDataFromVersion(String tableToInsert, String versionTable, String draftTable, int offset, int transactionSize, Date publishTime) {
+    public void insertClosedNowDataFromVersion(String tableToInsert, String versionTable, String draftTable,
+                                               List<String> columns, int offset, int transactionSize, Date publishTime) {
+        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String query = String.format(INSERT_CLOSED_NOW_VAL_FROM_VERSION,
                 addDoubleQuotes(tableToInsert),
                 addDoubleQuotes(versionTable),
@@ -603,7 +610,9 @@ public class DataDao {
                 offset,
                 transactionSize,
                 new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(publishTime),
-                getSequenceName(tableToInsert));
+                getSequenceName(tableToInsert),
+                columnsStr,
+                columnsWithPrefix);
         if (logger.isDebugEnabled()) {
             logger.debug("insertClosedNowDataFromVersion method query: " + query);
         }
@@ -620,7 +629,10 @@ public class DataDao {
 
     }
 
-    public void insertNewDataFromDraft(String tableToInsert, String versionTable, String draftTable, int offset, int transactionSize, Date publishTime) {
+    public void insertNewDataFromDraft(String tableToInsert, String versionTable, String draftTable,
+                                       List<String> columns, int offset, int transactionSize, Date publishTime) {
+        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String query = String.format(INSERT_NEW_VAL_FROM_DRAFT,
                 addDoubleQuotes(draftTable),
                 addDoubleQuotes(versionTable),
@@ -628,7 +640,9 @@ public class DataDao {
                 transactionSize,
                 addDoubleQuotes(tableToInsert),
                 new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(publishTime),
-                getSequenceName(tableToInsert));
+                getSequenceName(tableToInsert),
+                columnsStr,
+                columnsWithPrefix);
         if (logger.isDebugEnabled()) {
             logger.debug("insertNewDataFromDraft method query: " + query);
         }
