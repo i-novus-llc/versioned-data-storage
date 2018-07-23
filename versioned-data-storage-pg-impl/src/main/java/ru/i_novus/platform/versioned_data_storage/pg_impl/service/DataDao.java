@@ -6,6 +6,7 @@ import net.n2oapp.criteria.api.Sorting;
 import org.apache.commons.lang.BooleanUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
 import ru.i_novus.platform.datastorage.temporal.model.DataDifference;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
@@ -266,44 +267,41 @@ public class DataDao {
 
     @Transactional
     public void insertData(String tableName, List<RowValue> data) {
-        List<String> fieldNames = getFieldNames(tableName);
-        String keys = fieldNames.stream().collect(Collectors.joining(","));
+        if (CollectionUtils.isEmpty(data))
+            return;
+        List<String> keys = new ArrayList<>();
         List<String> values = new ArrayList<>();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        for (Object fieldValue : data.iterator().next().getFieldValues()) {
+            keys.add(addDoubleQuotes(((FieldValue)fieldValue).getField()));
+        }
         for (RowValue rowValue : data) {
-            String[] rowValues = new String[rowValue.getFieldValues().size()];
-            if (rowValue.getFieldValues().size() != fieldNames.size()) {
-                throw new IllegalStateException("Количество значений не совпадает с количеством полей");
-            }
+            List<String> rowValues = new ArrayList<>(rowValue.getFieldValues().size());
             for (Object fieldValueObj : rowValue.getFieldValues()) {
                 FieldValue fieldValue = (FieldValue) fieldValueObj;
-                int index = fieldNames.indexOf(addDoubleQuotes(fieldValue.getField()));
-                if (index == -1) {
-                    throw new IllegalArgumentException("Поле" + fieldValue.getField() + " отсутсвует в таблице " + tableName);
-                }
                 if (fieldValue.getValue() == null) {
-                    rowValues[index] = "null";
+                    rowValues.add("null");
                 } else if (fieldValue instanceof ReferenceFieldValue) {
                     Reference refValue = ((ReferenceFieldValue) fieldValue).getValue();
                     if (refValue.getValue() == null)
-                        rowValues[index] = "null";
+                        rowValues.add("null");
                     else {
                         if (refValue.getDisplayField() != null)
-                            rowValues[index] =  String.format("(select jsonb_build_object('value', d.%s , 'displayValue', d.%s, 'hash', d.\"SYS_HASH\") from data.%s d where d.%s=?\\:\\:" + getFieldType(refValue.getStorageCode(), refValue.getKeyField()) + " and %s)",
+                            rowValues.add(String.format("(select jsonb_build_object('value', d.%s , 'displayValue', d.%s, 'hash', d.\"SYS_HASH\") from data.%s d where d.%s=?\\:\\:" + getFieldType(refValue.getStorageCode(), refValue.getKeyField()) + " and %s)",
                                     addDoubleQuotes(refValue.getKeyField()),
                                     addDoubleQuotes(refValue.getDisplayField()),
                                     addDoubleQuotes(refValue.getStorageCode()), addDoubleQuotes(refValue.getKeyField()),
-                                    getDataWhereClauseStr(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(sdf.format(refValue.getDate()))));
+                                    getDataWhereClauseStr(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(sdf.format(refValue.getDate())))));
                         else
-                            rowValues[index] =  "(select jsonb_build_object('value', ?))";
+                            rowValues.add("(select jsonb_build_object('value', ?))");
                     }
                 } else if (fieldValue instanceof TreeFieldValue) {
-                    rowValues[index] =  "?\\:\\:ltree";
+                    rowValues.add("?\\:\\:ltree");
                 } else {
-                    rowValues[index] =  "?";
+                    rowValues.add("?");
                 }
             }
-            values.add(String.join(",", Arrays.asList(rowValues)));
+            values.add(String.join(",", rowValues));
         }
         int i = 1;
         int batchSize = 500;
@@ -313,7 +311,7 @@ public class DataDao {
             List<String> subValues = values.subList(firstIndex, maxIndex);
             List<RowValue> subData = data.subList(firstIndex, maxIndex);
             String stringValues = subValues.stream().collect(Collectors.joining("),("));
-            Query query = entityManager.createNativeQuery(String.format(INSERT_QUERY_TEMPLATE, addDoubleQuotes(tableName), keys, stringValues));
+            Query query = entityManager.createNativeQuery(String.format(INSERT_QUERY_TEMPLATE, addDoubleQuotes(tableName), String.join(",", keys), stringValues));
             for (RowValue rowValue : subData) {
                 for (Object value : rowValue.getFieldValues()) {
                     FieldValue fieldValue = (FieldValue) value;
