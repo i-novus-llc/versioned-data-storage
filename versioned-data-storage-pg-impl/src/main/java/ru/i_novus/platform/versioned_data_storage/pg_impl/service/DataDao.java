@@ -225,13 +225,6 @@ public class DataDao {
         }
     }
 
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void createVersionTable(String tableName, List<Field> fields) {
-        String fieldsString = fields.stream().map(f -> addDoubleQuotes(f.getName()) + " " + f.getType()).collect(Collectors.joining(", "));
-        entityManager.createNativeQuery(String.format(CREATE_TABLE_TEMPLATE, addDoubleQuotes(tableName),
-                fieldsString, tableName)).executeUpdate();
-    }
-
     @Transactional
     public void copyTable(String newTableName, String sourceTableName) {
         entityManager.createNativeQuery(String.format(COPY_TABLE_TEMPLATE, addDoubleQuotes(newTableName),
