@@ -10,6 +10,9 @@ public abstract class FieldValue<T> {
     private String field;
     private T value;
 
+    public FieldValue() {
+    }
+
     public FieldValue(String field, T value) {
         this.field = field;
         this.value = value;
