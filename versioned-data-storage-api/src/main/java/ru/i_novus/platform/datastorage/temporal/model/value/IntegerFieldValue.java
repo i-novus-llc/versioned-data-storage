@@ -8,6 +8,9 @@ import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
  */
 public class IntegerFieldValue extends FieldValue<Number> {
 
+    public IntegerFieldValue() {
+    }
+
     public IntegerFieldValue(String field, Number value) {
         super(field, value);
     }

@@ -9,6 +9,9 @@ import ru.i_novus.platform.datastorage.temporal.model.Reference;
  */
 public class ReferenceFieldValue extends FieldValue<Reference> {
 
+    public ReferenceFieldValue() {
+    }
+
     public ReferenceFieldValue(String field, Reference value) {
         super(field, value);
     }

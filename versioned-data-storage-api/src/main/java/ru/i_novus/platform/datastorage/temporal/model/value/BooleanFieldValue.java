@@ -8,6 +8,9 @@ import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
  */
 public class BooleanFieldValue extends FieldValue<Boolean> {
 
+    public BooleanFieldValue() {
+    }
+
     public BooleanFieldValue(String field, Boolean value) {
         super(field, value);
     }

@@ -8,6 +8,9 @@ import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
  */
 public class TreeFieldValue extends FieldValue<String> {
 
+    public TreeFieldValue() {
+    }
+
     public TreeFieldValue(String field, String value) {
         super(field, value);
     }

@@ -8,6 +8,9 @@ import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
  */
 public class FloatFieldValue extends FieldValue<Number> {
 
+    public FloatFieldValue() {
+    }
+
     public FloatFieldValue(String field, Number value) {
         super(field, value);
     }

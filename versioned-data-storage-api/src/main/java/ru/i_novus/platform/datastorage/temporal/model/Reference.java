@@ -22,6 +22,9 @@ public class Reference implements Serializable {
     //значение отображаемого значения
     private String displayValue;
 
+    public Reference() {
+    }
+
     public Reference(String storageCode, Date date, String keyField, String displayField) {
         this.storageCode = storageCode;
         this.date = date;

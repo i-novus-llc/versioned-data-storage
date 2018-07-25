@@ -10,6 +10,9 @@ import java.time.LocalDate;
  */
 public class DateFieldValue extends FieldValue<LocalDate> {
 
+    public DateFieldValue() {
+    }
+
     public DateFieldValue(String field, LocalDate value) {
         super(field, value);
     }
