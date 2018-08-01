@@ -35,4 +35,17 @@ public class FieldFactoryImpl implements FieldFactory {
 
     }
 
+    @Override
+    public Field createUniqueField(String name, FieldType type) {
+        Field field = createField(name, type);
+        field.setUnique(true);
+        return field;
+    }
+
+    @Override
+    public Field createSearchField(String name, FieldType type) {
+        Field field = createField(name, type);
+        field.setSearchEnabled(true);
+        return field;
+    }
 }

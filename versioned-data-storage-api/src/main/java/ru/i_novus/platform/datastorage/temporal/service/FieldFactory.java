@@ -11,4 +11,8 @@ public interface FieldFactory {
 
     Field createField(String name, FieldType type);
 
+    Field createUniqueField(String name, FieldType type);
+
+    Field createSearchField(String name, FieldType type);
+
 }
