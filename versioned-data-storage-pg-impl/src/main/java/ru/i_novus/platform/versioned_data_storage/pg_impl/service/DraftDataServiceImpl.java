@@ -155,6 +155,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     private void createDraftTable(String draftCode, List<Field> fields) {
+        //todo никак не учитывается Field.unique - уникальность в рамках черновика
         logger.debug("creating table with name: {}", draftCode);
         dataDao.createDraftTable(draftCode, fields);
 
@@ -174,6 +175,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     private String createVersionTable(String draftCode) {
+        //todo никак не учитывается Field.unique - уникальность в рамках даты
         String newTable = UUID.randomUUID().toString();
         dataDao.copyTable(newTable, draftCode);
         dataDao.addColumnToTable(newTable, "SYS_PUBLISHTIME", "timestamp with time zone", null);
