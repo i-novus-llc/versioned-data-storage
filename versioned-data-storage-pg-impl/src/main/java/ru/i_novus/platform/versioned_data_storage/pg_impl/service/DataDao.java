@@ -230,12 +230,13 @@ public class DataDao {
         entityManager.createNativeQuery(String.format(COPY_TABLE_TEMPLATE, addDoubleQuotes(newTableName),
                 addDoubleQuotes(sourceTableName))).executeUpdate();
         entityManager.createNativeQuery(String.format("CREATE SEQUENCE data.\"%s_SYS_RECORDID_seq\" start 1", newTableName)).executeUpdate();
-        List<String> indexes = entityManager.createNativeQuery("select indexdef from pg_indexes where tablename=?;")
+        List<String> indexes = entityManager.createNativeQuery("select indexdef from pg_indexes where tablename=? and not indexdef like '%\"SYS_HASH\"%';")
                 .setParameter(1, sourceTableName)
                 .getResultList();
         for (String index : indexes) {
             entityManager.createNativeQuery(index.replaceAll(sourceTableName, newTableName)).executeUpdate();
         }
+        createHashIndex(newTableName);
         entityManager.createNativeQuery(String.format("ALTER TABLE data.%s ADD PRIMARY KEY (\"SYS_RECORDID\")", addDoubleQuotes(newTableName))).executeUpdate();
         entityManager.createNativeQuery(String.format("ALTER TABLE data.%s ALTER COLUMN \"SYS_RECORDID\" SET DEFAULT nextval('data.\"%s_SYS_RECORDID_seq\"');", addDoubleQuotes(newTableName), newTableName)).executeUpdate();
     }
