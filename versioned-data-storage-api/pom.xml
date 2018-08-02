@@ -5,7 +5,7 @@
     <parent>
         <artifactId>versioned-data-storage</artifactId>
         <groupId>ru.i-novus.platform</groupId>
-        <version>1.1</version>
+        <version>1.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>versioned-data-storage-api</artifactId>
