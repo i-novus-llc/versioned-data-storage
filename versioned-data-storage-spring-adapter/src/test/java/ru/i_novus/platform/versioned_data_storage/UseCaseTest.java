@@ -1,6 +1,7 @@
 package ru.i_novus.platform.versioned_data_storage;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.postgresql.util.PSQLException;
@@ -25,7 +26,6 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.service.FieldFactoryIm
 
 import javax.persistence.PersistenceException;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -57,6 +57,7 @@ public class UseCaseTest {
      * @throws Exception
      */
     @Test
+    @Ignore
     public void testCreateReferenceStorage() throws Exception {
         logger.info("<<<<<<<<<<<<<<< 1 этап >>>>>>>>>>>>>>>>>>>>>");
         List<Field> d_a_fields = new ArrayList<>();
