@@ -38,7 +38,6 @@ public interface DraftDataService {
      *
      * @param draftCode код черновика
      * @param data      данные строки
-     * @return Системные идентификаторы добавленных записей
      */
     void addRows(String draftCode, List<RowValue> data);
 
