@@ -17,13 +17,13 @@
         <dependency>
             <groupId>ru.i-novus.platform</groupId>
             <artifactId>versioned-data-storage-api</artifactId>
-            <version>${project.version}</version>
+            <version>${project.parent.version}</version>
         </dependency>
 
         <dependency>
             <groupId>ru.i-novus.platform</groupId>
             <artifactId>versioned-data-storage-pg-impl</artifactId>
-            <version>${project.version}</version>
+            <version>${project.parent.version}</version>
         </dependency>
 
         <dependency>
