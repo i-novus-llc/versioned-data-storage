@@ -439,6 +439,23 @@ public class DataDao {
                 tableName)).executeUpdate();
     }
 
+    @Transactional
+    public void updateHashRows(String tableName) {
+        List<String> fieldNames = getFieldNames(tableName);
+        entityManager.createNativeQuery(String.format(UPDATE_HASH,
+                addDoubleQuotes(tableName),
+                fieldNames.stream().collect(Collectors.joining(", ")))).executeUpdate();
+    }
+    @Transactional
+    public void updateFtsRows(String tableName){
+        List<String> fieldNames = getFieldNames(tableName);
+        entityManager.createNativeQuery(String.format(UPDATE_FTS,
+                addDoubleQuotes(tableName),
+                fieldNames.stream().map(field -> "coalesce( to_tsvector('ru', " + field + "\\:\\:text),'')")
+                        .collect(Collectors.joining(" || ' ' || ")))).executeUpdate();
+    }
+
+
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void dropTrigger(String tableName) {
         String escapedTableName = addDoubleQuotes(tableName);

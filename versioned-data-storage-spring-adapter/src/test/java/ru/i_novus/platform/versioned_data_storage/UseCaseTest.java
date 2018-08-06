@@ -271,4 +271,73 @@ public class UseCaseTest {
         }
         draftDataService.applyDraft(null, d_a_draftCode, new Date());
     }
+
+    /**
+     * Удаление поля из черновика
+     * Ожидается: обновление SYS_HASH и FTS у существующих записей
+     */
+    @Test
+    public void testDeleteField() {
+        List<Field> fields = new ArrayList<>();
+        Field id = fieldFactory.createField("ID", FieldType.INTEGER);
+        Field name = fieldFactory.createField("NAME", FieldType.STRING);
+        Field date = fieldFactory.createField("DATE", FieldType.DATE);
+        fields.add(id);
+        fields.add(name);
+        fields.add(date);
+
+        String storageCode = draftDataService.createDraft(fields);
+        List<RowValue> rows = Collections.singletonList(new LongRowValue(
+                id.valueOf(1),
+                name.valueOf("test"),
+                date.valueOf(LocalDate.now())));
+        draftDataService.addRows(storageCode, rows);
+
+        List<Field> hashField = Collections.singletonList(fieldFactory.createField("SYS_HASH", FieldType.STRING));
+        DataCriteria criteria = new DataCriteria(storageCode, null, null, hashField, null, null);
+
+        RowValue hashBeforeDelete = searchDataService.getData(criteria).get(0);
+        draftDataService.deleteField(storageCode, "NAME");
+        RowValue dataAfterDelete = searchDataService.getData(criteria).get(0);
+
+        Assert.assertNotEquals(hashBeforeDelete, dataAfterDelete);
+
+        fields.remove(name);
+        List<RowValue> searchDeletedField = searchDataService.getData(new DataCriteria(storageCode, null, null, fields, null, "test"));
+        List<RowValue> searchExistingField = searchDataService.getData(new DataCriteria(storageCode, null, null, fields, null, "1"));
+
+        Assert.assertTrue(searchDeletedField.isEmpty());
+        Assert.assertTrue(!searchExistingField.isEmpty());
+
+    }
+
+    /**
+     * Добавление поля из черновика
+     * Ожидается: обновление SYS_HASH у существующих записей
+     */
+    @Test
+    public void testAddField() {
+        List<Field> fields = new ArrayList<>();
+        Field id = fieldFactory.createField("ID", FieldType.INTEGER);
+        Field name = fieldFactory.createField("NAME", FieldType.STRING);
+        fields.add(id);
+        fields.add(name);
+
+        String storageCode = draftDataService.createDraft(fields);
+        List<RowValue> rows = Collections.singletonList(new LongRowValue(
+                id.valueOf(1),
+                name.valueOf("test")));
+        draftDataService.addRows(storageCode, rows);
+
+        List<Field> hashField = Collections.singletonList(fieldFactory.createField("SYS_HASH", FieldType.STRING));
+        DataCriteria criteria = new DataCriteria(storageCode, null, null, hashField, null, null);
+
+        RowValue hashBeforeAdd = searchDataService.getData(criteria).get(0);
+        Field date = fieldFactory.createField("DATE", FieldType.DATE);
+        draftDataService.addField(storageCode, date);
+        RowValue dataAfterAdd = searchDataService.getData(criteria).get(0);
+
+        Assert.assertNotEquals(hashBeforeAdd, dataAfterAdd);
+    }
+
 }
