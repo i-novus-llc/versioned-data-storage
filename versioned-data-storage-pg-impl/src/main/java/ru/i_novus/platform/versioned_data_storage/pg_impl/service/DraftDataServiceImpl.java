@@ -121,6 +121,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         String defaultValue = (field instanceof BooleanField) ? "false" : null;
         dataDao.addColumnToTable(draftCode, field.getName(), field.getType(), defaultValue);
         dataDao.createTrigger(draftCode);
+        dataDao.updateHashRows(draftCode);
     }
 
     @Transactional
@@ -131,6 +132,8 @@ public class DraftDataServiceImpl implements DraftDataService {
         dataDao.dropTrigger(draftCode);
         dataDao.deleteColumnFromTable(draftCode, fieldName);
         dataDao.createTrigger(draftCode);
+        dataDao.updateHashRows(draftCode);
+        dataDao.updateFtsRows(draftCode);
     }
 
     @Transactional
