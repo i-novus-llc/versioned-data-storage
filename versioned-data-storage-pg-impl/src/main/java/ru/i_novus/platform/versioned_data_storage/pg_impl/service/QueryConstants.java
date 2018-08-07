@@ -86,6 +86,7 @@ public class QueryConstants {
     public static final String UPDATE_QUERY_TEMPLATE = "UPDATE data.%s SET %s WHERE \"SYS_RECORDID\" IN (%s);";
     public static final String IF_VERSION_IS_NOT_EMPTY = "SELECT exists(SELECT * FROM data.%s);";
     public static final String IF_FIELD_IS_NOT_EMPTY = "SELECT exists(SELECT * FROM data.%s WHERE %s.%s IS NOT NULL);";
+    public static final String IF_FIELD_CONTAINS_EMPTY_VALUES = "SELECT exists(SELECT * FROM data.%s WHERE %s.%s IS NULL);";
     public static final String IF_RELATED_VALUE_EXISTS = "SELECT exists(SELECT * FROM data.%s where %s.%s = %s)";
     public static final String SELECT_FIELD_NAMES = "SELECT column_name FROM \"information_schema\".\"columns\" WHERE table_name = '%s' AND column_name NOT IN ('SYS_RECORDID', 'FTS', 'SYS_HASH', 'SYS_PUBLISHTIME', 'SYS_CLOSETIME')";
     public static final String SELECT_FIELD_TYPE = "SELECT data_type FROM \"information_schema\".\"columns\" WHERE table_name = '%s' AND column_name='%s'";

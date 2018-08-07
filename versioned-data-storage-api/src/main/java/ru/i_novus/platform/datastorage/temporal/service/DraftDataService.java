@@ -92,12 +92,30 @@ public interface DraftDataService {
     void updateField(String draftCode, Field field);
 
     /**
+     * Проверка наличия данных в поле хранилища
+     *
+     * @param storageCode код хранилища данных
+     * @param fieldName   наименование поля
+     * @return возвращает true, если в столбце есть данные, иначе false. Если столбец заполнен значениями null, считается, что он пустой.
+     */
+    boolean isFieldNotEmpty(String storageCode, String fieldName);
+
+    /**
+     * Проверка наличия пустых данных в поле хранилища
+     *
+     * @param storageCode код хранилища данных
+     * @param fieldName   наименование поля
+     * @return возвращает true, если в столбце есть null-значения, иначе false.
+     */
+    boolean isFieldContainEmptyValues(String storageCode, String fieldName);
+
+    /**
      * Проверка уникальности значений поля хранилища
      *
      * @param storageCode код хранилища данных
      * @param fieldName   наименование поля
      * @param publishTime дата публикации версии
-     * @return возврщает true, если значения поля уникальн., иначе false. Null считается уникальным значением.
+     * @return возврщает true, если значения поля уникальны, иначе false. Null считается уникальным значением.
      */
     boolean isFieldUnique(String storageCode, String fieldName, Date publishTime);
 
