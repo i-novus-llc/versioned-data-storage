@@ -31,6 +31,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.service.QueryConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.*;
@@ -397,11 +398,17 @@ public class DataDao {
         query.executeUpdate();
     }
 
-    public boolean isFieldUnique(String storageCode, String fieldName, Date publishTime) {
+    public boolean isUnique(String storageCode, List<String> fieldNames, Date publishTime) {
+        String fields = fieldNames.stream().map(fieldName -> addDoubleQuotes(fieldName) + "\\:\\:text")
+                .collect(Collectors.joining(","));
+        String groupBy = Stream.iterate(1, n -> n + 1).limit(fieldNames.size()).map(String::valueOf)
+                .collect(Collectors.joining(","));
+
         Query query = entityManager.createNativeQuery(
-                "SELECT " + addDoubleQuotes(fieldName) + "\\:\\:text, COUNT(*)" +
-                        " FROM data." + addDoubleQuotes(storageCode) + " d  WHERE " + getDataWhereClauseStr(publishTime, null, null, null) +
-                        " GROUP BY 1" +
+                "SELECT " + fields + ", COUNT(*)" +
+                        " FROM data." + addDoubleQuotes(storageCode) + " d" +
+                        " WHERE " + getDataWhereClauseStr(publishTime, null, null, null) +
+                        " GROUP BY " + groupBy +
                         " HAVING COUNT(*) > 1"
         );
         if (publishTime != null)
@@ -438,6 +445,23 @@ public class DataDao {
                 escapedTableName,
                 tableName)).executeUpdate();
     }
+
+    @Transactional
+    public void updateHashRows(String tableName) {
+        List<String> fieldNames = getFieldNames(tableName);
+        entityManager.createNativeQuery(String.format(UPDATE_HASH,
+                addDoubleQuotes(tableName),
+                fieldNames.stream().collect(Collectors.joining(", ")))).executeUpdate();
+    }
+    @Transactional
+    public void updateFtsRows(String tableName){
+        List<String> fieldNames = getFieldNames(tableName);
+        entityManager.createNativeQuery(String.format(UPDATE_FTS,
+                addDoubleQuotes(tableName),
+                fieldNames.stream().map(field -> "coalesce( to_tsvector('ru', " + field + "\\:\\:text),'')")
+                        .collect(Collectors.joining(" || ' ' || ")))).executeUpdate();
+    }
+
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void dropTrigger(String tableName) {

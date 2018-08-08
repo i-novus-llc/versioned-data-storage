@@ -55,6 +55,8 @@ public class QueryConstants {
             "  FOR EACH ROW\n" +
             "  EXECUTE PROCEDURE data.\"%s_hash_tf\"();";
 
+    public static final String UPDATE_HASH = "UPDATE data.%s  SET \"SYS_HASH\" =  md5(ROW(%s)||'');";
+
     public static final String DROP_FTS_TRIGGER = "DROP TRIGGER IF EXISTS fts_vector_tg ON data.%s;";
 
     public static final String CREATE_FTS_TRIGGER = "CREATE OR REPLACE FUNCTION data.\"%s_fts_vector_tf\"()\n" +
@@ -72,6 +74,8 @@ public class QueryConstants {
             "  ON data.%s\n" +
             "  FOR EACH ROW\n" +
             "  EXECUTE PROCEDURE data.\"%s_fts_vector_tf\"();";
+    public static final String UPDATE_FTS = "UPDATE data.%s  SET \"FTS\" =  %s;";
+
 
     public static final String ADD_NEW_COLUMN = "ALTER TABLE data.\"%s\" ADD COLUMN \"%s\" %s;";
     public static final String ADD_NEW_COLUMN_WITH_DEFAULT = "ALTER TABLE data.\"%s\" ADD COLUMN \"%s\" %s DEFAULT %s;";

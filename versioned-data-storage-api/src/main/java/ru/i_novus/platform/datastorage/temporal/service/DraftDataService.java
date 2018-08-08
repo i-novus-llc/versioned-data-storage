@@ -119,4 +119,12 @@ public interface DraftDataService {
      */
     boolean isFieldUnique(String storageCode, String fieldName, Date publishTime);
 
+    /**
+     * Проверка уникальности списка значений полей хранилища
+     *
+     * @param storageCode код хранилища данных
+     * @param fieldNames  список наименований полей
+     * @return возврщает true, если значения полей уникальны, иначе false. Null считается уникальным значением.
+     */
+    boolean isUnique(String storageCode, List<String> fieldNames);
 }
