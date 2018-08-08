@@ -24,6 +24,7 @@ import ru.i_novus.platform.versioned_data_storage.config.VersionedDataStorageCon
 import ru.i_novus.platform.versioned_data_storage.pg_impl.service.FieldFactoryImpl;
 
 import javax.persistence.PersistenceException;
+import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -73,13 +74,13 @@ public class UseCaseTest {
         String d_a_draftCode = draftDataService.createDraft(d_a_fields);
         List<RowValue> d_a_rows = new ArrayList<>();
         d_a_rows.add(new LongRowValue(
-                d_a_id.valueOf(1),
+                d_a_id.valueOf(BigInteger.valueOf(1)),
                 d_a_name.valueOf("test"),
                 d_a_dateCol.valueOf(LocalDate.now()),
                 d_a_boolCol.valueOf(true),
                 d_a_floatCol.valueOf(5f)));
         d_a_rows.add(new LongRowValue(
-                d_a_id.valueOf(2),
+                d_a_id.valueOf(BigInteger.valueOf(2)),
                 d_a_name.valueOf("test2"),
                 d_a_dateCol.valueOf(LocalDate.now()),
                 d_a_boolCol.valueOf(true),
@@ -109,7 +110,7 @@ public class UseCaseTest {
         List<Field> d_b_fields = Arrays.asList(d_b_id, d_b_name, d_b_ref);
         String d_b_draftCode = draftDataService.createDraft(d_b_fields);
         RowValue d_b_rowValue = new LongRowValue(
-                d_b_id.valueOf(1),
+                d_b_id.valueOf(BigInteger.valueOf(1)),
                 d_b_name.valueOf("name"),
                 d_b_ref.valueOf(new Reference(s_a_storageCode, s_a_publishTime, d_a_id.getName(), d_a_name.getName(), "1", "test"))
         );
@@ -118,7 +119,7 @@ public class UseCaseTest {
         Object systemId = d_b_actualRows.get(0).getSystemId();
 
         d_b_rowValue = new LongRowValue(
-                d_b_id.valueOf(1),
+                d_b_id.valueOf(BigInteger.valueOf(1)),
                 d_b_name.valueOf("name"),
                 d_b_ref.valueOf(new Reference(s_a_storageCode, s_a_publishTime, d_a_id.getName(), d_a_name.getName(), "2"))
         );
@@ -227,13 +228,13 @@ public class UseCaseTest {
         String d_a_draftCode = draftDataService.createDraft(d_a_fields);
         List<RowValue> d_a_rows = new ArrayList<>();
         d_a_rows.add(new LongRowValue(
-                d_a_id.valueOf(1),
+                d_a_id.valueOf(BigInteger.valueOf(1)),
                 d_a_name.valueOf("test"),
                 d_a_dateCol.valueOf(LocalDate.now()),
                 d_a_boolCol.valueOf(true),
                 d_a_floatCol.valueOf(5f)));
         d_a_rows.add(new LongRowValue(
-                d_a_id.valueOf(2),
+                d_a_id.valueOf(BigInteger.valueOf(2)),
                 d_a_name.valueOf("test2"),
                 d_a_dateCol.valueOf(LocalDate.now()),
                 d_a_boolCol.valueOf(true),
@@ -257,7 +258,7 @@ public class UseCaseTest {
         String d_a_draftCode = draftDataService.createDraft(d_a_fields);
         List<RowValue> d_a_rows = new ArrayList<>();
         d_a_rows.add(new LongRowValue(
-                d_a_id.valueOf(1),
+                d_a_id.valueOf(BigInteger.valueOf(1)),
                 d_a_name.valueOf("test")));
         draftDataService.addRows(d_a_draftCode, d_a_rows);
         try {
@@ -288,7 +289,7 @@ public class UseCaseTest {
 
         String storageCode = draftDataService.createDraft(fields);
         List<RowValue> rows = Collections.singletonList(new LongRowValue(
-                id.valueOf(1),
+                id.valueOf(BigInteger.valueOf(1)),
                 name.valueOf("test"),
                 date.valueOf(LocalDate.now())));
         draftDataService.addRows(storageCode, rows);
@@ -325,7 +326,7 @@ public class UseCaseTest {
 
         String storageCode = draftDataService.createDraft(fields);
         List<RowValue> rows = Collections.singletonList(new LongRowValue(
-                id.valueOf(1),
+                id.valueOf(BigInteger.valueOf(1)),
                 name.valueOf("test")));
         draftDataService.addRows(storageCode, rows);
 
