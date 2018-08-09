@@ -553,7 +553,7 @@ public class DataDao {
 
     public boolean isFieldNotEmpty(String tableName, String fieldName) {
         return (boolean) entityManager
-                .createNativeQuery(String.format(IF_FIELD_IS_NOT_EMPTY, addDoubleQuotes(tableName),
+                .createNativeQuery(String.format(IS_FIELD_NOT_EMPTY, addDoubleQuotes(tableName),
                         addDoubleQuotes(tableName),
                         addDoubleQuotes(fieldName)))
                 .getSingleResult();
@@ -561,7 +561,7 @@ public class DataDao {
 
     public boolean isFieldContainEmptyValues(String tableName, String fieldName) {
         return (boolean) entityManager
-                .createNativeQuery(String.format(IF_FIELD_CONTAINS_EMPTY_VALUES, addDoubleQuotes(tableName),
+                .createNativeQuery(String.format(IS_FIELD_CONTAIN_EMPTY_VALUES, addDoubleQuotes(tableName),
                         addDoubleQuotes(tableName),
                         addDoubleQuotes(fieldName)))
                 .getSingleResult();
