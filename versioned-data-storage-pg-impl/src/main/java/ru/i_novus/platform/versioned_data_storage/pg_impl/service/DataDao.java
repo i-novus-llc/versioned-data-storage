@@ -511,13 +511,13 @@ public class DataDao {
         String using = "";
         if (DateField.TYPE.equals(oldType) && (StringField.TYPE.equals(newType) || IntegerStringField.TYPE.equals(newType))) {
             using = "to_char(" + escapedField + ", '" + DATE_FORMAT_FOR_USING_CONVERTING + "')";
-        } else if (StringField.TYPE.equals(oldType) || IntegerStringField.TYPE.equals(oldType)
-                || StringField.TYPE.equals(newType) || IntegerStringField.TYPE.equals(newType)) {
-            using = escapedField + "\\:\\:" + newType;
         } else if (ReferenceField.TYPE.equals(oldType)) {
             using = "(" + escapedField + "->>'value')" + "\\:\\:varchar\\:\\:" + newType;
         } else if (ReferenceField.TYPE.equals(newType)) {
             using = "nullif(jsonb_build_object('value'," + escapedField + "),jsonb_build_object('value',null))";
+        } else if (StringField.TYPE.equals(oldType) || IntegerStringField.TYPE.equals(oldType)
+                || StringField.TYPE.equals(newType) || IntegerStringField.TYPE.equals(newType)) {
+            using = escapedField + "\\:\\:" + newType;
         } else {
             using = escapedField + "\\:\\:varchar\\:\\:" + newType;
         }
@@ -551,9 +551,17 @@ public class DataDao {
         return nativeQuery.getResultList();
     }
 
-    public boolean ifFieldIsNotEmpty(String tableName, String fieldName) {
+    public boolean isFieldNotEmpty(String tableName, String fieldName) {
         return (boolean) entityManager
-                .createNativeQuery(String.format(IF_FIELD_IS_NOT_EMPTY, addDoubleQuotes(tableName),
+                .createNativeQuery(String.format(IS_FIELD_NOT_EMPTY, addDoubleQuotes(tableName),
+                        addDoubleQuotes(tableName),
+                        addDoubleQuotes(fieldName)))
+                .getSingleResult();
+    }
+
+    public boolean isFieldContainEmptyValues(String tableName, String fieldName) {
+        return (boolean) entityManager
+                .createNativeQuery(String.format(IS_FIELD_CONTAIN_EMPTY_VALUES, addDoubleQuotes(tableName),
                         addDoubleQuotes(tableName),
                         addDoubleQuotes(fieldName)))
                 .getSingleResult();

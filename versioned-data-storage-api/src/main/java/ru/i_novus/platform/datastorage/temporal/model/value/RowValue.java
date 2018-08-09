@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import static org.springframework.util.CollectionUtils.isEmpty;
+
 /**
  * @author lgalimova
  * @since 01.02.2018
@@ -38,6 +40,10 @@ public abstract class RowValue<T> {
 
     public void setFieldValues(List<FieldValue> fieldValues) {
         this.fieldValues = fieldValues;
+    }
+
+    public FieldValue getFieldValue(String fieldName) {
+        return !isEmpty(fieldValues) ? fieldValues.stream().filter(fieldValue -> fieldName.equals(fieldValue.getField())).findFirst().orElse(null) : null;
     }
 
     @Override

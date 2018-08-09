@@ -4,11 +4,13 @@ import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.IntegerFieldValue;
 
+import java.math.BigInteger;
+
 /**
  * @author lgalimova
  * @since 23.03.2018
  */
-public class IntegerField extends Field<Integer> {
+public class IntegerField extends Field<BigInteger> {
     public static final String TYPE = "bigint";
 
     public IntegerField(String name) {
@@ -21,7 +23,7 @@ public class IntegerField extends Field<Integer> {
     }
 
     @Override
-    public FieldValue valueOf(Integer value) {
+    public FieldValue valueOf(BigInteger value) {
         return new IntegerFieldValue(getName(), value);
     }
 }
