@@ -44,6 +44,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     @Override
+    @Transactional(Transactional.TxType.NOT_SUPPORTED)
     public String applyDraft(String sourceStorageCode, String draftCode, Date publishTime) {
         String newTable = createVersionTable(draftCode);
         List<String> draftFields = dataDao.getFieldNames(draftCode);
