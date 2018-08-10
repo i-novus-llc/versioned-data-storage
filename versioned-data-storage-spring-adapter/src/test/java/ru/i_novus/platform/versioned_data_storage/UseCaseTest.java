@@ -15,6 +15,8 @@ import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.LongRowValue;
 import ru.i_novus.platform.datastorage.temporal.model.Reference;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.FieldSearchCriteria;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.SearchTypeEnum;
 import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
@@ -186,12 +188,15 @@ public class UseCaseTest {
     }
 
     private boolean equalsFieldValues(List<FieldValue> values1, List<FieldValue> values2) {
-        if (values1 == values2) return true;
-        if (values1 == null || values2 == null || values1.size() != values2.size()) return false;
+        if (values1 == values2)
+            return true;
+        if (values1 == null || values2 == null || values1.size() != values2.size())
+            return false;
 
         for (FieldValue val1 : values1) {
             boolean isPresent = values2.stream().filter(val2 -> {
-                if (val2 == val1) return true;
+                if (val2 == val1)
+                    return true;
                 if (val2.getField().equals(val1.getField()))
                     if (val1 instanceof ReferenceFieldValue) {
                         return ((ReferenceFieldValue) val2).getValue().getValue().equals(((ReferenceFieldValue) val1).getValue().getValue())
@@ -341,4 +346,88 @@ public class UseCaseTest {
         Assert.assertNotEquals(hashBeforeAdd, dataAfterAdd);
     }
 
+    /*
+     * testing manipulations while publishing a draft with closeDate
+     */
+    @Test
+    public void testApplyDraftWithCloseDate() {
+        Long time_long_diff = 150000000L;
+
+        List<Field> fields = new ArrayList<>();
+        Field id = fieldFactory.createField("ID", FieldType.INTEGER);
+        Field code = fieldFactory.createField("CODE", FieldType.STRING);
+        Field name = fieldFactory.createField("NAME", FieldType.STRING);
+        fields.add(id);
+        fields.add(code);
+        fields.add(name);
+
+        String draftCode = draftDataService.createDraft(fields);
+        List<RowValue> rows1 = new ArrayList<>();
+        rows1.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(1)),
+                code.valueOf("001"),
+                name.valueOf("name1")));
+        rows1.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(2)),
+                code.valueOf("002"),
+                name.valueOf("name2")));
+        draftDataService.addRows(draftCode, rows1);
+        Date publishDate1 = new Date();
+        Date closeDate1 = new Date(publishDate1.getTime() + time_long_diff);
+        String storageCode = draftDataService.applyDraft(null, draftCode, publishDate1, closeDate1);
+        List<RowValue> actualRows = searchDataService.getData(new DataCriteria(storageCode, publishDate1, closeDate1, fields, null, null));
+        assertRows(rows1, actualRows);
+
+        draftCode = draftDataService.createDraft(fields);
+        List<RowValue> rows2 = new ArrayList<>();
+        rows2.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(2)),
+                code.valueOf("002"),
+                name.valueOf("name2")));
+        rows2.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(3)),
+                code.valueOf("003"),
+                name.valueOf("name3")));
+        draftDataService.addRows(draftCode, rows2);
+        Date publishDate2 = new Date(publishDate1.getTime() + (int) (time_long_diff * 0.01));
+        Date closeDate2 = new Date(publishDate1.getTime() + (int) (time_long_diff * 0.5));
+        String storageCode2 = draftDataService.applyDraft(storageCode, draftCode, publishDate2, closeDate2);
+        actualRows = searchDataService.getData(new DataCriteria(storageCode2, publishDate2, closeDate2, fields, null, null));
+        List<RowValue> oldRows = searchDataService.getData(new DataCriteria(storageCode2, publishDate1, publishDate2, fields, null, null));
+        assertRows(rows2, actualRows);
+        assertRows(Collections.singletonList(rows1.get(0)), oldRows);
+
+        draftCode = draftDataService.createDraft(fields);
+        List<RowValue> rows3 = new ArrayList<>();
+        rows3.add(rows1.get(0));
+        draftDataService.addRows(draftCode, rows3);
+        Date publishDate3 = new Date(publishDate1.getTime() + (int) (time_long_diff * 0.1));
+        Date closeDate3 = new Date(publishDate1.getTime() + (int) (time_long_diff * 0.4));
+        String storageCode3 = draftDataService.applyDraft(storageCode2, draftCode, publishDate3, closeDate3);
+        actualRows = searchDataService.getData(new DataCriteria(storageCode3, publishDate3, closeDate3, fields, null, null));
+        oldRows = searchDataService.getData(new DataCriteria(storageCode3, publishDate2, publishDate3, fields, null, null));
+        assertRows(rows3, actualRows);
+        assertRows(rows2, oldRows);
+
+        draftCode = draftDataService.createDraft(fields);
+        List<RowValue> rows4 = new ArrayList<>();
+        rows4.addAll(rows3);
+        rows4.addAll(rows2);
+        draftDataService.addRows(draftCode, rows4);
+        Date publishDate4 = new Date(publishDate1.getTime() + (int) (time_long_diff * 0.01));
+        Date closeDate4 = new Date(publishDate1.getTime() + (int) (time_long_diff * 0.1));
+        String storageCode4 = draftDataService.applyDraft(storageCode3, draftCode, publishDate4, closeDate4);
+        actualRows = searchDataService.getData(new DataCriteria(storageCode4, publishDate4, closeDate4, fields, null, null));
+        oldRows = searchDataService.getData(new DataCriteria(storageCode4, publishDate1, publishDate2, fields, null, null));
+        assertRows(rows4, actualRows);
+        assertRows(rows3, oldRows);
+        FieldSearchCriteria fieldSearchCriteria = new FieldSearchCriteria(id, SearchTypeEnum.EXACT, Collections.singletonList(1));
+        //test that there are exactly two rows with id=3 (point row was deleted, one was remained unmodified, one was added
+        Assert.assertEquals(2,
+                searchDataService.getData(
+                        new DataCriteria(storageCode4, null, null, fields, Collections.singletonList(fieldSearchCriteria), null)
+                ).size());
+
+
+    }
 }

@@ -63,6 +63,26 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     @Override
+    public String applyDraft(String baseStorageCode, String draftCode, Date publishTime, Date closeTime) {
+        String newTable = createVersionTable(draftCode);
+        List<String> draftFields = dataDao.getFieldNames(draftCode);
+        if (baseStorageCode != null && dataDao.tableStructureEquals(baseStorageCode, draftCode)) {
+            insertActualDataFromVersion(baseStorageCode, draftCode, newTable, draftFields, publishTime, closeTime);
+            insertOldDataFromVersion(baseStorageCode, draftCode, newTable, draftFields, publishTime, closeTime);
+            insertClosedNowDataFromVersion(baseStorageCode, draftCode, newTable, draftFields, publishTime, closeTime);
+            insertNewDataFromDraft(baseStorageCode, draftCode, newTable, draftFields, publishTime, closeTime);
+            dataDao.deletePointRows(newTable);
+        } else {
+            BigInteger count = dataDao.countData(draftCode);
+            draftFields.add(addDoubleQuotes("FTS"));
+            for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
+                dataDao.insertDataFromDraft(draftCode, i, newTable, TRANSACTION_SIZE, publishTime, closeTime, draftFields);
+            }
+        }
+        return newTable;
+    }
+
+    @Override
     public void addRows(String draftCode, List<RowValue> data) {
         List<CodifiedException> exceptions = new ArrayList<>();
         //validateRow
@@ -210,11 +230,32 @@ public class DraftDataServiceImpl implements DraftDataService {
         }
     }
 
+    /*
+     * есть пересечения по дате
+     * есть SYS_HASH (draftTable join actualVersionTable по SYS_HASH)
+     */
+    private void insertActualDataFromVersion(String actualVersionTable, String draftTable, String newTable, List<String> columns, Date publishTime, Date closeTime) {
+        BigInteger count = dataDao.countActualDataFromVersion(actualVersionTable, draftTable, publishTime, closeTime);
+        for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
+            dataDao.insertActualDataFromVersion(newTable, actualVersionTable, draftTable, columns, i, TRANSACTION_SIZE, closeTime);
+        }
+    }
 
     private void insertOldDataFromVersion(String actualVersionTable, String newTable, List<String> columns) {
         BigInteger count = dataDao.countOldDataFromVersion(actualVersionTable);
         for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
             dataDao.insertOldDataFromVersion(newTable, actualVersionTable, columns, i, TRANSACTION_SIZE);
+        }
+    }
+
+    /*
+    * нет пересечений по дате
+    * нет SYS_HASH (из actualVersionTable те, которых нет в draftTable
+    */
+    private void insertOldDataFromVersion(String actualVersionTable, String draftTable, String newTable, List<String> columns, Date publishTime, Date closeTime) {
+        BigInteger count = dataDao.countOldDataFromVersion(actualVersionTable, draftTable, publishTime, closeTime);
+        for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
+            dataDao.insertOldDataFromVersion(newTable, actualVersionTable, columns, i, TRANSACTION_SIZE, closeTime);
         }
     }
 
@@ -226,11 +267,39 @@ public class DraftDataServiceImpl implements DraftDataService {
         }
     }
 
+    /*
+     * есть пересечения по дате
+     * нет SYS_HASH (из actualVersionTable те, которых нет в draftTable
+     */
+    private void insertClosedNowDataFromVersion(String actualVersionTable, String draftTable, String newTable,
+                                                List<String> columns, Date publishTime, Date closeTime) {
+        BigInteger count = dataDao.countClosedNowDataFromVersion(actualVersionTable, draftTable, publishTime, closeTime);
+        for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
+            dataDao.insertClosedNowDataFromVersion(newTable, actualVersionTable, draftTable, columns, i, TRANSACTION_SIZE, publishTime, closeTime);
+        }
+    }
+
     private void insertNewDataFromDraft(String actualVersionTable, String draftTable, String newTable,
                                         List<String> columns, Date publishTime) {
         BigInteger count = dataDao.countNewValFromDraft(draftTable, actualVersionTable);
         for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
             dataDao.insertNewDataFromDraft(newTable, actualVersionTable, draftTable, columns, i, TRANSACTION_SIZE, publishTime);
+        }
+    }
+
+    /*
+     * добавить запись
+     *
+     * нет пересечений по дате
+     * есть SYS_HASH (из draftTable те, которые есть в actualVersionTable, но без пересечений по дате)
+     * или
+     * нет SYS_HASH (из draftTable те, которых нет в actualVersionTable)
+     */
+    private void insertNewDataFromDraft(String actualVersionTable, String draftTable, String newTable,
+                                        List<String> columns, Date publishTime, Date closeTime) {
+        BigInteger count = dataDao.countNewValFromDraft(draftTable, actualVersionTable, publishTime, closeTime);
+        for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
+            dataDao.insertNewDataFromDraft(newTable, actualVersionTable, draftTable, columns, i, TRANSACTION_SIZE, publishTime, closeTime);
         }
     }
 }

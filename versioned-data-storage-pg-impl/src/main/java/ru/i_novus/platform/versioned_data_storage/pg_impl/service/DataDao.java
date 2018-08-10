@@ -266,7 +266,7 @@ public class DataDao {
             return;
         List<String> keys = new ArrayList<>();
         List<String> values = new ArrayList<>();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        SimpleDateFormat sdf = new SimpleDateFormat(TIMESTAMP_DATE_FORMAT);
         for (Object fieldValue : data.iterator().next().getFieldValues()) {
             keys.add(addDoubleQuotes(((FieldValue)fieldValue).getField()));
         }
@@ -339,7 +339,7 @@ public class DataDao {
     @Transactional
     public void updateData(String tableName, RowValue rowValue) {
         List<String> keyList = new ArrayList<>();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        SimpleDateFormat sdf = new SimpleDateFormat(TIMESTAMP_DATE_FORMAT);
         for (Object objectValue : rowValue.getFieldValues()) {
             FieldValue fieldValue = (FieldValue) objectValue;
             String fieldName = fieldValue.getField();
@@ -576,6 +576,18 @@ public class DataDao {
                 .getSingleResult();
     }
 
+    //todo
+    public BigInteger countActualDataFromVersion(String versionTable, String draftTable, Date publishTime, Date closeTime) {
+        return (BigInteger) entityManager.createNativeQuery(
+                String.format(COUNT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME,
+                        addDoubleQuotes(versionTable),
+                        addDoubleQuotes(draftTable),
+                        new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
+                        new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime)
+                ))
+                .getSingleResult();
+    }
+
     public void insertActualDataFromVersion(String tableToInsert, String versionTableFromInsert, String draftTable,
                                             List<String> columns, int offset, int transactionSize) {
         String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
@@ -600,10 +612,46 @@ public class DataDao {
                 .executeUpdate();
     }
 
+    //todo
+    public void insertActualDataFromVersion(String tableToInsert, String versionTableFromInsert, String draftTable,
+                                            List<String> columns, int offset, int transactionSize, Date closeTime) {
+        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsWithPrefixValue = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsWithPrefix = columns.stream().map(s -> "v." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String query = String.format(INSERT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME,
+                addDoubleQuotes(tableToInsert),
+                addDoubleQuotes(versionTableFromInsert),
+                addDoubleQuotes(draftTable),
+                offset,
+                transactionSize,
+                getSequenceName(tableToInsert),
+                columnsStr,
+                columnsWithPrefixValue,
+                columnsWithPrefix
+        );
+        if (logger.isDebugEnabled()) {
+            logger.debug("insertActualDataFromVersion with closeTime method query: " + query);
+        }
+        entityManager.createNativeQuery(
+                query)
+                .executeUpdate();
+    }
+
     public BigInteger countOldDataFromVersion(String versionTable) {
         return (BigInteger) entityManager.createNativeQuery(
                 String.format(COUNT_OLD_VAL_FROM_VERSION,
                         addDoubleQuotes(versionTable))).getSingleResult();
+    }
+
+    //todo
+    public BigInteger countOldDataFromVersion(String versionTable, String draftTable, Date publishTime, Date closeTime) {
+        return (BigInteger) entityManager.createNativeQuery(
+                String.format(COUNT_OLD_VAL_FROM_VERSION_WITH_CLOSE_TIME,
+                        addDoubleQuotes(versionTable),
+                        addDoubleQuotes(draftTable),
+                        new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
+                        new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime)
+                )).getSingleResult();
     }
 
     public void insertOldDataFromVersion(String tableToInsert, String tableFromInsert, List<String> columns,
@@ -625,10 +673,41 @@ public class DataDao {
                 query).executeUpdate();
     }
 
+    //todo
+    public void insertOldDataFromVersion(String tableToInsert, String tableFromInsert, List<String> columns,
+                                         int offset, int transactionSize, Date closeTime) {
+        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String query = String.format(INSERT_OLD_VAL_FROM_VERSION_WITH_CLOSE_DATE,
+                addDoubleQuotes(tableToInsert),
+                addDoubleQuotes(tableFromInsert),
+                offset,
+                transactionSize,
+                getSequenceName(tableToInsert),
+                columnsStr,
+                columnsWithPrefix);
+        if (logger.isDebugEnabled()) {
+            logger.debug("insertOldDataFromVersion with closeTime method query: " + query);
+        }
+        entityManager.createNativeQuery(
+                query).executeUpdate();
+    }
+
     public BigInteger countClosedNowDataFromVersion(String versionTable, String draftTable) {
         return (BigInteger) entityManager.createNativeQuery(String.format(COUNT_CLOSED_NOW_VAL_FROM_VERSION,
                 addDoubleQuotes(versionTable),
                 addDoubleQuotes(draftTable)))
+                .getSingleResult();
+    }
+
+    //todo. done?
+    public BigInteger countClosedNowDataFromVersion(String versionTable, String draftTable, Date publishTime, Date closeTime) {
+        return (BigInteger) entityManager.createNativeQuery(String.format(COUNT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME,
+                addDoubleQuotes(versionTable),
+                addDoubleQuotes(draftTable),
+                new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
+                new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime)
+        ))
                 .getSingleResult();
     }
 
@@ -642,12 +721,34 @@ public class DataDao {
                 addDoubleQuotes(draftTable),
                 offset,
                 transactionSize,
-                new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(publishTime),
+                new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
                 getSequenceName(tableToInsert),
                 columnsStr,
                 columnsWithPrefix);
         if (logger.isDebugEnabled()) {
             logger.debug("insertClosedNowDataFromVersion method query: " + query);
+        }
+        entityManager.createNativeQuery(query)
+                .executeUpdate();
+    }
+
+    //todo
+    public void insertClosedNowDataFromVersion(String tableToInsert, String versionTable, String draftTable,
+                                               List<String> columns, int offset, int transactionSize, Date publishTime, Date closeTime) {
+        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String query = String.format(INSERT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME,
+                addDoubleQuotes(tableToInsert),
+                addDoubleQuotes(versionTable),
+                addDoubleQuotes(draftTable),
+                offset,
+                transactionSize,
+                new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
+                getSequenceName(tableToInsert),
+                columnsStr,
+                columnsWithPrefix);
+        if (logger.isDebugEnabled()) {
+            logger.debug("insertClosedNowDataFromVersion with closeTime method query: " + query);
         }
         entityManager.createNativeQuery(query)
                 .executeUpdate();
@@ -662,6 +763,19 @@ public class DataDao {
 
     }
 
+    //todo
+    public BigInteger countNewValFromDraft(String draftTable, String versionTable, Date publishTime, Date closeTime) {
+        return (BigInteger) entityManager.createNativeQuery(
+                String.format(COUNT_NEW_VAL_FROM_DRAFT_WITH_CLOSE_TIME,
+                        addDoubleQuotes(draftTable),
+                        addDoubleQuotes(versionTable),
+                        new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
+                        new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime)
+                ))
+                .getSingleResult();
+
+    }
+
     public void insertNewDataFromDraft(String tableToInsert, String versionTable, String draftTable,
                                        List<String> columns, int offset, int transactionSize, Date publishTime) {
         String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
@@ -672,12 +786,35 @@ public class DataDao {
                 offset,
                 transactionSize,
                 addDoubleQuotes(tableToInsert),
-                new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(publishTime),
+                new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
                 getSequenceName(tableToInsert),
                 columnsStr,
                 columnsWithPrefix);
         if (logger.isDebugEnabled()) {
             logger.debug("insertNewDataFromDraft method query: " + query);
+        }
+        entityManager.createNativeQuery(
+                query)
+                .executeUpdate();
+    }
+
+    //todo
+    public void insertNewDataFromDraft(String tableToInsert, String versionTable, String draftTable,
+                                       List<String> columns, int offset, int transactionSize, Date publishTime, Date closeTime) {
+        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String query = String.format(INSERT_NEW_VAL_FROM_DRAFT_WITH_CLOSE_TIME,
+                addDoubleQuotes(draftTable),
+                addDoubleQuotes(versionTable),
+                offset,
+                transactionSize,
+                addDoubleQuotes(tableToInsert),
+                new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
+                getSequenceName(tableToInsert),
+                columnsStr,
+                columnsWithPrefix);
+        if (logger.isDebugEnabled()) {
+            logger.debug("insertNewDataFromDraft with closeTime method query: " + query);
         }
         entityManager.createNativeQuery(
                 query)
@@ -693,12 +830,47 @@ public class DataDao {
                 offset,
                 transactionSize,
                 addDoubleQuotes(targetTable),
-                new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(publishTime),
+                new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
                 getSequenceName(targetTable),
                 columnsStr,
                 columnsWithPrefix);
         if (logger.isDebugEnabled()) {
             logger.debug("insertDataFromDraft method query: " + query);
+        }
+        entityManager.createNativeQuery(
+                query)
+                .executeUpdate();
+    }
+
+    //todo
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void insertDataFromDraft(String draftTable, int offset, String targetTable, int transactionSize, Date publishTime, Date closeTime, List<String> columns) {
+        String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String query = String.format(INSERT_FROM_DRAFT_TEMPLATE_WITH_CLOSE_TIME,
+                addDoubleQuotes(draftTable),
+                offset,
+                transactionSize,
+                addDoubleQuotes(targetTable),
+                new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
+                new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime),
+                getSequenceName(targetTable),
+                columnsStr,
+                columnsWithPrefix);
+        if (logger.isDebugEnabled()) {
+            logger.debug("insertDataFromDraft with closeTime method query: " + query);
+        }
+        entityManager.createNativeQuery(
+                query)
+                .executeUpdate();
+    }
+
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void deletePointRows(String draftTable) {
+        String query = String.format(DELETE_POINT_ROWS_QUERY_TEMPLATE,
+                addDoubleQuotes(draftTable));
+        if (logger.isDebugEnabled()) {
+            logger.debug("deletePointRows method query: " + query);
         }
         entityManager.createNativeQuery(
                 query)

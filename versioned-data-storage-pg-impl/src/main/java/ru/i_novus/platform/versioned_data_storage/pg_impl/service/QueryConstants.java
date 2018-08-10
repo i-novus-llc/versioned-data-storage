@@ -86,6 +86,8 @@ public class QueryConstants {
     public static final String COPY_QUERY_TEMPLATE = "INSERT INTO data.%s (%s) SELECT %s FROM data.%s d ";
 
     public static final String DELETE_QUERY_TEMPLATE = "DELETE FROM data.%s WHERE \"SYS_RECORDID\" IN (%s);";
+    //todo
+    public static final String DELETE_POINT_ROWS_QUERY_TEMPLATE = "DELETE FROM data.%s WHERE \"SYS_PUBLISHTIME\" = \"SYS_CLOSETIME\";";
     public static final String DELETE_ALL_RECORDS_FROM_TABLE_QUERY_TEMPLATE = "DELETE FROM data.%s;";
     public static final String UPDATE_QUERY_TEMPLATE = "UPDATE data.%s SET %s WHERE \"SYS_RECORDID\" IN (%s);";
     public static final String IS_VERSION_NOT_EMPTY = "SELECT exists(SELECT * FROM data.%s);";
@@ -130,7 +132,6 @@ public class QueryConstants {
     public static final String DATE_END = "DATEEND";
     public static final String DATA_PRIMARY_COLUMN = "SYS_RECORDID";
     public static final String HAS_CHILD_BRANCH = "SYS_HAS_CHILD_BRANCH";
-    public static final String PUBLISH_TIME = "SYS_PUBLISHTIME";
     public static final String FULL_TEXT_SEARCH = "FTS";
     public static final String DROP_TABLE = "DROP TABLE IF EXISTS data.%s";
 
@@ -153,7 +154,42 @@ public class QueryConstants {
             "    CLOSE tbl_cursor;\n" +
             "END$$;\n";
 
+    //todo
+    public static final String INSERT_FROM_DRAFT_TEMPLATE_WITH_CLOSE_TIME = "DO $$\n" +
+            "DECLARE tbl_cursor refcursor;\n" +
+            " row data.%1$s%%rowtype;\n" +
+            " i int;\n" +
+            "BEGIN\n" +
+            "    OPEN tbl_cursor FOR select * from data.%1$s;\n" +
+            "    MOVE FORWARD %2$s FROM tbl_cursor;\t\n" +
+            "    i\\:=0;\t\n" +
+            "    while i<%3$s loop\n" +
+            "       FETCH FROM tbl_cursor INTO row;\t\n" +
+            "       EXIT WHEN NOT FOUND;" +
+            "       row.\"SYS_RECORDID\"\\:=nextval('data.%7$s');" +
+            "       insert into data.%4$s(\"SYS_RECORDID\", %8$s, \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\") values(row.\"SYS_RECORDID\", %9$s, to_timestamp('%5$s', 'YYYY-MM-DD HH24:MI:SS'), to_timestamp('%6$s', 'YYYY-MM-DD HH24:MI:SS'));\n" +
+            "       i\\:=i+1;\n" +
+            "    end loop;\n" +
+            "    CLOSE tbl_cursor;\n" +
+            "END$$;\n";
+
     public static final String COUNT_OLD_VAL_FROM_VERSION = " select count(*) from data.%s where \"SYS_CLOSETIME\" is not null;\n";
+
+    //todo. done ?
+    public static final String COUNT_OLD_VAL_FROM_VERSION_WITH_CLOSE_TIME = "SELECT count(*)" +
+            "FROM data.%1$s a" +
+            "WHERE NOT (" +
+            "        a.\"SYS_CLOSETIME\" IS NULL AND (to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS') >= a.\"SYS_PUBLISHTIME\" OR" +
+            "                                           to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS') < a.\"SYS_PUBLISHTIME\" AND" +
+            "                                           (%4$s IS NULL OR to_timestamp('%4$s', 'YYYY-MM-DD HH24:MI:SS') >= a.\"SYS_PUBLISHTIME\"))" +
+            "        OR" +
+            "        a.\"SYS_CLOSETIME\" IS NOT NULL AND (%4$s IS NULL AND to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS') < a.\"SYS_CLOSETIME\" OR" +
+            "                                               (to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS'), to_timestamp('%4$s', 'YYYY-MM-DD HH24:MI:SS')) OVERLAPS" +
+            "                                               (a.\"SYS_PUBLISHTIME\", a.\"SYS_CLOSETIME\"))" +
+            "      )" +
+            "      AND NOT exists(SELECT 1" +
+            "                     FROM data.%2$s d" +
+            "                     WHERE d.\"SYS_HASH\" = a.\"SYS_HASH\");";
 
     public static final String SELECT_ROWS_FROM_DATA = " select %s from data.%s d where %s";
 
@@ -162,6 +198,25 @@ public class QueryConstants {
     public static final String SELECT_RELATION_ROW_FROM_DATA = " select %s from data.%s where %s=? limit 1;\n";
 
     public static final String INSERT_OLD_VAL_FROM_VERSION = " DO $$\n" +
+            "DECLARE tbl_cursor refcursor;\n" +
+            " row record;\n" +
+            " i int;\n" +
+            "BEGIN\n" +
+            "    OPEN tbl_cursor FOR select \"SYS_RECORDID\", %6$s, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\" from data.%2$s where \"SYS_CLOSETIME\" is not null;\n" +
+            "    MOVE FORWARD %3$s FROM tbl_cursor;\t\n" +
+            "    i\\:=0;\t\n" +
+            "    while i<%4$s loop\n" +
+            "       FETCH FROM tbl_cursor INTO row;\t\n" +
+            "       EXIT WHEN NOT FOUND;\n" +
+            "       row.\"SYS_RECORDID\"\\:=nextval('data.%5$s');" +
+            "       insert into data.%1$s(\"SYS_RECORDID\", %6$s, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\") values(row.\"SYS_RECORDID\", %7$s, row.\"FTS\", row.\"SYS_HASH\", row.\"SYS_PUBLISHTIME\", row.\"SYS_CLOSETIME\");   \n" +
+            "       i\\:=i+1;\n" +
+            "    end loop;\n" +
+            "    CLOSE tbl_cursor;\n" +
+            "END$$;";
+
+    //todo
+    public static final String INSERT_OLD_VAL_FROM_VERSION_WITH_CLOSE_DATE = " DO $$\n" +
             "DECLARE tbl_cursor refcursor;\n" +
             " row record;\n" +
             " i int;\n" +
@@ -199,6 +254,20 @@ public class QueryConstants {
 
     public static final String COUNT_ACTUAL_VAL_FROM_VERSION = "select count(*) from data.%1$s v join data.%2$s d on d.\"SYS_HASH\" = v.\"SYS_HASH\"  where v.\"SYS_CLOSETIME\" is null;";
 
+    //todo. done
+    public static final String COUNT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME = "SELECT count(*)" +
+            "FROM data.%1$s a" +
+            "  JOIN data.%2$s d ON d.\"SYS_HASH\" = a.\"SYS_HASH\"" +
+            "WHERE (" +
+            "        a.\"SYS_CLOSETIME\" IS NULL AND (to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS') >= a.\"SYS_PUBLISHTIME\" OR" +
+            "                                           to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS') < a.\"SYS_PUBLISHTIME\" AND" +
+            "                                           (%4$s IS NULL OR to_timestamp('%4$s', 'YYYY-MM-DD HH24:MI:SS') >= a.\"SYS_PUBLISHTIME\"))" +
+            "        OR" +
+            "        a.\"SYS_CLOSETIME\" IS NOT NULL AND (%4$s IS NULL AND to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS') < a.\"SYS_CLOSETIME\" OR" +
+            "                                               (to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS'), to_timestamp('%4$s', 'YYYY-MM-DD HH24:MI:SS')) OVERLAPS" +
+            "                                               (a.\"SYS_PUBLISHTIME\", a.\"SYS_CLOSETIME\"))" +
+            "      );";
+
     public static final String INSERT_ACTUAL_VAL_FROM_VERSION = " DO $$\n" +
             "DECLARE tbl_cursor refcursor;\n" +
             " row record;\n" +
@@ -217,7 +286,51 @@ public class QueryConstants {
             "    CLOSE tbl_cursor;\n" +
             "END$$;";
 
+    //todo
+    public static final String INSERT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME = " DO $$\n" +
+            "DECLARE tbl_cursor refcursor;\n" +
+            " row record;\n" +
+            " i int;\n" +
+            "BEGIN\n" +
+            "    OPEN tbl_cursor FOR select v.\"SYS_RECORDID\", %9$s, v.\"FTS\", v.\"SYS_HASH\", v.\"SYS_PUBLISHTIME\" from data.%2$s v join data.%3$s d on d.\"SYS_HASH\" = v.\"SYS_HASH\"  where v.\"SYS_CLOSETIME\" is null;\n" +
+            "    MOVE FORWARD %4$s FROM tbl_cursor;\t\n" +
+            "    i\\:=0;\t\n" +
+            "    while i<%5$s loop\n" +
+            "       FETCH FROM tbl_cursor INTO row;\t\n" +
+            "       EXIT WHEN NOT FOUND;\n" +
+            "       row.\"SYS_RECORDID\"\\:=nextval('data.%6$s');" +
+            "       insert into data.%1$s (\"SYS_RECORDID\", %7$s, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\") values(row.\"SYS_RECORDID\", %8$s, row.\"FTS\", row.\"SYS_HASH\", row.\"SYS_PUBLISHTIME\");   \n" +
+            "       i\\:=i+1;\n" +
+            "    end loop;\n" +
+            "    CLOSE tbl_cursor;\n" +
+            "END$$;";
+
     public static final String COUNT_NEW_VAL_FROM_DRAFT = "select count(*) from data.%1$s d  where not exists(select 1 from data.%2$s v where v.\"SYS_HASH\" = d.\"SYS_HASH\" and v.\"SYS_CLOSETIME\" is null);";
+
+    //todo
+    public static final String COUNT_NEW_VAL_FROM_DRAFT_WITH_CLOSE_TIME = "SELECT count(*) FROM (" +
+            "    (SELECT d.\"SYS_HASH\"" +
+            "     FROM data.%2$s d" +
+            "     WHERE NOT exists(SELECT 1" +
+            "                      FROM data.%1$s a" +
+            "                      WHERE a.\"SYS_HASH\" = d.\"SYS_HASH\")" +
+            "    )" +
+            "    UNION ALL" +
+            "    (SELECT d.\"SYS_HASH\"" +
+            "     FROM data.%2$s d" +
+            "       JOIN data.%1$s a ON d.\"SYS_HASH\" = a.\"SYS_HASH\"" +
+            "     WHERE NOT (" +
+            "       a.\"SYS_CLOSETIME\" IS NULL AND (to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS') >= a.\"SYS_PUBLISHTIME\" OR" +
+            "                                        to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS') < a.\"SYS_PUBLISHTIME\" AND" +
+            "                                        ('clos' IS NULL OR" +
+            "                                         to_timestamp('%4$s', 'YYYY-MM-DD HH24:MI:SS') >= a.\"SYS_PUBLISHTIME\"))" +
+            "       OR" +
+            "       a.\"SYS_CLOSETIME\" IS NOT NULL AND ('clos' IS NULL AND to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS') < a.\"SYS_CLOSETIME\" OR" +
+            "                                            (to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS'), to_timestamp('%4$s', 'YYYY-MM-DD HH24:MI:SS')) OVERLAPS" +
+            "                                            (a.\"SYS_PUBLISHTIME\", a.\"SYS_CLOSETIME\"))" +
+            "     )" +
+            "    )" +
+            ") as counts;";
 
     public static final String
             INSERT_NEW_VAL_FROM_DRAFT = " DO $$\n" +
@@ -238,12 +351,69 @@ public class QueryConstants {
             "    CLOSE tbl_cursor;\n" +
             "END$$;";
 
+    //todo
+    public static final String
+            INSERT_NEW_VAL_FROM_DRAFT_WITH_CLOSE_TIME = " DO $$\n" +
+            "DECLARE tbl_cursor refcursor;\n" +
+            " row record;\n" +
+            " i int;\n" +
+            "BEGIN\n" +
+            "    OPEN tbl_cursor FOR select \"SYS_RECORDID\", %8$s, \"FTS\", \"SYS_HASH\" from data.%1$s d  where not exists(select 1 from data.%2$s v where v.\"SYS_HASH\" = d.\"SYS_HASH\" and v.\"SYS_CLOSETIME\" is null);\n" +
+            "    MOVE FORWARD %3$s FROM tbl_cursor;\t\n" +
+            "    i\\:=0;\t\n" +
+            "    while i<%4$s loop\n" +
+            "       FETCH FROM tbl_cursor INTO row;\t\n" +
+            "       EXIT WHEN NOT FOUND;\n" +
+            "       row.\"SYS_RECORDID\"\\:=nextval('data.%7$s');" +
+            "       insert into data.%5$s(\"SYS_RECORDID\", %8$s, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\") values(row.\"SYS_RECORDID\", %9$s, row.\"FTS\", row.\"SYS_HASH\", to_timestamp('%6$s', 'YYYY-MM-DD HH24:MI:SS'), null\\:\\:timestamp with time zone);   \n" +
+            "       i\\:=i+1;\n" +
+            "    end loop;\n" +
+            "    CLOSE tbl_cursor;\n" +
+            "END$$;";
+
     public static final String COUNT_CLOSED_NOW_VAL_FROM_VERSION = "select count(*) from data.%1$s v  where v.\"SYS_CLOSETIME\" is null and not exists(select 1 from data.%2$s d where d.\"SYS_HASH\" = v.\"SYS_HASH\");";
+
+    //todo. done
+    public static final String COUNT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME = "SELECT count(*)" +
+            "FROM data.%1$s a" +
+            "WHERE (" +
+            "        a.\"SYS_CLOSETIME\" IS NULL AND (to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS') >= a.\"SYS_PUBLISHTIME\" OR" +
+            "                                           to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS') < a.\"SYS_PUBLISHTIME\" AND" +
+            "                                           (%4$s IS NULL OR to_timestamp('%4$s', 'YYYY-MM-DD HH24:MI:SS') >= a.\"SYS_PUBLISHTIME\"))" +
+            "        OR" +
+            "        a.\"SYS_CLOSETIME\" IS NOT NULL AND (%4$s IS NULL AND to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS') < a.\"SYS_CLOSETIME\" OR" +
+            "                                               (to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS'), to_timestamp('%4$s', 'YYYY-MM-DD HH24:MI:SS')) OVERLAPS" +
+            "                                               (a.\"SYS_PUBLISHTIME\", a.\"SYS_CLOSETIME\"))" +
+            "      )" +
+            "      AND NOT exists(SELECT 1" +
+            "                     FROM data.%2$s d" +
+            "                     WHERE d.\"SYS_HASH\" = a.\"SYS_HASH\");";
 
     public static final String DATE_FORMAT_FOR_INSERT_ROW = "yyyy-MM-dd";
     public static final String DATE_FORMAT_FOR_USING_CONVERTING = "DD.MM.YYYY";
+    public static final String TIMESTAMP_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
     public static final String INSERT_CLOSED_NOW_VAL_FROM_VERSION = " DO $$\n" +
+            "DECLARE tbl_cursor refcursor;\n" +
+            " row record;\n" +
+            " i int;\n" +
+            "BEGIN\n" +
+            "    OPEN tbl_cursor FOR select \"SYS_RECORDID\", %8$s, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\" from data.%2$s v  where v.\"SYS_CLOSETIME\" is null and not exists(select 1 from data.%3$s d where d.\"SYS_HASH\" = v.\"SYS_HASH\");\n" +
+            "    MOVE FORWARD %4$s FROM tbl_cursor;\t\n" +
+            "    i\\:=0;\t\n" +
+            "    while i<%5$s loop\n" +
+            "       FETCH FROM tbl_cursor INTO row;\t\n" +
+            "       EXIT WHEN NOT FOUND;\n" +
+            "       row.\"SYS_RECORDID\"\\:=nextval('data.%7$s');" +
+            "       row.\"SYS_CLOSETIME\" \\:= to_timestamp('%6$s', 'YYYY-MM-DD HH24:MI:SS');\n" +
+            "       insert into data.%1$s(\"SYS_RECORDID\", %8$s, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\") values(row.\"SYS_RECORDID\", %9$s, row.\"FTS\", row.\"SYS_HASH\", row.\"SYS_PUBLISHTIME\", row.\"SYS_CLOSETIME\");   \n" +
+            "       i\\:=i+1;\n" +
+            "    end loop;\n" +
+            "    CLOSE tbl_cursor;\n" +
+            "END$$;";
+
+    //todo
+    public static final String INSERT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME = " DO $$\n" +
             "DECLARE tbl_cursor refcursor;\n" +
             " row record;\n" +
             " i int;\n" +
