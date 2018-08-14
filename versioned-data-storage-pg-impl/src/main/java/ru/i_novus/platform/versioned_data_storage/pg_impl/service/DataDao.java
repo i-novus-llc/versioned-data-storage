@@ -359,6 +359,8 @@ public class DataDao {
                     else
                         keyList.add(addDoubleQuotes(fieldName) + "=(select jsonb_build_object('value', ?))");
                 }
+            } else if (fieldValue instanceof TreeFieldValue) {
+                keyList.add(addDoubleQuotes(fieldName) + " = ?\\:\\:ltree");
             } else {
                 keyList.add(addDoubleQuotes(fieldName) + " = ?");
             }
