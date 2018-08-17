@@ -92,7 +92,7 @@ public class DataDao {
         return dataTypes1.equals(dataTypes2);
     }
 
-    private Map<String, String> getColumnDataTypes(String tableName) {
+    public Map<String, String> getColumnDataTypes(String tableName) {
         List<Object[]> dataTypes = entityManager.createNativeQuery("select column_name, data_type from information_schema.columns " +
                 "where table_schema='data' and table_name=:table")
                 .setParameter("table", tableName)
@@ -583,7 +583,7 @@ public class DataDao {
                         addDoubleQuotes(versionTable),
                         addDoubleQuotes(draftTable),
                         new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
-                        new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime)
+                        closeTime !=  null ? new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime) : null
                 ))
                 .getSingleResult();
     }
@@ -613,21 +613,23 @@ public class DataDao {
     }
 
     //todo
-    public void insertActualDataFromVersion(String tableToInsert, String versionTableFromInsert, String draftTable,
-                                            List<String> columns, int offset, int transactionSize, Date closeTime) {
+    public void insertActualDataFromVersion(String tableToInsert, String versionTable, String draftTable,
+                                            List<String> columns, int offset, int transactionSize, Date publishTime, Date closeTime) {
         String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String columnsWithPrefixValue = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        String columnsWithPrefix = columns.stream().map(s -> "v." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsWithPrefixV = columns.stream().map(s -> "v." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String query = String.format(INSERT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME,
                 addDoubleQuotes(tableToInsert),
-                addDoubleQuotes(versionTableFromInsert),
+                addDoubleQuotes(versionTable),
                 addDoubleQuotes(draftTable),
                 offset,
                 transactionSize,
                 getSequenceName(tableToInsert),
                 columnsStr,
                 columnsWithPrefixValue,
-                columnsWithPrefix
+                columnsWithPrefixV,
+                new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
+                closeTime != null ? new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime) : null
         );
         if (logger.isDebugEnabled()) {
             logger.debug("insertActualDataFromVersion with closeTime method query: " + query);
@@ -650,7 +652,7 @@ public class DataDao {
                         addDoubleQuotes(versionTable),
                         addDoubleQuotes(draftTable),
                         new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
-                        new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime)
+                        closeTime != null ? new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime) : null
                 )).getSingleResult();
     }
 
@@ -674,18 +676,22 @@ public class DataDao {
     }
 
     //todo
-    public void insertOldDataFromVersion(String tableToInsert, String tableFromInsert, List<String> columns,
-                                         int offset, int transactionSize, Date closeTime) {
+    public void insertOldDataFromVersion(String tableToInsert, String tableFromInsert, String draftTable, List<String> columns,
+                                         int offset, int transactionSize, Date publishTime, Date closeTime) {
         String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String query = String.format(INSERT_OLD_VAL_FROM_VERSION_WITH_CLOSE_DATE,
                 addDoubleQuotes(tableToInsert),
                 addDoubleQuotes(tableFromInsert),
+                addDoubleQuotes(draftTable),
                 offset,
                 transactionSize,
                 getSequenceName(tableToInsert),
                 columnsStr,
-                columnsWithPrefix);
+                columnsWithPrefix,
+                new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
+                closeTime != null ? new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime) : null
+        );
         if (logger.isDebugEnabled()) {
             logger.debug("insertOldDataFromVersion with closeTime method query: " + query);
         }
@@ -706,7 +712,7 @@ public class DataDao {
                 addDoubleQuotes(versionTable),
                 addDoubleQuotes(draftTable),
                 new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
-                new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime)
+                closeTime != null ? new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime) : null
         ))
                 .getSingleResult();
     }
@@ -734,9 +740,9 @@ public class DataDao {
 
     //todo
     public void insertClosedNowDataFromVersion(String tableToInsert, String versionTable, String draftTable,
-                                               List<String> columns, int offset, int transactionSize, Date publishTime, Date closeTime) {
-        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+                                               Map<String, String> columns, int offset, int transactionSize, Date publishTime, Date closeTime) {
+        String columnsStr = columns.keySet().stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsWithType = columns.keySet().stream().map(s -> s + " " + columns.get(s)).reduce((s1, s2) -> s1 + ", " + s2).get();
         String query = String.format(INSERT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME,
                 addDoubleQuotes(tableToInsert),
                 addDoubleQuotes(versionTable),
@@ -744,9 +750,10 @@ public class DataDao {
                 offset,
                 transactionSize,
                 new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
+                closeTime != null ? new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime) : null,
                 getSequenceName(tableToInsert),
                 columnsStr,
-                columnsWithPrefix);
+                columnsWithType);
         if (logger.isDebugEnabled()) {
             logger.debug("insertClosedNowDataFromVersion with closeTime method query: " + query);
         }
@@ -770,7 +777,7 @@ public class DataDao {
                         addDoubleQuotes(draftTable),
                         addDoubleQuotes(versionTable),
                         new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
-                        new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime)
+                        closeTime != null ? new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime) : null
                 ))
                 .getSingleResult();
 
@@ -803,6 +810,7 @@ public class DataDao {
                                        List<String> columns, int offset, int transactionSize, Date publishTime, Date closeTime) {
         String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsWithPrefixD = columns.stream().map(s -> "d." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String query = String.format(INSERT_NEW_VAL_FROM_DRAFT_WITH_CLOSE_TIME,
                 addDoubleQuotes(draftTable),
                 addDoubleQuotes(versionTable),
@@ -810,9 +818,11 @@ public class DataDao {
                 transactionSize,
                 addDoubleQuotes(tableToInsert),
                 new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
+                closeTime != null ? new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime) : null,
                 getSequenceName(tableToInsert),
                 columnsStr,
-                columnsWithPrefix);
+                columnsWithPrefix,
+                columnsWithPrefixD);
         if (logger.isDebugEnabled()) {
             logger.debug("insertNewDataFromDraft with closeTime method query: " + query);
         }
@@ -843,7 +853,7 @@ public class DataDao {
     }
 
     //todo
-    @Transactional(Transactional.TxType.REQUIRES_NEW)
+//    @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void insertDataFromDraft(String draftTable, int offset, String targetTable, int transactionSize, Date publishTime, Date closeTime, List<String> columns) {
         String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
@@ -853,7 +863,7 @@ public class DataDao {
                 transactionSize,
                 addDoubleQuotes(targetTable),
                 new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
-                new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime),
+                closeTime != null ? new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime) : null,
                 getSequenceName(targetTable),
                 columnsStr,
                 columnsWithPrefix);
@@ -865,10 +875,10 @@ public class DataDao {
                 .executeUpdate();
     }
 
-    @Transactional(Transactional.TxType.REQUIRES_NEW)
-    public void deletePointRows(String draftTable) {
+//    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void deletePointRows(String targetTable) {
         String query = String.format(DELETE_POINT_ROWS_QUERY_TEMPLATE,
-                addDoubleQuotes(draftTable));
+                addDoubleQuotes(targetTable));
         if (logger.isDebugEnabled()) {
             logger.debug("deletePointRows method query: " + query);
         }

@@ -64,6 +64,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     @Override
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
     public String applyDraft(String baseStorageCode, String draftCode, Date publishTime, Date closeTime) {
         String newTable = createVersionTable(draftCode);
         List<String> draftFields = dataDao.getFieldNames(draftCode);
@@ -217,8 +218,8 @@ public class DraftDataServiceImpl implements DraftDataService {
         //todo никак не учитывается Field.unique - уникальность в рамках даты
         String newTable = UUID.randomUUID().toString();
         dataDao.copyTable(newTable, draftCode);
-        dataDao.addColumnToTable(newTable, "SYS_PUBLISHTIME", "timestamp with time zone", null);
-        dataDao.addColumnToTable(newTable, "SYS_CLOSETIME", "timestamp with time zone", null);
+        dataDao.addColumnToTable(newTable, SYS_PUBLISHTIME, "timestamp with time zone", null);
+        dataDao.addColumnToTable(newTable, SYS_CLOSETIME, "timestamp with time zone", null);
         List<String> fieldNames = dataDao.getFieldNames(newTable);
         dataDao.createTrigger(newTable, fieldNames);
         return newTable;
@@ -238,7 +239,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     private void insertActualDataFromVersion(String actualVersionTable, String draftTable, String newTable, List<String> columns, Date publishTime, Date closeTime) {
         BigInteger count = dataDao.countActualDataFromVersion(actualVersionTable, draftTable, publishTime, closeTime);
         for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
-            dataDao.insertActualDataFromVersion(newTable, actualVersionTable, draftTable, columns, i, TRANSACTION_SIZE, closeTime);
+            dataDao.insertActualDataFromVersion(newTable, actualVersionTable, draftTable, columns, i, TRANSACTION_SIZE, publishTime, closeTime);
         }
     }
 
@@ -256,7 +257,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     private void insertOldDataFromVersion(String actualVersionTable, String draftTable, String newTable, List<String> columns, Date publishTime, Date closeTime) {
         BigInteger count = dataDao.countOldDataFromVersion(actualVersionTable, draftTable, publishTime, closeTime);
         for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
-            dataDao.insertOldDataFromVersion(newTable, actualVersionTable, columns, i, TRANSACTION_SIZE, closeTime);
+            dataDao.insertOldDataFromVersion(newTable, actualVersionTable, draftTable, columns, i, TRANSACTION_SIZE, publishTime, closeTime);
         }
     }
 
@@ -275,8 +276,10 @@ public class DraftDataServiceImpl implements DraftDataService {
     private void insertClosedNowDataFromVersion(String actualVersionTable, String draftTable, String newTable,
                                                 List<String> columns, Date publishTime, Date closeTime) {
         BigInteger count = dataDao.countClosedNowDataFromVersion(actualVersionTable, draftTable, publishTime, closeTime);
+        Map<String, String> columnsWithType = new LinkedHashMap<>();
+        columns.forEach(column -> columnsWithType.put(column, dataDao.getFieldType(actualVersionTable, column.replaceAll("\"", ""))));
         for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
-            dataDao.insertClosedNowDataFromVersion(newTable, actualVersionTable, draftTable, columns, i, TRANSACTION_SIZE, publishTime, closeTime);
+            dataDao.insertClosedNowDataFromVersion(newTable, actualVersionTable, draftTable, columnsWithType, i, TRANSACTION_SIZE, publishTime, closeTime);
         }
     }
 
@@ -292,7 +295,7 @@ public class DraftDataServiceImpl implements DraftDataService {
      * добавить запись
      *
      * нет пересечений по дате
-     * есть SYS_HASH (из draftTable те, которые есть в actualVersionTable, но без пересечений по дате)
+     * есть SYS_HASH (draftTable join actualVersionTable по SYS_HASH)
      * или
      * нет SYS_HASH (из draftTable те, которых нет в actualVersionTable)
      */
