@@ -4,6 +4,7 @@ import cz.atria.common.lang.Util;
 import net.n2oapp.criteria.api.CollectionPage;
 import net.n2oapp.criteria.api.Sorting;
 import org.apache.commons.lang.BooleanUtils;
+import org.apache.commons.lang.text.StrSubstitutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
@@ -576,18 +577,19 @@ public class DataDao {
                 .getSingleResult();
     }
 
-    //todo
     public BigInteger countActualDataFromVersion(String versionTable, String draftTable, Date publishTime, Date closeTime) {
-        return (BigInteger) entityManager.createNativeQuery(
-                String.format(COUNT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME,
-                        addDoubleQuotes(versionTable),
-                        addDoubleQuotes(draftTable),
-                        new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
-                        closeTime !=  null ? new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime) : null
-                ))
-                .getSingleResult();
+
+        final SimpleDateFormat df = new SimpleDateFormat(TIMESTAMP_DATE_FORMAT);
+        Map<String, String> placeholderValues = new HashMap<>();
+        placeholderValues.put("draftTable", "data."+addDoubleQuotes(draftTable));
+        placeholderValues.put("versionTable", "data."+addDoubleQuotes(versionTable));
+        placeholderValues.put("publishTime", df.format(publishTime));
+        placeholderValues.put("closeTime",  closeTime != null ? df.format(closeTime) : "null");
+        String query = StrSubstitutor.replace(COUNT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME, placeholderValues);
+        return (BigInteger) entityManager.createNativeQuery(query).getSingleResult();
     }
 
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void insertActualDataFromVersion(String tableToInsert, String versionTableFromInsert, String draftTable,
                                             List<String> columns, int offset, int transactionSize) {
         String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
@@ -612,25 +614,30 @@ public class DataDao {
                 .executeUpdate();
     }
 
-    //todo
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void insertActualDataFromVersion(String tableToInsert, String versionTable, String draftTable,
-                                            List<String> columns, int offset, int transactionSize, Date publishTime, Date closeTime) {
-        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        String columnsWithPrefixValue = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        String columnsWithPrefixV = columns.stream().map(s -> "v." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        String query = String.format(INSERT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME,
-                addDoubleQuotes(tableToInsert),
-                addDoubleQuotes(versionTable),
-                addDoubleQuotes(draftTable),
-                offset,
-                transactionSize,
-                getSequenceName(tableToInsert),
-                columnsStr,
-                columnsWithPrefixValue,
-                columnsWithPrefixV,
-                new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
-                closeTime != null ? new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime) : null
-        );
+                                            Map<String, String> columns, int offset, int transactionSize, Date publishTime, Date closeTime) {
+        String columnsStr = columns.keySet().stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsWithType = columns.keySet().stream().map(s -> s + " " + columns.get(s)).reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsWithPrefixValue = columns.keySet().stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsWithPrefixD = columns.keySet().stream().map(s -> "d." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        final SimpleDateFormat dateFormat = new SimpleDateFormat(TIMESTAMP_DATE_FORMAT);
+
+        Map<String, String> placeholderValues = new HashMap<>();
+        placeholderValues.put("dColumns", columnsWithPrefixD);
+        placeholderValues.put("vValues", columnsWithPrefixValue);
+        placeholderValues.put("versionTable", "data."+addDoubleQuotes(versionTable));
+        placeholderValues.put("draftTable", "data."+addDoubleQuotes(draftTable));
+        placeholderValues.put("publishTime", dateFormat.format(publishTime));
+        placeholderValues.put("closeTime", closeTime != null ? dateFormat.format(closeTime) : null);
+        placeholderValues.put("offset", ""+offset);
+        placeholderValues.put("transactionSize", ""+transactionSize);
+        placeholderValues.put("newTableSeqName", "data." + getSequenceName(tableToInsert));
+        placeholderValues.put("tableToInsert", "data." + addDoubleQuotes(tableToInsert));
+        placeholderValues.put("columns", columnsStr);
+        placeholderValues.put("columnsWithType", columnsWithType);
+        String query = StrSubstitutor.replace(INSERT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME, placeholderValues);
+
         if (logger.isDebugEnabled()) {
             logger.debug("insertActualDataFromVersion with closeTime method query: " + query);
         }
@@ -645,7 +652,6 @@ public class DataDao {
                         addDoubleQuotes(versionTable))).getSingleResult();
     }
 
-    //todo
     public BigInteger countOldDataFromVersion(String versionTable, String draftTable, Date publishTime, Date closeTime) {
         return (BigInteger) entityManager.createNativeQuery(
                 String.format(COUNT_OLD_VAL_FROM_VERSION_WITH_CLOSE_TIME,
@@ -675,7 +681,7 @@ public class DataDao {
                 query).executeUpdate();
     }
 
-    //todo
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void insertOldDataFromVersion(String tableToInsert, String tableFromInsert, String draftTable, List<String> columns,
                                          int offset, int transactionSize, Date publishTime, Date closeTime) {
         String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
@@ -706,15 +712,15 @@ public class DataDao {
                 .getSingleResult();
     }
 
-    //todo. done?
     public BigInteger countClosedNowDataFromVersion(String versionTable, String draftTable, Date publishTime, Date closeTime) {
-        return (BigInteger) entityManager.createNativeQuery(String.format(COUNT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME,
-                addDoubleQuotes(versionTable),
-                addDoubleQuotes(draftTable),
-                new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
-                closeTime != null ? new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime) : null
-        ))
-                .getSingleResult();
+        final SimpleDateFormat df = new SimpleDateFormat(TIMESTAMP_DATE_FORMAT);
+        Map<String, String> placeholderValues = new HashMap<>();
+        placeholderValues.put("versionTable", "data."+ addDoubleQuotes(versionTable));
+        placeholderValues.put("draftTable", "data."+ addDoubleQuotes(draftTable));
+        placeholderValues.put("publishTime", df.format(publishTime));
+        placeholderValues.put("closeTime", closeTime != null ? df.format(closeTime) : "null");
+        String query = StrSubstitutor.replace(COUNT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME, placeholderValues);
+        return (BigInteger) entityManager.createNativeQuery(query).getSingleResult();
     }
 
     public void insertClosedNowDataFromVersion(String tableToInsert, String versionTable, String draftTable,
@@ -738,22 +744,24 @@ public class DataDao {
                 .executeUpdate();
     }
 
-    //todo
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void insertClosedNowDataFromVersion(String tableToInsert, String versionTable, String draftTable,
                                                Map<String, String> columns, int offset, int transactionSize, Date publishTime, Date closeTime) {
         String columnsStr = columns.keySet().stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String columnsWithType = columns.keySet().stream().map(s -> s + " " + columns.get(s)).reduce((s1, s2) -> s1 + ", " + s2).get();
-        String query = String.format(INSERT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME,
-                addDoubleQuotes(tableToInsert),
-                addDoubleQuotes(versionTable),
-                addDoubleQuotes(draftTable),
-                offset,
-                transactionSize,
-                new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
-                closeTime != null ? new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime) : null,
-                getSequenceName(tableToInsert),
-                columnsStr,
-                columnsWithType);
+        final SimpleDateFormat df = new SimpleDateFormat(TIMESTAMP_DATE_FORMAT);
+        Map<String, String> placeholderValues = new HashMap<>();
+        placeholderValues.put("tableToInsert", "data."+addDoubleQuotes(tableToInsert));
+        placeholderValues.put("draftTable", "data."+addDoubleQuotes(draftTable));
+        placeholderValues.put("versionTable", "data."+addDoubleQuotes(versionTable));
+        placeholderValues.put("publishTime", df.format(publishTime));
+        placeholderValues.put("closeTime",  closeTime != null ? df.format(closeTime) : "null");
+        placeholderValues.put("columns",  columnsStr);
+        placeholderValues.put("offset",  ""+offset);
+        placeholderValues.put("transactionSize",  ""+transactionSize);
+        placeholderValues.put("columnsWithType",  columnsWithType);
+        placeholderValues.put("sequenceName",  "data."+getSequenceName(tableToInsert));
+        String query = StrSubstitutor.replace(INSERT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME, placeholderValues);
         if (logger.isDebugEnabled()) {
             logger.debug("insertClosedNowDataFromVersion with closeTime method query: " + query);
         }
@@ -770,16 +778,16 @@ public class DataDao {
 
     }
 
-    //todo
     public BigInteger countNewValFromDraft(String draftTable, String versionTable, Date publishTime, Date closeTime) {
-        return (BigInteger) entityManager.createNativeQuery(
-                String.format(COUNT_NEW_VAL_FROM_DRAFT_WITH_CLOSE_TIME,
-                        addDoubleQuotes(draftTable),
-                        addDoubleQuotes(versionTable),
-                        new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
-                        closeTime != null ? new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime) : null
-                ))
-                .getSingleResult();
+
+        final SimpleDateFormat df = new SimpleDateFormat(TIMESTAMP_DATE_FORMAT);
+        Map<String, String> placeholderValues = new HashMap<>();
+        placeholderValues.put("draftTable", "data."+addDoubleQuotes(draftTable));
+        placeholderValues.put("versionTable", "data."+addDoubleQuotes(versionTable));
+        placeholderValues.put("publishTime", df.format(publishTime));
+        placeholderValues.put("closeTime",  closeTime != null ? df.format(closeTime) : "null");
+        String query = StrSubstitutor.replace(COUNT_NEW_VAL_FROM_DRAFT_WITH_CLOSE_TIME, placeholderValues);
+        return (BigInteger) entityManager.createNativeQuery(query).getSingleResult();
 
     }
 
@@ -805,27 +813,31 @@ public class DataDao {
                 .executeUpdate();
     }
 
-    //todo
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void insertNewDataFromDraft(String tableToInsert, String versionTable, String draftTable,
                                        List<String> columns, int offset, int transactionSize, Date publishTime, Date closeTime) {
         String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String columnsWithPrefixD = columns.stream().map(s -> "d." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        String query = String.format(INSERT_NEW_VAL_FROM_DRAFT_WITH_CLOSE_TIME,
-                addDoubleQuotes(draftTable),
-                addDoubleQuotes(versionTable),
-                offset,
-                transactionSize,
-                addDoubleQuotes(tableToInsert),
-                new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
-                closeTime != null ? new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime) : null,
-                getSequenceName(tableToInsert),
-                columnsStr,
-                columnsWithPrefix,
-                columnsWithPrefixD);
+        final SimpleDateFormat df = new SimpleDateFormat(TIMESTAMP_DATE_FORMAT);
+
+        Map<String, String> placeholderValues = new HashMap<>();
+        placeholderValues.put("fields", columnsStr);
+        placeholderValues.put("draftTable", "data." + addDoubleQuotes(draftTable));
+        placeholderValues.put("versionTable", "data." + addDoubleQuotes(versionTable));
+        placeholderValues.put("publishTime", df.format(publishTime));
+        placeholderValues.put("closeTime",  closeTime != null ? df.format(closeTime) : "null");
+        placeholderValues.put("transactionSize", ""+transactionSize);
+        placeholderValues.put("offset", ""+offset);
+        placeholderValues.put("sequenceName", "data." + getSequenceName(tableToInsert));
+        placeholderValues.put("tableToInsert", "data." + addDoubleQuotes(tableToInsert));
+        placeholderValues.put("rowFields", columnsWithPrefix);
+        String query = StrSubstitutor.replace(INSERT_NEW_VAL_FROM_DRAFT_WITH_CLOSE_TIME, placeholderValues);
+
         if (logger.isDebugEnabled()) {
             logger.debug("insertNewDataFromDraft with closeTime method query: " + query);
         }
+
         entityManager.createNativeQuery(
                 query)
                 .executeUpdate();
@@ -852,8 +864,7 @@ public class DataDao {
                 .executeUpdate();
     }
 
-    //todo
-//    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void insertDataFromDraft(String draftTable, int offset, String targetTable, int transactionSize, Date publishTime, Date closeTime, List<String> columns) {
         String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
@@ -875,7 +886,7 @@ public class DataDao {
                 .executeUpdate();
     }
 
-//    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void deletePointRows(String targetTable) {
         String query = String.format(DELETE_POINT_ROWS_QUERY_TEMPLATE,
                 addDoubleQuotes(targetTable));
