@@ -1,6 +1,7 @@
 package ru.i_novus.platform.versioned_data_storage;
 
 import com.opentable.db.postgres.embedded.EmbeddedPostgres;
+import liquibase.integration.spring.SpringLiquibase;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.orm.jpa.JpaTransactionManager;
@@ -56,55 +57,8 @@ public class JpaTestConfig {
                         "ALTER TEXT SEARCH CONFIGURATION ru\n" +
                         "ALTER MAPPING\n" +
                         "FOR word, hword, hword_part\n" +
-                        "WITH ispell_ru, russian_stem;" +
-                        "CREATE OR REPLACE FUNCTION data.closed_now_records(fields text, id BIGINT, tbl text, from_dt TIMESTAMP WITH TIME ZONE,\n" +
-                        "                                                   to_dt  TIMESTAMP WITH TIME ZONE, tbl_seq_name text)\n" +
-                        "  RETURNS SETOF RECORD AS\n" +
-                        "$BODY$\n" +
-                        "DECLARE left  RECORD;\n" +
-                        "        right RECORD;\n" +
-                        "        r     RECORD;\n" +
-                        "BEGIN\n" +
-                        "  IF (from_dt IS NULL)\n" +
-                        "  THEN\n" +
-                        "    from_dt := -infinity :: TIMESTAMP WITH TIME ZONE ;\n" +
-                        "  END IF;\n" +
-                        "\n" +
-                        "  IF (to_dt IS NULL)\n" +
-                        "  THEN\n" +
-                        "    to_dt := infinity :: TIMESTAMP WITH TIME ZONE ;\n" +
-                        "  END IF;\n" +
-                        "\n" +
-                        "  EXECUTE format(\n" +
-                        "      'select %1$s from %2$s where \"SYS_RECORDID\" = %3$s',\n" +
-                        "      fields, tbl, id)\n" +
-                        "  INTO r;\n" +
-                        "  -- строка содержится в интервале времени\n" +
-                        "  IF (from_dt <= coalesce(r.\"SYS_PUBLISHTIME\", '-infinity') AND coalesce(r.\"SYS_CLOSETIME\", 'infinity') <= to_dt)\n" +
-                        "  THEN\n" +
-                        "    RETURN;\n" +
-                        "  ELSE\n" +
-                        "    --отрезаем левый конец\n" +
-                        "    IF (coalesce(r.\"SYS_PUBLISHTIME\", '-infinity') < from_dt AND from_dt < coalesce(r.\"SYS_CLOSETIME\", 'infinity'))\n" +
-                        "    THEN\n" +
-                        "      left := r;\n" +
-                        "      left.\"SYS_RECORDID\" := nextval(tbl_seq_name);\n" +
-                        "      left.\"SYS_CLOSETIME\" := from_dt;\n" +
-                        "      RETURN NEXT left;\n" +
-                        "    END IF;\n" +
-                        "    --отрезаем правый конец\n" +
-                        "    IF (coalesce(r.\"SYS_PUBLISHTIME\", '-infinity') < to_dt AND to_dt < coalesce(r.\"SYS_CLOSETIME\", 'infinity'))\n" +
-                        "    THEN\n" +
-                        "      right := r;\n" +
-                        "      right.\"SYS_RECORDID\" := nextval(tbl_seq_name);\n" +
-                        "      right.\"SYS_PUBLISHTIME\" := to_dt;\n" +
-                        "      RETURN NEXT right;\n" +
-                        "    END IF;\n" +
-                        "  END IF;\n" +
-                        "\n" +
-                        "END;\n" +
-                        "$BODY$\n" +
-                        "LANGUAGE plpgsql;")) {
+                        "WITH ispell_ru, russian_stem;"
+                       )) {
             stmt.execute();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -135,5 +89,13 @@ public class JpaTestConfig {
         txManager.setEntityManagerFactory(entityManagerFactory().getObject());
 
         return txManager;
+    }
+
+    @Bean(name = "liquibase")
+    public Object springLiquibase() {
+        SpringLiquibase springLiquibase = new SpringLiquibase();
+        springLiquibase.setDataSource(dataSource());
+        springLiquibase.setChangeLog("classpath:baseChangelog.xml");
+        return springLiquibase;
     }
 }

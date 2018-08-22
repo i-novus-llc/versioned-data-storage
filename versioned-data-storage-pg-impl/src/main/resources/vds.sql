@@ -19,28 +19,28 @@ BEGIN
   END IF;
 
   EXECUTE format(
-      'select %1$s from %2$s where \"SYS_RECORDID\" = %3$s',
+      'select %1$s from %2$s where "SYS_RECORDID" = %3$s',
       fields, tbl, id)
   INTO r;
   -- строка содержится в интервале времени
-  IF (from_dt <= coalesce(r.\"SYS_PUBLISHTIME\", '-infinity') AND coalesce(r.\"SYS_CLOSETIME\", 'infinity') <= to_dt)
+  IF (from_dt <= coalesce(r."SYS_PUBLISHTIME", '-infinity') AND coalesce(r."SYS_CLOSETIME", 'infinity') <= to_dt)
   THEN
     RETURN;
   ELSE
     --отрезаем левый конец
-    IF (coalesce(r.\"SYS_PUBLISHTIME\", '-infinity') < from_dt AND from_dt < coalesce(r.\"SYS_CLOSETIME\", 'infinity'))
+    IF (coalesce(r."SYS_PUBLISHTIME", '-infinity') < from_dt AND from_dt < coalesce(r."SYS_CLOSETIME", 'infinity'))
     THEN
       left := r;
-      left.\"SYS_RECORDID\" := nextval(tbl_seq_name);
-      left.\"SYS_CLOSETIME\" := from_dt;
+      left."SYS_RECORDID" := nextval(tbl_seq_name);
+      left."SYS_CLOSETIME" := from_dt;
       RETURN NEXT left;
     END IF;
     --отрезаем правый конец
-    IF (coalesce(r.\"SYS_PUBLISHTIME\", '-infinity') < to_dt AND to_dt < coalesce(r.\"SYS_CLOSETIME\", 'infinity'))
+    IF (coalesce(r."SYS_PUBLISHTIME", '-infinity') < to_dt AND to_dt < coalesce(r."SYS_CLOSETIME", 'infinity'))
     THEN
       right := r;
-      right.\"SYS_RECORDID\" := nextval(tbl_seq_name);
-      right.\"SYS_PUBLISHTIME\" := to_dt;
+      right."SYS_RECORDID" := nextval(tbl_seq_name);
+      right."SYS_PUBLISHTIME" := to_dt;
       RETURN NEXT right;
     END IF;
   END IF;
@@ -57,7 +57,7 @@ LANGUAGE plpgsql;
 * sys_rec_id - предзаполненый идентификатор записи
 */
 CREATE OR REPLACE FUNCTION data.merged_actual_rows(fields TEXT, sys_hash CHAR(32), tableName text,
-                                                     from_dt timestamp, to_dt timestamp, sys_rec_id bigint)
+                                                     from_dt TIMESTAMP WITH TIME ZONE, to_dt TIMESTAMP WITH TIME ZONE, sys_rec_id bigint)
   RETURNS SETOF RECORD AS
 $BODY$
 DECLARE r   RECORD;
