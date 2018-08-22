@@ -1,6 +1,7 @@
 package ru.i_novus.platform.versioned_data_storage;
 
 import com.opentable.db.postgres.embedded.EmbeddedPostgres;
+import liquibase.integration.spring.SpringLiquibase;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.orm.jpa.JpaTransactionManager;
@@ -26,7 +27,7 @@ public class JpaTestConfig {
     public DataSource dataSource() {
         EmbeddedPostgres pg = null;
         try {
-            pg = EmbeddedPostgres.builder().setPgBinaryResolver(new PatchedPgBinaryResolver()).setPort(5444)
+            pg = EmbeddedPostgres.builder().setPgBinaryResolver(new PatchedPgBinaryResolver()).setPort(5448)
                     .setCleanDataDirectory(true)
                     .start();
             return prepareDb(pg.getTemplateDatabase());
@@ -56,7 +57,8 @@ public class JpaTestConfig {
                         "ALTER TEXT SEARCH CONFIGURATION ru\n" +
                         "ALTER MAPPING\n" +
                         "FOR word, hword, hword_part\n" +
-                        "WITH ispell_ru, russian_stem;")) {
+                        "WITH ispell_ru, russian_stem;"
+                       )) {
             stmt.execute();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -87,5 +89,13 @@ public class JpaTestConfig {
         txManager.setEntityManagerFactory(entityManagerFactory().getObject());
 
         return txManager;
+    }
+
+    @Bean(name = "liquibase")
+    public Object springLiquibase() {
+        SpringLiquibase springLiquibase = new SpringLiquibase();
+        springLiquibase.setDataSource(dataSource());
+        springLiquibase.setChangeLog("classpath:baseChangelog.xml");
+        return springLiquibase;
     }
 }

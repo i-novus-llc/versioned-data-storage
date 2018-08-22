@@ -34,6 +34,17 @@ public interface DraftDataService {
     String applyDraft(String baseStorageCode, String draftCode, Date publishTime);
 
     /**
+     * Создание новой версии на основе черновика с указанием даты закрытия
+     *
+     * @param baseStorageCode код хранилища данных
+     * @param draftCode       таблица черновика
+     * @param publishTime     дата и время публикации черновика
+     * @param closeTime       дата и время завершения действия версии
+     * @return Уникальный код хранилища данных, созданного в результате слияния данных исходного хранилища и черновика
+     */
+    String applyDraft(String baseStorageCode, String draftCode, Date publishTime, Date closeTime);
+
+    /**
      * Добавление данных в черновик
      *
      * @param draftCode код черновика
