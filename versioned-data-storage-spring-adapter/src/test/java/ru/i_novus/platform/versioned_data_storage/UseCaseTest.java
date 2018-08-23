@@ -443,5 +443,20 @@ public class UseCaseTest {
                         new DataCriteria(storageCode4, null, null, fields, singletonList(fieldSearchCriteria), null)
                 ).size());
 
+
+        draftCode = draftDataService.createDraft(fields);
+        draftDataService.addRows(draftCode, rows);
+        storageCode = draftDataService.applyDraft(null, draftCode, publishDate1, null);
+        actualRows = searchDataService.getData(new DataCriteria(storageCode, publishDate1, null, fields, null, null));
+        assertRows(rows, actualRows);
+
+        draftCode = draftDataService.createDraft(fields);
+        draftDataService.addRows(draftCode, rows);
+        String storageCode1 = draftDataService.applyDraft(storageCode, draftCode, publishDate2, null);
+        actualRows = searchDataService.getData(new DataCriteria(storageCode1, publishDate1, null, fields, null, null));
+        assertRows(rows, actualRows);
+        actualRows = searchDataService.getData(new DataCriteria(storageCode1, publishDate2, null, fields, null, null));
+        assertRows(rows, actualRows);
+
     }
 }
