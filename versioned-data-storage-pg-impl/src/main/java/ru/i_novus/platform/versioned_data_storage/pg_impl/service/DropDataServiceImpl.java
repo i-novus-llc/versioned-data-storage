@@ -2,6 +2,7 @@ package ru.i_novus.platform.versioned_data_storage.pg_impl.service;
 
 import ru.i_novus.platform.datastorage.temporal.service.DropDataService;
 
+import javax.transaction.Transactional;
 import java.util.Set;
 
 /**
@@ -17,6 +18,7 @@ public class DropDataServiceImpl implements DropDataService {
     }
 
     @Override
+    @Transactional
     public void drop(Set<String> storageCodes) {
         for (String storageCode : storageCodes) {
             dataDao.dropTable(storageCode);

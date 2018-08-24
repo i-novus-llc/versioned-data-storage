@@ -273,9 +273,10 @@ public class QueryConstants {
             "     WHERE exists(SELECT 1\n" +
             "                      FROM ${versionTable} v\n" +
             "                      WHERE v.\"SYS_HASH\" = d.\"SYS_HASH\" \n" +
-            "                           AND ( coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS'), 'infinity'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS'), '-infinity') ) " +
+            "                           AND (( coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS'), '-infinity'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS'), 'infinity') ) " +
             "                                   OVERLAPS " +
-            "                           ( v.\"SYS_PUBLISHTIME\" ,  v.\"SYS_CLOSETIME\") " +
+            "                           (coalesce(v.\"SYS_PUBLISHTIME\", '-infinity') ,  coalesce(v.\"SYS_CLOSETIME\", 'infinity')) " +
+            "                           OR (coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS'), '-infinity') = (coalesce(v.\"SYS_CLOSETIME\", 'infinity'))))" +
             "    )";
 
     public static final String INSERT_ACTUAL_VAL_FROM_VERSION = " DO $$\n" +
@@ -306,9 +307,10 @@ public class QueryConstants {
             "     WHERE exists(SELECT 1\n" +
             "                      FROM ${versionTable} v\n" +
             "                      WHERE v.\"SYS_HASH\" = d.\"SYS_HASH\" \n" +
-            "                           AND ( coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS'), 'infinity'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS'), '-infinity') ) \n" +
+            "                           AND (( coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS'), '-infinity'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS'), 'infinity') ) \n" +
             "                                 OVERLAPS \n" +
-            "                               ( v.\"SYS_PUBLISHTIME\" ,  v.\"SYS_CLOSETIME\")" +
+            "                               (coalesce( v.\"SYS_PUBLISHTIME\", '-infinity') ,  coalesce(v.\"SYS_CLOSETIME\", 'infinity'))" +
+            "                           OR (coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS'), '-infinity') = (coalesce(v.\"SYS_CLOSETIME\", 'infinity'))))" +
             "    );"+
             "    MOVE FORWARD ${offset} FROM tbl_cursor;\t\n" +
             "    i\\:=0;\t\n" +
@@ -332,9 +334,10 @@ public class QueryConstants {
             "     WHERE NOT exists(SELECT 1\n" +
             "                      FROM ${versionTable} v\n" +
             "                      WHERE v.\"SYS_HASH\" = d.\"SYS_HASH\" \n" +
-            "                           AND ( coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS'), 'infinity'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS'), '-infinity') )" +
+            "                           AND (( coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS'), '-infinity'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS'), 'infinity') )" +
             "                                   OVERLAPS " +
-            "                               ( v.\"SYS_PUBLISHTIME\",  v.\"SYS_CLOSETIME\") " +
+            "                               (coalesce( v.\"SYS_PUBLISHTIME\", '-infinity') ,  coalesce(v.\"SYS_CLOSETIME\", 'infinity')) " +
+            "                           OR (coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS'), '-infinity') = (coalesce(v.\"SYS_CLOSETIME\", 'infinity'))))" +
             "    )";
 
 
@@ -369,9 +372,10 @@ public class QueryConstants {
             "     WHERE NOT exists(SELECT 1\n" +
             "                      FROM ${versionTable} v\n" +
             "                      WHERE v.\"SYS_HASH\" = d.\"SYS_HASH\" \n" +
-            "                           AND ( coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS'), 'infinity'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS'), '-infinity') )" +
+            "                           AND (( coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS'), '-infinity'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS'), 'infinity') )" +
             "                                   OVERLAPS " +
-            "                               ( v.\"SYS_PUBLISHTIME\",  v.\"SYS_CLOSETIME\") " +
+            "                               (coalesce( v.\"SYS_PUBLISHTIME\", '-infinity') ,  coalesce(v.\"SYS_CLOSETIME\", 'infinity')) " +
+            "                           OR (coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS'), '-infinity') = (coalesce(v.\"SYS_CLOSETIME\", 'infinity'))))" +
             "    ); "+
             "    MOVE FORWARD ${offset} FROM tbl_cursor;\t\n" +
             "    i\\:=0;\t\n" +

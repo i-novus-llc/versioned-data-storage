@@ -82,7 +82,8 @@ BEGIN
 
 	FOR r IN EXECUTE format ('SELECT "SYS_RECORDID", %1$s, "FTS", "SYS_HASH", "SYS_PUBLISHTIME", "SYS_CLOSETIME"  FROM %2$s
 	where "SYS_HASH" = ''%3$s''
-	AND  ( ("SYS_PUBLISHTIME", coalesce("SYS_CLOSETIME", ''infinity'' )) OVERLAPS ( 	timestamp with time zone ''%4$s'',  	timestamp with time zone ''%5$s'') )
+	AND  (( ("SYS_PUBLISHTIME", coalesce("SYS_CLOSETIME", ''infinity'' )) OVERLAPS ( 	timestamp with time zone ''%4$s'',  	timestamp with time zone ''%5$s'') )
+	OR coalesce("SYS_CLOSETIME", ''infinity'') = timestamp with time zone ''%4$s'')
 	', fields, tableName, sys_hash, from_dt, to_dt)
 	 LOOP
 		pTime := LEAST(pTime, coalesce(r."SYS_PUBLISHTIME", '-infinity'));
