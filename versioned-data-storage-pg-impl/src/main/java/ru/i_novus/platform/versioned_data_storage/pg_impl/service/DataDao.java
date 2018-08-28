@@ -693,8 +693,19 @@ public class DataDao {
         String baseFilter = " and date_trunc('second', t1.\"SYS_PUBLISHTIME\") <= :baseDate and (date_trunc('second', t1.\"SYS_CLOSETIME\") > :baseDate or t1.\"SYS_CLOSETIME\" is null) ";
         String targetFilter = criteria.getDraftCode() == null ?
                 " and date_trunc('second', t2.\"SYS_PUBLISHTIME\") <= :targetDate and (date_trunc('second', t2.\"SYS_CLOSETIME\") > :targetDate or t2.\"SYS_CLOSETIME\" is null) " : "";
-        String query = " from data." + addDoubleQuotes(baseStorage) + " t1 " +
-                " full join data." + addDoubleQuotes(targetStorage) + " t2 on " + primaryEquality +
+        String joinType;
+        switch (criteria.getReturnType()) {
+            case NEW:
+                joinType = "right";
+                break;
+            case OLD:
+                joinType = "left";
+                break;
+            default:
+                joinType = "full";
+        }
+        String query = " from data." + addDoubleQuotes(baseStorage) + " t1 " + joinType +
+                " join data." + addDoubleQuotes(targetStorage) + " t2 on " + primaryEquality +
                 baseFilter +
                 targetFilter +
                 " where ";

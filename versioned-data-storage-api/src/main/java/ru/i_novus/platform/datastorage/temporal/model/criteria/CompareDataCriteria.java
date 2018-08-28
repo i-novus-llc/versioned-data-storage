@@ -1,6 +1,7 @@
 package ru.i_novus.platform.datastorage.temporal.model.criteria;
 
 import net.n2oapp.criteria.api.Criteria;
+import ru.i_novus.platform.datastorage.temporal.enums.DiffReturnTypeEnum;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 
@@ -16,6 +17,7 @@ public class CompareDataCriteria extends Criteria {
     private List<Field> fields;
     private DiffStatusEnum status;
     private Boolean countOnly;
+    private DiffReturnTypeEnum returnType; //default ALL
 
     public String getStorageCode() {
         return storageCode;
@@ -79,6 +81,14 @@ public class CompareDataCriteria extends Criteria {
 
     public void setDraftCode(String draftCode) {
         this.draftCode = draftCode;
+    }
+
+    public DiffReturnTypeEnum getReturnType() {
+        return returnType != null ? returnType : DiffReturnTypeEnum.ALL;
+    }
+
+    public void setReturnType(DiffReturnTypeEnum returnType) {
+        this.returnType = returnType;
     }
 }
 
