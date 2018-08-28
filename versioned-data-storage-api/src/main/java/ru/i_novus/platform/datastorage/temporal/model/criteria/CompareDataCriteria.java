@@ -16,6 +16,8 @@ public class CompareDataCriteria extends Criteria {
     private List<Field> fields;
     private DiffStatusEnum status;
     private Boolean countOnly;
+    private Boolean onlyNew;
+    private Boolean onlyOld;
 
     public String getStorageCode() {
         return storageCode;
@@ -79,6 +81,22 @@ public class CompareDataCriteria extends Criteria {
 
     public void setDraftCode(String draftCode) {
         this.draftCode = draftCode;
+    }
+
+    public Boolean getOnlyNew() {
+        return onlyNew;
+    }
+
+    public void setOnlyNew(Boolean onlyNew) {
+        this.onlyNew = onlyNew;
+    }
+
+    public Boolean getOnlyOld() {
+        return onlyOld;
+    }
+
+    public void setOnlyOld(Boolean onlyOld) {
+        this.onlyOld = onlyOld;
     }
 }
 
