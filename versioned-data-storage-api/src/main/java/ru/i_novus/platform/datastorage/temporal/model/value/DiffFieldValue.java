@@ -24,9 +24,6 @@ public class DiffFieldValue<T> implements Serializable {
     }
 
     public T getOldValue() {
-        //if status==null value is not changed
-        if (status == null && oldValue == null)
-            return newValue;
         return oldValue;
     }
 
@@ -35,8 +32,6 @@ public class DiffFieldValue<T> implements Serializable {
     }
 
     public T getNewValue() {
-        if (status == null && newValue == null)
-            return oldValue;
         return newValue;
     }
 
