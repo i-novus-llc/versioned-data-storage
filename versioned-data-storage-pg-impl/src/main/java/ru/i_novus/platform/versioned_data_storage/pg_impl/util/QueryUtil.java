@@ -70,7 +70,7 @@ public class QueryUtil {
         return fieldValue;
     }
 
-    public static String generateSqlQuery(String alias, List<Field> fields) {
+    public static String generateSqlQuery(String alias, List<Field> fields, boolean includeReference) {
         if (StringUtils.isEmpty(alias))
             alias = "";
         List<String> queryFields = new ArrayList<>();
@@ -78,9 +78,11 @@ public class QueryUtil {
             String query = formatFieldForQuery(field.getName(), alias);
             if (field instanceof ReferenceField) {
                 String queryValue = query + "->>'value' as " + addDoubleQuotes(alias + field.getName() + ".value");
-                String queryDisplayValue = query + "->>'displayValue' as " + addDoubleQuotes(alias + field.getName() + ".displayValue");
                 queryFields.add(queryValue);
-                queryFields.add(queryDisplayValue);
+                if (includeReference) {
+                    String queryDisplayValue = query + "->>'displayValue' as " + addDoubleQuotes(alias + field.getName() + ".displayValue");
+                    queryFields.add(queryDisplayValue);
+                }
             } else {
                 if (field instanceof TreeField) {
                     query += "\\:\\:text";

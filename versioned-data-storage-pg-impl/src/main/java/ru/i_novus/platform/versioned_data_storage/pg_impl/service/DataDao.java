@@ -50,7 +50,7 @@ public class DataDao {
     public List<RowValue> getData(DataCriteria criteria) {
         List<Field> fields = new ArrayList<>(criteria.getFields());
         fields.add(0, new IntegerField(DATA_PRIMARY_COLUMN));
-        QueryWithParams queryWithParams = new QueryWithParams("SELECT " + generateSqlQuery("d", fields) +
+        QueryWithParams queryWithParams = new QueryWithParams("SELECT " + generateSqlQuery("d", fields, true) +
                 " FROM data." + addDoubleQuotes(criteria.getTableName()) + " d ", null);
 
         queryWithParams.concat(getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter()));
@@ -74,7 +74,7 @@ public class DataDao {
             }
         }
         fields.add(0, new IntegerField(DATA_PRIMARY_COLUMN));
-        String keys = generateSqlQuery(null, fields);
+        String keys = generateSqlQuery(null, fields, true);
         List<Object[]> list = entityManager.createNativeQuery(String.format(SELECT_ROWS_FROM_DATA_BY_FIELD, keys,
                 addDoubleQuotes(tableName), addDoubleQuotes(DATA_PRIMARY_COLUMN)))
                 .setParameter(1, systemId).getResultList();
@@ -910,8 +910,8 @@ public class DataDao {
         String baseStorage = criteria.getStorageCode();
         String targetStorage = criteria.getDraftCode() != null ? criteria.getDraftCode() : criteria.getStorageCode();
         String countSelect = "SELECT count(*)";
-        String dataSelect = "select t1." + addDoubleQuotes(DATA_PRIMARY_COLUMN) + " as sysId1," + generateSqlQuery("t1", criteria.getFields()) + ", "
-                + "t2." + addDoubleQuotes(DATA_PRIMARY_COLUMN) + " as sysId2, " + generateSqlQuery("t2", criteria.getFields());
+        String dataSelect = "select t1." + addDoubleQuotes(DATA_PRIMARY_COLUMN) + " as sysId1," + generateSqlQuery("t1", criteria.getFields(), false) + ", "
+                + "t2." + addDoubleQuotes(DATA_PRIMARY_COLUMN) + " as sysId2, " + generateSqlQuery("t2", criteria.getFields(), false);
         String primaryEquality = criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t1") + "=" + formatFieldForQuery(f, "t2")).collect(Collectors.joining(","));
         String basePrimaryIsNull = criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t1") + " is null ").collect(Collectors.joining(" and "));
         String targetPrimaryIsNull = criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t2") + " is null ").collect(Collectors.joining(" and "));
