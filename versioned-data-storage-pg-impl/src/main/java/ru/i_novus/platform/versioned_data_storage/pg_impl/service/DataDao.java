@@ -7,7 +7,6 @@ import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.text.StrSubstitutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.CollectionUtils;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
 import ru.i_novus.platform.datastorage.temporal.model.DataDifference;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
@@ -34,6 +33,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static org.springframework.util.CollectionUtils.isEmpty;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.service.QueryConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.*;
 
@@ -263,7 +263,7 @@ public class DataDao {
 
     @Transactional
     public void insertData(String tableName, List<RowValue> data) {
-        if (CollectionUtils.isEmpty(data))
+        if (isEmpty(data))
             return;
         List<String> keys = new ArrayList<>();
         List<String> values = new ArrayList<>();
@@ -570,15 +570,6 @@ public class DataDao {
                 .getSingleResult();
     }
 
-    public BigInteger countActualDataFromVersion(String versionTable, String draftTable) {
-        return (BigInteger) entityManager.createNativeQuery(
-                String.format(COUNT_ACTUAL_VAL_FROM_VERSION,
-                        addDoubleQuotes(versionTable),
-                        addDoubleQuotes(draftTable)
-                ))
-                .getSingleResult();
-    }
-
     public BigInteger countActualDataFromVersion(String versionTable, String draftTable, Date publishTime, Date closeTime) {
 
         final SimpleDateFormat df = new SimpleDateFormat(TIMESTAMP_DATE_FORMAT);
@@ -589,31 +580,6 @@ public class DataDao {
         placeholderValues.put("closeTime",  closeTime != null ? df.format(closeTime) : "null");
         String query = StrSubstitutor.replace(COUNT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME, placeholderValues);
         return (BigInteger) entityManager.createNativeQuery(query).getSingleResult();
-    }
-
-    @Transactional(Transactional.TxType.REQUIRES_NEW)
-    public void insertActualDataFromVersion(String tableToInsert, String versionTableFromInsert, String draftTable,
-                                            List<String> columns, int offset, int transactionSize) {
-        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        String columnsWithPrefixValue = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        String columnsWithPrefix = columns.stream().map(s -> "v." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        String query = String.format(INSERT_ACTUAL_VAL_FROM_VERSION,
-                addDoubleQuotes(tableToInsert),
-                addDoubleQuotes(versionTableFromInsert),
-                addDoubleQuotes(draftTable),
-                offset,
-                transactionSize,
-                getSequenceName(tableToInsert),
-                columnsStr,
-                columnsWithPrefixValue,
-                columnsWithPrefix
-        );
-        if (logger.isDebugEnabled()) {
-            logger.debug("insertActualDataFromVersion method query: " + query);
-        }
-        entityManager.createNativeQuery(
-                query)
-                .executeUpdate();
     }
 
     @Transactional(Transactional.TxType.REQUIRES_NEW)
@@ -631,7 +597,7 @@ public class DataDao {
         placeholderValues.put("versionTable", "data."+addDoubleQuotes(versionTable));
         placeholderValues.put("draftTable", "data."+addDoubleQuotes(draftTable));
         placeholderValues.put("publishTime", dateFormat.format(publishTime));
-        placeholderValues.put("closeTime", closeTime != null ? dateFormat.format(closeTime) : null);
+        placeholderValues.put("closeTime", dateFormat.format(closeTime));
         placeholderValues.put("offset", ""+offset);
         placeholderValues.put("transactionSize", ""+transactionSize);
         placeholderValues.put("newTableSeqName", "data." + getSequenceName(tableToInsert));
@@ -648,12 +614,6 @@ public class DataDao {
                 .executeUpdate();
     }
 
-    public BigInteger countOldDataFromVersion(String versionTable) {
-        return (BigInteger) entityManager.createNativeQuery(
-                String.format(COUNT_OLD_VAL_FROM_VERSION,
-                        addDoubleQuotes(versionTable))).getSingleResult();
-    }
-
     public BigInteger countOldDataFromVersion(String versionTable, String draftTable, Date publishTime, Date closeTime) {
         return (BigInteger) entityManager.createNativeQuery(
                 String.format(COUNT_OLD_VAL_FROM_VERSION_WITH_CLOSE_TIME,
@@ -664,30 +624,12 @@ public class DataDao {
                 )).getSingleResult();
     }
 
-    public void insertOldDataFromVersion(String tableToInsert, String tableFromInsert, List<String> columns,
-                                         int offset, int transactionSize) {
-        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        String query = String.format(INSERT_OLD_VAL_FROM_VERSION,
-                addDoubleQuotes(tableToInsert),
-                addDoubleQuotes(tableFromInsert),
-                offset,
-                transactionSize,
-                getSequenceName(tableToInsert),
-                columnsStr,
-                columnsWithPrefix);
-        if (logger.isDebugEnabled()) {
-            logger.debug("insertOldDataFromVersion method query: " + query);
-        }
-        entityManager.createNativeQuery(
-                query).executeUpdate();
-    }
-
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void insertOldDataFromVersion(String tableToInsert, String tableFromInsert, String draftTable, List<String> columns,
                                          int offset, int transactionSize, Date publishTime, Date closeTime) {
         String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        final SimpleDateFormat sdf = new SimpleDateFormat(TIMESTAMP_DATE_FORMAT);
         String query = String.format(INSERT_OLD_VAL_FROM_VERSION_WITH_CLOSE_DATE,
                 addDoubleQuotes(tableToInsert),
                 addDoubleQuotes(tableFromInsert),
@@ -697,21 +639,14 @@ public class DataDao {
                 getSequenceName(tableToInsert),
                 columnsStr,
                 columnsWithPrefix,
-                new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
-                closeTime != null ? new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime) : null
+                sdf.format(publishTime),
+                sdf.format(closeTime)
         );
         if (logger.isDebugEnabled()) {
             logger.debug("insertOldDataFromVersion with closeTime method query: " + query);
         }
         entityManager.createNativeQuery(
                 query).executeUpdate();
-    }
-
-    public BigInteger countClosedNowDataFromVersion(String versionTable, String draftTable) {
-        return (BigInteger) entityManager.createNativeQuery(String.format(COUNT_CLOSED_NOW_VAL_FROM_VERSION,
-                addDoubleQuotes(versionTable),
-                addDoubleQuotes(draftTable)))
-                .getSingleResult();
     }
 
     public BigInteger countClosedNowDataFromVersion(String versionTable, String draftTable, Date publishTime, Date closeTime) {
@@ -725,27 +660,6 @@ public class DataDao {
         return (BigInteger) entityManager.createNativeQuery(query).getSingleResult();
     }
 
-    public void insertClosedNowDataFromVersion(String tableToInsert, String versionTable, String draftTable,
-                                               List<String> columns, int offset, int transactionSize, Date publishTime) {
-        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        String query = String.format(INSERT_CLOSED_NOW_VAL_FROM_VERSION,
-                addDoubleQuotes(tableToInsert),
-                addDoubleQuotes(versionTable),
-                addDoubleQuotes(draftTable),
-                offset,
-                transactionSize,
-                new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
-                getSequenceName(tableToInsert),
-                columnsStr,
-                columnsWithPrefix);
-        if (logger.isDebugEnabled()) {
-            logger.debug("insertClosedNowDataFromVersion method query: " + query);
-        }
-        entityManager.createNativeQuery(query)
-                .executeUpdate();
-    }
-
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void insertClosedNowDataFromVersion(String tableToInsert, String versionTable, String draftTable,
                                                Map<String, String> columns, int offset, int transactionSize, Date publishTime, Date closeTime) {
@@ -757,7 +671,7 @@ public class DataDao {
         placeholderValues.put("draftTable", "data."+addDoubleQuotes(draftTable));
         placeholderValues.put("versionTable", "data."+addDoubleQuotes(versionTable));
         placeholderValues.put("publishTime", df.format(publishTime));
-        placeholderValues.put("closeTime",  closeTime != null ? df.format(closeTime) : "null");
+        placeholderValues.put("closeTime",  df.format(closeTime));
         placeholderValues.put("columns",  columnsStr);
         placeholderValues.put("offset",  ""+offset);
         placeholderValues.put("transactionSize",  ""+transactionSize);
@@ -769,15 +683,6 @@ public class DataDao {
         }
         entityManager.createNativeQuery(query)
                 .executeUpdate();
-    }
-
-    public BigInteger countNewValFromDraft(String draftTable, String versionTable) {
-        return (BigInteger) entityManager.createNativeQuery(
-                String.format(COUNT_NEW_VAL_FROM_DRAFT,
-                        addDoubleQuotes(draftTable),
-                        addDoubleQuotes(versionTable)))
-                .getSingleResult();
-
     }
 
     public BigInteger countNewValFromDraft(String draftTable, String versionTable, Date publishTime, Date closeTime) {
@@ -793,34 +698,11 @@ public class DataDao {
 
     }
 
-    public void insertNewDataFromDraft(String tableToInsert, String versionTable, String draftTable,
-                                       List<String> columns, int offset, int transactionSize, Date publishTime) {
-        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        String query = String.format(INSERT_NEW_VAL_FROM_DRAFT,
-                addDoubleQuotes(draftTable),
-                addDoubleQuotes(versionTable),
-                offset,
-                transactionSize,
-                addDoubleQuotes(tableToInsert),
-                new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
-                getSequenceName(tableToInsert),
-                columnsStr,
-                columnsWithPrefix);
-        if (logger.isDebugEnabled()) {
-            logger.debug("insertNewDataFromDraft method query: " + query);
-        }
-        entityManager.createNativeQuery(
-                query)
-                .executeUpdate();
-    }
-
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void insertNewDataFromDraft(String tableToInsert, String versionTable, String draftTable,
                                        List<String> columns, int offset, int transactionSize, Date publishTime, Date closeTime) {
         String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        String columnsWithPrefixD = columns.stream().map(s -> "d." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         final SimpleDateFormat df = new SimpleDateFormat(TIMESTAMP_DATE_FORMAT);
 
         Map<String, String> placeholderValues = new HashMap<>();
@@ -828,7 +710,7 @@ public class DataDao {
         placeholderValues.put("draftTable", "data." + addDoubleQuotes(draftTable));
         placeholderValues.put("versionTable", "data." + addDoubleQuotes(versionTable));
         placeholderValues.put("publishTime", df.format(publishTime));
-        placeholderValues.put("closeTime",  closeTime != null ? df.format(closeTime) : "null");
+        placeholderValues.put("closeTime",  df.format(closeTime));
         placeholderValues.put("transactionSize", ""+transactionSize);
         placeholderValues.put("offset", ""+offset);
         placeholderValues.put("sequenceName", "data." + getSequenceName(tableToInsert));
@@ -846,37 +728,17 @@ public class DataDao {
     }
 
     @Transactional(Transactional.TxType.REQUIRES_NEW)
-    public void insertDataFromDraft(String draftTable, int offset, String targetTable, int transactionSize, Date publishTime, List<String> columns) {
-        String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        String query = String.format(INSERT_FROM_DRAFT_TEMPLATE,
-                addDoubleQuotes(draftTable),
-                offset,
-                transactionSize,
-                addDoubleQuotes(targetTable),
-                new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
-                getSequenceName(targetTable),
-                columnsStr,
-                columnsWithPrefix);
-        if (logger.isDebugEnabled()) {
-            logger.debug("insertDataFromDraft method query: " + query);
-        }
-        entityManager.createNativeQuery(
-                query)
-                .executeUpdate();
-    }
-
-    @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void insertDataFromDraft(String draftTable, int offset, String targetTable, int transactionSize, Date publishTime, Date closeTime, List<String> columns) {
         String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        final SimpleDateFormat sdf = new SimpleDateFormat(TIMESTAMP_DATE_FORMAT);
         String query = String.format(INSERT_FROM_DRAFT_TEMPLATE_WITH_CLOSE_TIME,
                 addDoubleQuotes(draftTable),
                 offset,
                 transactionSize,
                 addDoubleQuotes(targetTable),
-                new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
-                closeTime != null ? new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime) : null,
+                sdf.format(publishTime),
+                sdf.format(closeTime),
                 getSequenceName(targetTable),
                 columnsStr,
                 columnsWithPrefix);
@@ -900,24 +762,61 @@ public class DataDao {
                 .executeUpdate();
     }
 
-    public DataDifference getDataDifference(CompareDataCriteria criteria) {
+    public DataDifference getDataDifferenceForPeriod(CompareDataCriteria criteria) {
         DataDifference dataDifference;
-        List<String> fields = criteria.getFields().stream().map(Field::getName).collect(Collectors.toList());
+        List<String> fields = new ArrayList<>();
+        List<String> nonPrimaryFields = new ArrayList<>();
         Map<String, Field> fieldMap = new HashMap<>();
-        for (Field field : criteria.getFields()) {
+        Map<String, Object> params = new HashMap<>();
+        criteria.getFields().forEach(field -> {
+            fields.add(field.getName());
+            if (!criteria.getPrimaryFields().contains(field.getName()))
+                nonPrimaryFields.add(field.getName());
             fieldMap.put(field.getName(), field);
-        }
-        String baseStorage = criteria.getStorageCode();
-        String targetStorage = criteria.getDraftCode() != null ? criteria.getDraftCode() : criteria.getStorageCode();
+        });
+        String oldStorage = criteria.getStorageCode();
+        String newStorage = criteria.getNewStorageCode() != null ? criteria.getNewStorageCode() : criteria.getStorageCode();
         String countSelect = "SELECT count(*)";
-        String dataSelect = "select t1." + addDoubleQuotes(DATA_PRIMARY_COLUMN) + " as sysId1," + generateSqlQuery("t1", criteria.getFields(), false) + ", "
+        String dataSelect = "SELECT t1." + addDoubleQuotes(DATA_PRIMARY_COLUMN) + " as sysId1, " + generateSqlQuery("t1", criteria.getFields(), false) + ", "
                 + "t2." + addDoubleQuotes(DATA_PRIMARY_COLUMN) + " as sysId2, " + generateSqlQuery("t2", criteria.getFields(), false);
-        String primaryEquality = criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t1") + "=" + formatFieldForQuery(f, "t2")).collect(Collectors.joining(","));
-        String basePrimaryIsNull = criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t1") + " is null ").collect(Collectors.joining(" and "));
-        String targetPrimaryIsNull = criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t2") + " is null ").collect(Collectors.joining(" and "));
-        String baseFilter = " and date_trunc('second', t1.\"SYS_PUBLISHTIME\") <= :baseDate and (date_trunc('second', t1.\"SYS_CLOSETIME\") > :baseDate or t1.\"SYS_CLOSETIME\" is null) ";
-        String targetFilter = criteria.getDraftCode() == null ?
-                " and date_trunc('second', t2.\"SYS_PUBLISHTIME\") <= :targetDate and (date_trunc('second', t2.\"SYS_CLOSETIME\") > :targetDate or t2.\"SYS_CLOSETIME\" is null) " : "";
+        String primaryEquality = criteria.getPrimaryFields()
+                .stream()
+                .map(f -> formatFieldForQuery(f, "t1") + " = " + formatFieldForQuery(f, "t2"))
+                .collect(Collectors.joining(" and "));
+        String oldPrimaryValuesFilter = getFieldValuesFilter("t1", params, criteria.getPrimaryFieldsFilters());
+        String newPrimaryValuesFilter = getFieldValuesFilter("t2", params, criteria.getPrimaryFieldsFilters());
+        String nonPrimaryFieldsInequality = isEmpty(nonPrimaryFields) ? " and false " : " and (" + nonPrimaryFields
+                .stream()
+                .map(field -> formatFieldForQuery(field, "t1") + " != " + formatFieldForQuery(field, "t2"))
+                .collect(Collectors.joining(" or ")) + ") ";
+        String oldPrimaryIsNull = criteria.getPrimaryFields()
+                .stream()
+                .map(f -> formatFieldForQuery(f, "t1") + " is null ")
+                .collect(Collectors.joining(" and "));
+        String newPrimaryIsNull = criteria.getPrimaryFields()
+                .stream()
+                .map(f -> formatFieldForQuery(f, "t2") + " is null ")
+                .collect(Collectors.joining(" and "));
+        String oldVersionDateFilter = "";
+        if (criteria.getOldPublishDate() != null || criteria.getOldCloseDate() != null) {
+            oldVersionDateFilter = " and date_trunc('second', t1.\"SYS_PUBLISHTIME\") <= :oldPublishDate\\:\\:timestamp and date_trunc('second', t1.\"SYS_CLOSETIME\") >= :oldCloseDate\\:\\:timestamp ";
+            params.put("oldPublishDate", criteria.getOldPublishDate() != null
+                    ? truncateDateTo(criteria.getOldPublishDate(), ChronoUnit.SECONDS)
+                    : "'-infinity'");
+            params.put("oldCloseDate", criteria.getOldCloseDate() != null
+                    ? truncateDateTo(criteria.getOldCloseDate(), ChronoUnit.SECONDS)
+                    : DraftDataServiceImpl.MAX_TIMESTAMP);
+        }
+        String newVersionDateFilter = "";
+        if (criteria.getNewPublishDate() != null || criteria.getNewCloseDate() != null) {
+            newVersionDateFilter = " and date_trunc('second', t2.\"SYS_PUBLISHTIME\") <= :newPublishDate\\:\\:timestamp and date_trunc('second', t2.\"SYS_CLOSETIME\") >= :newCloseDate\\:\\:timestamp ";
+            params.put("newPublishDate", criteria.getNewPublishDate() != null
+                    ? truncateDateTo(criteria.getNewPublishDate(), ChronoUnit.SECONDS)
+                    : "'-infinity'");
+            params.put("newCloseDate", criteria.getNewCloseDate() != null
+                    ? truncateDateTo(criteria.getNewCloseDate(), ChronoUnit.SECONDS)
+                    : DraftDataServiceImpl.MAX_TIMESTAMP);
+        }
         String joinType;
         switch (criteria.getReturnType()) {
             case NEW:
@@ -929,38 +828,43 @@ public class DataDao {
             default:
                 joinType = "full";
         }
-        String query = " from data." + addDoubleQuotes(baseStorage) + " t1 " + joinType +
-                " join data." + addDoubleQuotes(targetStorage) + " t2 on " + primaryEquality +
-                baseFilter +
-                targetFilter +
+        String query = " from data." + addDoubleQuotes(oldStorage) + " t1 " + joinType +
+                " join data." + addDoubleQuotes(newStorage) + " t2 on " + primaryEquality +
+                " and (true" + oldPrimaryValuesFilter + " or true" + newPrimaryValuesFilter + ")" +
+                oldVersionDateFilter +
+                newVersionDateFilter +
                 " where ";
         if (criteria.getStatus() == null)
-            query += basePrimaryIsNull + targetFilter +
-                    " or " + targetPrimaryIsNull + baseFilter +
-                    " or (" + primaryEquality + " and t1.\"SYS_HASH\"<>t2.\"SYS_HASH\") ";
+            query += oldPrimaryIsNull + newVersionDateFilter +
+                    " or " + newPrimaryIsNull + oldVersionDateFilter +
+                    " or (" + primaryEquality + nonPrimaryFieldsInequality + ") ";
         else if (DiffStatusEnum.UPDATED.equals(criteria.getStatus())) {
-            query += primaryEquality + " and t1.\"SYS_HASH\"<>t2.\"SYS_HASH\" ";
+            query += primaryEquality + nonPrimaryFieldsInequality;
         } else if (DiffStatusEnum.INSERTED.equals(criteria.getStatus())) {
-            query += basePrimaryIsNull + targetFilter;
+            query += oldPrimaryIsNull + newVersionDateFilter;
         } else if (DiffStatusEnum.DELETED.equals(criteria.getStatus())) {
-            query += targetPrimaryIsNull + baseFilter;
+            query += newPrimaryIsNull + oldVersionDateFilter;
         }
-        Query countQuery = entityManager.createNativeQuery(countSelect + query);
-        countQuery.setParameter("baseDate", truncateDateTo(criteria.getBaseDataDate(), ChronoUnit.SECONDS));
-        if (criteria.getTargetDataDate() != null)
-            countQuery.setParameter("targetDate", truncateDateTo(criteria.getTargetDataDate(), ChronoUnit.SECONDS));
+        QueryWithParams countQueryWithParams = new QueryWithParams(countSelect + query, params);
+        Query countQuery = countQueryWithParams.createQuery(entityManager);
         BigInteger count = (BigInteger) countQuery.getSingleResult();
         if (BooleanUtils.toBoolean(criteria.getCountOnly())) {
             dataDifference = new DataDifference(new CollectionPage<>(count.intValue(), null, criteria));
         } else {
-            String orderBy = " order by " + criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t1")).collect(Collectors.joining(",")) + "," +
-                    criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t2")).collect(Collectors.joining(","));
-            Query dataQuery = entityManager.createNativeQuery(dataSelect + query + orderBy)
+            String orderBy = " order by " +
+                    criteria.getPrimaryFields()
+                            .stream()
+                            .map(f -> formatFieldForQuery(f, "t2"))
+                            .collect(Collectors.joining(",")) + "," +
+                    criteria.getPrimaryFields()
+                            .stream()
+                            .map(f -> formatFieldForQuery(f, "t1"))
+                            .collect(Collectors.joining(","));
+
+            QueryWithParams dataQueryWithParams = new QueryWithParams(dataSelect + query + orderBy, params);
+            Query dataQuery = dataQueryWithParams.createQuery(entityManager)
                     .setFirstResult(getOffset(criteria))
                     .setMaxResults(criteria.getSize());
-            dataQuery.setParameter("baseDate", truncateDateTo(criteria.getBaseDataDate(), ChronoUnit.SECONDS));
-            if (criteria.getTargetDataDate() != null)
-                dataQuery.setParameter("targetDate", truncateDateTo(criteria.getTargetDataDate(), ChronoUnit.SECONDS));
             List<Object[]> resultList = dataQuery.getResultList();
             List<DiffRowValue> rowValues = new ArrayList<>();
             if (!resultList.isEmpty()) {
@@ -1008,15 +912,47 @@ public class DataDao {
                         }
                     }
                     rowValues.add(new DiffRowValue(fieldValues, rowStatus));
-
                 }
             }
             dataDifference = new DataDifference(new CollectionPage<>(count.intValue(), rowValues, criteria));
         }
-
         return dataDifference;
     }
 
+    private String getFieldValuesFilter(String alias, Map<String, Object> params, Set<List<FieldValue>> fieldValuesFilters) {
+        if (isEmpty(fieldValuesFilters))
+            return "";
+        else {
+            String filter;
+            if (fieldValuesFilters.stream().findFirst().get().size() == 1) {
+                FieldValue fieldValue = fieldValuesFilters.stream().findFirst().get().get(0);
+
+                filter = " and (" + alias + "." + addDoubleQuotes(fieldValue.getField()) + " in (:" + fieldValue.getField().toLowerCase() + "_values" + ") " + ")";
+                params.put(fieldValue.getField().toLowerCase() + "_values", fieldValuesFilters
+                        .stream()
+                        .map(primaryFieldsFilter -> primaryFieldsFilter.get(0).getValue())
+                        .collect(Collectors.toList()));
+            } else {
+                final int[] i = {-1};
+                filter = " and (" +
+                        fieldValuesFilters
+                                .stream()
+                                .map(fieldValuesFilter -> {
+                                    i[0]++;
+                                    return fieldValuesFilter
+                                            .stream()
+                                            .map(fieldValueFilter -> {
+                                                params.put(fieldValueFilter.getField().toLowerCase() + i[0], fieldValueFilter.getValue());
+                                                return formatFieldForQuery(fieldValueFilter.getField(), "t1") + " = :" + fieldValueFilter.getField().toLowerCase() + i[0];
+                                            })
+                                            .collect(Collectors.joining(" and "));
+                                })
+                                .collect(Collectors.joining(" or ")) +
+                        ") ";
+            }
+            return filter;
+        }
+    }
 
     private class QueryWithParams {
 

@@ -13,10 +13,11 @@ import ru.i_novus.platform.datastorage.temporal.model.criteria.CompareDataCriter
  */
 public interface CompareDataService {
     /**
-     * Сравнение актуальных на заданные даты данных
+     * Сравнение актуальных на заданные периоды дат данных
      *
      * @param criteria параметры запроса
      * @return Результат сравнения
      */
-    DataDifference getDataDifference(CompareDataCriteria criteria);
+    DataDifference getDataDifferenceForPeriod(CompareDataCriteria criteria);
+
 }

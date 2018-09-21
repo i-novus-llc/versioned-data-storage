@@ -9,21 +9,22 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
 import ru.i_novus.platform.datastorage.temporal.enums.FieldType;
-import ru.i_novus.platform.datastorage.temporal.model.Field;
-import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
-import ru.i_novus.platform.datastorage.temporal.model.LongRowValue;
-import ru.i_novus.platform.datastorage.temporal.model.Reference;
+import ru.i_novus.platform.datastorage.temporal.model.*;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.CompareDataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.FieldSearchCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.SearchTypeEnum;
+import ru.i_novus.platform.datastorage.temporal.model.value.DiffFieldValue;
+import ru.i_novus.platform.datastorage.temporal.model.value.DiffRowValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
+import ru.i_novus.platform.datastorage.temporal.service.CompareDataService;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
 import ru.i_novus.platform.datastorage.temporal.service.FieldFactory;
 import ru.i_novus.platform.datastorage.temporal.service.SearchDataService;
 import ru.i_novus.platform.versioned_data_storage.config.VersionedDataStorageConfig;
-import ru.i_novus.platform.versioned_data_storage.pg_impl.service.FieldFactoryImpl;
 
 import javax.persistence.PersistenceException;
 import java.math.BigInteger;
@@ -32,8 +33,10 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 /**
  * Created by tnurdinov on 08.06.2018.
@@ -53,7 +56,11 @@ public class UseCaseTest {
     @Autowired
     private SearchDataService searchDataService;
 
-    private FieldFactory fieldFactory = new FieldFactoryImpl();
+    @Autowired
+    private CompareDataService compareDataService;
+
+    @Autowired
+    private FieldFactory fieldFactory;
 
 
     /**
@@ -115,14 +122,14 @@ public class UseCaseTest {
         Field d_b_id = fieldFactory.createField("ID", FieldType.INTEGER);
         Field d_b_name = fieldFactory.createField("NAME", FieldType.STRING);
         Field d_b_ref = fieldFactory.createField("REF", FieldType.REFERENCE);
-        List<Field> d_b_fields = Arrays.asList(d_b_id, d_b_name, d_b_ref);
+        List<Field> d_b_fields = asList(d_b_id, d_b_name, d_b_ref);
         String d_b_draftCode = draftDataService.createDraft(d_b_fields);
         RowValue d_b_rowValue = new LongRowValue(
                 d_b_id.valueOf(BigInteger.valueOf(1)),
                 d_b_name.valueOf("name"),
                 d_b_ref.valueOf(new Reference(s_a_storageCode, s_a_publishTime, d_a_id.getName(), d_a_name.getName(), "1", "test"))
         );
-        draftDataService.addRows(d_b_draftCode, Arrays.asList(d_b_rowValue));
+        draftDataService.addRows(d_b_draftCode, asList(d_b_rowValue));
         List<RowValue> d_b_actualRows = searchDataService.getData(new DataCriteria(d_b_draftCode, null, null, d_b_fields, null, "name"));
         Object systemId = d_b_actualRows.get(0).getSystemId();
 
@@ -139,7 +146,7 @@ public class UseCaseTest {
                 ((ReferenceFieldValue) value).getValue().setDisplayValue("test2");
             }
         });
-        assertRows(Arrays.asList(d_b_rowValue), d_b_actualRows);
+        assertRows(asList(d_b_rowValue), d_b_actualRows);
         logger.info("<<<<<<<<<<<<<<< 3 этап завершен >>>>>>>>>>>>>>>>>>>>>");
 
 
@@ -147,7 +154,7 @@ public class UseCaseTest {
         Date s_b_publishTime = new Date();
         String s_b_storageCode = draftDataService.applyDraft(null, d_b_draftCode, s_b_publishTime);
         Collection<RowValue> s_b_actualRows = searchDataService.getData(new DataCriteria(s_b_storageCode, null, null, d_b_fields, null, null));
-        assertRows(Arrays.asList(d_b_rowValue), s_b_actualRows);
+        assertRows(asList(d_b_rowValue), s_b_actualRows);
         logger.info("<<<<<<<<<<<<<<< 4 этап завершен >>>>>>>>>>>>>>>>>>>>>");
 
     }
@@ -366,7 +373,7 @@ public class UseCaseTest {
         fields.add(id);
         fields.add(code);
         fields.add(name);
-        final List<Field> withSysDateFields = Arrays.asList(id, code, name, fieldFactory.createField(SYS_PUBLISHTIME, FieldType.STRING), fieldFactory.createField(SYS_CLOSETIME, FieldType.STRING));
+        final List<Field> withSysDateFields = asList(id, code, name, fieldFactory.createField(SYS_PUBLISHTIME, FieldType.STRING), fieldFactory.createField(SYS_CLOSETIME, FieldType.STRING));
         List<RowValue> rows = new ArrayList<>();
         rows.add(new LongRowValue(
                 id.valueOf(BigInteger.valueOf(1)),
@@ -459,4 +466,318 @@ public class UseCaseTest {
         assertRows(rows, actualRows);
 
     }
+
+    /*
+     * testing get data difference between two published versions in one storage
+     */
+    @Test
+    public void testGetDataDifferenceForTwoPublishedVersionsWithSameStorage() {
+        List<Field> fields = new ArrayList<>();
+        Field id = fieldFactory.createField("ID", FieldType.INTEGER);
+        Field code = fieldFactory.createField("CODE", FieldType.STRING);
+        fields.add(id);
+        fields.add(code);
+        List<RowValue> rows = new ArrayList<>();
+        rows.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(1)),
+                code.valueOf("001")));
+        rows.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(2)),
+                code.valueOf("002")));
+        rows.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(3)),
+                code.valueOf("003")));
+        rows.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(4)),
+                code.valueOf("004")));
+
+        String draftCode = draftDataService.createDraft(fields);
+        draftDataService.addRows(draftCode, asList(rows.get(0), rows.get(1), rows.get(2)));
+        Date publishDate1 = new Date();
+        Date closeDate1 = new Date(3 * publishDate1.getTime());
+        String storageCode = draftDataService.applyDraft(null, draftCode, publishDate1, closeDate1);
+
+        draftCode = draftDataService.createDraft(fields);
+
+        rows.get(2).getFieldValue(code.getName()).setValue("003_1");
+        draftDataService.addRows(draftCode, asList(rows.get(1), rows.get(2), rows.get(3)));
+        Date publishDate2 = new Date(2 * publishDate1.getTime());
+        Date closeDate2 = new Date(closeDate1.getTime());
+        String storageCode2 = draftDataService.applyDraft(storageCode, draftCode, publishDate2, closeDate2);
+
+        Set<List<FieldValue>> fieldValues = rows
+                .stream()
+                .map(row -> singletonList(row.getFieldValue("ID")))
+                .collect(Collectors.toSet());
+
+        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, publishDate1, publishDate2, publishDate2, closeDate2, fields, singletonList("ID"), fieldValues);
+        DataDifference actualDataDifference = compareDataService.getDataDifferenceForPeriod(compareDataCriteria);
+        List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
+        expectedDiffRowValues.add(new DiffRowValue(
+                fields.stream()
+                        .map(field -> new DiffFieldValue<>(field, rows.get(0).getFieldValue(field.getName()).getValue(), null, DiffStatusEnum.DELETED))
+                        .collect(Collectors.toList()),
+                DiffStatusEnum.DELETED));
+        expectedDiffRowValues.add(new DiffRowValue(
+                fields.stream()
+                        .map(field -> new DiffFieldValue<>(field, field.equals(code) ? "003" : null, rows.get(2).getFieldValue(field.getName()).getValue(), field.equals(code) ? DiffStatusEnum.UPDATED : null))
+                        .collect(Collectors.toList()),
+                DiffStatusEnum.UPDATED));
+        expectedDiffRowValues.add(new DiffRowValue(
+                fields.stream()
+                        .map(field -> new DiffFieldValue<>(field, null, rows.get(3).getFieldValue(field.getName()).getValue(), DiffStatusEnum.INSERTED))
+                        .collect(Collectors.toList()),
+                DiffStatusEnum.INSERTED));
+        assertDiffRowValues(expectedDiffRowValues, (List<DiffRowValue>) actualDataDifference.getRows().getCollection());
+    }
+
+    /*
+     * testing get data difference between two published versions when composite primary key and existing common non-primary fields
+     */
+    @Test
+    public void testGetDataDifferenceForTwoPublishedVersionsWithCompositePK() {
+        List<Field> fields = new ArrayList<>();
+        Field id = fieldFactory.createField("ID", FieldType.INTEGER);
+        Field code = fieldFactory.createField("CODE", FieldType.STRING);
+        Field name = fieldFactory.createField("NAME", FieldType.STRING);
+        fields.add(id);
+        fields.add(code);
+        fields.add(name);
+        List<RowValue> rows = new ArrayList<>();
+        rows.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(1)),
+                code.valueOf("001"),
+                name.valueOf("name1")));
+        rows.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(2)),
+                code.valueOf("002"),
+                name.valueOf("name2")));
+        rows.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(3)),
+                code.valueOf("003"),
+                name.valueOf("name3")));
+        rows.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(4)),
+                code.valueOf("004"),
+                name.valueOf("name4")));
+
+        String draftCode = draftDataService.createDraft(fields);
+        draftDataService.addRows(draftCode, asList(rows.get(0), rows.get(1), rows.get(2)));
+        Date publishDate1 = new Date();
+        Date closeDate1 = new Date(3 * publishDate1.getTime());
+        String storageCode = draftDataService.applyDraft(null, draftCode, publishDate1, closeDate1);
+
+        draftCode = draftDataService.createDraft(fields);
+
+        rows.get(2).getFieldValue(name.getName()).setValue("name3_1");
+        draftDataService.addRows(draftCode, asList(rows.get(1), rows.get(2), rows.get(3)));
+        Date publishDate2 = new Date(2 * publishDate1.getTime());
+        Date closeDate2 = new Date(closeDate1.getTime());
+        String storageCode2 = draftDataService.applyDraft(storageCode, draftCode, publishDate2, closeDate2);
+
+        Set<List<FieldValue>> fieldValues = rows
+                .stream()
+                .map(row -> Arrays.asList(row.getFieldValue("ID"), row.getFieldValue("CODE")))
+                .collect(Collectors.toSet());
+
+        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, publishDate1, publishDate2, publishDate2, closeDate2, fields, Arrays.asList("ID", "CODE"), fieldValues);
+        DataDifference actualDataDifference = compareDataService.getDataDifferenceForPeriod(compareDataCriteria);
+        List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
+        expectedDiffRowValues.add(new DiffRowValue(
+                fields.stream()
+                        .map(field -> new DiffFieldValue<>(field, rows.get(0).getFieldValue(field.getName()).getValue(), null, DiffStatusEnum.DELETED))
+                        .collect(Collectors.toList()),
+                DiffStatusEnum.DELETED));
+        expectedDiffRowValues.add(new DiffRowValue(
+                fields.stream()
+                        .map(field -> new DiffFieldValue<>(field, field.equals(name) ? "name3" : null, rows.get(2).getFieldValue(field.getName()).getValue(), field.equals(name) ? DiffStatusEnum.UPDATED : null))
+                        .collect(Collectors.toList()),
+                DiffStatusEnum.UPDATED));
+        expectedDiffRowValues.add(new DiffRowValue(
+                fields.stream()
+                        .map(field -> new DiffFieldValue<>(field, null, rows.get(3).getFieldValue(field.getName()).getValue(), DiffStatusEnum.INSERTED))
+                        .collect(Collectors.toList()),
+                DiffStatusEnum.INSERTED));
+        assertDiffRowValues(expectedDiffRowValues, (List<DiffRowValue>) actualDataDifference.getRows().getCollection());
+    }
+
+    /*
+     * testing get data difference between two published versions when composite primary key and NO common non-primary fields
+     * there must be 0 UPDATED rows, just deleted and inserted
+     */
+    @Test
+    public void testGetDataDifferenceForTwoPublishedVersionsWithoutNonPrimaryFields() {
+        List<Field> fields = new ArrayList<>();
+        Field id = fieldFactory.createField("ID", FieldType.INTEGER);
+        Field code = fieldFactory.createField("CODE", FieldType.STRING);
+        fields.add(id);
+        fields.add(code);
+        List<RowValue> rows = new ArrayList<>();
+        rows.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(1)),
+                code.valueOf("001")));
+        rows.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(2)),
+                code.valueOf("002")));
+        rows.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(3)),
+                code.valueOf("003")));
+        rows.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(4)),
+                code.valueOf("004")));
+
+        String draftCode = draftDataService.createDraft(fields);
+        draftDataService.addRows(draftCode, asList(rows.get(0), rows.get(1), rows.get(2)));
+        Date publishDate1 = new Date();
+        Date closeDate1 = new Date(3 * publishDate1.getTime());
+        String storageCode = draftDataService.applyDraft(null, draftCode, publishDate1, closeDate1);
+
+        draftCode = draftDataService.createDraft(fields);
+
+        draftDataService.addRows(draftCode, asList(rows.get(1), rows.get(2), rows.get(3)));
+        Date publishDate2 = new Date(2 * publishDate1.getTime());
+        Date closeDate2 = new Date(closeDate1.getTime());
+        String storageCode2 = draftDataService.applyDraft(storageCode, draftCode, publishDate2, closeDate2);
+
+        Set<List<FieldValue>> fieldValues = rows
+                .stream()
+                .map(row -> Arrays.asList(row.getFieldValue("ID"), row.getFieldValue("CODE")))
+                .collect(Collectors.toSet());
+
+        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, publishDate1, publishDate2, publishDate2, closeDate2, fields, Arrays.asList("ID", "CODE"), fieldValues);
+        DataDifference actualDataDifference = compareDataService.getDataDifferenceForPeriod(compareDataCriteria);
+        List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
+        expectedDiffRowValues.add(new DiffRowValue(
+                fields.stream()
+                        .map(field -> new DiffFieldValue<>(field, rows.get(0).getFieldValue(field.getName()).getValue(), null, DiffStatusEnum.DELETED))
+                        .collect(Collectors.toList()),
+                DiffStatusEnum.DELETED));
+        expectedDiffRowValues.add(new DiffRowValue(
+                fields.stream()
+                        .map(field -> new DiffFieldValue<>(field, null, rows.get(3).getFieldValue(field.getName()).getValue(), DiffStatusEnum.INSERTED))
+                        .collect(Collectors.toList()),
+                DiffStatusEnum.INSERTED));
+        assertDiffRowValues(expectedDiffRowValues, (List<DiffRowValue>) actualDataDifference.getRows().getCollection());
+    }
+
+    /*
+     * testing get data difference between published version and draft
+     */
+    @Test
+    public void testGetDataDifferenceForPublishedAndDraft() {
+        List<Field> fields = new ArrayList<>();
+        Field id = fieldFactory.createField("ID", FieldType.INTEGER);
+        Field code = fieldFactory.createField("CODE", FieldType.STRING);
+        fields.add(id);
+        fields.add(code);
+        List<RowValue> rows = new ArrayList<>();
+        rows.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(1)),
+                code.valueOf("001")));
+        rows.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(2)),
+                code.valueOf("002")));
+        rows.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(3)),
+                code.valueOf("003")));
+        rows.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(4)),
+                code.valueOf("004")));
+
+        String draftCode = draftDataService.createDraft(fields);
+        draftDataService.addRows(draftCode, asList(rows.get(0), rows.get(1), rows.get(2)));
+        Date publishDate1 = new Date();
+        Date closeDate1 = new Date(3 * publishDate1.getTime());
+        String storageCode = draftDataService.applyDraft(null, draftCode, publishDate1, closeDate1);
+
+        draftCode = draftDataService.createDraft(fields);
+
+        rows.get(2).getFieldValue(code.getName()).setValue("003_1");
+        draftDataService.addRows(draftCode, asList(rows.get(1), rows.get(2), rows.get(3)));
+
+        Set<List<FieldValue>> fieldValues = rows
+                .stream()
+                .map(row -> singletonList(row.getFieldValue("ID")))
+                .collect(Collectors.toSet());
+
+        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode, draftCode, publishDate1, closeDate1, null, null, fields, singletonList("ID"), fieldValues);
+        DataDifference actualDataDifference = compareDataService.getDataDifferenceForPeriod(compareDataCriteria);
+        List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
+        expectedDiffRowValues.add(new DiffRowValue(
+                fields.stream()
+                        .map(field -> new DiffFieldValue<>(field, rows.get(0).getFieldValue(field.getName()).getValue(), null, DiffStatusEnum.DELETED))
+                        .collect(Collectors.toList()),
+                DiffStatusEnum.DELETED));
+        expectedDiffRowValues.add(new DiffRowValue(
+                fields.stream()
+                        .map(field -> new DiffFieldValue<>(field, field.equals(code) ? "003" : null, rows.get(2).getFieldValue(field.getName()).getValue(), field.equals(code) ? DiffStatusEnum.UPDATED : null))
+                        .collect(Collectors.toList()),
+                DiffStatusEnum.UPDATED));
+        expectedDiffRowValues.add(new DiffRowValue(
+                fields.stream()
+                        .map(field -> new DiffFieldValue<>(field, null, rows.get(3).getFieldValue(field.getName()).getValue(), DiffStatusEnum.INSERTED))
+                        .collect(Collectors.toList()),
+                DiffStatusEnum.INSERTED));
+        assertDiffRowValues(expectedDiffRowValues, (List<DiffRowValue>) actualDataDifference.getRows().getCollection());
+    }
+
+    /*
+     * testing get data difference between two published versions when no diff
+     * there must be 0 rows
+     */
+    @Test
+    public void testGetDataDifferenceWhenNoDiff() {
+        Date publishDate1 = new Date();
+        Date closeDate1 = new Date(2 * publishDate1.getTime());
+        Date publishDate2 = new Date(3 * publishDate1.getTime());
+
+        List<Field> fields = new ArrayList<>();
+        Field id = fieldFactory.createField("ID", FieldType.INTEGER);
+        Field code = fieldFactory.createField("CODE", FieldType.STRING);
+        Field name = fieldFactory.createField("NAME", FieldType.STRING);
+        fields.add(id);
+        fields.add(code);
+
+        List<RowValue> rows = new ArrayList<>();
+        rows.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(1)),
+                code.valueOf("001")));
+        rows.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(2)),
+                code.valueOf("002")));
+        rows.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(3)),
+                code.valueOf("003")));
+        rows.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(4)),
+                code.valueOf("004")));
+
+        String draftCode = draftDataService.createDraft(fields);
+        draftDataService.addRows(draftCode, rows);
+        String storageCode = draftDataService.applyDraft(null, draftCode, publishDate1, closeDate1);
+
+        fields.add(name);
+        draftCode = draftDataService.createDraft(fields);
+        draftDataService.addRows(draftCode, rows);
+        String storageCode2 = draftDataService.applyDraft(storageCode, draftCode, publishDate2, null);
+
+        Set<List<FieldValue>> fieldValues = rows
+                .stream()
+                .map(row -> Arrays.asList(row.getFieldValue("ID"), row.getFieldValue("CODE")))
+                .collect(Collectors.toSet());
+
+        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode, storageCode2, publishDate1, closeDate1, publishDate2, null, Arrays.asList(fields.get(0), fields.get(1)), singletonList("ID"), fieldValues);
+        DataDifference actualDataDifference = compareDataService.getDataDifferenceForPeriod(compareDataCriteria);
+        assertDiffRowValues(new ArrayList<>(), (List<DiffRowValue>) actualDataDifference.getRows().getCollection());
+    }
+
+    private void assertDiffRowValues(List<DiffRowValue> expectedDiffRowValues, List<DiffRowValue> actualDiffRowValues) {
+        assertEquals(expectedDiffRowValues.size(), actualDiffRowValues.size());
+        expectedDiffRowValues.forEach(expectedDiffRowValue -> {
+            if (actualDiffRowValues.stream().noneMatch(actualDiffRowValue ->
+                    expectedDiffRowValue.getValues().size() == actualDiffRowValue.getValues().size() && actualDiffRowValue.getValues().containsAll(expectedDiffRowValue.getValues())))
+                fail();
+        });
+    }
+
 }

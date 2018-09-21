@@ -139,26 +139,7 @@ public class QueryConstants {
 
     public static final String DROP_TABLE = "DROP TABLE IF EXISTS data.%s";
 
-
-    public static final String INSERT_FROM_DRAFT_TEMPLATE = "DO $$\n" +
-            "DECLARE tbl_cursor refcursor;\n" +
-            " row data.%1$s%%rowtype;\n" +
-            " i int;\n" +
-            "BEGIN\n" +
-            "    OPEN tbl_cursor FOR select * from data.%1$s;\n" +
-            "    MOVE FORWARD %2$s FROM tbl_cursor;\t\n" +
-            "    i\\:=0;\t\n" +
-            "    while i<%3$s loop\n" +
-            "       FETCH FROM tbl_cursor INTO row;\t\n" +
-            "       EXIT WHEN NOT FOUND;" +
-            "       row.\"SYS_RECORDID\"\\:=nextval('data.%6$s');" +
-            "       insert into data.%4$s(\"SYS_RECORDID\", %7$s, \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\") values(row.\"SYS_RECORDID\", %8$s, to_timestamp('%5$s', 'YYYY-MM-DD HH24:MI:SS'), null\\:\\:timestamp with time zone );   \n" +
-            "       i\\:=i+1;\n" +
-            "    end loop;\n" +
-            "    CLOSE tbl_cursor;\n" +
-            "END$$;\n";
-
-    //todo. done?
+    //todo: get rid of infinity
     public static final String INSERT_FROM_DRAFT_TEMPLATE_WITH_CLOSE_TIME = "DO $$\n" +
             "DECLARE tbl_cursor refcursor;\n" +
             " row data.%1$s%%rowtype;\n" +
@@ -171,7 +152,7 @@ public class QueryConstants {
             "       FETCH FROM tbl_cursor INTO row;\n" +
             "       EXIT WHEN NOT FOUND;\n" +
             "       row.\"SYS_RECORDID\"\\:=nextval('data.%7$s');\n" +
-            "       insert into data.%4$s(\"SYS_RECORDID\", %8$s, \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\") values(row.\"SYS_RECORDID\", %9$s, to_timestamp('%5$s', 'YYYY-MM-DD HH24:MI:SS'), case when '%6$s' = 'null' then null\\:\\:timestamp with time zone else to_timestamp('%6$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp with time zone end);\n" +
+            "       insert into data.%4$s(\"SYS_RECORDID\", %8$s, \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\") values(row.\"SYS_RECORDID\", %9$s, to_timestamp('%5$s', 'YYYY-MM-DD HH24:MI:SS'), coalesce(to_timestamp('%6$s', 'YYYY-MM-DD HH24:MI:SS'), 'infinity'));\n" +
             "       i\\:=i+1;\n" +
             "    end loop;\n" +
             "    CLOSE tbl_cursor;\n" +
@@ -183,9 +164,6 @@ public class QueryConstants {
 
     public static final String SELECT_RELATION_ROW_FROM_DATA = " select %s from data.%s where %s=? limit 1;\n";
 
-    public static final String COUNT_OLD_VAL_FROM_VERSION = " select count(*) from data.%s where \"SYS_CLOSETIME\" is not null;\n";
-
-    //todo. done ?
     public static final String COUNT_OLD_VAL_FROM_VERSION_WITH_CLOSE_TIME = "SELECT count(*)\n" +
             "FROM data.%1$s v\n" +
             "WHERE NOT (\n" +
@@ -200,25 +178,7 @@ public class QueryConstants {
             "                                               (v.\"SYS_PUBLISHTIME\", v.\"SYS_CLOSETIME\"))\n" +
             "      );";
 
-    public static final String INSERT_OLD_VAL_FROM_VERSION = " DO $$\n" +
-            "DECLARE tbl_cursor refcursor;\n" +
-            " row record;\n" +
-            " i int;\n" +
-            "BEGIN\n" +
-            "    OPEN tbl_cursor FOR select \"SYS_RECORDID\", %6$s, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\" from data.%2$s where \"SYS_CLOSETIME\" is not null;\n" +
-            "    MOVE FORWARD %3$s FROM tbl_cursor;\t\n" +
-            "    i\\:=0;\t\n" +
-            "    while i<%4$s loop\n" +
-            "       FETCH FROM tbl_cursor INTO row;\t\n" +
-            "       EXIT WHEN NOT FOUND;\n" +
-            "       row.\"SYS_RECORDID\"\\:=nextval('data.%5$s');" +
-            "       insert into data.%1$s(\"SYS_RECORDID\", %6$s, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\") values(row.\"SYS_RECORDID\", %7$s, row.\"FTS\", row.\"SYS_HASH\", row.\"SYS_PUBLISHTIME\", row.\"SYS_CLOSETIME\");   \n" +
-            "       i\\:=i+1;\n" +
-            "    end loop;\n" +
-            "    CLOSE tbl_cursor;\n" +
-            "END$$;";
-
-    //todo. done?
+    //todo: get rid of infinity
     public static final String INSERT_OLD_VAL_FROM_VERSION_WITH_CLOSE_DATE = "DO $$" +
             "DECLARE tbl_cursor refcursor;\n" +
             " row record;\n" +
@@ -266,9 +226,7 @@ public class QueryConstants {
             "    CLOSE tbl_cursor;\n" +
             "END$$;";
 
-    public static final String COUNT_ACTUAL_VAL_FROM_VERSION = "select count(*) from data.%1$s v join data.%2$s d on d.\"SYS_HASH\" = v.\"SYS_HASH\"  where v.\"SYS_CLOSETIME\" is null;";
-
-    //todo. done
+    //todo: get rid of infinity
     public static final String COUNT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME = "SELECT count(*)  FROM ${draftTable} d\n" +
             "     WHERE exists(SELECT 1\n" +
             "                      FROM ${versionTable} v\n" +
@@ -279,25 +237,7 @@ public class QueryConstants {
             "                           OR (coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS'), '-infinity') = (coalesce(v.\"SYS_CLOSETIME\", 'infinity'))))" +
             "    )";
 
-    public static final String INSERT_ACTUAL_VAL_FROM_VERSION = " DO $$\n" +
-            "DECLARE tbl_cursor refcursor;\n" +
-            " row record;\n" +
-            " i int;\n" +
-            "BEGIN\n" +
-            "    OPEN tbl_cursor FOR select v.\"SYS_RECORDID\", %9$s, v.\"FTS\", v.\"SYS_HASH\", v.\"SYS_PUBLISHTIME\" from data.%2$s v join data.%3$s d on d.\"SYS_HASH\" = v.\"SYS_HASH\"  where v.\"SYS_CLOSETIME\" is null;\n" +
-            "    MOVE FORWARD %4$s FROM tbl_cursor;\t\n" +
-            "    i\\:=0;\t\n" +
-            "    while i<%5$s loop\n" +
-            "       FETCH FROM tbl_cursor INTO row;\t\n" +
-            "       EXIT WHEN NOT FOUND;\n" +
-            "       row.\"SYS_RECORDID\"\\:=nextval('data.%6$s');" +
-            "       insert into data.%1$s (\"SYS_RECORDID\", %7$s, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\") values(row.\"SYS_RECORDID\", %8$s, row.\"FTS\", row.\"SYS_HASH\", row.\"SYS_PUBLISHTIME\");   \n" +
-            "       i\\:=i+1;\n" +
-            "    end loop;\n" +
-            "    CLOSE tbl_cursor;\n" +
-            "END$$;";
-
-    //todo. done?
+    //todo: get rid of infinity
     public static final String INSERT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME = "DO $$\n" +
             "DECLARE tbl_cursor refcursor;\n" +
             " row record;\n" +
@@ -327,9 +267,7 @@ public class QueryConstants {
             "    CLOSE tbl_cursor;\n" +
             "END$$;";
 
-    public static final String COUNT_NEW_VAL_FROM_DRAFT = "select count(*) from data.%1$s d  where not exists(select 1 from data.%2$s v where v.\"SYS_HASH\" = d.\"SYS_HASH\" and v.\"SYS_CLOSETIME\" is null);";
-
-    //todo
+    //todo: get rid of infinity
     public static final String COUNT_NEW_VAL_FROM_DRAFT_WITH_CLOSE_TIME = "SELECT count(*)  FROM ${draftTable} d\n" +
             "     WHERE NOT exists(SELECT 1\n" +
             "                      FROM ${versionTable} v\n" +
@@ -341,26 +279,7 @@ public class QueryConstants {
             "    )";
 
 
-    public static final String
-            INSERT_NEW_VAL_FROM_DRAFT = " DO $$\n" +
-            "DECLARE tbl_cursor refcursor;\n" +
-            " row record;\n" +
-            " i int;\n" +
-            "BEGIN\n" +
-            "    OPEN tbl_cursor FOR select \"SYS_RECORDID\", %8$s, \"FTS\", \"SYS_HASH\" from data.%1$s d  where not exists(select 1 from data.%2$s v where v.\"SYS_HASH\" = d.\"SYS_HASH\" and v.\"SYS_CLOSETIME\" is null);\n" +
-            "    MOVE FORWARD %3$s FROM tbl_cursor;\t\n" +
-            "    i\\:=0;\t\n" +
-            "    while i<%4$s loop\n" +
-            "       FETCH FROM tbl_cursor INTO row;\t\n" +
-            "       EXIT WHEN NOT FOUND;\n" +
-            "       row.\"SYS_RECORDID\" \\:= nextval('data.%7$s');" +
-            "       insert into data.%5$s(\"SYS_RECORDID\", %8$s, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\") values(row.\"SYS_RECORDID\", %9$s, row.\"FTS\", row.\"SYS_HASH\", to_timestamp('%6$s', 'YYYY-MM-DD HH24:MI:SS'), null\\:\\:timestamp with time zone);   \n" +
-            "       i\\:=i+1;\n" +
-            "    end loop;\n" +
-            "    CLOSE tbl_cursor;\n" +
-            "END$$;";
-
-    //todo. done?
+    //todo: get rid of infinity
     public static final String
             INSERT_NEW_VAL_FROM_DRAFT_WITH_CLOSE_TIME = "DO $$\n" +
             "DECLARE tbl_cursor refcursor;\n" +
@@ -389,9 +308,7 @@ public class QueryConstants {
             "    CLOSE tbl_cursor;\n" +
             "END$$;";
 
-    public static final String COUNT_CLOSED_NOW_VAL_FROM_VERSION = "select count(*) from data.%1$s v  where v.\"SYS_CLOSETIME\" is null and not exists(select 1 from data.%2$s d where d.\"SYS_HASH\" = v.\"SYS_HASH\");";
-
-    //todo. done
+    //todo: get rid of infinity
     public static final String COUNT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME = "SELECT count(*)\n" +
             "FROM ${versionTable} v\n" +
             " WHERE " +
@@ -402,26 +319,7 @@ public class QueryConstants {
             "                     FROM ${draftTable} d\n" +
             "                     WHERE d.\"SYS_HASH\" = v.\"SYS_HASH\");";
 
-    public static final String INSERT_CLOSED_NOW_VAL_FROM_VERSION = " DO $$\n" +
-            "DECLARE tbl_cursor refcursor;\n" +
-            " row record;\n" +
-            " i int;\n" +
-            "BEGIN\n" +
-            "    OPEN tbl_cursor FOR select \"SYS_RECORDID\", %8$s, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\" from data.%2$s v  where v.\"SYS_CLOSETIME\" is null and not exists(select 1 from data.%3$s d where d.\"SYS_HASH\" = v.\"SYS_HASH\");\n" +
-            "    MOVE FORWARD %4$s FROM tbl_cursor;\t\n" +
-            "    i\\:=0;\t\n" +
-            "    while i<%5$s loop\n" +
-            "       FETCH FROM tbl_cursor INTO row;\t\n" +
-            "       EXIT WHEN NOT FOUND;\n" +
-            "       row.\"SYS_RECORDID\" \\:= nextval('data.%7$s');" +
-            "       row.\"SYS_CLOSETIME\" \\:= to_timestamp('%6$s', 'YYYY-MM-DD HH24:MI:SS');\n" +
-            "       insert into data.%1$s(\"SYS_RECORDID\", %8$s, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\") values(row.\"SYS_RECORDID\", %9$s, row.\"FTS\", row.\"SYS_HASH\", row.\"SYS_PUBLISHTIME\", row.\"SYS_CLOSETIME\");   \n" +
-            "       i\\:=i+1;\n" +
-            "    end loop;\n" +
-            "    CLOSE tbl_cursor;\n" +
-            "END$$;";
-
-    //todo. done?
+    //todo: get rid of infinity
     public static final String INSERT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME = "DO $$\n" +
             "DECLARE tbl_cursor refcursor;\n" +
             " row record;\n" +
