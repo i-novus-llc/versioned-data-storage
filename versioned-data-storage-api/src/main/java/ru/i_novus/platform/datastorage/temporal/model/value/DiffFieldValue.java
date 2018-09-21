@@ -4,6 +4,7 @@ import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * @author lgalimova
@@ -14,6 +15,16 @@ public class DiffFieldValue<T> implements Serializable {
     private T oldValue;
     private T newValue;
     private DiffStatusEnum status;
+
+    public DiffFieldValue() {
+    }
+
+    public DiffFieldValue(Field field, T oldValue, T newValue, DiffStatusEnum status) {
+        this.field = field;
+        this.oldValue = oldValue;
+        this.newValue = newValue;
+        this.status = status;
+    }
 
     public Field getField() {
         return field;
@@ -45,5 +56,21 @@ public class DiffFieldValue<T> implements Serializable {
 
     public void setStatus(DiffStatusEnum status) {
         this.status = status;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        DiffFieldValue<?> that = (DiffFieldValue<?>) o;
+        return Objects.equals(field, that.field) &&
+                Objects.equals(oldValue, that.oldValue) &&
+                Objects.equals(newValue, that.newValue) &&
+                status == that.status;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(field, oldValue, newValue, status);
     }
 }

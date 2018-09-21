@@ -216,14 +216,6 @@ public class DraftDataServiceImpl implements DraftDataService {
         return newTable;
     }
 
-    @Deprecated
-    private void insertActualDataFromVersion(String actualVersionTable, String draftTable, String newTable, List<String> columns) {
-        BigInteger count = dataDao.countActualDataFromVersion(actualVersionTable, draftTable);
-        for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
-            dataDao.insertActualDataFromVersion(newTable, actualVersionTable, draftTable, columns, i, TRANSACTION_SIZE);
-        }
-    }
-
     /*
      * есть пересечения по дате
      * есть SYS_HASH (draftTable join actualVersionTable по SYS_HASH)
@@ -237,13 +229,6 @@ public class DraftDataServiceImpl implements DraftDataService {
         }
     }
 
-    private void insertOldDataFromVersion(String actualVersionTable, String newTable, List<String> columns) {
-        BigInteger count = dataDao.countOldDataFromVersion(actualVersionTable);
-        for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
-            dataDao.insertOldDataFromVersion(newTable, actualVersionTable, columns, i, TRANSACTION_SIZE);
-        }
-    }
-
     /*
     * нет пересечений по дате
     * нет SYS_HASH (из actualVersionTable те, которых нет в draftTable
@@ -252,14 +237,6 @@ public class DraftDataServiceImpl implements DraftDataService {
         BigInteger count = dataDao.countOldDataFromVersion(actualVersionTable, draftTable, publishTime, closeTime);
         for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
             dataDao.insertOldDataFromVersion(newTable, actualVersionTable, draftTable, columns, i, TRANSACTION_SIZE, publishTime, closeTime);
-        }
-    }
-
-    private void insertClosedNowDataFromVersion(String actualVersionTable, String draftTable, String newTable,
-                                                List<String> columns, Date publishTime) {
-        BigInteger count = dataDao.countClosedNowDataFromVersion(actualVersionTable, draftTable);
-        for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
-            dataDao.insertClosedNowDataFromVersion(newTable, actualVersionTable, draftTable, columns, i, TRANSACTION_SIZE, publishTime);
         }
     }
 
@@ -275,14 +252,6 @@ public class DraftDataServiceImpl implements DraftDataService {
         columns.forEach(column -> columnsWithType.put(column, dataDao.getFieldType(actualVersionTable, column.replaceAll("\"", ""))));
         for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
             dataDao.insertClosedNowDataFromVersion(newTable, actualVersionTable, draftTable, columnsWithType, i, TRANSACTION_SIZE, publishTime, closeTime);
-        }
-    }
-
-    private void insertNewDataFromDraft(String actualVersionTable, String draftTable, String newTable,
-                                        List<String> columns, Date publishTime) {
-        BigInteger count = dataDao.countNewValFromDraft(draftTable, actualVersionTable);
-        for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
-            dataDao.insertNewDataFromDraft(newTable, actualVersionTable, draftTable, columns, i, TRANSACTION_SIZE, publishTime);
         }
     }
 
