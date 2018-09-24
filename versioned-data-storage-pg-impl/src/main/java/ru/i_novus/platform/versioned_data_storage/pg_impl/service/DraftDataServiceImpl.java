@@ -14,8 +14,6 @@ import ru.kirkazan.common.exception.CodifiedException;
 import javax.persistence.PersistenceException;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -29,8 +27,6 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.
  */
 
 public class DraftDataServiceImpl implements DraftDataService {
-
-    public static final Date MAX_TIMESTAMP = Date.from(LocalDateTime.of(294276, 12, 31, 23, 59).atZone(ZoneId.systemDefault()).toInstant());
 
     private static final Logger logger = LoggerFactory.getLogger(DraftDataServiceImpl.class);
     private DataDao dataDao;
@@ -56,7 +52,6 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Override
     @Transactional(Transactional.TxType.NOT_SUPPORTED)
     public String applyDraft(String baseStorageCode, String draftCode, Date publishTime, Date closeTime) {
-        if (closeTime == null) closeTime = MAX_TIMESTAMP;
         String newTable = createVersionTable(draftCode);
         List<String> draftFields = dataDao.getFieldNames(draftCode);
         if (baseStorageCode != null && dataDao.tableStructureEquals(baseStorageCode, draftCode)) {
