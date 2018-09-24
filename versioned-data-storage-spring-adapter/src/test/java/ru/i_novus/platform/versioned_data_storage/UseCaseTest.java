@@ -783,6 +783,10 @@ public class UseCaseTest {
         });
     }
 
+    /**
+     * При поиске, когда нет даты закрытия, не учитывалась правая граница.
+     * <a href="https://jira.i-novus.ru/browse/RDM-130">Ссылка на баг.</a>
+     */
     @Test
     public void testPublishAndSearchNullCloseDateData() {
         Field stringField = new StringField("string");
@@ -801,6 +805,7 @@ public class UseCaseTest {
         draftDataService.addRows(draftStorageCode2, rowValues2);
         draftDataService.addRows(draftStorageCode3, rowValues3);
 
+        //Публикация двух версий с определенной датой закрытия
         Date publishDate1 = new Date();
         Date closeDate1 = new Date(publishDate1.getTime() + 1000 * 60 * 60 * 24);
         String versionStorageCode1 = draftDataService.applyDraft(null, draftStorageCode1, publishDate1, closeDate1);
@@ -808,11 +813,14 @@ public class UseCaseTest {
         Date closeDate2 = new Date(publishDate2.getTime() + 1000 * 60 * 60 * 24);
         String versionStorageCode2 = draftDataService.applyDraft(versionStorageCode1, draftStorageCode2, publishDate2, closeDate2);
 
+        //Поиск когда closeTime поиска и данных closeTime одинаковый
         DataCriteria dataCriteria = new DataCriteria(versionStorageCode2, publishDate2, closeDate2, Collections.singletonList(stringField), null, null);
         CollectionPage<RowValue> actualData = searchDataService.getPagedData(dataCriteria);
         assertEquals(3, actualData.getCount());
         assertRows(rowValues2, actualData.getCollection());
 
+        //Поиск когда closeTime поиска null а у данных определен
+        //Ожидается пустой ответ, т.к. данные не действуют на всем промежутке
         dataCriteria = new DataCriteria(versionStorageCode2, publishDate2, null, Collections.singletonList(stringField), null, null);
         actualData = searchDataService.getPagedData(dataCriteria);
         assertEquals(0, actualData.getCount());
@@ -821,6 +829,8 @@ public class UseCaseTest {
         Date publishDate3 = new Date(closeDate1.getTime());
         String versionStorageCode3 = draftDataService.applyDraft(versionStorageCode2, draftStorageCode3, publishDate3, null);
 
+        //Поиск когда closeTime поиска определен а у данных нет
+        //Ожидается одна строка (Последняя опубликованная)
         dataCriteria = new DataCriteria(versionStorageCode3, publishDate3, null, Collections.singletonList(stringField), null, null);
         actualData = searchDataService.getPagedData(dataCriteria);
         assertEquals(1, actualData.getCount());
