@@ -511,7 +511,7 @@ public class UseCaseTest {
                 .collect(Collectors.toSet());
 
         CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, publishDate1, publishDate2, publishDate2, closeDate2, fields, singletonList("ID"), fieldValues);
-        DataDifference actualDataDifference = compareDataService.getDataDifferenceForPeriod(compareDataCriteria);
+        DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
         List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
         expectedDiffRowValues.add(new DiffRowValue(
                 fields.stream()
@@ -581,7 +581,7 @@ public class UseCaseTest {
                 .collect(Collectors.toSet());
 
         CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, publishDate1, publishDate2, publishDate2, closeDate2, fields, Arrays.asList("ID", "CODE"), fieldValues);
-        DataDifference actualDataDifference = compareDataService.getDataDifferenceForPeriod(compareDataCriteria);
+        DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
         List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
         expectedDiffRowValues.add(new DiffRowValue(
                 fields.stream()
@@ -645,7 +645,7 @@ public class UseCaseTest {
                 .collect(Collectors.toSet());
 
         CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, publishDate1, publishDate2, publishDate2, closeDate2, fields, Arrays.asList("ID", "CODE"), fieldValues);
-        DataDifference actualDataDifference = compareDataService.getDataDifferenceForPeriod(compareDataCriteria);
+        DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
         List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
         expectedDiffRowValues.add(new DiffRowValue(
                 fields.stream()
@@ -701,7 +701,7 @@ public class UseCaseTest {
                 .collect(Collectors.toSet());
 
         CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode, draftCode, publishDate1, closeDate1, null, null, fields, singletonList("ID"), fieldValues);
-        DataDifference actualDataDifference = compareDataService.getDataDifferenceForPeriod(compareDataCriteria);
+        DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
         List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
         expectedDiffRowValues.add(new DiffRowValue(
                 fields.stream()
@@ -767,7 +767,7 @@ public class UseCaseTest {
                 .collect(Collectors.toSet());
 
         CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode, storageCode2, publishDate1, closeDate1, publishDate2, null, Arrays.asList(fields.get(0), fields.get(1)), singletonList("ID"), fieldValues);
-        DataDifference actualDataDifference = compareDataService.getDataDifferenceForPeriod(compareDataCriteria);
+        DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
         assertDiffRowValues(new ArrayList<>(), (List<DiffRowValue>) actualDataDifference.getRows().getCollection());
     }
 

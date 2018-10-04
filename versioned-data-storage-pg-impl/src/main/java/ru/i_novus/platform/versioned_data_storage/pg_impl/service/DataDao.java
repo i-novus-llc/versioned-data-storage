@@ -54,6 +54,8 @@ public class DataDao {
                 " FROM data." + addDoubleQuotes(criteria.getTableName()) + " d ", null);
 
         queryWithParams.concat(getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter()));
+        if (isEmpty(criteria.getPrimaryFieldsFilters()))
+            queryWithParams.setQuery(queryWithParams.getQuery() + getFieldValuesFilter("d", queryWithParams.getParams(), criteria.getPrimaryFieldsFilters()));
         queryWithParams.concat(new QueryWithParams(getDictionaryDataOrderBy((!Util.isEmpty(criteria.getSortings()) ? criteria.getSortings().get(0) : null), "d"), null));
         Query query = queryWithParams.createQuery(entityManager);
         if (criteria.getPage() > 0 && criteria.getSize() > 0)
@@ -762,7 +764,7 @@ public class DataDao {
                 .executeUpdate();
     }
 
-    public DataDifference getDataDifferenceForPeriod(CompareDataCriteria criteria) {
+    public DataDifference getDataDifference(CompareDataCriteria criteria) {
         DataDifference dataDifference;
         List<String> fields = new ArrayList<>();
         List<String> nonPrimaryFields = new ArrayList<>();
