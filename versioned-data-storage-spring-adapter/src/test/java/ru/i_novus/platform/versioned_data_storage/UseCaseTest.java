@@ -1,5 +1,6 @@
 package ru.i_novus.platform.versioned_data_storage;
 
+import net.n2oapp.criteria.api.CollectionPage;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -25,6 +26,7 @@ import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
 import ru.i_novus.platform.datastorage.temporal.service.FieldFactory;
 import ru.i_novus.platform.datastorage.temporal.service.SearchDataService;
 import ru.i_novus.platform.versioned_data_storage.config.VersionedDataStorageConfig;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.model.StringField;
 
 import javax.persistence.PersistenceException;
 import java.math.BigInteger;
@@ -36,6 +38,7 @@ import java.util.stream.Collectors;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -778,6 +781,60 @@ public class UseCaseTest {
                     expectedDiffRowValue.getValues().size() == actualDiffRowValue.getValues().size() && actualDiffRowValue.getValues().containsAll(expectedDiffRowValue.getValues())))
                 fail();
         });
+    }
+
+    /**
+     * При поиске, когда нет даты закрытия, не учитывалась правая граница.
+     * <a href="https://jira.i-novus.ru/browse/RDM-130">Ссылка на баг.</a>
+     */
+    @Test
+    public void testPublishAndSearchNullCloseDateData() {
+        Field stringField = new StringField("string");
+        String draftStorageCode1 = draftDataService.createDraft(Collections.singletonList(stringField));
+        String draftStorageCode2 = draftDataService.createDraft(Collections.singletonList(stringField));
+        String draftStorageCode3 = draftDataService.createDraft(Collections.singletonList(stringField));
+        List<RowValue> rowValues1 = Collections.singletonList(
+                new LongRowValue(stringField.valueOf("string field value 1")));
+        List<RowValue> rowValues2 = Arrays.asList(
+                new LongRowValue(stringField.valueOf("string field value 1")),
+                new LongRowValue(stringField.valueOf("string field value 2.1")),
+                new LongRowValue(stringField.valueOf("string field value 2.2")));
+        List<RowValue> rowValues3 = Collections.singletonList(
+                new LongRowValue(stringField.valueOf("string field value 3")));
+        draftDataService.addRows(draftStorageCode1, rowValues1);
+        draftDataService.addRows(draftStorageCode2, rowValues2);
+        draftDataService.addRows(draftStorageCode3, rowValues3);
+
+        //Публикация двух версий с определенной датой закрытия
+        Date publishDate1 = new Date();
+        Date closeDate1 = new Date(publishDate1.getTime() + 1000 * 60 * 60 * 24);
+        String versionStorageCode1 = draftDataService.applyDraft(null, draftStorageCode1, publishDate1, closeDate1);
+        Date publishDate2 = new Date(closeDate1.getTime());
+        Date closeDate2 = new Date(publishDate2.getTime() + 1000 * 60 * 60 * 24);
+        String versionStorageCode2 = draftDataService.applyDraft(versionStorageCode1, draftStorageCode2, publishDate2, closeDate2);
+
+        //Поиск когда closeTime поиска и данных closeTime одинаковый
+        DataCriteria dataCriteria = new DataCriteria(versionStorageCode2, publishDate2, closeDate2, Collections.singletonList(stringField), null, null);
+        CollectionPage<RowValue> actualData = searchDataService.getPagedData(dataCriteria);
+        assertEquals(3, actualData.getCount());
+        assertRows(rowValues2, actualData.getCollection());
+
+        //Поиск когда closeTime поиска null а у данных определен
+        //Ожидается пустой ответ, т.к. данные не действуют на всем промежутке
+        dataCriteria = new DataCriteria(versionStorageCode2, publishDate2, null, Collections.singletonList(stringField), null, null);
+        actualData = searchDataService.getPagedData(dataCriteria);
+        assertEquals(0, actualData.getCount());
+        assertTrue(actualData.getCollection().isEmpty());
+
+        Date publishDate3 = new Date(closeDate1.getTime());
+        String versionStorageCode3 = draftDataService.applyDraft(versionStorageCode2, draftStorageCode3, publishDate3, null);
+
+        //Поиск когда closeTime поиска определен а у данных нет
+        //Ожидается одна строка (Последняя опубликованная)
+        dataCriteria = new DataCriteria(versionStorageCode3, publishDate3, null, Collections.singletonList(stringField), null, null);
+        actualData = searchDataService.getPagedData(dataCriteria);
+        assertEquals(1, actualData.getCount());
+        assertRows(rowValues3, actualData.getCollection());
     }
 
 }
