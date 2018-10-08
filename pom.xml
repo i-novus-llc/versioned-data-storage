@@ -20,14 +20,14 @@
 
     <groupId>ru.i-novus.platform</groupId>
     <artifactId>versioned-data-storage</artifactId>
-    <version>1.6-SNAPSHOT</version>
+    <version>1.6</version>
     <packaging>pom</packaging>
 
     <scm>
         <connection>scm:git:https://git.i-novus.ru/platform/versioned-data-storage.git</connection>
         <url>https://git.i-novus.ru/platform/versioned-data-storage</url>
         <developerConnection>scm:git:https://git.i-novus.ru/platform/versioned-data-storage.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>versioned-data-storage-1.6</tag>
     </scm>
 
     <name>versioned-data-storage</name>
