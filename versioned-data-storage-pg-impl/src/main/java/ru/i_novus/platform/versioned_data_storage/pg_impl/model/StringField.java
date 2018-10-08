@@ -9,7 +9,7 @@ import ru.i_novus.platform.datastorage.temporal.model.value.StringFieldValue;
  * @since 23.03.2018
  */
 public class StringField extends Field<String> {
-    public static final String TYPE = "varchar";
+    public static final String TYPE = "character varying";
 
     public StringField(String name) {
         super(name);
