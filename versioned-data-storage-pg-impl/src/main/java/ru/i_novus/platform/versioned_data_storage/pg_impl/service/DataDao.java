@@ -489,13 +489,13 @@ public class DataDao {
         String using = "";
         if (DateField.TYPE.equals(oldType) && (StringField.TYPE.equals(newType) || IntegerStringField.TYPE.equals(newType))) {
             using = "to_char(" + escapedField + ", '" + DATE_FORMAT_FOR_USING_CONVERTING + "')";
-        } else if (StringField.TYPE.equals(oldType) || IntegerStringField.TYPE.equals(oldType)
-                || StringField.TYPE.equals(newType) || IntegerStringField.TYPE.equals(newType)) {
-            using = escapedField + "\\:\\:" + newType;
         } else if (ReferenceField.TYPE.equals(oldType)) {
             using = "(" + escapedField + "->>'value')" + "\\:\\:varchar\\:\\:" + newType;
         } else if (ReferenceField.TYPE.equals(newType)) {
             using = "nullif(jsonb_build_object('value'," + escapedField + "),jsonb_build_object('value',null))";
+        } else if (StringField.TYPE.equals(oldType) || IntegerStringField.TYPE.equals(oldType)
+                || StringField.TYPE.equals(newType) || IntegerStringField.TYPE.equals(newType)) {
+            using = escapedField + "\\:\\:" + newType;
         } else {
             using = escapedField + "\\:\\:varchar\\:\\:" + newType;
         }
