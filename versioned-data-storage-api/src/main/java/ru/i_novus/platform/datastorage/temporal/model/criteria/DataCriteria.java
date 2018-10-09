@@ -2,50 +2,50 @@ package ru.i_novus.platform.datastorage.temporal.model.criteria;
 
 import net.n2oapp.criteria.api.Criteria;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
-import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
 
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import static java.util.Collections.emptySet;
 
 public class DataCriteria extends Criteria {
     private final String tableName;
     private final Date bdate;
     private final Date edate;
     private final List<Field> fields;
-    private final List<FieldSearchCriteria> fieldFilter;
-    private final Set<List<FieldValue>> primaryFieldsFilters;
+    private final Set<List<FieldSearchCriteria>> fieldFilter;
     private final String commonFilter;
 
     /**
-     * @param storageCode    наименование таблицы
-     * @param bdate         дата публикации версии
-     * @param edate         дата создания версии
+     * @param storageCode  наименование таблицы
+     * @param bdate        дата публикации версии
+     * @param edate        дата создания версии
      * @param fields       список полей в ответе
      * @param fieldFilter  фильтр по отдельным полям
      * @param commonFilter фильтр по всем полям
      */
     public DataCriteria(String storageCode, Date bdate, Date edate, List<Field> fields, List<FieldSearchCriteria> fieldFilter, String commonFilter) {
-        this(storageCode, bdate, edate, fields, fieldFilter, emptySet(), commonFilter);
+        this(storageCode, bdate, edate, fields,
+                new HashSet<List<FieldSearchCriteria>>() {{
+                    add(fieldFilter);
+                }},
+                commonFilter);
     }
 
     /**
-     * @param storageCode    наименование таблицы
+     * @param storageCode   наименование таблицы
      * @param bdate         дата публикации версии
      * @param edate         дата создания версии
-     * @param fields       список полей в ответе
-     * @param primaryFieldsFilters множество фильтров по отдельным полям
-     * @param commonFilter фильтр по всем полям
+     * @param fields        список полей в ответе
+     * @param fieldFilter множество фильтров по отдельным полям
+     * @param commonFilter  фильтр по всем полям
      */
-    public DataCriteria(String storageCode, Date bdate, Date edate, List<Field> fields, List<FieldSearchCriteria> fieldFilter, Set<List<FieldValue>> primaryFieldsFilters, String commonFilter) {
+    public DataCriteria(String storageCode, Date bdate, Date edate, List<Field> fields, Set<List<FieldSearchCriteria>> fieldFilter, String commonFilter) {
         this.tableName = storageCode;
         this.bdate = bdate;
         this.edate = edate;
         this.fields = fields;
         this.fieldFilter = fieldFilter;
-        this.primaryFieldsFilters = primaryFieldsFilters;
         this.commonFilter = commonFilter;
     }
 
@@ -65,12 +65,8 @@ public class DataCriteria extends Criteria {
         return fields;
     }
 
-    public List<FieldSearchCriteria> getFieldFilter() {
+    public Set<List<FieldSearchCriteria>> getFieldFilter() {
         return fieldFilter;
-    }
-
-    public Set<List<FieldValue>> getPrimaryFieldsFilters() {
-        return primaryFieldsFilters;
     }
 
     public String getCommonFilter() {

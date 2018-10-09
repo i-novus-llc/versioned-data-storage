@@ -4,7 +4,6 @@ import net.n2oapp.criteria.api.Criteria;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffReturnTypeEnum;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
-import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
 
 import java.util.Date;
 import java.util.List;
@@ -25,12 +24,12 @@ public class CompareDataCriteria extends Criteria {
     private DiffStatusEnum status;
     private Boolean countOnly;
     private DiffReturnTypeEnum returnType; //default ALL
-    private Set<List<FieldValue>> primaryFieldsFilters;
+    private Set<List<FieldSearchCriteria>> primaryFieldsFilters;
 
     public CompareDataCriteria() {
     }
 
-    public CompareDataCriteria(String storageCode, String newStorageCode, Date oldPublishDate, Date oldCloseDate, Date newPublishDate, Date newCloseDate, List<Field> fields, List<String> primaryFields, Set<List<FieldValue>> primaryFieldsFilters) {
+    public CompareDataCriteria(String storageCode, String newStorageCode, Date oldPublishDate, Date oldCloseDate, Date newPublishDate, Date newCloseDate, List<Field> fields, List<String> primaryFields, Set<List<FieldSearchCriteria>> primaryFieldsFilters) {
         this.storageCode = storageCode;
         this.newStorageCode = newStorageCode;
         this.oldPublishDate = oldPublishDate;
@@ -159,11 +158,11 @@ public class CompareDataCriteria extends Criteria {
         this.returnType = returnType;
     }
 
-    public Set<List<FieldValue>> getPrimaryFieldsFilters() {
+    public Set<List<FieldSearchCriteria>> getPrimaryFieldsFilters() {
         return primaryFieldsFilters;
     }
 
-    public void setPrimaryFieldsFilters(Set<List<FieldValue>> primaryFieldsFilters) {
+    public void setPrimaryFieldsFilters(Set<List<FieldSearchCriteria>> primaryFieldsFilters) {
         this.primaryFieldsFilters = primaryFieldsFilters;
     }
 }

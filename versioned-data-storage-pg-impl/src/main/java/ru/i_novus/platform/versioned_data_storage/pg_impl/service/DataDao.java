@@ -57,10 +57,13 @@ public class DataDao {
         QueryWithParams queryWithParams = new QueryWithParams("SELECT " + generateSqlQuery("d", fields, true) +
                 " FROM data." + addDoubleQuotes(criteria.getTableName()) + " d ", null);
 
-        queryWithParams.concat(getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter()));
-        if (isEmpty(criteria.getPrimaryFieldsFilters()))
-            queryWithParams.setQuery(queryWithParams.getQuery() + getFieldValuesFilter("d", queryWithParams.getParams(), criteria.getPrimaryFieldsFilters()));
-        queryWithParams.concat(new QueryWithParams(getDictionaryDataOrderBy((!Util.isEmpty(criteria.getSortings()) ? criteria.getSortings().get(0) : null), "d"), null));
+        queryWithParams.concat(
+                getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter())
+        );
+        queryWithParams.concat(new QueryWithParams(
+                getDictionaryDataOrderBy((!Util.isEmpty(criteria.getSortings()) ? criteria.getSortings().get(0) : null), "d"),
+                null
+        ));
         Query query = queryWithParams.createQuery(entityManager);
         if (criteria.getPage() > 0 && criteria.getSize() > 0)
             query.setFirstResult(getOffset(criteria))
@@ -100,8 +103,8 @@ public class DataDao {
     }
 
     public Map<String, String> getColumnDataTypes(String tableName) {
-        List<Object[]> dataTypes = entityManager.createNativeQuery("select column_name, data_type from information_schema.columns " +
-                "where table_schema='data' and table_name=:table")
+        List<Object[]> dataTypes = entityManager.createNativeQuery("SELECT column_name, data_type FROM information_schema.columns " +
+                "WHERE table_schema='data' AND table_name=:table")
                 .setParameter("table", tableName)
                 .getResultList();
         Map<String, String> map = new HashMap<>();
@@ -130,7 +133,7 @@ public class DataDao {
     }
 
     @Deprecated//todo о избавиться
-    public String getDataWhereClauseStr(Date publishDate, Date closeDate, String search, List<FieldSearchCriteria> filter) {
+    public String getDataWhereClauseStr(Date publishDate, Date closeDate, String search, Set<List<FieldSearchCriteria>> filter) {
         String result = " 1=1 ";
         if (publishDate != null) {
             result += " and date_trunc('second', d.\"SYS_PUBLISHTIME\") <= :bdate and (date_trunc('second', d.\"SYS_CLOSETIME\") > :bdate or d.\"SYS_CLOSETIME\" is null)";
@@ -138,11 +141,11 @@ public class DataDao {
         if (closeDate != null) {
             result += " and (date_trunc('second', d.\"SYS_CLOSETIME\") >= :edate or d.\"SYS_CLOSETIME\" is null)";
         }
-        result += getDictionaryFilterQuery(search, filter).getQuery();
+        result += getDictionaryFilterQuery(search, filter, null).getQuery();
         return result;
     }
 
-    private QueryWithParams getDataWhereClause(Date publishDate, Date closeDate, String search, List<FieldSearchCriteria> filter) {
+    private QueryWithParams getDataWhereClause(Date publishDate, Date closeDate, String search, Set<List<FieldSearchCriteria>> filters) {
         closeDate = closeDate == null ? PG_MAX_TIMESTAMP : closeDate;
         Map<String, Object> params = new HashMap<>();
         String result = " WHERE 1=1 ";
@@ -153,11 +156,11 @@ public class DataDao {
             params.put("edate", truncateDateTo(closeDate, ChronoUnit.SECONDS));
         }
         QueryWithParams queryWithParams = new QueryWithParams(result, params);
-        queryWithParams.concat(getDictionaryFilterQuery(search, filter));
+        queryWithParams.concat(getDictionaryFilterQuery(search, filters, null));
         return queryWithParams;
     }
 
-    private QueryWithParams getDictionaryFilterQuery(String search, List<FieldSearchCriteria> filter) {
+    private QueryWithParams getDictionaryFilterQuery(String search, Set<List<FieldSearchCriteria>> filters, String alias) {
         Map<String, Object> params = new HashMap<>();
         String queryStr = "";
         if (!Util.isEmpty(search)) {
@@ -176,47 +179,57 @@ public class DataDao {
                 params.put("formattedSearch", "'" + formattedSearch + "'");
                 params.put("original", "'''" + search + "''\\\\:*'");
             }
-        } else if (!Util.isEmpty(filter)) {
-            for (FieldSearchCriteria searchCriteria : filter) {
-                Field field = searchCriteria.getField();
-                String fieldName = searchCriteria.getField().getName();
-                String escapedFieldName = addDoubleQuotes(fieldName);
-                if (searchCriteria.getValues() == null || searchCriteria.getValues().get(0) == null) {
-                    queryStr += " and " + escapedFieldName + " is null";
-                } else if (field instanceof IntegerField || field instanceof FloatField || field instanceof DateField) {
-                    queryStr += " and " + escapedFieldName + " in (:" + fieldName + ")";
-                    params.put(field.getName(), searchCriteria.getValues());
-                } else if (field instanceof ReferenceField) {
-                    queryStr += " and " + escapedFieldName + "->> 'value' in (:" + fieldName + ")";
-                    params.put(field.getName(), searchCriteria.getValues().stream().map(Object::toString).collect(Collectors.toList()));
-                } else if (field instanceof TreeField) {
-                    if (SearchTypeEnum.LESS.equals(searchCriteria.getType())) {
-                        queryStr += " and " + escapedFieldName + "@> (cast(:" + fieldName + " AS ltree[]))";
-                        String v = searchCriteria.getValues().stream().map(Object::toString).collect(Collectors.joining(",", "{", "}"));
-                        params.put(field.getName(), v);
-                    }
-                } else if (field instanceof BooleanField) {
-                    if (searchCriteria.getValues().size() == 1) {
-                        queryStr += " and " + escapedFieldName +
-                                ((Boolean) (searchCriteria.getValues().get(0)) ? " IS TRUE " : " IS NOT TRUE");
-                    }
-                } else if (field instanceof StringField) {
-                    if (SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && searchCriteria.getValues().size() == 1) {
-                        queryStr += " and lower(" + escapedFieldName + ") like :" + fieldName + "";
-                        params.put(field.getName(), "%" + searchCriteria.getValues().get(0).toString().trim().toLowerCase() + "%");
+        } else if (!Util.isEmpty(filters)) {
+            final int[] i = {-1};
+            queryStr += filters.stream().map(listOfFilters -> {
+                if (isEmpty(listOfFilters))
+                    return "";
+                String filter = "1 = 1";
+                for (FieldSearchCriteria searchCriteria : listOfFilters) {
+                    i[0]++;
+                    Field field = searchCriteria.getField();
+                    String fieldName = searchCriteria.getField().getName();
+                    String escapedFieldName = addDoubleQuotes(fieldName);
+                    if (alias != null && !"".equals(alias))
+                        escapedFieldName = alias + "." + escapedFieldName;
+                    if (searchCriteria.getValues() == null || searchCriteria.getValues().get(0) == null) {
+                        filter += " and " + escapedFieldName + " is null";
+                    } else if (field instanceof IntegerField || field instanceof FloatField || field instanceof DateField) {
+                        filter += " and " + escapedFieldName + " in (:" + fieldName + i[0] + ")";
+                        params.put(fieldName + i[0], searchCriteria.getValues());
+                    } else if (field instanceof ReferenceField) {
+                        filter += " and " + escapedFieldName + "->> 'value' in (:" + fieldName + i[0] + ")";
+                        params.put(fieldName + i[0], searchCriteria.getValues().stream().map(Object::toString).collect(Collectors.toList()));
+                    } else if (field instanceof TreeField) {
+                        if (SearchTypeEnum.LESS.equals(searchCriteria.getType())) {
+                            filter += " and " + escapedFieldName + "@> (cast(:" + fieldName + i[0] + " AS ltree[]))";
+                            String v = searchCriteria.getValues().stream().map(Object::toString).collect(Collectors.joining(",", "{", "}"));
+                            params.put(fieldName + i[0], v);
+                        }
+                    } else if (field instanceof BooleanField) {
+                        if (searchCriteria.getValues().size() == 1) {
+                            filter += " and " + escapedFieldName +
+                                    ((Boolean) (searchCriteria.getValues().get(0)) ? " IS TRUE " : " IS NOT TRUE");
+                        }
+                    } else if (field instanceof StringField) {
+                        if (SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && searchCriteria.getValues().size() == 1) {
+                            filter += " and lower(" + escapedFieldName + ") like :" + fieldName + i[0] + "";
+                            params.put(fieldName + i[0], "%" + searchCriteria.getValues().get(0).toString().trim().toLowerCase() + "%");
+                        } else {
+                            filter += " and " + escapedFieldName + " in (:" + fieldName + i[0] + ")";
+                            params.put(fieldName + i[0], searchCriteria.getValues());
+                        }
                     } else {
-                        queryStr += " and " + escapedFieldName + " in (:" + fieldName + ")";
-                        params.put(field.getName(), searchCriteria.getValues());
+                        params.put(fieldName + i[0], searchCriteria.getValues());
                     }
-                } else {
-                    params.put(field.getName(), searchCriteria.getValues());
-
                 }
-            }
+                return filter;
+            }).collect(Collectors.joining(" or "));
+            if (!queryStr.equals(""))
+                queryStr = " and (" + queryStr + ")";
         }
         return new QueryWithParams(queryStr, params);
     }
-
 
     public BigInteger countData(String tableName) {
         return (BigInteger) entityManager.createNativeQuery(String.format(SELECT_COUNT_QUERY_TEMPLATE, addDoubleQuotes(tableName))).getSingleResult();
@@ -237,7 +250,7 @@ public class DataDao {
         entityManager.createNativeQuery(String.format(COPY_TABLE_TEMPLATE, addDoubleQuotes(newTableName),
                 addDoubleQuotes(sourceTableName))).executeUpdate();
         entityManager.createNativeQuery(String.format("CREATE SEQUENCE data.\"%s_SYS_RECORDID_seq\" start 1", newTableName)).executeUpdate();
-        List<String> indexes = entityManager.createNativeQuery("select indexdef from pg_indexes where tablename=? and not indexdef like '%\"SYS_HASH\"%';")
+        List<String> indexes = entityManager.createNativeQuery("SELECT indexdef FROM pg_indexes WHERE tablename=? AND NOT indexdef LIKE '%\"SYS_HASH\"%';")
                 .setParameter(1, sourceTableName)
                 .getResultList();
         for (String index : indexes) {
@@ -274,7 +287,7 @@ public class DataDao {
         List<String> values = new ArrayList<>();
         SimpleDateFormat sdf = new SimpleDateFormat(TIMESTAMP_DATE_FORMAT);
         for (Object fieldValue : data.iterator().next().getFieldValues()) {
-            keys.add(addDoubleQuotes(((FieldValue)fieldValue).getField()));
+            keys.add(addDoubleQuotes(((FieldValue) fieldValue).getField()));
         }
         for (RowValue rowValue : data) {
             List<String> rowValues = new ArrayList<>(rowValue.getFieldValues().size());
@@ -461,8 +474,9 @@ public class DataDao {
                 addDoubleQuotes(tableName),
                 fieldNames.stream().collect(Collectors.joining(", ")))).executeUpdate();
     }
+
     @Transactional
-    public void updateFtsRows(String tableName){
+    public void updateFtsRows(String tableName) {
         List<String> fieldNames = getFieldNames(tableName);
         entityManager.createNativeQuery(String.format(UPDATE_FTS,
                 addDoubleQuotes(tableName),
@@ -580,10 +594,10 @@ public class DataDao {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
         final SimpleDateFormat df = new SimpleDateFormat(TIMESTAMP_DATE_FORMAT);
         Map<String, String> placeholderValues = new HashMap<>();
-        placeholderValues.put("draftTable", "data."+addDoubleQuotes(draftTable));
-        placeholderValues.put("versionTable", "data."+addDoubleQuotes(versionTable));
+        placeholderValues.put("draftTable", "data." + addDoubleQuotes(draftTable));
+        placeholderValues.put("versionTable", "data." + addDoubleQuotes(versionTable));
         placeholderValues.put("publishTime", df.format(publishTime));
-        placeholderValues.put("closeTime",  df.format(closeTime));
+        placeholderValues.put("closeTime", df.format(closeTime));
         String query = StrSubstitutor.replace(COUNT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME, placeholderValues);
         return (BigInteger) entityManager.createNativeQuery(query).getSingleResult();
     }
@@ -601,12 +615,12 @@ public class DataDao {
         Map<String, String> placeholderValues = new HashMap<>();
         placeholderValues.put("dColumns", columnsWithPrefixD);
         placeholderValues.put("vValues", columnsWithPrefixValue);
-        placeholderValues.put("versionTable", "data."+addDoubleQuotes(versionTable));
-        placeholderValues.put("draftTable", "data."+addDoubleQuotes(draftTable));
+        placeholderValues.put("versionTable", "data." + addDoubleQuotes(versionTable));
+        placeholderValues.put("draftTable", "data." + addDoubleQuotes(draftTable));
         placeholderValues.put("publishTime", dateFormat.format(publishTime));
         placeholderValues.put("closeTime", dateFormat.format(closeTime));
-        placeholderValues.put("offset", ""+offset);
-        placeholderValues.put("transactionSize", ""+transactionSize);
+        placeholderValues.put("offset", "" + offset);
+        placeholderValues.put("transactionSize", "" + transactionSize);
         placeholderValues.put("newTableSeqName", "data." + getSequenceName(tableToInsert));
         placeholderValues.put("tableToInsert", "data." + addDoubleQuotes(tableToInsert));
         placeholderValues.put("columns", columnsStr);
@@ -662,8 +676,8 @@ public class DataDao {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
         final SimpleDateFormat df = new SimpleDateFormat(TIMESTAMP_DATE_FORMAT);
         Map<String, String> placeholderValues = new HashMap<>();
-        placeholderValues.put("versionTable", "data."+ addDoubleQuotes(versionTable));
-        placeholderValues.put("draftTable", "data."+ addDoubleQuotes(draftTable));
+        placeholderValues.put("versionTable", "data." + addDoubleQuotes(versionTable));
+        placeholderValues.put("draftTable", "data." + addDoubleQuotes(draftTable));
         placeholderValues.put("publishTime", df.format(publishTime));
         placeholderValues.put("closeTime", df.format(closeTime));
         String query = StrSubstitutor.replace(COUNT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME, placeholderValues);
@@ -678,16 +692,16 @@ public class DataDao {
         String columnsWithType = columns.keySet().stream().map(s -> s + " " + columns.get(s)).reduce((s1, s2) -> s1 + ", " + s2).get();
         final SimpleDateFormat df = new SimpleDateFormat(TIMESTAMP_DATE_FORMAT);
         Map<String, String> placeholderValues = new HashMap<>();
-        placeholderValues.put("tableToInsert", "data."+addDoubleQuotes(tableToInsert));
-        placeholderValues.put("draftTable", "data."+addDoubleQuotes(draftTable));
-        placeholderValues.put("versionTable", "data."+addDoubleQuotes(versionTable));
+        placeholderValues.put("tableToInsert", "data." + addDoubleQuotes(tableToInsert));
+        placeholderValues.put("draftTable", "data." + addDoubleQuotes(draftTable));
+        placeholderValues.put("versionTable", "data." + addDoubleQuotes(versionTable));
         placeholderValues.put("publishTime", df.format(publishTime));
-        placeholderValues.put("closeTime",  df.format(closeTime));
-        placeholderValues.put("columns",  columnsStr);
-        placeholderValues.put("offset",  ""+offset);
-        placeholderValues.put("transactionSize",  ""+transactionSize);
-        placeholderValues.put("columnsWithType",  columnsWithType);
-        placeholderValues.put("sequenceName",  "data."+getSequenceName(tableToInsert));
+        placeholderValues.put("closeTime", df.format(closeTime));
+        placeholderValues.put("columns", columnsStr);
+        placeholderValues.put("offset", "" + offset);
+        placeholderValues.put("transactionSize", "" + transactionSize);
+        placeholderValues.put("columnsWithType", columnsWithType);
+        placeholderValues.put("sequenceName", "data." + getSequenceName(tableToInsert));
         String query = StrSubstitutor.replace(INSERT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME, placeholderValues);
         if (logger.isDebugEnabled()) {
             logger.debug("insertClosedNowDataFromVersion with closeTime method query: " + query);
@@ -701,10 +715,10 @@ public class DataDao {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
         final SimpleDateFormat df = new SimpleDateFormat(TIMESTAMP_DATE_FORMAT);
         Map<String, String> placeholderValues = new HashMap<>();
-        placeholderValues.put("draftTable", "data."+addDoubleQuotes(draftTable));
-        placeholderValues.put("versionTable", "data."+addDoubleQuotes(versionTable));
+        placeholderValues.put("draftTable", "data." + addDoubleQuotes(draftTable));
+        placeholderValues.put("versionTable", "data." + addDoubleQuotes(versionTable));
         placeholderValues.put("publishTime", df.format(publishTime));
-        placeholderValues.put("closeTime",  df.format(closeTime));
+        placeholderValues.put("closeTime", df.format(closeTime));
         String query = StrSubstitutor.replace(COUNT_NEW_VAL_FROM_DRAFT_WITH_CLOSE_TIME, placeholderValues);
         return (BigInteger) entityManager.createNativeQuery(query).getSingleResult();
 
@@ -723,9 +737,9 @@ public class DataDao {
         placeholderValues.put("draftTable", "data." + addDoubleQuotes(draftTable));
         placeholderValues.put("versionTable", "data." + addDoubleQuotes(versionTable));
         placeholderValues.put("publishTime", df.format(publishTime));
-        placeholderValues.put("closeTime",  df.format(closeTime));
-        placeholderValues.put("transactionSize", ""+transactionSize);
-        placeholderValues.put("offset", ""+offset);
+        placeholderValues.put("closeTime", df.format(closeTime));
+        placeholderValues.put("transactionSize", "" + transactionSize);
+        placeholderValues.put("offset", "" + offset);
         placeholderValues.put("sequenceName", "data." + getSequenceName(tableToInsert));
         placeholderValues.put("tableToInsert", "data." + addDoubleQuotes(tableToInsert));
         placeholderValues.put("rowFields", columnsWithPrefix);
@@ -933,39 +947,11 @@ public class DataDao {
         return dataDifference;
     }
 
-    private String getFieldValuesFilter(String alias, Map<String, Object> params, Set<List<FieldValue>> fieldValuesFilters) {
-        if (isEmpty(fieldValuesFilters))
-            return "";
-        else {
-            String filter;
-            if (fieldValuesFilters.stream().findFirst().get().size() == 1) {
-                FieldValue fieldValue = fieldValuesFilters.stream().findFirst().get().get(0);
+    private String getFieldValuesFilter(String alias, Map<String, Object> params, Set<List<FieldSearchCriteria>> fieldValuesFilters) {
+        QueryWithParams queryWithParams = getDictionaryFilterQuery(null, fieldValuesFilters, alias);
+        params.putAll(queryWithParams.getParams());
 
-                filter = " and (" + alias + "." + addDoubleQuotes(fieldValue.getField()) + " in (:" + fieldValue.getField().toLowerCase() + "_values" + ") " + ")";
-                params.put(fieldValue.getField().toLowerCase() + "_values", fieldValuesFilters
-                        .stream()
-                        .map(primaryFieldsFilter -> primaryFieldsFilter.get(0).getValue())
-                        .collect(Collectors.toList()));
-            } else {
-                final int[] i = {-1};
-                filter = " and (" +
-                        fieldValuesFilters
-                                .stream()
-                                .map(fieldValuesFilter -> {
-                                    i[0]++;
-                                    return fieldValuesFilter
-                                            .stream()
-                                            .map(fieldValueFilter -> {
-                                                params.put(fieldValueFilter.getField().toLowerCase() + i[0], fieldValueFilter.getValue());
-                                                return formatFieldForQuery(fieldValueFilter.getField(), "t1") + " = :" + fieldValueFilter.getField().toLowerCase() + i[0];
-                                            })
-                                            .collect(Collectors.joining(" and "));
-                                })
-                                .collect(Collectors.joining(" or ")) +
-                        ") ";
-            }
-            return filter;
-        }
+        return queryWithParams.getQuery();
     }
 
     private class QueryWithParams {
