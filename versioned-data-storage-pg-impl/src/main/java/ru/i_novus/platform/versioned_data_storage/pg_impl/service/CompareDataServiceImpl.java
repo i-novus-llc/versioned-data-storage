@@ -17,7 +17,7 @@ public class CompareDataServiceImpl implements CompareDataService {
     }
 
     @Override
-    public DataDifference getDataDifferenceForPeriod(CompareDataCriteria criteria) {
-        return dataDao.getDataDifferenceForPeriod(criteria);
+    public DataDifference getDataDifference(CompareDataCriteria criteria) {
+        return dataDao.getDataDifference(criteria);
     }
 }

@@ -18,6 +18,6 @@ public interface CompareDataService {
      * @param criteria параметры запроса
      * @return Результат сравнения
      */
-    DataDifference getDataDifferenceForPeriod(CompareDataCriteria criteria);
+    DataDifference getDataDifference(CompareDataCriteria criteria);
 
 }
