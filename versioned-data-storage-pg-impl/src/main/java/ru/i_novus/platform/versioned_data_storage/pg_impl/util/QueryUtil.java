@@ -1,20 +1,16 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.util;
 
 import net.n2oapp.criteria.api.Criteria;
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
-import ru.i_novus.platform.datastorage.temporal.model.Field;
-import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
-import ru.i_novus.platform.datastorage.temporal.model.LongRowValue;
-import ru.i_novus.platform.datastorage.temporal.model.Reference;
+import org.apache.commons.lang.text.StrSubstitutor;
+import ru.i_novus.platform.datastorage.temporal.model.*;
 import ru.i_novus.platform.datastorage.temporal.model.value.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 
 import java.math.BigInteger;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author lgalimova
@@ -169,5 +165,14 @@ public class QueryUtil {
                 return new StringField(name);
         }
 
+    }
+
+    public static String sqlDisplayExpression(DisplayExpression displayExpression, String table) {
+        String sqlDisplayExpression = StringEscapeUtils.escapeSql(displayExpression.getValue());
+        Map<String, String> map = new HashMap<>();
+        for (String placeholder : displayExpression.getPlaceholders()) {
+            map.put(placeholder, "' || " + table + ".\"" + placeholder + "\" || '");
+        }
+        return addSingleQuotes(StrSubstitutor.replace(sqlDisplayExpression, map));
     }
 }
