@@ -373,7 +373,14 @@ public class DataDao {
                 if (refValue.getValue() == null)
                     keyList.add(addDoubleQuotes(fieldName) + " = NULL");
                 else {
-                    if (refValue.getDisplayField() != null)
+                    if (ofNullable(refValue.getDisplayExpression()).map(DisplayExpression::getValue).isPresent()) {
+                        keyList.add(addDoubleQuotes(fieldName) + String.format("=(select jsonb_build_object('value', d.%s , 'displayValue', %s, 'hash', d.\"SYS_HASH\") from data.%s d where d.%s=?\\:\\:" + getFieldType(refValue.getStorageCode(), refValue.getKeyField()) + " and %s)",
+                                addDoubleQuotes(refValue.getKeyField()),
+                                sqlDisplayExpression(refValue.getDisplayExpression(), "d"),
+                                addDoubleQuotes(refValue.getStorageCode()),
+                                addDoubleQuotes(refValue.getKeyField()),
+                                getDataWhereClauseStr(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(sdf.format(refValue.getDate())))));
+                    } else if (refValue.getDisplayField() != null)
                         keyList.add(addDoubleQuotes(fieldName) + String.format("=(select jsonb_build_object('value', d.%s , 'displayValue', d.%s, 'hash', d.\"SYS_HASH\") from data.%s d where d.%s=?\\:\\:" + getFieldType(refValue.getStorageCode(), refValue.getKeyField()) + " and %s)",
                                 addDoubleQuotes(refValue.getKeyField()),
                                 addDoubleQuotes(refValue.getDisplayField()),
