@@ -6,6 +6,8 @@ import ru.i_novus.platform.datastorage.temporal.model.value.FloatFieldValue;
 
 import java.math.BigDecimal;
 
+import static java.util.Optional.ofNullable;
+
 /**
  * @author lgalimova
  * @since 23.03.2018
@@ -24,6 +26,10 @@ public class FloatField extends Field<Number> {
 
     @Override
     public FieldValue valueOf(Number value) {
-        return new FloatFieldValue(getName(), new BigDecimal(value.toString()));
+        return new FloatFieldValue(
+                getName(),
+                ofNullable(value)
+                        .map(String::valueOf)
+                        .map(BigDecimal::new).orElse(null));
     }
 }
