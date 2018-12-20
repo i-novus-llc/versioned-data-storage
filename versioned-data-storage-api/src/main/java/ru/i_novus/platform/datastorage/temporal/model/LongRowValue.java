@@ -23,4 +23,7 @@ public class LongRowValue extends RowValue<Long> {
         super(null, asList(fieldValues));
     }
 
+    public LongRowValue(Long systemId, List<FieldValue> fieldValues, String hash) {
+        super(systemId, fieldValues, hash);
+    }
 }

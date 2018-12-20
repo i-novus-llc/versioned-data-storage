@@ -33,6 +33,11 @@ public class QueryUtil {
                         rowValue.setSystemId(Long.parseLong(row[i].toString()));
                         continue;
                     }
+                    if (i == 1) {
+                        //SYS_HASH
+                        rowValue.setHash(row[i].toString());
+                        continue;
+                    }
                     if (field instanceof ReferenceField) {
                         value = new Reference(row[i] != null ? row[i].toString() : null, row[i + 1] != null ? row[i + 1].toString() : null);
                         i++;

@@ -32,7 +32,10 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
 import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.joining;
 import static org.springframework.util.CollectionUtils.isEmpty;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.service.QueryConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.*;
@@ -52,12 +55,18 @@ public class DataDao {
     public List<RowValue> getData(DataCriteria criteria) {
         List<Field> fields = new ArrayList<>(criteria.getFields());
         fields.add(0, new IntegerField(DATA_PRIMARY_COLUMN));
+        if (fields.stream().noneMatch(field -> SYS_HASH.equals(field.getName())))
+            fields.add(1, new StringField(SYS_HASH));
         QueryWithParams queryWithParams = new QueryWithParams("SELECT " + generateSqlQuery("d", fields, true) +
                 " FROM data." + addDoubleQuotes(criteria.getTableName()) + " d ", null);
-
-        queryWithParams.concat(
-                getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter())
-        );
+        QueryWithParams dataWhereClause;
+        if (isEmpty(criteria.getHashList())) {
+            dataWhereClause = getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter());
+        } else {
+            dataWhereClause = getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(),
+                    singleton(singletonList(new FieldSearchCriteria(new StringField(SYS_HASH), SearchTypeEnum.EXACT, criteria.getHashList()))));
+        }
+        queryWithParams.concat(dataWhereClause);
         queryWithParams.concat(new QueryWithParams(
                 getDictionaryDataOrderBy((!Util.isEmpty(criteria.getSortings()) ? criteria.getSortings().get(0) : null), "d"),
                 null
@@ -68,6 +77,23 @@ public class DataDao {
                     .setMaxResults(criteria.getSize());
         List<Object[]> resultList = query.getResultList();
         return convertToRowValue(fields, resultList);
+    }
+
+    public List<String> getNotExists(String tableName, Date bdate, Date edate, List<String> hashList) {
+        Map<String, Object> params = new HashMap<>();
+        String sqlHashArray = "array[" + hashList.stream().map(hash -> {
+            String hashPlaceHolder = "hash" + params.size();
+            params.put(hashPlaceHolder, hash);
+            return ":" + hashPlaceHolder;
+        }).collect(joining(",")) + "]";
+
+        String query = "SELECT hash FROM (" +
+                "SELECT unnest(" + sqlHashArray + ") hash) hashes WHERE hash NOT IN (" +
+                "SELECT " + addDoubleQuotes(SYS_HASH) + " FROM data." + addDoubleQuotes(tableName) + " d " +
+                getDataWhereClause(bdate, edate, null, null).getQuery() + ")";
+        QueryWithParams queryWithParams = new QueryWithParams(query, params);
+        List<String> resultList = queryWithParams.createQuery(entityManager).getResultList();
+        return resultList;
     }
 
     public RowValue getRowData(String tableName, List<String> fieldNames, Object systemId) {
