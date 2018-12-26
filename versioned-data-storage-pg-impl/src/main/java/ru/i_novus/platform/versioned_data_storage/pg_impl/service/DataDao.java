@@ -198,10 +198,10 @@ public class DataDao {
                 params.put("search", search.trim());
                 params.put("reverseSearch", reverseSearch);
             } else {
-                String formattedSearch = search.toLowerCase().replaceAll(":", "\\\\:").replaceAll("/", "\\\\/").replace(" ", "+") + "\\\\:*";
-                queryStr += " and (" + escapedFtsColumn + " @@ to_tsquery(:formattedSearch) or " + escapedFtsColumn + " @@ to_tsquery('ru', :formattedSearch) or " + escapedFtsColumn + " @@ to_tsquery('ru', :original)) ";
+                String formattedSearch = search.toLowerCase().replaceAll(":", "\\\\:").replaceAll("/", "\\\\/").replace(" ", "+");
+                queryStr += " and (" + escapedFtsColumn + " @@ to_tsquery(:formattedSearch||':*') or " + escapedFtsColumn + " @@ to_tsquery('ru', :formattedSearch||':*') or " + escapedFtsColumn + " @@ to_tsquery('ru', :original||':*')) ";
                 params.put("formattedSearch", "'" + formattedSearch + "'");
-                params.put("original", "'''" + search + "''\\\\:*'");
+                params.put("original", "'''" + search + "'''");
             }
         } else if (!Util.isEmpty(filters)) {
             final int[] i = {-1};
