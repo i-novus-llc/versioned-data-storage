@@ -87,10 +87,12 @@ public class DataDao {
             return ":" + hashPlaceHolder;
         }).collect(joining(",")) + "]";
 
+        QueryWithParams dataWhereClause = getDataWhereClause(bdate, edate, null, null);
         String query = "SELECT hash FROM (" +
                 "SELECT unnest(" + sqlHashArray + ") hash) hashes WHERE hash NOT IN (" +
                 "SELECT " + addDoubleQuotes(SYS_HASH) + " FROM data." + addDoubleQuotes(tableName) + " d " +
-                getDataWhereClause(bdate, edate, null, null).getQuery() + ")";
+                dataWhereClause.getQuery() + ")";
+        params.putAll(dataWhereClause.params);
         QueryWithParams queryWithParams = new QueryWithParams(query, params);
         List<String> resultList = queryWithParams.createQuery(entityManager).getResultList();
         return resultList;
