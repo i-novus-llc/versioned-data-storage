@@ -378,12 +378,12 @@ public class DataDao {
     }
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void loadData(String draftCode, String sourceStorageCode, List<String> fields, Date onDate) {
+    public void loadData(String draftCode, String sourceStorageCode, List<String> fields, Date fromDate, Date toDate ) {
         String keys = fields.stream().collect(Collectors.joining(","));
         String values = fields.stream().map(f -> "d." + f).collect(Collectors.joining(","));
         QueryWithParams queryWithParams = new QueryWithParams(String.format(COPY_QUERY_TEMPLATE, addDoubleQuotes(draftCode), keys, values,
                 addDoubleQuotes(sourceStorageCode)), null);
-        queryWithParams.concat(getDataWhereClause(onDate, null, null, null));
+        queryWithParams.concat(getDataWhereClause(fromDate, toDate, null, null));
         queryWithParams.createQuery(entityManager).executeUpdate();
     }
 
