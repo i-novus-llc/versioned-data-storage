@@ -85,6 +85,16 @@ public interface DraftDataService {
     void loadData(String draftCode, String sourceStorageCode, Date onDate);
 
     /**
+     * Загрузить данные в черновик из хранилища
+     *
+     * @param draftCode         код черновика
+     * @param sourceStorageCode код хранилища данных, откуда будут загружены данные
+     * @param fromDate          дата публикации версии
+     * @param toDate            дата публикации версии
+     */
+    void loadData(String draftCode, String sourceStorageCode, Date fromDate, Date toDate);
+
+    /**
      * Добавление нового поля в таблицу
      *
      * @param draftCode код черновика

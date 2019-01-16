@@ -106,6 +106,11 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     @Override
     public void loadData(String draftCode, String sourceStorageCode, Date onDate) {
+        loadData(draftCode, sourceStorageCode, onDate, null);
+    }
+
+    @Override
+    public void loadData(String draftCode, String sourceStorageCode, Date fromDate, Date toDate) {
         List<String> draftFields = dataDao.getFieldNames(draftCode);
         List<String> sourceFields = dataDao.getFieldNames(draftCode);
         if (!draftFields.equals(sourceFields)) {
@@ -114,7 +119,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         draftFields.add(addDoubleQuotes(DATA_PRIMARY_COLUMN));
         draftFields.add(addDoubleQuotes(FULL_TEXT_SEARCH));
         draftFields.add(addDoubleQuotes(SYS_HASH));
-        dataDao.loadData(draftCode, sourceStorageCode, draftFields, onDate);
+        dataDao.loadData(draftCode, sourceStorageCode, draftFields, fromDate, toDate);
         dataDao.updateSequence(draftCode);
     }
 
