@@ -89,8 +89,8 @@ public interface DraftDataService {
      *
      * @param draftCode         код черновика
      * @param sourceStorageCode код хранилища данных, откуда будут загружены данные
-     * @param fromDate          дата публикации версии
-     * @param toDate            дата публикации версии
+     * @param fromDate          дата начала действия версии
+     * @param toDate            дата окончания действия версии
      */
     void loadData(String draftCode, String sourceStorageCode, Date fromDate, Date toDate);
 
