@@ -3,6 +3,7 @@ package ru.i_novus.platform.versioned_data_storage.pg_impl.service;
 import org.apache.commons.lang.BooleanUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 import ru.i_novus.platform.datastorage.temporal.exception.ListCodifiedException;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
@@ -144,9 +145,12 @@ public class DraftDataServiceImpl implements DraftDataService {
             throw new CodifiedException(COLUMN_NOT_EXISTS);
         dataDao.dropTrigger(draftCode);
         dataDao.deleteColumnFromTable(draftCode, fieldName);
-        dataDao.createTrigger(draftCode);
-        dataDao.updateHashRows(draftCode);
-        dataDao.updateFtsRows(draftCode);
+        dataDao.deleteEmptyRows(draftCode);
+        if (!CollectionUtils.isEmpty(dataDao.getFieldNames(draftCode))) {
+            dataDao.createTrigger(draftCode);
+            dataDao.updateHashRows(draftCode);
+            dataDao.updateFtsRows(draftCode);
+        }
     }
 
     @Transactional
@@ -230,9 +234,9 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     /*
-    * нет пересечений по дате
-    * нет SYS_HASH (из actualVersionTable те, которых нет в draftTable
-    */
+     * нет пересечений по дате
+     * нет SYS_HASH (из actualVersionTable те, которых нет в draftTable
+     */
     private void insertOldDataFromVersion(String actualVersionTable, String draftTable, String newTable, List<String> columns, Date publishTime, Date closeTime) {
         BigInteger count = dataDao.countOldDataFromVersion(actualVersionTable, draftTable, publishTime, closeTime);
         for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
