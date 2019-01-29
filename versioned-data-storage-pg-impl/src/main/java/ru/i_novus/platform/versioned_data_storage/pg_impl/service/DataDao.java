@@ -458,6 +458,18 @@ public class DataDao {
         query.executeUpdate();
     }
 
+    @Transactional
+    public void deleteEmptyRows(String draftCode) {
+        List<String> fieldNames = getFieldNames(draftCode);
+        if (isEmpty(fieldNames)){
+            deleteData(draftCode);
+        } else {
+            String fieldsString = String.join(", ", fieldNames);
+            Query query = entityManager.createNativeQuery(String.format(DELETE_EMPTY_RECORDS_FROM_TABLE_QUERY_TEMPLATE, addDoubleQuotes(draftCode), fieldsString));
+            query.executeUpdate();
+        }
+    }
+
     public boolean isUnique(String storageCode, List<String> fieldNames, Date publishTime) {
         String fields = fieldNames.stream().map(fieldName -> addDoubleQuotes(fieldName) + "\\:\\:text")
                 .collect(Collectors.joining(","));
