@@ -22,5 +22,6 @@ public class ExceptionCodes {
     public static final String COLUMN_NOT_EXISTS = "nsi.core.data.field.notExists";
     public static final String SYS_FIELD_CONFLICT = "nsi.core.data.field.sysConflict";
     public static final String INCOMPATIBLE_NEW_DATA_TYPE_EXCEPTION_CODE = "nsi.core.data.loader.incompatibleNewDataType";
+    public static final String NOT_UNIQUE_ROW = "nsi.core.data.loader.not.unique.row";
 
 }

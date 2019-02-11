@@ -461,11 +461,11 @@ public class DataDao {
     @Transactional
     public void deleteEmptyRows(String draftCode) {
         List<String> fieldNames = getFieldNames(draftCode);
-        if (isEmpty(fieldNames)){
+        if (isEmpty(fieldNames)) {
             deleteData(draftCode);
         } else {
-            String fieldsString = String.join(", ", fieldNames);
-            Query query = entityManager.createNativeQuery(String.format(DELETE_EMPTY_RECORDS_FROM_TABLE_QUERY_TEMPLATE, addDoubleQuotes(draftCode), fieldsString));
+            String allFieldsNullWhere = fieldNames.stream().map(s -> s + " IS NULL").collect(joining(" AND "));
+            Query query = entityManager.createNativeQuery(String.format(DELETE_EMPTY_RECORDS_FROM_TABLE_QUERY_TEMPLATE, addDoubleQuotes(draftCode), allFieldsNullWhere));
             query.executeUpdate();
         }
     }

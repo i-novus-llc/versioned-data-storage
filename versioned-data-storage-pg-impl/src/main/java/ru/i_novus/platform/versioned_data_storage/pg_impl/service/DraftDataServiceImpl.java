@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 import ru.i_novus.platform.datastorage.temporal.exception.ListCodifiedException;
+import ru.i_novus.platform.datastorage.temporal.exception.NotUniqueException;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
@@ -15,9 +16,11 @@ import ru.kirkazan.common.exception.CodifiedException;
 import javax.persistence.PersistenceException;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static java.util.Optional.of;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.ExceptionCodes.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.service.QueryConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.addDoubleQuotes;
@@ -148,7 +151,17 @@ public class DraftDataServiceImpl implements DraftDataService {
         dataDao.deleteEmptyRows(draftCode);
         if (!CollectionUtils.isEmpty(dataDao.getFieldNames(draftCode))) {
             dataDao.createTrigger(draftCode);
-            dataDao.updateHashRows(draftCode);
+            try {
+                dataDao.updateHashRows(draftCode);
+            } catch (PersistenceException pe) {
+                //Обработка кода ошибки о нарушении уникальности в postgres
+                SQLException sqlException = (SQLException) of(pe).map(Throwable::getCause).map(Throwable::getCause)
+                        .filter(e -> e instanceof SQLException).orElse(null);
+                if (sqlException != null && "23505".equals(sqlException.getSQLState())) {
+                    throw new NotUniqueException(NOT_UNIQUE_ROW);
+                }
+                throw pe;
+            }
             dataDao.updateFtsRows(draftCode);
         }
     }
