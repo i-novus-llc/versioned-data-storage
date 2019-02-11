@@ -101,7 +101,7 @@ public class QueryConstants {
     //todo
     public static final String DELETE_POINT_ROWS_QUERY_TEMPLATE = "DELETE FROM data.%s WHERE \"SYS_PUBLISHTIME\" = \"SYS_CLOSETIME\";";
     public static final String DELETE_ALL_RECORDS_FROM_TABLE_QUERY_TEMPLATE = "DELETE FROM data.%s;";
-    public static final String DELETE_EMPTY_RECORDS_FROM_TABLE_QUERY_TEMPLATE = "DELETE FROM data.%s WHERE coalesce(%s) IS NULL;";
+    public static final String DELETE_EMPTY_RECORDS_FROM_TABLE_QUERY_TEMPLATE = "DELETE FROM data.%s WHERE %s;";
     public static final String UPDATE_QUERY_TEMPLATE = "UPDATE data.%s SET %s WHERE \"SYS_RECORDID\" IN (%s);";
     public static final String IS_VERSION_NOT_EMPTY = "SELECT exists(SELECT * FROM data.%s);";
     public static final String IS_FIELD_NOT_EMPTY = "SELECT exists(SELECT * FROM data.%s WHERE %s.%s IS NOT NULL);";

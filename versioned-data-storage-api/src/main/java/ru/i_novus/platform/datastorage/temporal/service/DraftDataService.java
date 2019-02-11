@@ -1,5 +1,6 @@
 package ru.i_novus.platform.datastorage.temporal.service;
 
+import ru.i_novus.platform.datastorage.temporal.exception.NotUniqueException;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 
@@ -107,6 +108,7 @@ public interface DraftDataService {
      *
      * @param draftCode код черновика
      * @param fieldName наименование удаляемого поля
+     * @throws NotUniqueException
      */
     void deleteField(String draftCode, String fieldName);
 
