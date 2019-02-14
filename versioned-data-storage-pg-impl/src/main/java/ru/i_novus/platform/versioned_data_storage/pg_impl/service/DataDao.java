@@ -448,6 +448,7 @@ public class DataDao {
         entityManager.createNativeQuery(String.format(DROP_FTS_TRIGGER, escapedTableName)).executeUpdate();
     }
 
+    @Transactional
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void createIndex(String tableName, String name, List<String> fields) {
         fields.stream().map(QueryUtil::addDoubleQuotes).collect(Collectors.joining(","));
