@@ -158,27 +158,26 @@ public class DataDao {
         return (BigInteger) queryWithParams.createQuery(entityManager).getSingleResult();
     }
 
-    @Deprecated//todo о избавиться
+    @Deprecated//todo избавиться
     public String getDataWhereClauseStr(Date publishDate, Date closeDate, String search, Set<List<FieldSearchCriteria>> filter) {
         String result = " 1=1 ";
         if (publishDate != null) {
-            result += " and date_trunc('second', d.\"SYS_PUBLISHTIME\") <= :bdate and (date_trunc('second', d.\"SYS_CLOSETIME\") > :bdate or d.\"SYS_CLOSETIME\" is null)";
+            result += " and d.\"SYS_PUBLISHTIME\" <= :bdate and (d.\"SYS_CLOSETIME\" > :bdate or d.\"SYS_CLOSETIME\" is null)";
         }
         if (closeDate != null) {
-            result += " and (date_trunc('second', d.\"SYS_CLOSETIME\") >= :edate or d.\"SYS_CLOSETIME\" is null)";
+            result += " and (d.\"SYS_CLOSETIME\" >= :edate or d.\"SYS_CLOSETIME\" is null)";
         }
         result += getDictionaryFilterQuery(search, filter, null).getQuery();
         return result;
     }
 
     private QueryWithParams getDataWhereClause(Date publishDate, Date closeDate, String search, Set<List<FieldSearchCriteria>> filters) {
-        closeDate = closeDate == null ? PG_MAX_TIMESTAMP : closeDate;
         Map<String, Object> params = new HashMap<>();
         String result = " WHERE 1=1 ";
         if (publishDate != null) {
-            result += " and date_trunc('second', d.\"SYS_PUBLISHTIME\") <= :bdate and (date_trunc('second', d.\"SYS_CLOSETIME\") > :bdate or d.\"SYS_CLOSETIME\" is null)";
+            result += " and d.\"SYS_PUBLISHTIME\" <= :bdate and (d.\"SYS_CLOSETIME\" > :bdate or d.\"SYS_CLOSETIME\" is null)";
             params.put("bdate", truncateDateTo(publishDate, ChronoUnit.SECONDS));
-            result += " and (date_trunc('second', d.\"SYS_CLOSETIME\") >= :edate or d.\"SYS_CLOSETIME\" is null)";
+            result += " and (d.\"SYS_CLOSETIME\" >= :edate or d.\"SYS_CLOSETIME\" is null)";
             params.put("edate", truncateDateTo(closeDate, ChronoUnit.SECONDS));
         }
         QueryWithParams queryWithParams = new QueryWithParams(result, params);
@@ -544,9 +543,12 @@ public class DataDao {
     }
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void createIndex(String tableName, String field) {
-        entityManager.createNativeQuery(String.format(CREATE_TABLE_INDEX, addDoubleQuotes(tableName + "_" + field.toLowerCase() + "_idx"),
-                addDoubleQuotes(tableName), addDoubleQuotes(field))).executeUpdate();
+    public void createIndex(String tableName, String name, List<String> fields) {
+        fields.stream().map(QueryUtil::addDoubleQuotes).collect(Collectors.joining(","));
+        entityManager.createNativeQuery(String.format(CREATE_TABLE_INDEX, name,
+                addDoubleQuotes(tableName),
+                fields.stream().map(QueryUtil::addDoubleQuotes).collect(Collectors.joining(","))))
+                .executeUpdate();
     }
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
@@ -878,7 +880,7 @@ public class DataDao {
                 .collect(Collectors.joining(" and "));
         String oldVersionDateFilter = "";
         if (criteria.getOldPublishDate() != null || criteria.getOldCloseDate() != null) {
-            oldVersionDateFilter = " and date_trunc('second', t1.\"SYS_PUBLISHTIME\") <= :oldPublishDate\\:\\:timestamp and date_trunc('second', t1.\"SYS_CLOSETIME\") >= :oldCloseDate\\:\\:timestamp ";
+            oldVersionDateFilter = " and t1.\"SYS_PUBLISHTIME\" <= :oldPublishDate\\:\\:timestamp and t1.\"SYS_CLOSETIME\" >= :oldCloseDate\\:\\:timestamp ";
             params.put("oldPublishDate", criteria.getOldPublishDate() != null
                     ? truncateDateTo(criteria.getOldPublishDate(), ChronoUnit.SECONDS)
                     : "'-infinity'");
@@ -888,7 +890,7 @@ public class DataDao {
         }
         String newVersionDateFilter = "";
         if (criteria.getNewPublishDate() != null || criteria.getNewCloseDate() != null) {
-            newVersionDateFilter = " and date_trunc('second', t2.\"SYS_PUBLISHTIME\") <= :newPublishDate\\:\\:timestamp and date_trunc('second', t2.\"SYS_CLOSETIME\") >= :newCloseDate\\:\\:timestamp ";
+            newVersionDateFilter = " and t2.\"SYS_PUBLISHTIME\" <= :newPublishDate\\:\\:timestamp and t2.\"SYS_CLOSETIME\" >= :newCloseDate\\:\\:timestamp ";
             params.put("newPublishDate", criteria.getNewPublishDate() != null
                     ? truncateDateTo(criteria.getNewPublishDate(), ChronoUnit.SECONDS)
                     : "'-infinity'");
