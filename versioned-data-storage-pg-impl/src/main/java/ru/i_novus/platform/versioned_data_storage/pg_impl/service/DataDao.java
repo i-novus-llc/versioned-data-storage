@@ -121,14 +121,14 @@ public class DataDao {
         return (BigInteger) queryWithParams.createQuery(entityManager).getSingleResult();
     }
 
-    @Deprecated//todo о избавиться
+    @Deprecated//todo избавиться
     public String getDataWhereClauseStr(Date publishDate, Date closeDate, String search, List<FieldSearchCriteria> filter) {
         String result = " 1=1 ";
         if (publishDate != null) {
-            result += " and date_trunc('second', d.\"SYS_PUBLISHTIME\") <= :bdate and (date_trunc('second', d.\"SYS_CLOSETIME\") > :bdate or d.\"SYS_CLOSETIME\" is null)";
+            result += " and d.\"SYS_PUBLISHTIME\" <= :bdate and (d.\"SYS_CLOSETIME\" > :bdate or d.\"SYS_CLOSETIME\" is null)";
         }
         if (closeDate != null) {
-            result += " and (date_trunc('second', d.\"SYS_CLOSETIME\") >= :edate or d.\"SYS_CLOSETIME\" is null)";
+            result += " and (d.\"SYS_CLOSETIME\" >= :edate or d.\"SYS_CLOSETIME\" is null)";
         }
         result += getDictionaryFilterQuery(search, filter).getQuery();
         return result;
@@ -138,11 +138,11 @@ public class DataDao {
         Map<String, Object> params = new HashMap<>();
         String result = " WHERE 1=1 ";
         if (publishDate != null) {
-            result += " and date_trunc('second', d.\"SYS_PUBLISHTIME\") <= :bdate and (date_trunc('second', d.\"SYS_CLOSETIME\") > :bdate or d.\"SYS_CLOSETIME\" is null)";
+            result += " and d.\"SYS_PUBLISHTIME\" <= :bdate and (d.\"SYS_CLOSETIME\" > :bdate or d.\"SYS_CLOSETIME\" is null)";
             params.put("bdate", truncateDateTo(publishDate, ChronoUnit.SECONDS));
         }
         if (closeDate != null) {
-            result += " and (date_trunc('second', d.\"SYS_CLOSETIME\") >= :edate or d.\"SYS_CLOSETIME\" is null)";
+            result += " and (d.\"SYS_CLOSETIME\" >= :edate or d.\"SYS_CLOSETIME\" is null)";
             params.put("edate", truncateDateTo(closeDate, ChronoUnit.SECONDS));
         }
         QueryWithParams queryWithParams = new QueryWithParams(result, params);
@@ -267,7 +267,7 @@ public class DataDao {
         List<String> values = new ArrayList<>();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         for (Object fieldValue : data.iterator().next().getFieldValues()) {
-            keys.add(addDoubleQuotes(((FieldValue)fieldValue).getField()));
+            keys.add(addDoubleQuotes(((FieldValue) fieldValue).getField()));
         }
         for (RowValue rowValue : data) {
             List<String> rowValues = new ArrayList<>(rowValue.getFieldValues().size());
@@ -449,9 +449,12 @@ public class DataDao {
     }
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void createIndex(String tableName, String field) {
-        entityManager.createNativeQuery(String.format(CREATE_TABLE_INDEX, addDoubleQuotes(tableName + "_" + field.toLowerCase() + "_idx"),
-                addDoubleQuotes(tableName), addDoubleQuotes(field))).executeUpdate();
+    public void createIndex(String tableName, String name, List<String> fields) {
+        fields.stream().map(QueryUtil::addDoubleQuotes).collect(Collectors.joining(","));
+        entityManager.createNativeQuery(String.format(CREATE_TABLE_INDEX, name,
+                addDoubleQuotes(tableName),
+                fields.stream().map(QueryUtil::addDoubleQuotes).collect(Collectors.joining(","))))
+                .executeUpdate();
     }
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
@@ -690,9 +693,9 @@ public class DataDao {
         String primaryEquality = criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t1") + "=" + formatFieldForQuery(f, "t2")).collect(Collectors.joining(","));
         String basePrimaryIsNull = criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t1") + " is null ").collect(Collectors.joining(" and "));
         String targetPrimaryIsNull = criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t2") + " is null ").collect(Collectors.joining(" and "));
-        String baseFilter = " and date_trunc('second', t1.\"SYS_PUBLISHTIME\") <= :baseDate and (date_trunc('second', t1.\"SYS_CLOSETIME\") > :baseDate or t1.\"SYS_CLOSETIME\" is null) ";
+        String baseFilter = " and t1.\"SYS_PUBLISHTIME\" <= :baseDate and (t1.\"SYS_CLOSETIME\" > :baseDate or t1.\"SYS_CLOSETIME\" is null) ";
         String targetFilter = criteria.getDraftCode() == null ?
-                " and date_trunc('second', t2.\"SYS_PUBLISHTIME\") <= :targetDate and (date_trunc('second', t2.\"SYS_CLOSETIME\") > :targetDate or t2.\"SYS_CLOSETIME\" is null) " : "";
+                " and t2.\"SYS_PUBLISHTIME\" <= :targetDate and (t2.\"SYS_CLOSETIME\" > :targetDate or t2.\"SYS_CLOSETIME\" is null) " : "";
         String joinType;
         switch (criteria.getReturnType()) {
             case NEW:
