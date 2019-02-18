@@ -587,6 +587,8 @@ public class DataDao {
         String using = "";
         if (DateField.TYPE.equals(oldType) && (StringField.TYPE.equals(newType) || IntegerStringField.TYPE.equals(newType))) {
             using = "to_char(" + escapedField + ", '" + DATE_FORMAT_FOR_USING_CONVERTING + "')";
+        } else if (DateField.TYPE.equals(newType) && StringField.TYPE.equals(oldType)) {
+            using = "to_date(" + escapedField + ", '" + DATE_FORMAT_FOR_USING_CONVERTING + "')";
         } else if (ReferenceField.TYPE.equals(oldType)) {
             using = "(" + escapedField + "->>'value')" + "\\:\\:varchar\\:\\:" + newType;
         } else if (ReferenceField.TYPE.equals(newType)) {
