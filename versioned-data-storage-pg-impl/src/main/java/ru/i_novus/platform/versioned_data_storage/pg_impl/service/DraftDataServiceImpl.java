@@ -215,7 +215,8 @@ public class DraftDataServiceImpl implements DraftDataService {
                 if (field instanceof TreeField)
                     dataDao.createLtreeIndex(draftCode, field.getName());
                 else if (BooleanUtils.toBoolean(field.getSearchEnabled())) {
-                    dataDao.createIndex(draftCode, field.getName());
+                    dataDao.createIndex(draftCode, addDoubleQuotes(draftCode + "_" + field.getName().toLowerCase() + "_idx"),
+                            Collections.singletonList(field.getName()));
                 }
             }
         }
@@ -228,6 +229,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         dataDao.copyTable(newTable, draftCode);
         dataDao.addColumnToTable(newTable, SYS_PUBLISHTIME, "timestamp with time zone", "'-infinity'");
         dataDao.addColumnToTable(newTable, SYS_CLOSETIME, "timestamp with time zone", "'infinity'");
+        dataDao.createIndex(newTable, addDoubleQuotes(newTable + "_SYSDATE_idx"), Arrays.asList(SYS_PUBLISHTIME, SYS_CLOSETIME));
         List<String> fieldNames = dataDao.getFieldNames(newTable);
         dataDao.createTrigger(newTable, fieldNames);
         return newTable;

@@ -543,10 +543,13 @@ public class DataDao {
         entityManager.createNativeQuery(String.format(DROP_FTS_TRIGGER, escapedTableName)).executeUpdate();
     }
 
+    @Transactional
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void createIndex(String tableName, String field) {
-        entityManager.createNativeQuery(String.format(CREATE_TABLE_INDEX, addDoubleQuotes(tableName + "_" + field.toLowerCase() + "_idx"),
-                addDoubleQuotes(tableName), addDoubleQuotes(field))).executeUpdate();
+    public void createIndex(String tableName, String name, List<String> fields) {
+        entityManager.createNativeQuery(String.format(CREATE_TABLE_INDEX, name,
+                addDoubleQuotes(tableName),
+                fields.stream().map(QueryUtil::addDoubleQuotes).collect(Collectors.joining(","))))
+                .executeUpdate();
     }
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
