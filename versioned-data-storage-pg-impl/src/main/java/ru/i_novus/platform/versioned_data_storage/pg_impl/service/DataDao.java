@@ -871,7 +871,12 @@ public class DataDao {
         String newPrimaryValuesFilter = getFieldValuesFilter("t2", params, criteria.getPrimaryFieldsFilters());
         String nonPrimaryFieldsInequality = isEmpty(nonPrimaryFields) ? " and false " : " and (" + nonPrimaryFields
                 .stream()
-                .map(field -> formatFieldForQuery(field, "t1") + " != " + formatFieldForQuery(field, "t2"))
+                .map(field -> {
+                    String f1 = formatFieldForQuery(field, "t1");
+                    String f2 = formatFieldForQuery(field, "t2");
+                    return f1 + " is not null and " + f2 + " is not null and " + f1 + " != " + f2 +
+                            " or " + f1 + " is not null and " + f2 + " is null or " + f1 + " is null and " + f2 + " is not null";
+                })
                 .collect(Collectors.joining(" or ")) + ") ";
         String oldPrimaryIsNull = criteria.getPrimaryFields()
                 .stream()

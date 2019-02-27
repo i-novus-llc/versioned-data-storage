@@ -17,10 +17,7 @@ import ru.i_novus.platform.datastorage.temporal.model.criteria.CompareDataCriter
 import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.FieldSearchCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.SearchTypeEnum;
-import ru.i_novus.platform.datastorage.temporal.model.value.DiffFieldValue;
-import ru.i_novus.platform.datastorage.temporal.model.value.DiffRowValue;
-import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
-import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
+import ru.i_novus.platform.datastorage.temporal.model.value.*;
 import ru.i_novus.platform.datastorage.temporal.service.CompareDataService;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
 import ru.i_novus.platform.datastorage.temporal.service.FieldFactory;
@@ -38,6 +35,7 @@ import java.util.stream.Collectors;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -528,7 +526,7 @@ public class UseCaseTest {
         expectedDiffRowValues.add(new DiffRowValue(
                 fields.stream()
                         .map(field -> new DiffFieldValue<>(field, rows.get(0).getFieldValue(field.getName()).getValue(), null, DiffStatusEnum.DELETED))
-                        .collect(Collectors.toList()),
+                        .collect(toList()),
                 DiffStatusEnum.DELETED));
         expectedDiffRowValues.add(new DiffRowValue(
                 fields.stream()
@@ -536,7 +534,7 @@ public class UseCaseTest {
                                 field.equals(code) ? "003" : null,
                                 rows.get(2).getFieldValue(field.getName()).getValue(),
                                 field.equals(code) ? DiffStatusEnum.UPDATED : null))
-                        .collect(Collectors.toList()),
+                        .collect(toList()),
                 DiffStatusEnum.UPDATED));
         expectedDiffRowValues.add(new DiffRowValue(
                 fields.stream()
@@ -544,7 +542,122 @@ public class UseCaseTest {
                                 null,
                                 rows.get(3).getFieldValue(field.getName()).getValue(),
                                 DiffStatusEnum.INSERTED))
-                        .collect(Collectors.toList()),
+                        .collect(toList()),
+                DiffStatusEnum.INSERTED));
+        assertDiffRowValues(expectedDiffRowValues, (List<DiffRowValue>) actualDataDifference.getRows().getCollection());
+    }
+
+    /*
+     * testing get data difference between two published versions when they contain null-values
+     * https://jira.i-novus.ru/browse/RDM-406
+     * rows:
+     * 1 - row deleted
+     * 2 - value deleted (newValue = null)
+     * 3 - updated (oldValue != null, newValue != null, oldValue != newValue)
+     * 4 - unchanged (oldValue = newValue != null)
+     * 5 - unchanged (oldValue = newValue = null)
+     * 6 - value inserted (oldValue = null)
+     * 7 - row inserted
+     */
+    @Test
+    public void testGetDataDifferenceForVersionsWithNullValues() {
+        List<Field> fields = new ArrayList<>();
+        Field id = fieldFactory.createField("ID", FieldType.INTEGER);
+        Field code = fieldFactory.createField("CODE", FieldType.STRING);
+        fields.add(id);
+        fields.add(code);
+        List<RowValue> rows = new ArrayList<>();
+        rows.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(1)),
+                code.valueOf("001")));
+        rows.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(2)),
+                code.valueOf("002")));
+        rows.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(3)),
+                code.valueOf("003")));
+        rows.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(4)),
+                code.valueOf("004")));
+        rows.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(5)),
+                new StringFieldValue(code.getName(), null)));
+        rows.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(6)),
+                new StringFieldValue(code.getName(), null)));
+        rows.add(new LongRowValue(
+                id.valueOf(BigInteger.valueOf(7)),
+                code.valueOf("007_1")));
+
+        String draftCode = draftDataService.createDraft(fields);
+        draftDataService.addRows(draftCode, rows.subList(0, 6));
+        Date publishDate1 = new Date();
+        Date closeDate1 = new Date(3 * publishDate1.getTime());
+        String storageCode = draftDataService.applyDraft(null, draftCode, publishDate1, closeDate1);
+
+        draftCode = draftDataService.createDraft(fields);
+
+        rows.get(1)
+                .getFieldValue(code.getName())
+                .setValue(null);
+        rows.get(2)
+                .getFieldValue(code.getName())
+                .setValue("003_1");
+        rows.get(5)
+                .getFieldValue(code.getName())
+                .setValue("004_1");
+        draftDataService.addRows(draftCode, rows.subList(1, 7));
+        Date publishDate2 = new Date(2 * publishDate1.getTime());
+        Date closeDate2 = new Date(closeDate1.getTime());
+        String storageCode2 = draftDataService.applyDraft(storageCode, draftCode, publishDate2, closeDate2);
+
+        Set<List<FieldSearchCriteria>> fieldValues = rows
+                .stream()
+                .map(row -> singletonList(
+                        new FieldSearchCriteria(id, SearchTypeEnum.EXACT, singletonList(row.getFieldValue(id.getName()).getValue()))
+                        )
+                )
+                .collect(Collectors.toSet());
+
+        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, publishDate1, publishDate2, publishDate2, closeDate2, fields, singletonList("ID"), fieldValues);
+        DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
+        List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
+        expectedDiffRowValues.add(new DiffRowValue(
+                fields.stream()
+                        .map(field -> new DiffFieldValue<>(field, rows.get(0).getFieldValue(field.getName()).getValue(), null, DiffStatusEnum.DELETED))
+                        .collect(toList()),
+                DiffStatusEnum.DELETED));
+        expectedDiffRowValues.add(new DiffRowValue(
+                fields.stream()
+                        .map(field -> new DiffFieldValue<>(field,
+                                field.equals(code) ? "002" : null,
+                                field.equals(id) ? BigInteger.valueOf(2) : null,
+                                field.equals(code) ? DiffStatusEnum.UPDATED : null))
+                        .collect(toList()),
+                DiffStatusEnum.UPDATED));
+        expectedDiffRowValues.add(new DiffRowValue(
+                fields.stream()
+                        .map(field -> new DiffFieldValue<>(field,
+                                field.equals(code) ? "003" : null,
+                                rows.get(2).getFieldValue(field.getName()).getValue(),
+                                field.equals(code) ? DiffStatusEnum.UPDATED : null))
+                        .collect(toList()),
+                DiffStatusEnum.UPDATED));
+        expectedDiffRowValues.add(new DiffRowValue(
+                fields.stream()
+                        .map(field -> new DiffFieldValue<>(field,
+                                null,
+                                rows.get(5).getFieldValue(field.getName()).getValue(),
+                                field.equals(code) ? DiffStatusEnum.UPDATED : null))
+                        .collect(toList()),
+                DiffStatusEnum.UPDATED));
+        expectedDiffRowValues.add(new DiffRowValue(
+                fields.stream()
+                        .map(field -> new DiffFieldValue<>(field,
+                                null,
+                                rows.get(6).getFieldValue(field.getName()).getValue(),
+                                DiffStatusEnum.INSERTED))
+                        .collect(toList()),
                 DiffStatusEnum.INSERTED));
         assertDiffRowValues(expectedDiffRowValues, (List<DiffRowValue>) actualDataDifference.getRows().getCollection());
     }
@@ -608,17 +721,17 @@ public class UseCaseTest {
         expectedDiffRowValues.add(new DiffRowValue(
                 fields.stream()
                         .map(field -> new DiffFieldValue<>(field, rows.get(0).getFieldValue(field.getName()).getValue(), null, DiffStatusEnum.DELETED))
-                        .collect(Collectors.toList()),
+                        .collect(toList()),
                 DiffStatusEnum.DELETED));
         expectedDiffRowValues.add(new DiffRowValue(
                 fields.stream()
                         .map(field -> new DiffFieldValue<>(field, field.equals(name) ? "name3" : null, rows.get(2).getFieldValue(field.getName()).getValue(), field.equals(name) ? DiffStatusEnum.UPDATED : null))
-                        .collect(Collectors.toList()),
+                        .collect(toList()),
                 DiffStatusEnum.UPDATED));
         expectedDiffRowValues.add(new DiffRowValue(
                 fields.stream()
                         .map(field -> new DiffFieldValue<>(field, null, rows.get(3).getFieldValue(field.getName()).getValue(), DiffStatusEnum.INSERTED))
-                        .collect(Collectors.toList()),
+                        .collect(toList()),
                 DiffStatusEnum.INSERTED));
         assertDiffRowValues(expectedDiffRowValues, (List<DiffRowValue>) actualDataDifference.getRows().getCollection());
     }
@@ -676,12 +789,12 @@ public class UseCaseTest {
         expectedDiffRowValues.add(new DiffRowValue(
                 fields.stream()
                         .map(field -> new DiffFieldValue<>(field, rows.get(0).getFieldValue(field.getName()).getValue(), null, DiffStatusEnum.DELETED))
-                        .collect(Collectors.toList()),
+                        .collect(toList()),
                 DiffStatusEnum.DELETED));
         expectedDiffRowValues.add(new DiffRowValue(
                 fields.stream()
                         .map(field -> new DiffFieldValue<>(field, null, rows.get(3).getFieldValue(field.getName()).getValue(), DiffStatusEnum.INSERTED))
-                        .collect(Collectors.toList()),
+                        .collect(toList()),
                 DiffStatusEnum.INSERTED));
         assertDiffRowValues(expectedDiffRowValues, (List<DiffRowValue>) actualDataDifference.getRows().getCollection());
     }
@@ -735,17 +848,17 @@ public class UseCaseTest {
         expectedDiffRowValues.add(new DiffRowValue(
                 fields.stream()
                         .map(field -> new DiffFieldValue<>(field, rows.get(0).getFieldValue(field.getName()).getValue(), null, DiffStatusEnum.DELETED))
-                        .collect(Collectors.toList()),
+                        .collect(toList()),
                 DiffStatusEnum.DELETED));
         expectedDiffRowValues.add(new DiffRowValue(
                 fields.stream()
                         .map(field -> new DiffFieldValue<>(field, field.equals(code) ? "003" : null, rows.get(2).getFieldValue(field.getName()).getValue(), field.equals(code) ? DiffStatusEnum.UPDATED : null))
-                        .collect(Collectors.toList()),
+                        .collect(toList()),
                 DiffStatusEnum.UPDATED));
         expectedDiffRowValues.add(new DiffRowValue(
                 fields.stream()
                         .map(field -> new DiffFieldValue<>(field, null, rows.get(3).getFieldValue(field.getName()).getValue(), DiffStatusEnum.INSERTED))
-                        .collect(Collectors.toList()),
+                        .collect(toList()),
                 DiffStatusEnum.INSERTED));
         assertDiffRowValues(expectedDiffRowValues, (List<DiffRowValue>) actualDataDifference.getRows().getCollection());
     }
