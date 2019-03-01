@@ -76,13 +76,11 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     @Override
     public void addRows(String draftCode, List<RowValue> data) {
-        List<CodifiedException> exceptions = new ArrayList<>();
-        //validateRow
-
-        if (!exceptions.isEmpty()) {
-            throw new ListCodifiedException(exceptions);
+        try {
+            dataDao.insertData(draftCode, data);
+        } catch (PersistenceException pe) {
+            processNotUniqueRowException(pe);
         }
-        dataDao.insertData(draftCode, data);
     }
 
     @Override
@@ -154,13 +152,7 @@ public class DraftDataServiceImpl implements DraftDataService {
             try {
                 dataDao.updateHashRows(draftCode);
             } catch (PersistenceException pe) {
-                //Обработка кода ошибки о нарушении уникальности в postgres
-                SQLException sqlException = (SQLException) of(pe).map(Throwable::getCause).map(Throwable::getCause)
-                        .filter(e -> e instanceof SQLException).orElse(null);
-                if (sqlException != null && "23505".equals(sqlException.getSQLState())) {
-                    throw new NotUniqueException(NOT_UNIQUE_ROW);
-                }
-                throw pe;
+                processNotUniqueRowException(pe);
             }
             dataDao.updateFtsRows(draftCode);
         }
@@ -289,4 +281,15 @@ public class DraftDataServiceImpl implements DraftDataService {
             dataDao.insertNewDataFromDraft(newTable, actualVersionTable, draftTable, columns, i, TRANSACTION_SIZE, publishTime, closeTime);
         }
     }
+
+    private void processNotUniqueRowException(PersistenceException pe) {
+        //Обработка кода ошибки о нарушении уникальности в postgres
+        SQLException sqlException = (SQLException) of(pe).map(Throwable::getCause).map(Throwable::getCause)
+                .filter(e -> e instanceof SQLException).orElse(null);
+        if (sqlException != null && "23505".equals(sqlException.getSQLState())) {
+            throw new NotUniqueException(NOT_UNIQUE_ROW);
+        }
+        throw pe;
+    }
+
 }

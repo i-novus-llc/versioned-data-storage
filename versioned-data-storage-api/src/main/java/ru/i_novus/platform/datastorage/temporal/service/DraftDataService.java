@@ -50,6 +50,7 @@ public interface DraftDataService {
      *
      * @param draftCode код черновика
      * @param data      данные строки
+     * @throws NotUniqueException если строки дублируются (нарушение уникальности SYS_HASH)
      */
     void addRows(String draftCode, List<RowValue> data);
 

@@ -4,7 +4,6 @@ import net.n2oapp.criteria.api.CollectionPage;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.postgresql.util.PSQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +11,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
 import ru.i_novus.platform.datastorage.temporal.enums.FieldType;
+import ru.i_novus.platform.datastorage.temporal.exception.NotUniqueException;
 import ru.i_novus.platform.datastorage.temporal.model.*;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.CompareDataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
@@ -25,7 +25,6 @@ import ru.i_novus.platform.datastorage.temporal.service.SearchDataService;
 import ru.i_novus.platform.versioned_data_storage.config.VersionedDataStorageConfig;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.StringField;
 
-import javax.persistence.PersistenceException;
 import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -36,9 +35,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 /**
  * Created by tnurdinov on 08.06.2018.
@@ -269,10 +266,10 @@ public class UseCaseTest {
 
     /**
      * Запись двух одинаковых строк в один черновик
-     * Ожидается ошибка БД - нарушение уникальности "SYS_HASH"(код 23505)
+     * Ожидается ошибка NotUniqueException - нарушение уникальности строк в БД ("SYS_HASH")
      */
     @Test
-    public void testCreateUniqueHash() throws Exception {
+    public void testCreateUniqueHash() {
         List<Field> d_a_fields = new ArrayList<>();
         Field d_a_id = fieldFactory.createField("ID", FieldType.INTEGER);
         Field d_a_name = fieldFactory.createField("NAME", FieldType.STRING);
@@ -288,13 +285,8 @@ public class UseCaseTest {
         try {
             draftDataService.addRows(d_a_draftCode, d_a_rows);
             Assert.fail("Two equals row error");
-        } catch (PersistenceException e) {
-            if (!(e.getCause().getCause() instanceof PSQLException &&
-                    "23505".equals(((PSQLException) e.getCause().getCause()).getSQLState()))) {
-                Assert.fail("Two equals row error");
-            }
+        } catch (NotUniqueException ignored) {
         }
-        draftDataService.applyDraft(null, d_a_draftCode, new Date());
     }
 
     /**
