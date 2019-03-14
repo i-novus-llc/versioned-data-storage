@@ -146,7 +146,7 @@ public class QueryConstants {
             " row data.%1$s%%rowtype;\n" +
             " i int;\n" +
             "BEGIN\n" +
-            "    OPEN tbl_cursor FOR select * from data.%1$s;\n" +
+            "    OPEN tbl_cursor FOR select * from data.%1$s order by \"SYS_RECORDID\";\n" +
             "    MOVE FORWARD %2$s FROM tbl_cursor;\n" +
             "    i\\:=0;\n" +
             "    while i<%3$s loop\n" +
@@ -196,7 +196,7 @@ public class QueryConstants {
             "                                               '%10$s' = 'null' AND to_timestamp('%9$s', 'YYYY-MM-DD HH24:MI:SS') < v.\"SYS_CLOSETIME\" OR\n" +
             "                                               (to_timestamp('%9$s', 'YYYY-MM-DD HH24:MI:SS'), to_timestamp('%10$s', 'YYYY-MM-DD HH24:MI:SS')) OVERLAPS\n" +
             "                                               (v.\"SYS_PUBLISHTIME\", v.\"SYS_CLOSETIME\"))\n" +
-            "      );\n" +
+            "      ) order by v.\"SYS_RECORDID\";\n" +
             "    MOVE FORWARD %4$s FROM tbl_cursor;\t\n" +
             "    i\\:=0;\t\n" +
             "    while i<%5$s loop\n" +
@@ -214,7 +214,7 @@ public class QueryConstants {
             " row data.%1$s%%rowtype;\n" +
             " i int;\n" +
             "BEGIN\n" +
-            "    OPEN tbl_cursor FOR select * from data.%2$s ;\n" +
+            "    OPEN tbl_cursor FOR select * from data.%2$s order by \"SYS_RECORDID\";\n" +
             "    MOVE FORWARD %3$s FROM tbl_cursor;\t\n" +
             "    i\\:=0;\t\n" +
             "    while i<%4$s loop\n" +
@@ -252,7 +252,7 @@ public class QueryConstants {
             "                                 OVERLAPS \n" +
             "                               (coalesce( v.\"SYS_PUBLISHTIME\", '-infinity') ,  coalesce(v.\"SYS_CLOSETIME\", 'infinity'))" +
             "                           OR (coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS'), '-infinity') = (coalesce(v.\"SYS_CLOSETIME\", 'infinity'))))" +
-            "    );"+
+            "    ) order by d.\"SYS_RECORDID\";"+
             "    MOVE FORWARD ${offset} FROM tbl_cursor;\t\n" +
             "    i\\:=0;\t\n" +
             "    while i<${transactionSize} loop\n" +
@@ -296,7 +296,7 @@ public class QueryConstants {
             "                                   OVERLAPS " +
             "                               (coalesce( v.\"SYS_PUBLISHTIME\", '-infinity') ,  coalesce(v.\"SYS_CLOSETIME\", 'infinity')) " +
             "                           OR (coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS'), '-infinity') = (coalesce(v.\"SYS_CLOSETIME\", 'infinity'))))" +
-            "    ); "+
+            "    ) order by d.\"SYS_RECORDID\"; "+
             "    MOVE FORWARD ${offset} FROM tbl_cursor;\t\n" +
             "    i\\:=0;\t\n" +
             "    while i<${transactionSize} loop\n" +
@@ -333,7 +333,8 @@ public class QueryConstants {
             "    ( v.\"SYS_PUBLISHTIME\", v.\"SYS_CLOSETIME\") \n" +
             "      AND NOT exists(SELECT 1\n" +
             "                     FROM ${draftTable} d\n" +
-            "                     WHERE d.\"SYS_HASH\" = v.\"SYS_HASH\");" +
+            "                     WHERE d.\"SYS_HASH\" = v.\"SYS_HASH\") " +
+            " order by v.\"SYS_RECORDID\";" +
             "    MOVE FORWARD ${offset} FROM tbl_cursor;\t\n" +
             "    i\\:=0;\t\n" +
             "    while i<${transactionSize} loop\n" +
