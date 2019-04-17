@@ -135,7 +135,7 @@ public class QueryConstants {
             " row data.%1$s%%rowtype;\n" +
             " i int;\n" +
             "BEGIN\n" +
-            "    OPEN tbl_cursor FOR select * from data.%1$s;\n" +
+            "    OPEN tbl_cursor FOR select * from data.%1$s order by \"SYS_RECORDID\";\n" +
             "    MOVE FORWARD %2$s FROM tbl_cursor;\t\n" +
             "    i\\:=0;\t\n" +
             "    while i<%3$s loop\n" +
@@ -161,7 +161,7 @@ public class QueryConstants {
             " row record;\n" +
             " i int;\n" +
             "BEGIN\n" +
-            "    OPEN tbl_cursor FOR select \"SYS_RECORDID\", %6$s, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\" from data.%2$s where \"SYS_CLOSETIME\" is not null;\n" +
+            "    OPEN tbl_cursor FOR select \"SYS_RECORDID\", %6$s, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\" from data.%2$s where \"SYS_CLOSETIME\" is not null order by \"SYS_RECORDID\";\n" +
             "    MOVE FORWARD %3$s FROM tbl_cursor;\t\n" +
             "    i\\:=0;\t\n" +
             "    while i<%4$s loop\n" +
@@ -179,7 +179,7 @@ public class QueryConstants {
             " row data.%1$s%%rowtype;\n" +
             " i int;\n" +
             "BEGIN\n" +
-            "    OPEN tbl_cursor FOR select * from data.%2$s ;\n" +
+            "    OPEN tbl_cursor FOR select * from data.%2$s order by \"SYS_RECORDID\";\n" +
             "    MOVE FORWARD %3$s FROM tbl_cursor;\t\n" +
             "    i\\:=0;\t\n" +
             "    while i<%4$s loop\n" +
@@ -199,7 +199,7 @@ public class QueryConstants {
             " row record;\n" +
             " i int;\n" +
             "BEGIN\n" +
-            "    OPEN tbl_cursor FOR select v.\"SYS_RECORDID\", %9$s, v.\"FTS\", v.\"SYS_HASH\", v.\"SYS_PUBLISHTIME\" from data.%2$s v join data.%3$s d on d.\"SYS_HASH\" = v.\"SYS_HASH\"  where v.\"SYS_CLOSETIME\" is null;\n" +
+            "    OPEN tbl_cursor FOR select v.\"SYS_RECORDID\", %9$s, v.\"FTS\", v.\"SYS_HASH\", v.\"SYS_PUBLISHTIME\" from data.%2$s v join data.%3$s d on d.\"SYS_HASH\" = v.\"SYS_HASH\"  where v.\"SYS_CLOSETIME\" is null order by v.\"SYS_RECORDID\";\n" +
             "    MOVE FORWARD %4$s FROM tbl_cursor;\t\n" +
             "    i\\:=0;\t\n" +
             "    while i<%5$s loop\n" +
@@ -220,7 +220,7 @@ public class QueryConstants {
             " row record;\n" +
             " i int;\n" +
             "BEGIN\n" +
-            "    OPEN tbl_cursor FOR select \"SYS_RECORDID\", %8$s, \"FTS\", \"SYS_HASH\" from data.%1$s d  where not exists(select 1 from data.%2$s v where v.\"SYS_HASH\" = d.\"SYS_HASH\" and v.\"SYS_CLOSETIME\" is null);\n" +
+            "    OPEN tbl_cursor FOR select \"SYS_RECORDID\", %8$s, \"FTS\", \"SYS_HASH\" from data.%1$s d  where not exists(select 1 from data.%2$s v where v.\"SYS_HASH\" = d.\"SYS_HASH\" and v.\"SYS_CLOSETIME\" is null) order by d.\"SYS_RECORDID\";\n" +
             "    MOVE FORWARD %3$s FROM tbl_cursor;\t\n" +
             "    i\\:=0;\t\n" +
             "    while i<%4$s loop\n" +
@@ -243,7 +243,7 @@ public class QueryConstants {
             " row record;\n" +
             " i int;\n" +
             "BEGIN\n" +
-            "    OPEN tbl_cursor FOR select \"SYS_RECORDID\", %8$s, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\" from data.%2$s v  where v.\"SYS_CLOSETIME\" is null and not exists(select 1 from data.%3$s d where d.\"SYS_HASH\" = v.\"SYS_HASH\");\n" +
+            "    OPEN tbl_cursor FOR select \"SYS_RECORDID\", %8$s, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\" from data.%2$s v  where v.\"SYS_CLOSETIME\" is null and not exists(select 1 from data.%3$s d where d.\"SYS_HASH\" = v.\"SYS_HASH\") order by v.\"SYS_RECORDID\";\n" +
             "    MOVE FORWARD %4$s FROM tbl_cursor;\t\n" +
             "    i\\:=0;\t\n" +
             "    while i<%5$s loop\n" +
