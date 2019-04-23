@@ -1,4 +1,4 @@
-package ru.i_novus.platform.datastorage.temporal.util;
+package ru.i_novus.platform.versioned_data_storage.pg_impl.util;
 
 import javax.persistence.AttributeConverter;
 import javax.persistence.Converter;
