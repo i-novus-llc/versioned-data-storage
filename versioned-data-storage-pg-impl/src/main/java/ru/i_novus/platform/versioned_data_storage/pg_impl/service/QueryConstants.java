@@ -32,8 +32,8 @@ public class QueryConstants {
             "%s, " +
             "\"FTS\" tsvector, " +
             "\"SYS_HASH\" char(32), " +
-            "\"SYS_PUBLISHTIME\" timestamp with time zone, " +
-            "\"SYS_CLOSETIME\" timestamp with time zone, "
+            "\"SYS_PUBLISHTIME\" timestamp without time zone, " +
+            "\"SYS_CLOSETIME\" timestamp without time zone, "
             + "CONSTRAINT \"%s_pkey\" PRIMARY KEY (\"SYS_RECORDID\"));";
 
     public static final String CREATE_EMPTY_DRAFT_TABLE_TEMPLATE = "CREATE TABLE data.%s (\"SYS_RECORDID\" bigserial NOT NULL, " +
@@ -153,7 +153,8 @@ public class QueryConstants {
             "       FETCH FROM tbl_cursor INTO row;\n" +
             "       EXIT WHEN NOT FOUND;\n" +
             "       row.\"SYS_RECORDID\"\\:=nextval('data.%7$s');\n" +
-            "       insert into data.%4$s(\"SYS_RECORDID\", %8$s, \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\") values(row.\"SYS_RECORDID\", %9$s, to_timestamp('%5$s', 'YYYY-MM-DD HH24:MI:SS'), coalesce(to_timestamp('%6$s', 'YYYY-MM-DD HH24:MI:SS'), 'infinity'));\n" +
+            "       insert into data.%4$s(\"SYS_RECORDID\", %8$s, \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\")\n" +
+            "       values(row.\"SYS_RECORDID\", %9$s, to_timestamp('%5$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, coalesce(to_timestamp('%6$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, 'infinity'));\n" +
             "       i\\:=i+1;\n" +
             "    end loop;\n" +
             "    CLOSE tbl_cursor;\n" +
@@ -168,14 +169,14 @@ public class QueryConstants {
     public static final String COUNT_OLD_VAL_FROM_VERSION_WITH_CLOSE_TIME = "SELECT count(*)\n" +
             "FROM data.%1$s v\n" +
             "WHERE NOT (\n" +
-            "        v.\"SYS_CLOSETIME\" IS NULL AND (to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS') >= v.\"SYS_PUBLISHTIME\" OR\n" +
-            "                                           to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS') < v.\"SYS_PUBLISHTIME\" AND\n" +
-            "                                           ('%4$s' = 'null' OR to_timestamp('%4$s', 'YYYY-MM-DD HH24:MI:SS') >= v.\"SYS_PUBLISHTIME\"))\n" +
+            "        v.\"SYS_CLOSETIME\" IS NULL AND (to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone >= v.\"SYS_PUBLISHTIME\" OR\n" +
+            "                                           to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone < v.\"SYS_PUBLISHTIME\" AND\n" +
+            "                                           ('%4$s' = 'null' OR to_timestamp('%4$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone >= v.\"SYS_PUBLISHTIME\"))\n" +
             "        OR\n" +
-            "        v.\"SYS_CLOSETIME\" IS NOT NULL AND (v.\"SYS_PUBLISHTIME\" = to_timestamp('%4$s', 'YYYY-MM-DD HH24:MI:SS') OR\n" +
-            "                                               v.\"SYS_CLOSETIME\" = to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS') OR\n" +
-            "                                               '%4$s' = 'null' AND to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS') < v.\"SYS_CLOSETIME\" OR\n" +
-            "                                               (to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS'), to_timestamp('%4$s', 'YYYY-MM-DD HH24:MI:SS')) OVERLAPS\n" +
+            "        v.\"SYS_CLOSETIME\" IS NOT NULL AND (v.\"SYS_PUBLISHTIME\" = to_timestamp('%4$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone OR\n" +
+            "                                               v.\"SYS_CLOSETIME\" = to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone OR\n" +
+            "                                               '%4$s' = 'null' AND to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone < v.\"SYS_CLOSETIME\" OR\n" +
+            "                                               (to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, to_timestamp('%4$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone) OVERLAPS\n" +
             "                                               (v.\"SYS_PUBLISHTIME\", v.\"SYS_CLOSETIME\"))\n" +
             "      );";
 
@@ -187,14 +188,14 @@ public class QueryConstants {
             "BEGIN\n" +
             "    OPEN tbl_cursor FOR SELECT \"SYS_RECORDID\", %7$s, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\" FROM data.%2$s v\n" +
             "   WHERE NOT (\n" +
-            "        v.\"SYS_CLOSETIME\" IS NULL AND (to_timestamp('%9$s', 'YYYY-MM-DD HH24:MI:SS') >= v.\"SYS_PUBLISHTIME\" OR\n" +
-            "                                           to_timestamp('%9$s', 'YYYY-MM-DD HH24:MI:SS') < v.\"SYS_PUBLISHTIME\" AND\n" +
-            "                                           ('%10$s' = 'null' OR to_timestamp('%10$s', 'YYYY-MM-DD HH24:MI:SS') >= v.\"SYS_PUBLISHTIME\"))\n" +
+            "        v.\"SYS_CLOSETIME\" IS NULL AND (to_timestamp('%9$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone >= v.\"SYS_PUBLISHTIME\" OR\n" +
+            "                                           to_timestamp('%9$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone < v.\"SYS_PUBLISHTIME\" AND\n" +
+            "                                           ('%10$s' = 'null' OR to_timestamp('%10$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone >= v.\"SYS_PUBLISHTIME\"))\n" +
             "        OR\n" +
-            "        v.\"SYS_CLOSETIME\" IS NOT NULL AND (v.\"SYS_PUBLISHTIME\" = to_timestamp('%10$s', 'YYYY-MM-DD HH24:MI:SS') OR\n" +
-            "                                               v.\"SYS_CLOSETIME\" = to_timestamp('%9$s', 'YYYY-MM-DD HH24:MI:SS') OR\n" +
-            "                                               '%10$s' = 'null' AND to_timestamp('%9$s', 'YYYY-MM-DD HH24:MI:SS') < v.\"SYS_CLOSETIME\" OR\n" +
-            "                                               (to_timestamp('%9$s', 'YYYY-MM-DD HH24:MI:SS'), to_timestamp('%10$s', 'YYYY-MM-DD HH24:MI:SS')) OVERLAPS\n" +
+            "        v.\"SYS_CLOSETIME\" IS NOT NULL AND (v.\"SYS_PUBLISHTIME\" = to_timestamp('%10$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone OR\n" +
+            "                                               v.\"SYS_CLOSETIME\" = to_timestamp('%9$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone OR\n" +
+            "                                               '%10$s' = 'null' AND to_timestamp('%9$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone < v.\"SYS_CLOSETIME\" OR\n" +
+            "                                               (to_timestamp('%9$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, to_timestamp('%10$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone) OVERLAPS\n" +
             "                                               (v.\"SYS_PUBLISHTIME\", v.\"SYS_CLOSETIME\"))\n" +
             "      ) order by v.\"SYS_RECORDID\";\n" +
             "    MOVE FORWARD %4$s FROM tbl_cursor;\t\n" +
@@ -232,10 +233,10 @@ public class QueryConstants {
             "     WHERE exists(SELECT 1\n" +
             "                      FROM ${versionTable} v\n" +
             "                      WHERE v.\"SYS_HASH\" = d.\"SYS_HASH\" \n" +
-            "                           AND (( coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS'), '-infinity'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS'), 'infinity') ) " +
+            "                           AND (( coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, '-infinity'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, 'infinity') ) " +
             "                                   OVERLAPS " +
             "                           (coalesce(v.\"SYS_PUBLISHTIME\", '-infinity') ,  coalesce(v.\"SYS_CLOSETIME\", 'infinity')) " +
-            "                           OR (coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS'), '-infinity') = (coalesce(v.\"SYS_CLOSETIME\", 'infinity'))))" +
+            "                           OR (coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, '-infinity') = (coalesce(v.\"SYS_CLOSETIME\", 'infinity'))))" +
             "    )";
 
     //todo: get rid of infinity
@@ -248,10 +249,10 @@ public class QueryConstants {
             "     WHERE exists(SELECT 1\n" +
             "                      FROM ${versionTable} v\n" +
             "                      WHERE v.\"SYS_HASH\" = d.\"SYS_HASH\" \n" +
-            "                           AND (( coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS'), '-infinity'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS'), 'infinity') ) \n" +
+            "                           AND (( coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, '-infinity'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, 'infinity') ) \n" +
             "                                 OVERLAPS \n" +
             "                               (coalesce( v.\"SYS_PUBLISHTIME\", '-infinity') ,  coalesce(v.\"SYS_CLOSETIME\", 'infinity'))" +
-            "                           OR (coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS'), '-infinity') = (coalesce(v.\"SYS_CLOSETIME\", 'infinity'))))" +
+            "                           OR (coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, '-infinity') = (coalesce(v.\"SYS_CLOSETIME\", 'infinity'))))" +
             "    ) order by d.\"SYS_RECORDID\";"+
             "    MOVE FORWARD ${offset} FROM tbl_cursor;\t\n" +
             "    i\\:=0;\t\n" +
@@ -261,8 +262,8 @@ public class QueryConstants {
             "       row.\"SYS_RECORDID\" \\:= nextval('${newTableSeqName}');\n" +
             "       insert into ${tableToInsert} (\"SYS_RECORDID\", ${columns}, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\") " +
             "           SELECT \"SYS_RECORDID\", ${columns}, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\" " +
-            "           FROM data.merged_actual_rows('${columns}'\\:\\:text, row.\"SYS_HASH\", '${versionTable}'\\:\\:text, to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS'), 'infinity'),  row.\"SYS_RECORDID\") " +
-            "           t(\"SYS_RECORDID\" bigint, ${columnsWithType}, \"FTS\" tsvector, \"SYS_HASH\" character(32) , \"SYS_PUBLISHTIME\" timestamp with time zone, \"SYS_CLOSETIME\" timestamp with time zone);" +
+            "           FROM data.merged_actual_rows('${columns}'\\:\\:text, row.\"SYS_HASH\", '${versionTable}'\\:\\:text, to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, 'infinity'),  row.\"SYS_RECORDID\") " +
+            "           t(\"SYS_RECORDID\" bigint, ${columnsWithType}, \"FTS\" tsvector, \"SYS_HASH\" character(32) , \"SYS_PUBLISHTIME\" timestamp without time zone, \"SYS_CLOSETIME\" timestamp without time zone);" +
             "       i\\:=i+1;\n" +
             "    end loop;\n" +
             "    CLOSE tbl_cursor;\n" +
@@ -273,10 +274,10 @@ public class QueryConstants {
             "     WHERE NOT exists(SELECT 1\n" +
             "                      FROM ${versionTable} v\n" +
             "                      WHERE v.\"SYS_HASH\" = d.\"SYS_HASH\" \n" +
-            "                           AND (( coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS'), '-infinity'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS'), 'infinity') )" +
+            "                           AND (( coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, '-infinity'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, 'infinity') )" +
             "                                   OVERLAPS " +
             "                               (coalesce( v.\"SYS_PUBLISHTIME\", '-infinity') ,  coalesce(v.\"SYS_CLOSETIME\", 'infinity')) " +
-            "                           OR (coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS'), '-infinity') = (coalesce(v.\"SYS_CLOSETIME\", 'infinity'))))" +
+            "                           OR (coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, '-infinity') = (coalesce(v.\"SYS_CLOSETIME\", 'infinity'))))" +
             "    )";
 
 
@@ -292,10 +293,10 @@ public class QueryConstants {
             "     WHERE NOT exists(SELECT 1\n" +
             "                      FROM ${versionTable} v\n" +
             "                      WHERE v.\"SYS_HASH\" = d.\"SYS_HASH\" \n" +
-            "                           AND (( coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS'), '-infinity'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS'), 'infinity') )" +
+            "                           AND (( coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, '-infinity'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, 'infinity') )" +
             "                                   OVERLAPS " +
             "                               (coalesce( v.\"SYS_PUBLISHTIME\", '-infinity') ,  coalesce(v.\"SYS_CLOSETIME\", 'infinity')) " +
-            "                           OR (coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS'), '-infinity') = (coalesce(v.\"SYS_CLOSETIME\", 'infinity'))))" +
+            "                           OR (coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, '-infinity') = (coalesce(v.\"SYS_CLOSETIME\", 'infinity'))))" +
             "    ) order by d.\"SYS_RECORDID\"; "+
             "    MOVE FORWARD ${offset} FROM tbl_cursor;\t\n" +
             "    i\\:=0;\t\n" +
@@ -303,7 +304,8 @@ public class QueryConstants {
             "       FETCH FROM tbl_cursor INTO row;\t\n" +
             "       EXIT WHEN NOT FOUND;\n" +
             "       row.\"SYS_RECORDID\" \\:= nextval('${sequenceName}');\n" +
-            "       INSERT INTO ${tableToInsert} (\"SYS_RECORDID\", ${fields}, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\") VALUES (row.\"SYS_RECORDID\", ${rowFields}, row.\"FTS\", row.\"SYS_HASH\", to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS'), case when '${closeTime}' = 'null' then null\\:\\:timestamp with time zone else to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp with time zone end);\n" +
+            "       INSERT INTO ${tableToInsert} (\"SYS_RECORDID\", ${fields}, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\")\n" +
+            "       VALUES (row.\"SYS_RECORDID\", ${rowFields}, row.\"FTS\", row.\"SYS_HASH\", to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, case when '${closeTime}' = 'null' then null\\:\\:timestamp without time zone else to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone end);\n" +
             "       i\\:=i+1;\n" +
             "    end loop;\n" +
             "    CLOSE tbl_cursor;\n" +
@@ -313,7 +315,7 @@ public class QueryConstants {
     public static final String COUNT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME = "SELECT count(*)\n" +
             "FROM ${versionTable} v\n" +
             " WHERE " +
-            "    ( coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS'), '-infinity'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS'), 'infinity') ) " +
+            "    ( coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, '-infinity'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, 'infinity') ) " +
             "           OVERLAPS\n" +
             "    ( v.\"SYS_PUBLISHTIME\", v.\"SYS_CLOSETIME\") \n" +
             "      AND NOT exists(SELECT 1\n" +
@@ -328,7 +330,7 @@ public class QueryConstants {
             "BEGIN\n" +
             "    OPEN tbl_cursor FOR SELECT \"SYS_RECORDID\", ${columns}, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\" FROM ${versionTable} v\n" +
             " WHERE " +
-            "    ( coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS'), '-infinity'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS'), 'infinity') ) " +
+            "    ( coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, '-infinity'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, 'infinity') ) " +
             "           OVERLAPS\n" +
             "    ( v.\"SYS_PUBLISHTIME\", v.\"SYS_CLOSETIME\") \n" +
             "      AND NOT exists(SELECT 1\n" +
@@ -341,7 +343,7 @@ public class QueryConstants {
             "       FETCH FROM tbl_cursor INTO row;\t\n" +
             "       EXIT WHEN NOT FOUND;\n" +
             "       INSERT INTO ${tableToInsert}(\"SYS_RECORDID\", ${columns}, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\")\n" +
-            "           SELECT \"SYS_RECORDID\", ${columns}, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\" FROM data.closed_now_records('\"SYS_RECORDID\", ${columns}, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\"'\\:\\:text, row.\"SYS_RECORDID\", '${versionTable}'\\:\\:text, to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp with time zone, to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp with time zone, '${sequenceName}'\\:\\:text) t(\"SYS_RECORDID\" bigint, ${columnsWithType}, \"FTS\" tsvector, \"SYS_HASH\" character(32), \"SYS_PUBLISHTIME\" timestamp with time zone, \"SYS_CLOSETIME\" timestamp with time zone);\n" +
+            "           SELECT \"SYS_RECORDID\", ${columns}, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\" FROM data.closed_now_records('\"SYS_RECORDID\", ${columns}, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\"'\\:\\:text, row.\"SYS_RECORDID\", '${versionTable}'\\:\\:text, to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, '${sequenceName}'\\:\\:text) t(\"SYS_RECORDID\" bigint, ${columnsWithType}, \"FTS\" tsvector, \"SYS_HASH\" character(32), \"SYS_PUBLISHTIME\" timestamp without time zone, \"SYS_CLOSETIME\" timestamp without time zone);\n" +
             "       i\\:=i+1;\n" +
             "    end loop;\n" +
             "    CLOSE tbl_cursor;\n" +

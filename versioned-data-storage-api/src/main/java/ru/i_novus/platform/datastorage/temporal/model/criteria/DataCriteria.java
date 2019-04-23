@@ -3,15 +3,15 @@ package ru.i_novus.platform.datastorage.temporal.model.criteria;
 import net.n2oapp.criteria.api.Criteria;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 public class DataCriteria extends Criteria {
     private final String tableName;
-    private final Date bdate;
-    private final Date edate;
+    private final LocalDateTime bdate;
+    private final LocalDateTime edate;
     private final List<Field> fields;
     private Set<List<FieldSearchCriteria>> fieldFilter;
     private String commonFilter;
@@ -25,7 +25,7 @@ public class DataCriteria extends Criteria {
      * @param fieldFilter  фильтр по отдельным полям
      * @param commonFilter фильтр по всем полям
      */
-    public DataCriteria(String storageCode, Date bdate, Date edate, List<Field> fields, List<FieldSearchCriteria> fieldFilter, String commonFilter) {
+    public DataCriteria(String storageCode, LocalDateTime bdate, LocalDateTime edate, List<Field> fields, List<FieldSearchCriteria> fieldFilter, String commonFilter) {
         this(storageCode, bdate, edate, fields,
                 new HashSet<List<FieldSearchCriteria>>() {{
                     add(fieldFilter);
@@ -41,7 +41,7 @@ public class DataCriteria extends Criteria {
      * @param fieldFilter множество фильтров по отдельным полям
      * @param commonFilter  фильтр по всем полям
      */
-    public DataCriteria(String storageCode, Date bdate, Date edate, List<Field> fields, Set<List<FieldSearchCriteria>> fieldFilter, String commonFilter) {
+    public DataCriteria(String storageCode, LocalDateTime bdate, LocalDateTime edate, List<Field> fields, Set<List<FieldSearchCriteria>> fieldFilter, String commonFilter) {
         this.tableName = storageCode;
         this.bdate = bdate;
         this.edate = edate;
@@ -57,7 +57,7 @@ public class DataCriteria extends Criteria {
      * @param fields        список полей в ответе
      * @param hashList      хеши записей
      */
-    public DataCriteria(String storageCode, Date bdate, Date edate, List<Field> fields, List<String> hashList) {
+    public DataCriteria(String storageCode, LocalDateTime bdate, LocalDateTime edate, List<Field> fields, List<String> hashList) {
         this.tableName = storageCode;
         this.bdate = bdate;
         this.edate = edate;
@@ -69,11 +69,11 @@ public class DataCriteria extends Criteria {
         return tableName;
     }
 
-    public Date getBdate() {
+    public LocalDateTime getBdate() {
         return bdate;
     }
 
-    public Date getEdate() {
+    public LocalDateTime getEdate() {
         return edate;
     }
 

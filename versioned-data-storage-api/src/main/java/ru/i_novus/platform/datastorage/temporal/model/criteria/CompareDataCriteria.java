@@ -5,7 +5,7 @@ import ru.i_novus.platform.datastorage.temporal.enums.DiffReturnTypeEnum;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
@@ -13,12 +13,12 @@ public class CompareDataCriteria extends Criteria {
     private String storageCode;
     private String draftCode;
     private String newStorageCode;
-    private Date baseDataDate;
-    private Date targetDataDate;
-    private Date oldPublishDate;
-    private Date oldCloseDate;
-    private Date newPublishDate;
-    private Date newCloseDate;
+    private LocalDateTime baseDataDate;
+    private LocalDateTime targetDataDate;
+    private LocalDateTime oldPublishDate;
+    private LocalDateTime oldCloseDate;
+    private LocalDateTime newPublishDate;
+    private LocalDateTime newCloseDate;
     private List<Field> fields;
     private List<String> primaryFields;
     private DiffStatusEnum status;
@@ -29,7 +29,7 @@ public class CompareDataCriteria extends Criteria {
     public CompareDataCriteria() {
     }
 
-    public CompareDataCriteria(String storageCode, String newStorageCode, Date oldPublishDate, Date oldCloseDate, Date newPublishDate, Date newCloseDate, List<Field> fields, List<String> primaryFields, Set<List<FieldSearchCriteria>> primaryFieldsFilters) {
+    public CompareDataCriteria(String storageCode, String newStorageCode, LocalDateTime oldPublishDate, LocalDateTime oldCloseDate, LocalDateTime newPublishDate, LocalDateTime newCloseDate, List<Field> fields, List<String> primaryFields, Set<List<FieldSearchCriteria>> primaryFieldsFilters) {
         this.storageCode = storageCode;
         this.newStorageCode = newStorageCode;
         this.oldPublishDate = oldPublishDate;
@@ -70,7 +70,7 @@ public class CompareDataCriteria extends Criteria {
      * use setOldPublishDate(), setOldCloseDate() methods
      */
     @Deprecated
-    public void setBaseDataDate(Date baseDataDate) {
+    public void setBaseDataDate(LocalDateTime baseDataDate) {
         this.baseDataDate = baseDataDate;
         this.oldPublishDate = baseDataDate;
         this.oldCloseDate = baseDataDate;
@@ -80,41 +80,41 @@ public class CompareDataCriteria extends Criteria {
      * use setNewPublishDate(), setNewCloseDate() methods
      */
     @Deprecated
-    public void setTargetDataDate(Date targetDataDate) {
+    public void setTargetDataDate(LocalDateTime targetDataDate) {
         this.targetDataDate = targetDataDate;
         this.newPublishDate = targetDataDate;
         this.newCloseDate = targetDataDate;
     }
 
-    public Date getOldPublishDate() {
+    public LocalDateTime getOldPublishDate() {
         return oldPublishDate;
     }
 
-    public void setOldPublishDate(Date oldPublishDate) {
+    public void setOldPublishDate(LocalDateTime oldPublishDate) {
         this.oldPublishDate = oldPublishDate;
     }
 
-    public Date getOldCloseDate() {
+    public LocalDateTime getOldCloseDate() {
         return oldCloseDate;
     }
 
-    public void setOldCloseDate(Date oldCloseDate) {
+    public void setOldCloseDate(LocalDateTime oldCloseDate) {
         this.oldCloseDate = oldCloseDate;
     }
 
-    public Date getNewPublishDate() {
+    public LocalDateTime getNewPublishDate() {
         return newPublishDate;
     }
 
-    public void setNewPublishDate(Date newPublishDate) {
+    public void setNewPublishDate(LocalDateTime newPublishDate) {
         this.newPublishDate = newPublishDate;
     }
 
-    public Date getNewCloseDate() {
+    public LocalDateTime getNewCloseDate() {
         return newCloseDate;
     }
 
-    public void setNewCloseDate(Date newCloseDate) {
+    public void setNewCloseDate(LocalDateTime newCloseDate) {
         this.newCloseDate = newCloseDate;
     }
 

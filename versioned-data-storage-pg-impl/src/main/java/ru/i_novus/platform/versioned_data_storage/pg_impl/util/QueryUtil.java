@@ -9,6 +9,7 @@ import ru.i_novus.platform.datastorage.temporal.model.value.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 
 import java.math.BigInteger;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
@@ -127,8 +128,8 @@ public class QueryUtil {
         return addDoubleQuotes(table + "_SYS_RECORDID_seq");
     }
 
-    public static Date truncateDateTo(Date date, ChronoUnit unit) {
-        return Date.from(date.toInstant().truncatedTo(unit));
+    public static LocalDateTime truncateDateTo(LocalDateTime date, ChronoUnit unit) {
+        return date.truncatedTo(unit);
     }
 
     public static int getOffset(Criteria criteria) {
