@@ -6,7 +6,7 @@ import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.SearchDataService;
 
 import java.math.BigInteger;
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -44,7 +44,7 @@ public class SearchDataServiceImpl implements SearchDataService {
     }
 
     @Override
-    public List<String> getNotExists(String storageCode, Date bdate, Date edate, List<String> hashList) {
+    public List<String> getNotExists(String storageCode, LocalDateTime bdate, LocalDateTime edate, List<String> hashList) {
         return dataDao.getNotExists(storageCode, bdate, edate, hashList);
     }
 }

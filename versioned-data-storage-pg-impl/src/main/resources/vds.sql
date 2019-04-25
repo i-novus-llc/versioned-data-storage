@@ -1,7 +1,10 @@
  CREATE SCHEMA IF NOT EXISTS data;
 
-CREATE OR REPLACE FUNCTION data.closed_now_records(fields text, id BIGINT, tbl text, from_dt TIMESTAMP WITH TIME ZONE,
-                                                                           to_dt  TIMESTAMP WITH TIME ZONE, tbl_seq_name text)
+DROP FUNCTION IF EXISTS data.closed_now_records(fields text, id BIGINT, tbl text, from_dt TIMESTAMP WITH TIME ZONE,
+                                                                           to_dt  TIMESTAMP WITH TIME ZONE, tbl_seq_name text);
+
+CREATE OR REPLACE FUNCTION data.closed_now_records(fields text, id BIGINT, tbl text, from_dt TIMESTAMP WITHOUT TIME ZONE,
+                                                                           to_dt  TIMESTAMP WITHOUT TIME ZONE, tbl_seq_name text)
                           RETURNS SETOF RECORD AS
                         $BODY$
 DECLARE left  RECORD;
@@ -10,12 +13,12 @@ DECLARE left  RECORD;
 BEGIN
   IF (from_dt IS NULL)
   THEN
-    from_dt := -infinity :: TIMESTAMP WITH TIME ZONE ;
+    from_dt := -infinity :: TIMESTAMP WITHOUT TIME ZONE ;
   END IF;
 
   IF (to_dt IS NULL)
   THEN
-    to_dt := infinity :: TIMESTAMP WITH TIME ZONE ;
+    to_dt := infinity :: TIMESTAMP WITHOUT TIME ZONE ;
   END IF;
 
   EXECUTE format(
@@ -49,6 +52,10 @@ END;
 $BODY$
 LANGUAGE plpgsql;
 
+DROP FUNCTION IF EXISTS data.merged_actual_rows(fields TEXT, sys_hash CHAR(32), tableName text,
+                                                     from_dt TIMESTAMP WITH TIME ZONE,
+                                                     to_dt TIMESTAMP WITH TIME ZONE, sys_rec_id bigint);
+
 /**
 * sys_hash - хэш актуальной записи
 * tableName - таблица версий
@@ -57,13 +64,14 @@ LANGUAGE plpgsql;
 * sys_rec_id - предзаполненый идентификатор записи
 */
 CREATE OR REPLACE FUNCTION data.merged_actual_rows(fields TEXT, sys_hash CHAR(32), tableName text,
-                                                     from_dt TIMESTAMP WITH TIME ZONE, to_dt TIMESTAMP WITH TIME ZONE, sys_rec_id bigint)
+                                                     from_dt TIMESTAMP WITHOUT TIME ZONE,
+                                                     to_dt TIMESTAMP WITHOUT TIME ZONE, sys_rec_id bigint)
   RETURNS SETOF RECORD AS
 $BODY$
 DECLARE r   RECORD;
 	result RECORD;
-        pTime TIMESTAMP WITH TIME ZONE;
-        cTime TIMESTAMP WITH TIME ZONE;
+        pTime TIMESTAMP WITHOUT TIME ZONE;
+        cTime TIMESTAMP WITHOUT TIME ZONE;
         has_result boolean;
 
 
@@ -82,8 +90,8 @@ BEGIN
 
 	FOR r IN EXECUTE format ('SELECT "SYS_RECORDID", %1$s, "FTS", "SYS_HASH", "SYS_PUBLISHTIME", "SYS_CLOSETIME"  FROM %2$s
 	where "SYS_HASH" = ''%3$s''
-	AND  (( ("SYS_PUBLISHTIME", coalesce("SYS_CLOSETIME", ''infinity'' )) OVERLAPS ( 	timestamp with time zone ''%4$s'',  	timestamp with time zone ''%5$s'') )
-	OR coalesce("SYS_CLOSETIME", ''infinity'') = timestamp with time zone ''%4$s'')
+	AND  (( ("SYS_PUBLISHTIME", coalesce("SYS_CLOSETIME", ''infinity'' )) OVERLAPS (timestamp without time zone ''%4$s'', timestamp without time zone ''%5$s'') )
+	OR coalesce("SYS_CLOSETIME", ''infinity'') = timestamp without time zone ''%4$s'')
 	', fields, tableName, sys_hash, from_dt, to_dt)
 	 LOOP
 		pTime := LEAST(pTime, coalesce(r."SYS_PUBLISHTIME", '-infinity'));
@@ -96,7 +104,7 @@ BEGIN
 	END LOOP;
 
   IF(has_result) THEN
-    RAISE INFO 'result exists'	;
+    RAISE INFO 'result exists';
     RETURN NEXT result;
   ELSE
 	RETURN;

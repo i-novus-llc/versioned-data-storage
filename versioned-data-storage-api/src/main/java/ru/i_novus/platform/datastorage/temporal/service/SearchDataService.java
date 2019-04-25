@@ -4,7 +4,7 @@ import net.n2oapp.criteria.api.CollectionPage;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -49,5 +49,5 @@ public interface SearchDataService {
      * @param hashList      список хешей строк
      * @return список несуществующих хешей
      */
-    List<String> getNotExists(String storageCode, Date bdate, Date edate, List<String> hashList);
+    List<String> getNotExists(String storageCode, LocalDateTime bdate, LocalDateTime edate, List<String> hashList);
 }

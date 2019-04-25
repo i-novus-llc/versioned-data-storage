@@ -7,6 +7,7 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cglib.core.Local;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
@@ -27,6 +28,9 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.model.StringField;
 
 import java.math.BigInteger;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -48,6 +52,7 @@ public class UseCaseTest {
 
     private static final String SYS_PUBLISHTIME = "SYS_PUBLISHTIME";
     private static final String SYS_CLOSETIME = "SYS_CLOSETIME";
+    private static final ZoneId UNIVERSAL_TIMEZONE = ZoneId.of("UTC");
 
     @Autowired
     private DraftDataService draftDataService;
@@ -61,6 +66,15 @@ public class UseCaseTest {
     @Autowired
     private FieldFactory fieldFactory;
 
+    private LocalDateTime now() {
+        return LocalDateTime.now(UNIVERSAL_TIMEZONE);
+    }
+
+    private LocalDateTime multiply(LocalDateTime localDateTime, long factor) {
+        LocalDateTime epochDateTime = LocalDateTime.ofEpochSecond(0, 0, ZoneOffset.UTC);
+        long seconds = ChronoUnit.SECONDS.between(epochDateTime, localDateTime);
+        return localDateTime.plusSeconds(seconds * factor);
+    }
 
     /**
      * 1 этап. Создание черновика D_A с данными
@@ -107,8 +121,8 @@ public class UseCaseTest {
         logger.info("<<<<<<<<<<<<<<< 1 этап завершен >>>>>>>>>>>>>>>>>>>>>");
 
         logger.info("<<<<<<<<<<<<<<< 2 этап >>>>>>>>>>>>>>>>>>>>>");
-        Date s_a_publishTime = new Date();
-        Date beforeSAPublishDate = Date.from(s_a_publishTime.toInstant().minus(1, ChronoUnit.DAYS));
+        LocalDateTime s_a_publishTime = now();
+        LocalDateTime beforeSAPublishDate = s_a_publishTime.minus(1, ChronoUnit.DAYS);
         String s_a_storageCode = draftDataService.applyDraft(null, d_a_draftCode, s_a_publishTime);
         Collection<RowValue> s_a_actualRows = searchDataService.getData(new DataCriteria(s_a_storageCode, beforeSAPublishDate, null, d_a_fields, emptySet(), null));
         assertEquals(0, s_a_actualRows.size());
@@ -149,7 +163,7 @@ public class UseCaseTest {
 
 
         logger.info("<<<<<<<<<<<<<<< 4 этап >>>>>>>>>>>>>>>>>>>>>");
-        Date s_b_publishTime = new Date();
+        LocalDateTime s_b_publishTime = now();
         String s_b_storageCode = draftDataService.applyDraft(null, d_b_draftCode, s_b_publishTime);
         Collection<RowValue> s_b_actualRows = searchDataService.getData(new DataCriteria(s_b_storageCode, null, null, d_b_fields, emptySet(), null));
         assertRows(asList(d_b_rowValue), s_b_actualRows);
@@ -180,13 +194,13 @@ public class UseCaseTest {
         RowValue rowValue = new LongRowValue(
                 code.valueOf("001"),
                 name.valueOf("name"),
-                ref_new.valueOf(new Reference(existingStorageCode, new Date(), "ID", "NAME", "1", "test")),
+                ref_new.valueOf(new Reference(existingStorageCode, now(), "ID", "NAME", "1", "test")),
                 date_col.valueOf(LocalDate.now()));
         rows.add(rowValue);
         draftDataService.addRows(draftCode, rows);
         List<RowValue> actualRows = searchDataService.getData(new DataCriteria(draftCode, null, null, fields, emptySet(), null));
         assertRows(rows, actualRows);
-        String storageCode = draftDataService.applyDraft(null, draftCode, new Date());
+        String storageCode = draftDataService.applyDraft(null, draftCode, now());
         actualRows = searchDataService.getData(new DataCriteria(storageCode, null, null, fields, emptySet(), null));
         assertRows(rows, actualRows);
     }
@@ -261,7 +275,7 @@ public class UseCaseTest {
                 d_a_boolCol.valueOf(true),
                 d_a_floatCol.valueOf(4f)));
         draftDataService.addRows(d_a_draftCode, d_a_rows);
-        return draftDataService.applyDraft(null, d_a_draftCode, new Date());
+        return draftDataService.applyDraft(null, d_a_draftCode, now());
     }
 
     /**
@@ -362,7 +376,7 @@ public class UseCaseTest {
      */
     @Test
     public void testApplyDraftWithCloseDate() {
-        Long time_long_diff = 150000000L;
+        Long time_sec_diff = 150000L;
 
         List<Field> fields = new ArrayList<>();
         Field id = fieldFactory.createField("ID", FieldType.INTEGER);
@@ -390,8 +404,8 @@ public class UseCaseTest {
         rows1.add(rows.get(0));
         rows1.add(rows.get(1));
         draftDataService.addRows(draftCode, rows1);
-        Date publishDate1 = new Date();
-        Date closeDate1 = new Date(publishDate1.getTime() + time_long_diff);
+        LocalDateTime publishDate1 = now();
+        LocalDateTime closeDate1 = publishDate1.plusSeconds(time_sec_diff);
         String storageCode = draftDataService.applyDraft(null, draftCode, publishDate1, closeDate1);
         List<RowValue> actualRows = searchDataService.getData(new DataCriteria(storageCode, publishDate1, closeDate1, fields, emptySet(), null));
 //        проверка в опубликованной версии
@@ -406,8 +420,8 @@ public class UseCaseTest {
         rows2.add(rows.get(2));
         //удаляем rows.get(0)
         draftDataService.addRows(draftCode, rows2);
-        Date publishDate2 = new Date(publishDate1.getTime() + (int) (time_long_diff * 0.01));
-        Date closeDate2 = new Date(publishDate1.getTime() + (int) (time_long_diff * 0.5));
+        LocalDateTime publishDate2 = publishDate1.plusSeconds(time_sec_diff / 100L);
+        LocalDateTime closeDate2 = publishDate1.plusSeconds(time_sec_diff / 100L * 50);
         String storageCode2 = draftDataService.applyDraft(storageCode, draftCode, publishDate2, closeDate2);
         actualRows = searchDataService.getData(new DataCriteria(storageCode2, publishDate2, closeDate2, fields, emptySet(), null));
         assertRows(rows2, actualRows);
@@ -421,8 +435,8 @@ public class UseCaseTest {
         List<RowValue> rows3 = new ArrayList<>();
         rows3.add(rows.get(0));
         draftDataService.addRows(draftCode, rows3);
-        Date publishDate3 = new Date(publishDate1.getTime() + (int) (time_long_diff * 0.1));
-        Date closeDate3 = new Date(publishDate1.getTime() + (int) (time_long_diff * 0.4));
+        LocalDateTime publishDate3 = publishDate1.plusSeconds(time_sec_diff / 10L);
+        LocalDateTime closeDate3 = publishDate1.plusSeconds(time_sec_diff / 10L * 4);
         String storageCode3 = draftDataService.applyDraft(storageCode2, draftCode, publishDate3, closeDate3);
         actualRows = searchDataService.getData(new DataCriteria(storageCode3, publishDate3, closeDate3, fields, emptySet(), null));
         System.out.println("publishDate3 = " + publishDate3 +
@@ -436,8 +450,8 @@ public class UseCaseTest {
         draftCode = draftDataService.createDraft(fields);
         List<RowValue> rows4 = new ArrayList<>(rows);
         draftDataService.addRows(draftCode, rows4);
-        Date publishDate4 = new Date(publishDate1.getTime() + (int) (time_long_diff * 0.01));
-        Date closeDate4 = new Date(publishDate1.getTime() + (int) (time_long_diff * 0.1));
+        LocalDateTime publishDate4 = publishDate1.plusSeconds(time_sec_diff / 100L);
+        LocalDateTime closeDate4 = publishDate1.plusSeconds(time_sec_diff / 10L);
         String storageCode4 = draftDataService.applyDraft(storageCode3, draftCode, publishDate4, closeDate4);
         actualRows = searchDataService.getData(new DataCriteria(storageCode4, publishDate4, closeDate4, fields, emptySet(), null));
         assertRows(rows4, actualRows);
@@ -492,16 +506,16 @@ public class UseCaseTest {
 
         String draftCode = draftDataService.createDraft(fields);
         draftDataService.addRows(draftCode, asList(rows.get(0), rows.get(1), rows.get(2)));
-        Date publishDate1 = new Date();
-        Date closeDate1 = new Date(3 * publishDate1.getTime());
+        LocalDateTime publishDate1 = now();
+        LocalDateTime closeDate1 = multiply(publishDate1, 3);
         String storageCode = draftDataService.applyDraft(null, draftCode, publishDate1, closeDate1);
 
         draftCode = draftDataService.createDraft(fields);
 
         rows.get(2).getFieldValue(code.getName()).setValue("003_1");
         draftDataService.addRows(draftCode, asList(rows.get(1), rows.get(2), rows.get(3)));
-        Date publishDate2 = new Date(2 * publishDate1.getTime());
-        Date closeDate2 = new Date(closeDate1.getTime());
+        LocalDateTime publishDate2 = multiply(publishDate1, 2);
+        LocalDateTime closeDate2 = closeDate1;
         String storageCode2 = draftDataService.applyDraft(storageCode, draftCode, publishDate2, closeDate2);
 
         Set<List<FieldSearchCriteria>> fieldValues = rows
@@ -512,6 +526,7 @@ public class UseCaseTest {
                 )
                 .collect(Collectors.toSet());
 
+        // WARN: bug? : replace first publishDate2 with closeDate1
         CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, publishDate1, publishDate2, publishDate2, closeDate2, fields, singletonList("ID"), fieldValues);
         DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
         List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
@@ -583,8 +598,8 @@ public class UseCaseTest {
 
         String draftCode = draftDataService.createDraft(fields);
         draftDataService.addRows(draftCode, rows.subList(0, 6));
-        Date publishDate1 = new Date();
-        Date closeDate1 = new Date(3 * publishDate1.getTime());
+        LocalDateTime publishDate1 = now();
+        LocalDateTime closeDate1 = multiply(publishDate1, 3);
         String storageCode = draftDataService.applyDraft(null, draftCode, publishDate1, closeDate1);
 
         draftCode = draftDataService.createDraft(fields);
@@ -599,8 +614,8 @@ public class UseCaseTest {
                 .getFieldValue(code.getName())
                 .setValue("004_1");
         draftDataService.addRows(draftCode, rows.subList(1, 7));
-        Date publishDate2 = new Date(2 * publishDate1.getTime());
-        Date closeDate2 = new Date(closeDate1.getTime());
+        LocalDateTime publishDate2 = multiply(publishDate1, 2);
+        LocalDateTime closeDate2 = closeDate1;
         String storageCode2 = draftDataService.applyDraft(storageCode, draftCode, publishDate2, closeDate2);
 
         Set<List<FieldSearchCriteria>> fieldValues = rows
@@ -611,6 +626,7 @@ public class UseCaseTest {
                 )
                 .collect(Collectors.toSet());
 
+        // WARN: bug? : replace first publishDate2 with closeDate1
         CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, publishDate1, publishDate2, publishDate2, closeDate2, fields, singletonList("ID"), fieldValues);
         DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
         List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
@@ -686,16 +702,16 @@ public class UseCaseTest {
 
         String draftCode = draftDataService.createDraft(fields);
         draftDataService.addRows(draftCode, asList(rows.get(0), rows.get(1), rows.get(2)));
-        Date publishDate1 = new Date();
-        Date closeDate1 = new Date(3 * publishDate1.getTime());
+        LocalDateTime publishDate1 = now();
+        LocalDateTime closeDate1 = multiply(publishDate1, 3);
         String storageCode = draftDataService.applyDraft(null, draftCode, publishDate1, closeDate1);
 
         draftCode = draftDataService.createDraft(fields);
 
         rows.get(2).getFieldValue(name.getName()).setValue("name3_1");
         draftDataService.addRows(draftCode, asList(rows.get(1), rows.get(2), rows.get(3)));
-        Date publishDate2 = new Date(2 * publishDate1.getTime());
-        Date closeDate2 = new Date(closeDate1.getTime());
+        LocalDateTime publishDate2 = multiply(publishDate1, 2);
+        LocalDateTime closeDate2 = closeDate1;
         String storageCode2 = draftDataService.applyDraft(storageCode, draftCode, publishDate2, closeDate2);
 
         Set<List<FieldSearchCriteria>> fieldValues = rows
@@ -707,6 +723,7 @@ public class UseCaseTest {
                 )
                 .collect(Collectors.toSet());
 
+        // WARN: bug? : replace first publishDate2 with closeDate1
         CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, publishDate1, publishDate2, publishDate2, closeDate2, fields, Arrays.asList("ID", "CODE"), fieldValues);
         DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
         List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
@@ -755,15 +772,15 @@ public class UseCaseTest {
 
         String draftCode = draftDataService.createDraft(fields);
         draftDataService.addRows(draftCode, asList(rows.get(0), rows.get(1), rows.get(2)));
-        Date publishDate1 = new Date();
-        Date closeDate1 = new Date(3 * publishDate1.getTime());
+        LocalDateTime publishDate1 = now();
+        LocalDateTime closeDate1 = multiply(publishDate1, 3);
         String storageCode = draftDataService.applyDraft(null, draftCode, publishDate1, closeDate1);
 
         draftCode = draftDataService.createDraft(fields);
 
         draftDataService.addRows(draftCode, asList(rows.get(1), rows.get(2), rows.get(3)));
-        Date publishDate2 = new Date(2 * publishDate1.getTime());
-        Date closeDate2 = new Date(closeDate1.getTime());
+        LocalDateTime publishDate2 = multiply(publishDate1, 2);
+        LocalDateTime closeDate2 = closeDate1;
         String storageCode2 = draftDataService.applyDraft(storageCode, draftCode, publishDate2, closeDate2);
 
         Set<List<FieldSearchCriteria>> fieldValues = rows
@@ -775,6 +792,7 @@ public class UseCaseTest {
                 )
                 .collect(Collectors.toSet());
 
+        // WARN: bug? : replace first publishDate2 with closeDate1
         CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, publishDate1, publishDate2, publishDate2, closeDate2, fields, Arrays.asList("ID", "CODE"), fieldValues);
         DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
         List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
@@ -817,8 +835,8 @@ public class UseCaseTest {
 
         String draftCode = draftDataService.createDraft(fields);
         draftDataService.addRows(draftCode, asList(rows.get(0), rows.get(1), rows.get(2)));
-        Date publishDate1 = new Date();
-        Date closeDate1 = new Date(3 * publishDate1.getTime());
+        LocalDateTime publishDate1 = now();
+        LocalDateTime closeDate1 = multiply(publishDate1, 3);
         String storageCode = draftDataService.applyDraft(null, draftCode, publishDate1, closeDate1);
 
         draftCode = draftDataService.createDraft(fields);
@@ -861,9 +879,9 @@ public class UseCaseTest {
      */
     @Test
     public void testGetDataDifferenceWhenNoDiff() {
-        Date publishDate1 = new Date();
-        Date closeDate1 = new Date(2 * publishDate1.getTime());
-        Date publishDate2 = new Date(3 * publishDate1.getTime());
+        LocalDateTime publishDate1 = now();
+        LocalDateTime closeDate1 = multiply(publishDate1, 2);
+        LocalDateTime publishDate2 = multiply(publishDate1, 3);
 
         List<Field> fields = new ArrayList<>();
         Field id = fieldFactory.createField("ID", FieldType.INTEGER);
@@ -941,11 +959,12 @@ public class UseCaseTest {
         draftDataService.addRows(draftStorageCode3, rowValues3);
 
         //Публикация двух версий с определенной датой закрытия
-        Date publishDate1 = new Date();
-        Date closeDate1 = new Date(publishDate1.getTime() + 1000 * 60 * 60 * 24);
+        LocalDateTime publishDate1 = now();
+        LocalDateTime closeDate1 = publishDate1.plusSeconds(60 * 60 * 24);
         String versionStorageCode1 = draftDataService.applyDraft(null, draftStorageCode1, publishDate1, closeDate1);
-        Date publishDate2 = new Date(closeDate1.getTime());
-        Date closeDate2 = new Date(publishDate2.getTime() + 1000 * 60 * 60 * 24);
+
+        LocalDateTime publishDate2 = closeDate1;
+        LocalDateTime closeDate2 = publishDate2.plusSeconds(60 * 60 * 24);
         String versionStorageCode2 = draftDataService.applyDraft(versionStorageCode1, draftStorageCode2, publishDate2, closeDate2);
 
         //Поиск когда closeTime поиска и данных closeTime одинаковый
@@ -961,7 +980,7 @@ public class UseCaseTest {
         assertEquals(0, actualData.getCount());
         assertTrue(actualData.getCollection().isEmpty());
 
-        Date publishDate3 = new Date(closeDate1.getTime());
+        LocalDateTime publishDate3 = closeDate1;
         String versionStorageCode3 = draftDataService.applyDraft(versionStorageCode2, draftStorageCode3, publishDate3, null);
 
         //Поиск когда closeTime поиска определен а у данных нет
