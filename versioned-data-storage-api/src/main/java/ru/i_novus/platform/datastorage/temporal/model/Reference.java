@@ -1,7 +1,8 @@
 package ru.i_novus.platform.datastorage.temporal.model;
 
 import java.io.Serializable;
-import java.util.*;
+import java.time.LocalDateTime;
+import java.util.Objects;
 
 /**
  * @author lgalimova
@@ -11,7 +12,7 @@ public class Reference implements Serializable {
     //код хранилища данных, на которое осуществляется ссылка
     private String storageCode;
     //дата публикации версии
-    private Date date;
+    private LocalDateTime date;
     //поле, на которое осуществляется ссылка
     private String keyField;
     //поле, отображаемое в ссылке
@@ -27,14 +28,14 @@ public class Reference implements Serializable {
     }
 
     @Deprecated
-    public Reference(String storageCode, Date date, String keyField, String displayField) {
+    public Reference(String storageCode, LocalDateTime date, String keyField, String displayField) {
         this.storageCode = storageCode;
         this.date = date;
         this.keyField = keyField;
         this.displayField = displayField;
     }
 
-    public Reference(String storageCode, Date date, String keyField, DisplayExpression displayExpression) {
+    public Reference(String storageCode, LocalDateTime date, String keyField, DisplayExpression displayExpression) {
         this.storageCode = storageCode;
         this.date = date;
         this.keyField = keyField;
@@ -42,7 +43,7 @@ public class Reference implements Serializable {
     }
 
     @Deprecated
-    public Reference(String storageCode, Date date, String keyField, String displayField, String value) {
+    public Reference(String storageCode, LocalDateTime date, String keyField, String displayField, String value) {
         this.storageCode = storageCode;
         this.date = date;
         this.keyField = keyField;
@@ -50,7 +51,7 @@ public class Reference implements Serializable {
         this.value = value;
     }
 
-    public Reference(String storageCode, Date date, String keyField, DisplayExpression displayExpression, String value) {
+    public Reference(String storageCode, LocalDateTime date, String keyField, DisplayExpression displayExpression, String value) {
         this.storageCode = storageCode;
         this.date = date;
         this.keyField = keyField;
@@ -58,7 +59,7 @@ public class Reference implements Serializable {
         this.value = value;
     }
 
-    public Reference(String storageCode, Date date, String keyField, String displayField, String value, String displayValue) {
+    public Reference(String storageCode, LocalDateTime date, String keyField, String displayField, String value, String displayValue) {
         this.storageCode = storageCode;
         this.date = date;
         this.keyField = keyField;
@@ -67,7 +68,7 @@ public class Reference implements Serializable {
         this.displayValue = displayValue;
     }
 
-    public Reference(String storageCode, Date date, String keyField, DisplayExpression displayExpression, String value, String displayValue) {
+    public Reference(String storageCode, LocalDateTime date, String keyField, DisplayExpression displayExpression, String value, String displayValue) {
         this.storageCode = storageCode;
         this.date = date;
         this.keyField = keyField;
@@ -85,7 +86,7 @@ public class Reference implements Serializable {
         return storageCode;
     }
 
-    public Date getDate() {
+    public LocalDateTime getDate() {
         return date;
     }
 

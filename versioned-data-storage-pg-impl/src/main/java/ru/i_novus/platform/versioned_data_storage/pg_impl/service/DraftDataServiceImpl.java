@@ -17,6 +17,7 @@ import javax.persistence.PersistenceException;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -49,13 +50,13 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     @Override
     @Transactional(Transactional.TxType.NOT_SUPPORTED)
-    public String applyDraft(String sourceStorageCode, String draftCode, Date publishTime) {
+    public String applyDraft(String sourceStorageCode, String draftCode, LocalDateTime publishTime) {
         return applyDraft(sourceStorageCode, draftCode, publishTime, null);
     }
 
     @Override
     @Transactional(Transactional.TxType.NOT_SUPPORTED)
-    public String applyDraft(String baseStorageCode, String draftCode, Date publishTime, Date closeTime) {
+    public String applyDraft(String baseStorageCode, String draftCode, LocalDateTime publishTime, LocalDateTime closeTime) {
         String newTable = createVersionTable(draftCode);
         List<String> draftFields = dataDao.getFieldNames(draftCode);
         if (baseStorageCode != null && dataDao.tableStructureEquals(baseStorageCode, draftCode)) {
@@ -107,12 +108,12 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     @Override
-    public void loadData(String draftCode, String sourceStorageCode, Date onDate) {
+    public void loadData(String draftCode, String sourceStorageCode, LocalDateTime onDate) {
         loadData(draftCode, sourceStorageCode, onDate, null);
     }
 
     @Override
-    public void loadData(String draftCode, String sourceStorageCode, Date fromDate, Date toDate) {
+    public void loadData(String draftCode, String sourceStorageCode, LocalDateTime fromDate, LocalDateTime toDate) {
         List<String> draftFields = dataDao.getFieldNames(draftCode);
         List<String> sourceFields = dataDao.getFieldNames(draftCode);
         if (!draftFields.equals(sourceFields)) {
@@ -185,7 +186,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     @Override
-    public boolean isFieldUnique(String storageCode, String fieldName, Date publishTime) {
+    public boolean isFieldUnique(String storageCode, String fieldName, LocalDateTime publishTime) {
         return dataDao.isUnique(storageCode, Collections.singletonList(fieldName), publishTime);
     }
 
@@ -219,8 +220,8 @@ public class DraftDataServiceImpl implements DraftDataService {
         //todo никак не учитывается Field.unique - уникальность в рамках даты
         String newTable = UUID.randomUUID().toString();
         dataDao.copyTable(newTable, draftCode);
-        dataDao.addColumnToTable(newTable, SYS_PUBLISHTIME, "timestamp with time zone", "'-infinity'");
-        dataDao.addColumnToTable(newTable, SYS_CLOSETIME, "timestamp with time zone", "'infinity'");
+        dataDao.addColumnToTable(newTable, SYS_PUBLISHTIME, "timestamp without time zone", "'-infinity'");
+        dataDao.addColumnToTable(newTable, SYS_CLOSETIME, "timestamp without time zone", "'infinity'");
         dataDao.createIndex(newTable, addDoubleQuotes(newTable + "_SYSDATE_idx"), Arrays.asList(SYS_PUBLISHTIME, SYS_CLOSETIME));
         List<String> fieldNames = dataDao.getFieldNames(newTable);
         dataDao.createTrigger(newTable, fieldNames);
@@ -231,7 +232,7 @@ public class DraftDataServiceImpl implements DraftDataService {
      * есть пересечения по дате
      * есть SYS_HASH (draftTable join actualVersionTable по SYS_HASH)
      */
-    private void insertActualDataFromVersion(String actualVersionTable, String draftTable, String newTable, List<String> columns, Date publishTime, Date closeTime) {
+    private void insertActualDataFromVersion(String actualVersionTable, String draftTable, String newTable, List<String> columns, LocalDateTime publishTime, LocalDateTime closeTime) {
         BigInteger count = dataDao.countActualDataFromVersion(actualVersionTable, draftTable, publishTime, closeTime);
         Map<String, String> columnsWithType = new LinkedHashMap<>();
         columns.forEach(column -> columnsWithType.put(column, dataDao.getFieldType(actualVersionTable, column.replaceAll("\"", ""))));
@@ -244,7 +245,7 @@ public class DraftDataServiceImpl implements DraftDataService {
      * нет пересечений по дате
      * нет SYS_HASH (из actualVersionTable те, которых нет в draftTable
      */
-    private void insertOldDataFromVersion(String actualVersionTable, String draftTable, String newTable, List<String> columns, Date publishTime, Date closeTime) {
+    private void insertOldDataFromVersion(String actualVersionTable, String draftTable, String newTable, List<String> columns, LocalDateTime publishTime, LocalDateTime closeTime) {
         BigInteger count = dataDao.countOldDataFromVersion(actualVersionTable, draftTable, publishTime, closeTime);
         for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
             dataDao.insertOldDataFromVersion(newTable, actualVersionTable, draftTable, columns, i, TRANSACTION_SIZE, publishTime, closeTime);
@@ -256,7 +257,7 @@ public class DraftDataServiceImpl implements DraftDataService {
      * нет SYS_HASH (из actualVersionTable те, которых нет в draftTable
      */
     private void insertClosedNowDataFromVersion(String actualVersionTable, String draftTable, String newTable,
-                                                List<String> columns, Date publishTime, Date closeTime) {
+                                                List<String> columns, LocalDateTime publishTime, LocalDateTime closeTime) {
         BigInteger count = dataDao.countClosedNowDataFromVersion(actualVersionTable, draftTable, publishTime, closeTime);
         logger.info("closed now count {}", count);
         Map<String, String> columnsWithType = new LinkedHashMap<>();
@@ -275,7 +276,7 @@ public class DraftDataServiceImpl implements DraftDataService {
      * нет SYS_HASH (из draftTable те, которых нет в actualVersionTable)
      */
     private void insertNewDataFromDraft(String actualVersionTable, String draftTable, String newTable,
-                                        List<String> columns, Date publishTime, Date closeTime) {
+                                        List<String> columns, LocalDateTime publishTime, LocalDateTime closeTime) {
         BigInteger count = dataDao.countNewValFromDraft(draftTable, actualVersionTable, publishTime, closeTime);
         for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
             dataDao.insertNewDataFromDraft(newTable, actualVersionTable, draftTable, columns, i, TRANSACTION_SIZE, publishTime, closeTime);

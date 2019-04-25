@@ -23,9 +23,9 @@ import javax.persistence.EntityManager;
 import javax.persistence.Query;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -42,7 +42,8 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.
 
 public class DataDao {
 
-    public static final Date PG_MAX_TIMESTAMP = Date.from(LocalDateTime.of(294276, 12, 31, 23, 59).atZone(ZoneId.systemDefault()).toInstant());
+    public static final LocalDateTime PG_MAX_TIMESTAMP = LocalDateTime.of(294276, 12, 31, 23, 59);
+    public static final DateTimeFormatter TIMESTAMP_DATE_FORMATTER = DateTimeFormatter.ofPattern(TIMESTAMP_DATE_FORMAT);
 
     private static final Logger logger = LoggerFactory.getLogger(DataDao.class);
     private Pattern dataRegexp = Pattern.compile("([0-9]{2})\\.([0-9]{2})\\.([0-9]{4})");
@@ -52,6 +53,10 @@ public class DataDao {
         this.entityManager = entityManager;
     }
 
+    private String formatDateTime(LocalDateTime localDateTime) {
+        return (localDateTime != null) ? localDateTime.format(TIMESTAMP_DATE_FORMATTER) : null;
+    }
+
     public List<RowValue> getData(DataCriteria criteria) {
         List<Field> fields = new ArrayList<>(criteria.getFields());
         fields.add(0, new IntegerField(DATA_PRIMARY_COLUMN));
@@ -59,6 +64,7 @@ public class DataDao {
             fields.add(1, new StringField(SYS_HASH));
         QueryWithParams queryWithParams = new QueryWithParams("SELECT " + generateSqlQuery("d", fields, true) +
                 " FROM data." + addDoubleQuotes(criteria.getTableName()) + " d ", null);
+
         QueryWithParams dataWhereClause;
         if (isEmpty(criteria.getHashList())) {
             dataWhereClause = getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter());
@@ -71,6 +77,7 @@ public class DataDao {
                 getDictionaryDataOrderBy((!Util.isEmpty(criteria.getSortings()) ? criteria.getSortings().get(0) : null), "d"),
                 null
         ));
+
         Query query = queryWithParams.createQuery(entityManager);
         if (criteria.getPage() > 0 && criteria.getSize() > 0)
             query.setFirstResult(getOffset(criteria))
@@ -79,7 +86,7 @@ public class DataDao {
         return convertToRowValue(fields, resultList);
     }
 
-    public List<String> getNotExists(String tableName, Date bdate, Date edate, List<String> hashList) {
+    public List<String> getNotExists(String tableName, LocalDateTime bdate, LocalDateTime edate, List<String> hashList) {
         Map<String, Object> params = new HashMap<>();
         String sqlHashArray = "array[" + hashList.stream().map(hash -> {
             String hashPlaceHolder = "hash" + params.size();
@@ -109,6 +116,7 @@ public class DataDao {
             }
         }
         fields.add(0, new IntegerField(DATA_PRIMARY_COLUMN));
+
         String keys = generateSqlQuery(null, fields, true);
         List<Object[]> list = entityManager.createNativeQuery(String.format(SELECT_ROWS_FROM_DATA_BY_FIELD, keys,
                 addDoubleQuotes(tableName), addDoubleQuotes(DATA_PRIMARY_COLUMN)))
@@ -158,8 +166,8 @@ public class DataDao {
         return (BigInteger) queryWithParams.createQuery(entityManager).getSingleResult();
     }
 
-    @Deprecated//todo о избавиться
-    public String getDataWhereClauseStr(Date publishDate, Date closeDate, String search, Set<List<FieldSearchCriteria>> filter) {
+    @Deprecated
+    public String getDataWhereClauseStr(LocalDateTime publishDate, LocalDateTime closeDate, String search, Set<List<FieldSearchCriteria>> filter) {
         String result = " 1=1 ";
         if (publishDate != null) {
             result += " and date_trunc('second', d.\"SYS_PUBLISHTIME\") <= :bdate and (date_trunc('second', d.\"SYS_CLOSETIME\") > :bdate or d.\"SYS_CLOSETIME\" is null)";
@@ -171,16 +179,17 @@ public class DataDao {
         return result;
     }
 
-    private QueryWithParams getDataWhereClause(Date publishDate, Date closeDate, String search, Set<List<FieldSearchCriteria>> filters) {
+    private QueryWithParams getDataWhereClause(LocalDateTime publishDate, LocalDateTime closeDate, String search, Set<List<FieldSearchCriteria>> filters) {
         closeDate = closeDate == null ? PG_MAX_TIMESTAMP : closeDate;
         Map<String, Object> params = new HashMap<>();
         String result = " WHERE 1=1 ";
         if (publishDate != null) {
             result += " and date_trunc('second', d.\"SYS_PUBLISHTIME\") <= :bdate and (date_trunc('second', d.\"SYS_CLOSETIME\") > :bdate or d.\"SYS_CLOSETIME\" is null)";
-            params.put("bdate", truncateDateTo(publishDate, ChronoUnit.SECONDS));
+            params.put("bdate", publishDate.truncatedTo(ChronoUnit.SECONDS));
             result += " and (date_trunc('second', d.\"SYS_CLOSETIME\") >= :edate or d.\"SYS_CLOSETIME\" is null)";
-            params.put("edate", truncateDateTo(closeDate, ChronoUnit.SECONDS));
+            params.put("edate", closeDate.truncatedTo(ChronoUnit.SECONDS));
         }
+
         QueryWithParams queryWithParams = new QueryWithParams(result, params);
         queryWithParams.concat(getDictionaryFilterQuery(search, filters, null));
         return queryWithParams;
@@ -309,12 +318,13 @@ public class DataDao {
     public void insertData(String tableName, List<RowValue> data) {
         if (isEmpty(data))
             return;
+
         List<String> keys = new ArrayList<>();
-        List<String> values = new ArrayList<>();
-        SimpleDateFormat sdf = new SimpleDateFormat(TIMESTAMP_DATE_FORMAT);
         for (Object fieldValue : data.iterator().next().getFieldValues()) {
             keys.add(addDoubleQuotes(((FieldValue) fieldValue).getField()));
         }
+
+        List<String> values = new ArrayList<>();
         for (RowValue rowValue : data) {
             List<String> rowValues = new ArrayList<>(rowValue.getFieldValues().size());
             for (Object fieldValueObj : rowValue.getFieldValues()) {
@@ -331,13 +341,13 @@ public class DataDao {
                                     addDoubleQuotes(refValue.getKeyField()),
                                     sqlDisplayExpression(refValue.getDisplayExpression(), "d"),
                                     addDoubleQuotes(refValue.getStorageCode()), addDoubleQuotes(refValue.getKeyField()),
-                                    getDataWhereClauseStr(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(sdf.format(refValue.getDate())))));
+                                    getDataWhereClauseStr(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(formatDateTime(refValue.getDate())))));
                         } else if (refValue.getDisplayField() != null)
                             rowValues.add(String.format("(select jsonb_build_object('value', d.%s , 'displayValue', d.%s, 'hash', d.\"SYS_HASH\") from data.%s d where d.%s=?\\:\\:" + getFieldType(refValue.getStorageCode(), refValue.getKeyField()) + " and %s)",
                                     addDoubleQuotes(refValue.getKeyField()),
                                     addDoubleQuotes(refValue.getDisplayField()),
                                     addDoubleQuotes(refValue.getStorageCode()), addDoubleQuotes(refValue.getKeyField()),
-                                    getDataWhereClauseStr(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(sdf.format(refValue.getDate())))));
+                                    getDataWhereClauseStr(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(formatDateTime(refValue.getDate())))));
                         else
                             rowValues.add("(select jsonb_build_object('value', ?))");
                     }
@@ -378,7 +388,7 @@ public class DataDao {
     }
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void loadData(String draftCode, String sourceStorageCode, List<String> fields, Date fromDate, Date toDate ) {
+    public void loadData(String draftCode, String sourceStorageCode, List<String> fields, LocalDateTime fromDate, LocalDateTime toDate ) {
         String keys = fields.stream().collect(Collectors.joining(","));
         String values = fields.stream().map(f -> "d." + f).collect(Collectors.joining(","));
         QueryWithParams queryWithParams = new QueryWithParams(String.format(COPY_QUERY_TEMPLATE, addDoubleQuotes(draftCode), keys, values,
@@ -390,7 +400,6 @@ public class DataDao {
     @Transactional
     public void updateData(String tableName, RowValue rowValue) {
         List<String> keyList = new ArrayList<>();
-        SimpleDateFormat sdf = new SimpleDateFormat(TIMESTAMP_DATE_FORMAT);
         for (Object objectValue : rowValue.getFieldValues()) {
             FieldValue fieldValue = (FieldValue) objectValue;
             String fieldName = fieldValue.getField();
@@ -407,14 +416,14 @@ public class DataDao {
                                 sqlDisplayExpression(refValue.getDisplayExpression(), "d"),
                                 addDoubleQuotes(refValue.getStorageCode()),
                                 addDoubleQuotes(refValue.getKeyField()),
-                                getDataWhereClauseStr(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(sdf.format(refValue.getDate())))));
+                                getDataWhereClauseStr(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(formatDateTime(refValue.getDate())))));
                     } else if (refValue.getDisplayField() != null)
                         keyList.add(addDoubleQuotes(fieldName) + String.format("=(select jsonb_build_object('value', d.%s , 'displayValue', d.%s, 'hash', d.\"SYS_HASH\") from data.%s d where d.%s=?\\:\\:" + getFieldType(refValue.getStorageCode(), refValue.getKeyField()) + " and %s)",
                                 addDoubleQuotes(refValue.getKeyField()),
                                 addDoubleQuotes(refValue.getDisplayField()),
                                 addDoubleQuotes(refValue.getStorageCode()),
                                 addDoubleQuotes(refValue.getKeyField()),
-                                getDataWhereClauseStr(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(sdf.format(refValue.getDate())))));
+                                getDataWhereClauseStr(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(formatDateTime(refValue.getDate())))));
                     else
                         keyList.add(addDoubleQuotes(fieldName) + "=(select jsonb_build_object('value', ?))");
                 }
@@ -470,7 +479,7 @@ public class DataDao {
         }
     }
 
-    public boolean isUnique(String storageCode, List<String> fieldNames, Date publishTime) {
+    public boolean isUnique(String storageCode, List<String> fieldNames, LocalDateTime publishTime) {
         String fields = fieldNames.stream().map(fieldName -> addDoubleQuotes(fieldName) + "\\:\\:text")
                 .collect(Collectors.joining(","));
         String groupBy = Stream.iterate(1, n -> n + 1).limit(fieldNames.size()).map(String::valueOf)
@@ -599,31 +608,33 @@ public class DataDao {
         } else {
             using = escapedField + "\\:\\:varchar\\:\\:" + newType;
         }
+
         entityManager.createNativeQuery(String.format(ALTER_COLUMN_WITH_USING, addDoubleQuotes(tableName),
                 escapedField, newType, using)).executeUpdate();
     }
 
-    public List getRowsByField(String tableName, String field, Object uniqueValue, boolean existDateColumns, Date begin, Date end, Object id) {
+    public List getRowsByField(String tableName, String field, Object uniqueValue, boolean existDateColumns, LocalDateTime begin, LocalDateTime end, Object id) {
         String query = SELECT_ROWS_FROM_DATA_BY_FIELD;
         String rows = addDoubleQuotes(field);
+
         if (existDateColumns) {
-            SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy");
             rows += "," + addDoubleQuotes(DATE_BEGIN) + "," + addDoubleQuotes(DATE_END);
-            query += "and (coalesce(\"DATEBEG\",'-infinity'\\:\\:timestamp),coalesce(\"DATEEND\",'infinity'\\:\\:timestamp)) overlaps ";
+            query += "and (coalesce(\"DATEBEG\",'-infinity'\\:\\:timestamp without time zone), coalesce(\"DATEEND\",'infinity'\\:\\:timestamp without time zone)) overlaps ";
             if (begin != null) {
-                query += "((to_date('" + sdf.format(begin) + "','dd.MM.yyyy') - integer '1'),";
+                query += "((to_date('" + formatDateTime(begin) + "','dd.MM.yyyy') - integer '1'),";
             } else {
-                query += "('-infinity'\\:\\:timestamp,";
+                query += "('-infinity'\\:\\:timestamp without time zone,";
             }
             if (end != null) {
-                query += "(to_date('" + sdf.format(end) + "','dd.MM.yyyy') + integer '1'))";
+                query += "(to_date('" + formatDateTime(end) + "','dd.MM.yyyy') + integer '1'))";
             } else {
-                query += "'infinity'\\:\\:timestamp)";
+                query += "'infinity'\\:\\:timestamp without time zone)";
             }
         }
         if (id != null) {
             query += " and " + addDoubleQuotes("SYS_RECORDID") + " != " + id;
         }
+
         Query nativeQuery = entityManager.createNativeQuery(String.format(query, rows, addDoubleQuotes(tableName), addDoubleQuotes(field)));
         nativeQuery.setParameter(1, uniqueValue);
         return nativeQuery.getResultList();
@@ -645,70 +656,71 @@ public class DataDao {
                 .getSingleResult();
     }
 
-    public BigInteger countActualDataFromVersion(String versionTable, String draftTable, Date publishTime, Date closeTime) {
-
+    public BigInteger countActualDataFromVersion(String versionTable, String draftTable, LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
-        final SimpleDateFormat df = new SimpleDateFormat(TIMESTAMP_DATE_FORMAT);
+
         Map<String, String> placeholderValues = new HashMap<>();
         placeholderValues.put("draftTable", "data." + addDoubleQuotes(draftTable));
         placeholderValues.put("versionTable", "data." + addDoubleQuotes(versionTable));
-        placeholderValues.put("publishTime", df.format(publishTime));
-        placeholderValues.put("closeTime", df.format(closeTime));
+        placeholderValues.put("publishTime", formatDateTime(publishTime));
+        placeholderValues.put("closeTime", formatDateTime(closeTime));
+
         String query = StrSubstitutor.replace(COUNT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME, placeholderValues);
         return (BigInteger) entityManager.createNativeQuery(query).getSingleResult();
     }
 
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void insertActualDataFromVersion(String tableToInsert, String versionTable, String draftTable,
-                                            Map<String, String> columns, int offset, int transactionSize, Date publishTime, Date closeTime) {
+                                            Map<String, String> columns, int offset, int transactionSize, LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
+
         String columnsStr = columns.keySet().stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String columnsWithType = columns.keySet().stream().map(s -> s + " " + columns.get(s)).reduce((s1, s2) -> s1 + ", " + s2).get();
         String columnsWithPrefixValue = columns.keySet().stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String columnsWithPrefixD = columns.keySet().stream().map(s -> "d." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        final SimpleDateFormat dateFormat = new SimpleDateFormat(TIMESTAMP_DATE_FORMAT);
 
         Map<String, String> placeholderValues = new HashMap<>();
         placeholderValues.put("dColumns", columnsWithPrefixD);
         placeholderValues.put("vValues", columnsWithPrefixValue);
         placeholderValues.put("versionTable", "data." + addDoubleQuotes(versionTable));
         placeholderValues.put("draftTable", "data." + addDoubleQuotes(draftTable));
-        placeholderValues.put("publishTime", dateFormat.format(publishTime));
-        placeholderValues.put("closeTime", dateFormat.format(closeTime));
+        placeholderValues.put("publishTime", formatDateTime(publishTime));
+        placeholderValues.put("closeTime", formatDateTime(closeTime));
         placeholderValues.put("offset", "" + offset);
         placeholderValues.put("transactionSize", "" + transactionSize);
         placeholderValues.put("newTableSeqName", "data." + getSequenceName(tableToInsert));
         placeholderValues.put("tableToInsert", "data." + addDoubleQuotes(tableToInsert));
         placeholderValues.put("columns", columnsStr);
         placeholderValues.put("columnsWithType", columnsWithType);
-        String query = StrSubstitutor.replace(INSERT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME, placeholderValues);
 
+        String query = StrSubstitutor.replace(INSERT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME, placeholderValues);
         if (logger.isDebugEnabled()) {
             logger.debug("insertActualDataFromVersion with closeTime method query: " + query);
         }
-        entityManager.createNativeQuery(
-                query)
+        entityManager.createNativeQuery(query)
                 .executeUpdate();
     }
 
-    public BigInteger countOldDataFromVersion(String versionTable, String draftTable, Date publishTime, Date closeTime) {
+    public BigInteger countOldDataFromVersion(String versionTable, String draftTable, LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
+
         return (BigInteger) entityManager.createNativeQuery(
                 String.format(COUNT_OLD_VAL_FROM_VERSION_WITH_CLOSE_TIME,
                         addDoubleQuotes(versionTable),
                         addDoubleQuotes(draftTable),
-                        new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(publishTime),
-                        new SimpleDateFormat(TIMESTAMP_DATE_FORMAT).format(closeTime)
+                        formatDateTime(publishTime),
+                        formatDateTime(closeTime)
                 )).getSingleResult();
     }
 
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void insertOldDataFromVersion(String tableToInsert, String tableFromInsert, String draftTable, List<String> columns,
-                                         int offset, int transactionSize, Date publishTime, Date closeTime) {
+                                         int offset, int transactionSize, LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
+
         String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        final SimpleDateFormat sdf = new SimpleDateFormat(TIMESTAMP_DATE_FORMAT);
+
         String query = String.format(INSERT_OLD_VAL_FROM_VERSION_WITH_CLOSE_DATE,
                 addDoubleQuotes(tableToInsert),
                 addDoubleQuotes(tableFromInsert),
@@ -718,46 +730,48 @@ public class DataDao {
                 getSequenceName(tableToInsert),
                 columnsStr,
                 columnsWithPrefix,
-                sdf.format(publishTime),
-                sdf.format(closeTime)
+                formatDateTime(publishTime),
+                formatDateTime(closeTime)
         );
+
         if (logger.isDebugEnabled()) {
             logger.debug("insertOldDataFromVersion with closeTime method query: " + query);
         }
-        entityManager.createNativeQuery(
-                query).executeUpdate();
+        entityManager.createNativeQuery(query)
+                .executeUpdate();
     }
 
-    public BigInteger countClosedNowDataFromVersion(String versionTable, String draftTable, Date publishTime, Date closeTime) {
+    public BigInteger countClosedNowDataFromVersion(String versionTable, String draftTable, LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
-        final SimpleDateFormat df = new SimpleDateFormat(TIMESTAMP_DATE_FORMAT);
+
         Map<String, String> placeholderValues = new HashMap<>();
         placeholderValues.put("versionTable", "data." + addDoubleQuotes(versionTable));
         placeholderValues.put("draftTable", "data." + addDoubleQuotes(draftTable));
-        placeholderValues.put("publishTime", df.format(publishTime));
-        placeholderValues.put("closeTime", df.format(closeTime));
+        placeholderValues.put("publishTime", formatDateTime(publishTime));
+        placeholderValues.put("closeTime", formatDateTime(closeTime));
         String query = StrSubstitutor.replace(COUNT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME, placeholderValues);
         return (BigInteger) entityManager.createNativeQuery(query).getSingleResult();
     }
 
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void insertClosedNowDataFromVersion(String tableToInsert, String versionTable, String draftTable,
-                                               Map<String, String> columns, int offset, int transactionSize, Date publishTime, Date closeTime) {
+                                               Map<String, String> columns, int offset, int transactionSize, LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
         String columnsStr = columns.keySet().stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String columnsWithType = columns.keySet().stream().map(s -> s + " " + columns.get(s)).reduce((s1, s2) -> s1 + ", " + s2).get();
-        final SimpleDateFormat df = new SimpleDateFormat(TIMESTAMP_DATE_FORMAT);
+
         Map<String, String> placeholderValues = new HashMap<>();
         placeholderValues.put("tableToInsert", "data." + addDoubleQuotes(tableToInsert));
         placeholderValues.put("draftTable", "data." + addDoubleQuotes(draftTable));
         placeholderValues.put("versionTable", "data." + addDoubleQuotes(versionTable));
-        placeholderValues.put("publishTime", df.format(publishTime));
-        placeholderValues.put("closeTime", df.format(closeTime));
+        placeholderValues.put("publishTime", formatDateTime(publishTime));
+        placeholderValues.put("closeTime", formatDateTime(closeTime));
         placeholderValues.put("columns", columnsStr);
         placeholderValues.put("offset", "" + offset);
         placeholderValues.put("transactionSize", "" + transactionSize);
         placeholderValues.put("columnsWithType", columnsWithType);
         placeholderValues.put("sequenceName", "data." + getSequenceName(tableToInsert));
+
         String query = StrSubstitutor.replace(INSERT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME, placeholderValues);
         if (logger.isDebugEnabled()) {
             logger.debug("insertClosedNowDataFromVersion with closeTime method query: " + query);
@@ -766,34 +780,32 @@ public class DataDao {
                 .executeUpdate();
     }
 
-    public BigInteger countNewValFromDraft(String draftTable, String versionTable, Date publishTime, Date closeTime) {
-
+    public BigInteger countNewValFromDraft(String draftTable, String versionTable, LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
-        final SimpleDateFormat df = new SimpleDateFormat(TIMESTAMP_DATE_FORMAT);
+
         Map<String, String> placeholderValues = new HashMap<>();
         placeholderValues.put("draftTable", "data." + addDoubleQuotes(draftTable));
         placeholderValues.put("versionTable", "data." + addDoubleQuotes(versionTable));
-        placeholderValues.put("publishTime", df.format(publishTime));
-        placeholderValues.put("closeTime", df.format(closeTime));
+        placeholderValues.put("publishTime", formatDateTime(publishTime));
+        placeholderValues.put("closeTime", formatDateTime(closeTime));
+
         String query = StrSubstitutor.replace(COUNT_NEW_VAL_FROM_DRAFT_WITH_CLOSE_TIME, placeholderValues);
         return (BigInteger) entityManager.createNativeQuery(query).getSingleResult();
-
     }
 
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void insertNewDataFromDraft(String tableToInsert, String versionTable, String draftTable,
-                                       List<String> columns, int offset, int transactionSize, Date publishTime, Date closeTime) {
+                                       List<String> columns, int offset, int transactionSize, LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
         String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        final SimpleDateFormat df = new SimpleDateFormat(TIMESTAMP_DATE_FORMAT);
 
         Map<String, String> placeholderValues = new HashMap<>();
         placeholderValues.put("fields", columnsStr);
         placeholderValues.put("draftTable", "data." + addDoubleQuotes(draftTable));
         placeholderValues.put("versionTable", "data." + addDoubleQuotes(versionTable));
-        placeholderValues.put("publishTime", df.format(publishTime));
-        placeholderValues.put("closeTime", df.format(closeTime));
+        placeholderValues.put("publishTime", formatDateTime(publishTime));
+        placeholderValues.put("closeTime", formatDateTime(closeTime));
         placeholderValues.put("transactionSize", "" + transactionSize);
         placeholderValues.put("offset", "" + offset);
         placeholderValues.put("sequenceName", "data." + getSequenceName(tableToInsert));
@@ -805,32 +817,32 @@ public class DataDao {
             logger.debug("insertNewDataFromDraft with closeTime method query: " + query);
         }
 
-        entityManager.createNativeQuery(
-                query)
+        entityManager.createNativeQuery(query)
                 .executeUpdate();
     }
 
     @Transactional(Transactional.TxType.REQUIRES_NEW)
-    public void insertDataFromDraft(String draftTable, int offset, String targetTable, int transactionSize, Date publishTime, Date closeTime, List<String> columns) {
+    public void insertDataFromDraft(String draftTable, int offset, String targetTable, int transactionSize, LocalDateTime publishTime, LocalDateTime closeTime, List<String> columns) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
+
         String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        final SimpleDateFormat sdf = new SimpleDateFormat(TIMESTAMP_DATE_FORMAT);
         String query = String.format(INSERT_FROM_DRAFT_TEMPLATE_WITH_CLOSE_TIME,
                 addDoubleQuotes(draftTable),
                 offset,
                 transactionSize,
                 addDoubleQuotes(targetTable),
-                sdf.format(publishTime),
-                sdf.format(closeTime),
+                formatDateTime(publishTime),
+                formatDateTime(closeTime),
                 getSequenceName(targetTable),
                 columnsStr,
                 columnsWithPrefix);
+
         if (logger.isDebugEnabled()) {
             logger.debug("insertDataFromDraft with closeTime method query: " + query);
         }
-        entityManager.createNativeQuery(
-                query)
+
+        entityManager.createNativeQuery(query)
                 .executeUpdate();
     }
 
@@ -838,11 +850,12 @@ public class DataDao {
     public void deletePointRows(String targetTable) {
         String query = String.format(DELETE_POINT_ROWS_QUERY_TEMPLATE,
                 addDoubleQuotes(targetTable));
+
         if (logger.isDebugEnabled()) {
             logger.debug("deletePointRows method query: " + query);
         }
-        entityManager.createNativeQuery(
-                query)
+
+        entityManager.createNativeQuery(query)
                 .executeUpdate();
     }
 
@@ -886,9 +899,10 @@ public class DataDao {
                 .stream()
                 .map(f -> formatFieldForQuery(f, "t2") + " is null ")
                 .collect(Collectors.joining(" and "));
+
         String oldVersionDateFilter = "";
         if (criteria.getOldPublishDate() != null || criteria.getOldCloseDate() != null) {
-            oldVersionDateFilter = " and date_trunc('second', t1.\"SYS_PUBLISHTIME\") <= :oldPublishDate\\:\\:timestamp and date_trunc('second', t1.\"SYS_CLOSETIME\") >= :oldCloseDate\\:\\:timestamp ";
+            oldVersionDateFilter = " and date_trunc('second', t1.\"SYS_PUBLISHTIME\") <= :oldPublishDate\\:\\:timestamp without time zone and date_trunc('second', t1.\"SYS_CLOSETIME\") >= :oldCloseDate\\:\\:timestamp without time zone ";
             params.put("oldPublishDate", criteria.getOldPublishDate() != null
                     ? truncateDateTo(criteria.getOldPublishDate(), ChronoUnit.SECONDS)
                     : "'-infinity'");
@@ -896,9 +910,10 @@ public class DataDao {
                     ? truncateDateTo(criteria.getOldCloseDate(), ChronoUnit.SECONDS)
                     : PG_MAX_TIMESTAMP);
         }
+
         String newVersionDateFilter = "";
         if (criteria.getNewPublishDate() != null || criteria.getNewCloseDate() != null) {
-            newVersionDateFilter = " and date_trunc('second', t2.\"SYS_PUBLISHTIME\") <= :newPublishDate\\:\\:timestamp and date_trunc('second', t2.\"SYS_CLOSETIME\") >= :newCloseDate\\:\\:timestamp ";
+            newVersionDateFilter = " and date_trunc('second', t2.\"SYS_PUBLISHTIME\") <= :newPublishDate\\:\\:timestamp without time zone and date_trunc('second', t2.\"SYS_CLOSETIME\") >= :newCloseDate\\:\\:timestamp without time zone ";
             params.put("newPublishDate", criteria.getNewPublishDate() != null
                     ? truncateDateTo(criteria.getNewPublishDate(), ChronoUnit.SECONDS)
                     : "'-infinity'");
@@ -906,6 +921,7 @@ public class DataDao {
                     ? truncateDateTo(criteria.getNewCloseDate(), ChronoUnit.SECONDS)
                     : PG_MAX_TIMESTAMP);
         }
+
         String joinType;
         switch (criteria.getReturnType()) {
             case NEW:
@@ -917,6 +933,7 @@ public class DataDao {
             default:
                 joinType = "full";
         }
+
         String query = " from data." + addDoubleQuotes(oldStorage) + " t1 " + joinType +
                 " join data." + addDoubleQuotes(newStorage) + " t2 on " + primaryEquality +
                 " and (true" + oldPrimaryValuesFilter + " or true" + newPrimaryValuesFilter + ")" +

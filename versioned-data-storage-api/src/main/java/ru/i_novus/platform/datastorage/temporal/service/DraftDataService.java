@@ -4,7 +4,7 @@ import ru.i_novus.platform.datastorage.temporal.exception.NotUniqueException;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -32,7 +32,7 @@ public interface DraftDataService {
      * @param publishTime     дата и время публикации черновика
      * @return Уникальный код хранилища данных, созданного в результате слияния данных исходного хранилища и черновика
      */
-    String applyDraft(String baseStorageCode, String draftCode, Date publishTime);
+    String applyDraft(String baseStorageCode, String draftCode, LocalDateTime publishTime);
 
     /**
      * Создание новой версии на основе черновика с указанием даты закрытия
@@ -43,7 +43,7 @@ public interface DraftDataService {
      * @param closeTime       дата и время завершения действия версии
      * @return Уникальный код хранилища данных, созданного в результате слияния данных исходного хранилища и черновика
      */
-    String applyDraft(String baseStorageCode, String draftCode, Date publishTime, Date closeTime);
+    String applyDraft(String baseStorageCode, String draftCode, LocalDateTime publishTime, LocalDateTime closeTime);
 
     /**
      * Добавление данных в черновик
@@ -84,7 +84,7 @@ public interface DraftDataService {
      * @param sourceStorageCode код хранилища данных, откуда будут загружены данные
      * @param onDate            дата публикации версии
      */
-    void loadData(String draftCode, String sourceStorageCode, Date onDate);
+    void loadData(String draftCode, String sourceStorageCode, LocalDateTime onDate);
 
     /**
      * Загрузить данные в черновик из хранилища
@@ -94,7 +94,7 @@ public interface DraftDataService {
      * @param fromDate          дата начала действия версии
      * @param toDate            дата окончания действия версии
      */
-    void loadData(String draftCode, String sourceStorageCode, Date fromDate, Date toDate);
+    void loadData(String draftCode, String sourceStorageCode, LocalDateTime fromDate, LocalDateTime toDate);
 
     /**
      * Добавление нового поля в таблицу
@@ -141,7 +141,7 @@ public interface DraftDataService {
      * @param publishTime дата публикации версии
      * @return возврщает true, если значения поля уникальны, иначе false. Null считается уникальным значением.
      */
-    boolean isFieldUnique(String storageCode, String fieldName, Date publishTime);
+    boolean isFieldUnique(String storageCode, String fieldName, LocalDateTime publishTime);
 
     /**
      * Проверка уникальности списка значений полей хранилища
