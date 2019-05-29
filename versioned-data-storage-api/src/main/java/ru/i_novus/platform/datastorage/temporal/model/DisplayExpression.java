@@ -1,5 +1,6 @@
 package ru.i_novus.platform.datastorage.temporal.model;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -9,7 +10,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
-public class DisplayExpression {
+public class DisplayExpression implements Serializable {
 
     public static final Pattern REFERENCE_DISPLAY_PLACEHOLDER_PATTERN = Pattern.compile("\\$\\{(.+?)\\}");
 
