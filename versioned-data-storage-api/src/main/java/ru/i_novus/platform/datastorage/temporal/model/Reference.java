@@ -27,6 +27,9 @@ public class Reference implements Serializable {
     public Reference() {
     }
 
+    /**
+     * @deprecated
+     */
     @Deprecated
     public Reference(String storageCode, LocalDateTime date, String keyField, String displayField) {
         this.storageCode = storageCode;
@@ -42,6 +45,9 @@ public class Reference implements Serializable {
         this.displayExpression = displayExpression;
     }
 
+    /**
+     * @deprecated
+     */
     @Deprecated
     public Reference(String storageCode, LocalDateTime date, String keyField, String displayField, String value) {
         this.storageCode = storageCode;
@@ -106,7 +112,7 @@ public class Reference implements Serializable {
         this.value = value;
     }
 
-    public Object getDisplayValue() {
+    public String getDisplayValue() {
         return displayValue;
     }
 
