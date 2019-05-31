@@ -59,8 +59,8 @@ public class QueryConstants {
             "  RETURNS trigger AS\n" +
             "$BODY$\n" +
             "  BEGIN\n" +
-            "\tNEW.\"SYS_HASH\" = md5(ROW(%s)||'');\t\t\n" +
-            "\tRETURN NEW;\n" +
+            "    NEW.\"SYS_HASH\" = md5(ROW(%s)||'');\n" +
+            "    RETURN NEW;\n" +
             "  END;\n" +
             "  $BODY$\n" +
             "  LANGUAGE plpgsql;\n" +
@@ -79,8 +79,8 @@ public class QueryConstants {
             "  RETURNS trigger AS\n" +
             "$BODY$\n" +
             "  BEGIN\n" +
-            "\tNEW.\"FTS\" = %s;\n" +
-            "\tRETURN NEW;\n" +
+            "    NEW.\"FTS\" = %s;\n" +
+            "    RETURN NEW;\n" +
             "  END;\n" +
             "  $BODY$\n" +
             "  LANGUAGE plpgsql;\n" +
