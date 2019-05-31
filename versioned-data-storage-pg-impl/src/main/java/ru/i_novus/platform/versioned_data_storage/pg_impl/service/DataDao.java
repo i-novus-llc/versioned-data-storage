@@ -24,7 +24,6 @@ import javax.persistence.Query;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -506,30 +505,36 @@ public class DataDao {
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void createTrigger(String tableName) {
-        createTrigger(tableName, getFieldNames(tableName));
+        createTrigger(tableName, getHashUsedFieldNames(tableName));
+    }
+
+    private String getFieldClearName(String field) {
+        return field.substring(0, field.indexOf('"', 1) + 1);
     }
 
     @Transactional
     public void createTrigger(String tableName, List<String> fields) {
         String escapedTableName = addDoubleQuotes(tableName);
+        String tableFields = fields.stream().map(this::getFieldClearName).collect(Collectors.joining(", "));
         entityManager.createNativeQuery(String.format(CREATE_HASH_TRIGGER,
                 tableName,
                 fields.stream().map(field -> "NEW." + field).collect(Collectors.joining(", ")),
-                fields.stream().collect(Collectors.joining(", ")),
+                tableFields,
                 escapedTableName,
                 tableName)).executeUpdate();
         entityManager.createNativeQuery(String.format(CREATE_FTS_TRIGGER,
                 tableName,
-                fields.stream().map(field -> "coalesce( to_tsvector('ru', NEW." + field + "\\:\\:text),'')")
+                fields.stream()
+                        .map(field -> "coalesce( to_tsvector('ru', NEW." + field + "\\:\\:text),'')")
                         .collect(Collectors.joining(" || ' ' || ")),
-                fields.stream().collect(Collectors.joining(", ")),
+                tableFields,
                 escapedTableName,
                 tableName)).executeUpdate();
     }
 
     @Transactional
     public void updateHashRows(String tableName) {
-        List<String> fieldNames = getFieldNames(tableName);
+        List<String> fieldNames = getHashUsedFieldNames(tableName);
         entityManager.createNativeQuery(String.format(UPDATE_HASH,
                 addDoubleQuotes(tableName),
                 fieldNames.stream().collect(Collectors.joining(", ")))).executeUpdate();
@@ -537,7 +542,7 @@ public class DataDao {
 
     @Transactional
     public void updateFtsRows(String tableName) {
-        List<String> fieldNames = getFieldNames(tableName);
+        List<String> fieldNames = getHashUsedFieldNames(tableName);
         entityManager.createNativeQuery(String.format(UPDATE_FTS,
                 addDoubleQuotes(tableName),
                 fieldNames.stream().map(field -> "coalesce( to_tsvector('ru', " + field + "\\:\\:text),'')")
@@ -581,10 +586,18 @@ public class DataDao {
                 addDoubleQuotes(tableName))).executeUpdate();
     }
 
-    public List<String> getFieldNames(String tableName) {
-        List<String> results = entityManager.createNativeQuery(String.format(SELECT_FIELD_NAMES, tableName)).getResultList();
+    public List<String> getFieldNames(String tableName, String sqlFieldNames) {
+        List<String> results = entityManager.createNativeQuery(String.format(sqlFieldNames, tableName)).getResultList();
         Collections.sort(results);
-        return results.stream().map(QueryUtil::addDoubleQuotes).collect(Collectors.toList());
+        return results;
+    }
+
+    public List<String> getFieldNames(String tableName) {
+        return getFieldNames(tableName, SELECT_FIELD_NAMES);
+    }
+
+    public List<String> getHashUsedFieldNames(String tableName) {
+        return getFieldNames(tableName, SELECT_HASH_USED_FIELD_NAMES);
     }
 
     public String getFieldType(String tableName, String field) {

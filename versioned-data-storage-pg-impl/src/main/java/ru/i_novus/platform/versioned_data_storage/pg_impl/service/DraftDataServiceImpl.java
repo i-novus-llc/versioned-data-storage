@@ -4,6 +4,7 @@ import org.apache.commons.lang.BooleanUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
+import ru.i_novus.platform.datastorage.temporal.enums.FieldType;
 import ru.i_novus.platform.datastorage.temporal.exception.ListCodifiedException;
 import ru.i_novus.platform.datastorage.temporal.exception.NotUniqueException;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
@@ -131,8 +132,9 @@ public class DraftDataServiceImpl implements DraftDataService {
     public void addField(String draftCode, Field field) {
         if (SYS_RECORDS.contains(field.getName()))
             throw new CodifiedException(SYS_FIELD_CONFLICT);
-        if (dataDao.getFieldNames(draftCode).contains(field.getName()))
+        if (dataDao.getFieldNames(draftCode).contains(addDoubleQuotes(field.getName())))
             throw new CodifiedException(COLUMN_ALREADY_EXISTS);
+
         dataDao.dropTrigger(draftCode);
         String defaultValue = (field instanceof BooleanField) ? "false" : null;
         dataDao.addColumnToTable(draftCode, field.getName(), field.getType(), defaultValue);
@@ -145,13 +147,16 @@ public class DraftDataServiceImpl implements DraftDataService {
     public void deleteField(String draftCode, String fieldName) {
         if (!dataDao.getFieldNames(draftCode).contains(addDoubleQuotes(fieldName)))
             throw new CodifiedException(COLUMN_NOT_EXISTS);
+
         dataDao.dropTrigger(draftCode);
         dataDao.deleteColumnFromTable(draftCode, fieldName);
         dataDao.deleteEmptyRows(draftCode);
+
         if (!CollectionUtils.isEmpty(dataDao.getFieldNames(draftCode))) {
             dataDao.createTrigger(draftCode);
             try {
                 dataDao.updateHashRows(draftCode);
+
             } catch (PersistenceException pe) {
                 processNotUniqueRowException(pe);
             }
@@ -166,10 +171,12 @@ public class DraftDataServiceImpl implements DraftDataService {
         String newType = field.getType();
         if (oldType.equals(newType))
             return;
+
         try {
             dataDao.dropTrigger(draftCode);
             dataDao.alterDataType(draftCode, field.getName(), oldType, newType);
             dataDao.createTrigger(draftCode);
+
         } catch (PersistenceException pe) {
             throw new CodifiedException(INCOMPATIBLE_NEW_DATA_TYPE_EXCEPTION_CODE, pe, field.getName());
         }
@@ -195,13 +202,24 @@ public class DraftDataServiceImpl implements DraftDataService {
         return dataDao.isUnique(storageCode, fieldNames, null);
     }
 
+    private String getHashUsedFieldName(Field field) {
+        String name = addDoubleQuotes(field.getName());
+        if (FieldType.REFERENCE.name().equals(field.getType()))
+            name += "->>'value'";
+        return name;
+    }
+
     private void createDraftTable(String draftCode, List<Field> fields) {
         //todo никак не учитывается Field.unique - уникальность в рамках черновика
         logger.debug("creating table with name: {}", draftCode);
         dataDao.createDraftTable(draftCode, fields);
 
-        List<String> fieldNames = fields.stream().map(f -> addDoubleQuotes(f.getName())).filter(f -> !QueryConstants.SYS_RECORDS.contains(f)).collect(Collectors.toList());
+        List<String> fieldNames = fields.stream()
+                .map(this::getHashUsedFieldName)
+                .filter(f -> !QueryConstants.SYS_RECORDS.contains(f))
+                .collect(Collectors.toList());
         Collections.sort(fieldNames);
+
         if (!fields.isEmpty()) {
             dataDao.createTrigger(draftCode, fieldNames);
             for (Field field : fields) {
@@ -223,7 +241,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         dataDao.addColumnToTable(newTable, SYS_PUBLISHTIME, "timestamp without time zone", "'-infinity'");
         dataDao.addColumnToTable(newTable, SYS_CLOSETIME, "timestamp without time zone", "'infinity'");
         dataDao.createIndex(newTable, addDoubleQuotes(newTable + "_SYSDATE_idx"), Arrays.asList(SYS_PUBLISHTIME, SYS_CLOSETIME));
-        List<String> fieldNames = dataDao.getFieldNames(newTable);
+        List<String> fieldNames = dataDao.getHashUsedFieldNames(newTable);
         dataDao.createTrigger(newTable, fieldNames);
         return newTable;
     }

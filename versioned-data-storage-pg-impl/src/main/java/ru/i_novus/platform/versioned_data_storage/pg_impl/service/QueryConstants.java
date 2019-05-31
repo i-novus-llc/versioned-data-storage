@@ -20,13 +20,14 @@ public class QueryConstants {
     public static final String SYS_PUBLISHTIME = "SYS_PUBLISHTIME";
     public static final String SYS_CLOSETIME = "SYS_CLOSETIME";
     public static final String SYS_HASH = "SYS_HASH";
+    public static final String SYS_PATH = "SYS_PATH";
     public static final String DATE_BEGIN = "DATEBEG";
     public static final String DATE_END = "DATEEND";
     public static final String DATA_PRIMARY_COLUMN = "SYS_RECORDID";
     public static final String HAS_CHILD_BRANCH = "SYS_HAS_CHILD_BRANCH";
     public static final String FULL_TEXT_SEARCH = "FTS";
 
-    public static final List<String> SYS_RECORDS = Arrays.asList(DATA_PRIMARY_COLUMN, SYS_PUBLISHTIME, SYS_CLOSETIME, SYS_HASH, "SYS_PATH", FULL_TEXT_SEARCH);
+    public static final List<String> SYS_RECORDS = Arrays.asList(DATA_PRIMARY_COLUMN, SYS_PUBLISHTIME, SYS_CLOSETIME, SYS_HASH, SYS_PATH, FULL_TEXT_SEARCH);
 
     public static final String CREATE_TABLE_TEMPLATE = "CREATE TABLE data.%s (\"SYS_RECORDID\" bigserial NOT NULL, " +
             "%s, " +
@@ -103,16 +104,32 @@ public class QueryConstants {
     public static final String DELETE_ALL_RECORDS_FROM_TABLE_QUERY_TEMPLATE = "DELETE FROM data.%s;";
     public static final String DELETE_EMPTY_RECORDS_FROM_TABLE_QUERY_TEMPLATE = "DELETE FROM data.%s WHERE %s;";
     public static final String UPDATE_QUERY_TEMPLATE = "UPDATE data.%s SET %s WHERE \"SYS_RECORDID\" IN (%s);";
+
     public static final String IS_VERSION_NOT_EMPTY = "SELECT exists(SELECT * FROM data.%s);";
     public static final String IS_FIELD_NOT_EMPTY = "SELECT exists(SELECT * FROM data.%s WHERE %s.%s IS NOT NULL);";
     public static final String IS_FIELD_CONTAIN_EMPTY_VALUES = "SELECT exists(SELECT * FROM data.%s WHERE %s.%s IS NULL);";
     public static final String IS_RELATED_VALUE_EXIST = "SELECT exists(SELECT * FROM data.%s where %s.%s = %s)";
-    public static final String SELECT_FIELD_NAMES = "SELECT column_name FROM \"information_schema\".\"columns\" WHERE table_name = '%s' AND column_name NOT IN ('SYS_RECORDID', 'FTS', 'SYS_HASH', 'SYS_PUBLISHTIME', 'SYS_CLOSETIME')";
-    public static final String SELECT_FIELD_TYPE = "SELECT data_type FROM \"information_schema\".\"columns\" WHERE table_name = '%s' AND column_name='%s'";
+
+    private static final String SYS_RECORDS_TEXT = "'SYS_RECORDID', 'FTS', 'SYS_HASH', 'SYS_PUBLISHTIME', 'SYS_CLOSETIME'";
+    private static final String FROM_INFO_SCHEMA_COLUMNS = "FROM \"information_schema\".\"columns\"\n";
+    private static final String WHERE_TABLE_AND_NOT_SYS_COLUMNS = "WHERE table_name = '%s'\n" +
+            "  AND column_name NOT IN (" + SYS_RECORDS_TEXT + ")";
+    public static final String SELECT_FIELD_NAMES = "SELECT '\"' || column_name || '\"'\n" +
+            FROM_INFO_SCHEMA_COLUMNS +
+            WHERE_TABLE_AND_NOT_SYS_COLUMNS;
+    public static final String SELECT_HASH_USED_FIELD_NAMES = "SELECT '\"' || column_name || '\"'\n" +
+            "       || (case when data_type = 'jsonb' then '->>''value''' else '' end)\n" +
+            FROM_INFO_SCHEMA_COLUMNS +
+            WHERE_TABLE_AND_NOT_SYS_COLUMNS;
+    public static final String SELECT_FIELD_TYPE = "SELECT data_type\n" +
+            FROM_INFO_SCHEMA_COLUMNS +
+            " WHERE table_name = '%s'\n" +
+            "   AND column_name='%s'";
 
     public static final String INSERT_QUERY_FROM_DRAFT_TEMPLATE = "INSERT INTO data.%s SELECT %s FROM data.%s WHERE \"SYS_CLOSETIME\" IS NULL;";
     public static final String SELECT_COUNT_QUERY_TEMPLATE = "SELECT count(*) FROM data.%s;";
     public static final String TRUNCATE_QUERY_TEMPLATE = "TRUNCATE TABLE data.%s;";
+
     public static final String CREATE_TABLE_HASH_INDEX = "CREATE INDEX %s ON data.%s(\"SYS_HASH\");";
     public static final String CREATE_TABLE_INDEX = "CREATE INDEX %s ON data.%s(%s);";
     public static final String DROP_TABLE_INDEX = "DROP INDEX IF EXISTS data.%s;";
