@@ -1,8 +1,11 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.service;
 
+import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * @author lgalimova
@@ -110,7 +113,7 @@ public class QueryConstants {
     public static final String IS_FIELD_CONTAIN_EMPTY_VALUES = "SELECT exists(SELECT * FROM data.%s WHERE %s.%s IS NULL);";
     public static final String IS_RELATED_VALUE_EXIST = "SELECT exists(SELECT * FROM data.%s where %s.%s = %s)";
 
-    private static final String SYS_RECORDS_TEXT = "'SYS_RECORDID', 'FTS', 'SYS_HASH', 'SYS_PUBLISHTIME', 'SYS_CLOSETIME'";
+    private static final String SYS_RECORDS_TEXT = SYS_RECORDS.stream().map(QueryUtil::addSingleQuotes).collect(Collectors.joining(", "));
     private static final String FROM_INFO_SCHEMA_COLUMNS = "FROM \"information_schema\".\"columns\"\n";
     private static final String WHERE_TABLE_AND_NOT_SYS_COLUMNS = "WHERE table_name = '%s'\n" +
             "  AND column_name NOT IN (" + SYS_RECORDS_TEXT + ")";
@@ -124,7 +127,7 @@ public class QueryConstants {
     public static final String SELECT_FIELD_TYPE = "SELECT data_type\n" +
             FROM_INFO_SCHEMA_COLUMNS +
             " WHERE table_name = '%s'\n" +
-            "   AND column_name='%s'";
+            "   AND column_name = '%s'";
 
     public static final String INSERT_QUERY_FROM_DRAFT_TEMPLATE = "INSERT INTO data.%s SELECT %s FROM data.%s WHERE \"SYS_CLOSETIME\" IS NULL;";
     public static final String SELECT_COUNT_QUERY_TEMPLATE = "SELECT count(*) FROM data.%s;";
