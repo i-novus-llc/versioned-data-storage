@@ -128,6 +128,10 @@ public class QueryConstants {
             FROM_INFO_SCHEMA_COLUMNS +
             " WHERE table_name = '%s'\n" +
             "   AND column_name = '%s'";
+    public static final String SELECT_FIELD_NAMES_AND_TYPES = "SELECT column_name, data_type\n" +
+            FROM_INFO_SCHEMA_COLUMNS +
+            " WHERE table_schema = 'data'\n" +
+            "   AND table_name = :table";
 
     public static final String INSERT_QUERY_FROM_DRAFT_TEMPLATE = "INSERT INTO data.%s SELECT %s FROM data.%s WHERE \"SYS_CLOSETIME\" IS NULL;";
     public static final String SELECT_COUNT_QUERY_TEMPLATE = "SELECT count(*) FROM data.%s;";

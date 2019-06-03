@@ -56,6 +56,7 @@ public class DataDao {
         return (localDateTime != null) ? localDateTime.format(TIMESTAMP_DATE_FORMATTER) : null;
     }
 
+    @SuppressWarnings("unchecked")
     public List<RowValue> getData(DataCriteria criteria) {
         List<Field> fields = new ArrayList<>(criteria.getFields());
         fields.add(0, new IntegerField(DATA_PRIMARY_COLUMN));
@@ -104,6 +105,7 @@ public class DataDao {
         return resultList;
     }
 
+    @SuppressWarnings("unchecked")
     public RowValue getRowData(String tableName, List<String> fieldNames, Object systemId) {
         Map<String, String> dataTypes = getColumnDataTypes(tableName);
         List<Field> fields = new ArrayList<>(fieldNames.size());
@@ -135,9 +137,9 @@ public class DataDao {
         return dataTypes1.equals(dataTypes2);
     }
 
+    @SuppressWarnings("unchecked")
     public Map<String, String> getColumnDataTypes(String tableName) {
-        List<Object[]> dataTypes = entityManager.createNativeQuery("SELECT column_name, data_type FROM information_schema.columns " +
-                "WHERE table_schema='data' AND table_name=:table")
+        List<Object[]> dataTypes = entityManager.createNativeQuery(SELECT_FIELD_NAMES_AND_TYPES)
                 .setParameter("table", tableName)
                 .getResultList();
         Map<String, String> map = new HashMap<>();
@@ -165,6 +167,9 @@ public class DataDao {
         return (BigInteger) queryWithParams.createQuery(entityManager).getSingleResult();
     }
 
+    /**
+     * @deprecated
+     */
     @Deprecated
     public String getDataWhereClauseStr(LocalDateTime publishDate, LocalDateTime closeDate, String search, Set<List<FieldSearchCriteria>> filter) {
         String result = " 1=1 ";
