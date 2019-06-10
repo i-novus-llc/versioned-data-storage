@@ -31,6 +31,7 @@ public class QueryConstants {
     public static final String FULL_TEXT_SEARCH = "FTS";
 
     public static final List<String> SYS_RECORDS = Arrays.asList(DATA_PRIMARY_COLUMN, SYS_PUBLISHTIME, SYS_CLOSETIME, SYS_HASH, SYS_PATH, FULL_TEXT_SEARCH);
+    private static final String SYS_RECORDS_TEXT = SYS_RECORDS.stream().map(QueryUtil::addSingleQuotes).collect(Collectors.joining(", "));
 
     public static final String CREATE_TABLE_TEMPLATE = "CREATE TABLE data.%s (\"SYS_RECORDID\" bigserial NOT NULL, " +
             "%s, " +
@@ -113,14 +114,15 @@ public class QueryConstants {
     public static final String IS_FIELD_CONTAIN_EMPTY_VALUES = "SELECT exists(SELECT * FROM data.%s WHERE %s.%s IS NULL);";
     public static final String IS_RELATED_VALUE_EXIST = "SELECT exists(SELECT * FROM data.%s where %s.%s = %s)";
 
-    private static final String SYS_RECORDS_TEXT = SYS_RECORDS.stream().map(QueryUtil::addSingleQuotes).collect(Collectors.joining(", "));
+    private static final String SELECT_COLUMN_NAME = "SELECT '\"' || column_name || '\"'\n";
     private static final String FROM_INFO_SCHEMA_COLUMNS = "FROM \"information_schema\".\"columns\"\n";
     private static final String WHERE_TABLE_AND_NOT_SYS_COLUMNS = "WHERE table_name = '%s'\n" +
             "  AND column_name NOT IN (" + SYS_RECORDS_TEXT + ")";
-    public static final String SELECT_FIELD_NAMES = "SELECT '\"' || column_name || '\"'\n" +
+
+    public static final String SELECT_FIELD_NAMES = SELECT_COLUMN_NAME +
             FROM_INFO_SCHEMA_COLUMNS +
             WHERE_TABLE_AND_NOT_SYS_COLUMNS;
-    public static final String SELECT_HASH_USED_FIELD_NAMES = "SELECT '\"' || column_name || '\"'\n" +
+    public static final String SELECT_HASH_USED_FIELD_NAMES = SELECT_COLUMN_NAME +
             "       || (case when data_type = 'jsonb' then '->>''value''' else '' end)\n" +
             FROM_INFO_SCHEMA_COLUMNS +
             WHERE_TABLE_AND_NOT_SYS_COLUMNS;
