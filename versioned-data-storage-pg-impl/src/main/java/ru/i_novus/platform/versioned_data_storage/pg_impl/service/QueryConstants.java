@@ -30,7 +30,7 @@ public class QueryConstants {
     public static final String HAS_CHILD_BRANCH = "SYS_HAS_CHILD_BRANCH";
     public static final String FULL_TEXT_SEARCH = "FTS";
 
-    public static final List<String> SYS_RECORDS = Arrays.asList(DATA_PRIMARY_COLUMN, SYS_PUBLISHTIME, SYS_CLOSETIME, SYS_HASH, SYS_PATH, FULL_TEXT_SEARCH);
+    static final List<String> SYS_RECORDS = Arrays.asList(DATA_PRIMARY_COLUMN, SYS_PUBLISHTIME, SYS_CLOSETIME, SYS_HASH, SYS_PATH, FULL_TEXT_SEARCH);
     private static final String SYS_RECORDS_TEXT = SYS_RECORDS.stream().map(QueryUtil::addSingleQuotes).collect(Collectors.joining(", "));
 
     public static final String CREATE_TABLE_TEMPLATE = "CREATE TABLE data.%s (\"SYS_RECORDID\" bigserial NOT NULL, " +
