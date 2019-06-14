@@ -59,9 +59,7 @@ public class DisplayExpression implements Serializable {
         if (o == null || getClass() != o.getClass()) return false;
 
         DisplayExpression that = (DisplayExpression) o;
-
-        return !(value != null ? !value.equals(that.value) : that.value != null);
-
+        return (value != null ? value.equals(that.value) : that.value == null);
     }
 
     @Override
