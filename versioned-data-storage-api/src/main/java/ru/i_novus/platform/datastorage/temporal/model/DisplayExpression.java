@@ -11,7 +11,7 @@ import java.util.stream.Stream;
 
 public class DisplayExpression implements Serializable {
 
-    public static final String PLACEHOLDER_BEGIN = "${";
+    public static final String PLACEHOLDER_START = "${";
     public static final String PLACEHOLDER_END = "}";
     public static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\$\\{(.+?)\\}");
 
@@ -51,7 +51,7 @@ public class DisplayExpression implements Serializable {
     }
 
     public static String toPlaceholder(String field) {
-        return field == null ? null : PLACEHOLDER_BEGIN + field + PLACEHOLDER_END;
+        return field == null ? null : PLACEHOLDER_START + field + PLACEHOLDER_END;
     }
 
     @Override
