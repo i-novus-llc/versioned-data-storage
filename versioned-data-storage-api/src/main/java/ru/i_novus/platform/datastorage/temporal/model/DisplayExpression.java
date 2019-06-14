@@ -9,10 +9,11 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-
 public class DisplayExpression implements Serializable {
 
-    public static final Pattern REFERENCE_DISPLAY_PLACEHOLDER_PATTERN = Pattern.compile("\\$\\{(.+?)\\}");
+    public static final String PLACEHOLDER_BEGIN = "${";
+    public static final String PLACEHOLDER_END = "}";
+    public static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\$\\{(.+?)\\}");
 
     private String value;
 
@@ -31,7 +32,7 @@ public class DisplayExpression implements Serializable {
     public List<String> getPlaceholders() {
         if (value == null) return Collections.emptyList();
         List<String> placeholders = new ArrayList<>();
-        Matcher matcher = DisplayExpression.REFERENCE_DISPLAY_PLACEHOLDER_PATTERN.matcher(value);
+        Matcher matcher = DisplayExpression.PLACEHOLDER_PATTERN.matcher(value);
         while (matcher.find()) {
             placeholders.add(matcher.group(1));
         }
@@ -50,7 +51,7 @@ public class DisplayExpression implements Serializable {
     }
 
     public static String toPlaceholder(String field) {
-        return field == null ? null : "${" + field + "}";
+        return field == null ? null : PLACEHOLDER_BEGIN + field + PLACEHOLDER_END;
     }
 
     @Override
