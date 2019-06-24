@@ -140,7 +140,7 @@ public class UseCaseTest {
                 d_b_name.valueOf("name"),
                 d_b_ref.valueOf(new Reference(s_a_storageCode, s_a_publishTime, d_a_id.getName(), d_a_name.getName(), "1", "test"))
         );
-        draftDataService.addRows(d_b_draftCode, asList(d_b_rowValue));
+        draftDataService.addRows(d_b_draftCode, singletonList(d_b_rowValue));
         List<RowValue> d_b_actualRows = searchDataService.getData(new DataCriteria(d_b_draftCode, null, null, d_b_fields, emptySet(), "name"));
         Object systemId = d_b_actualRows.get(0).getSystemId();
 
@@ -157,14 +157,14 @@ public class UseCaseTest {
                 ((ReferenceFieldValue) value).getValue().setDisplayValue("test2");
             }
         });
-        assertRows(asList(d_b_rowValue), d_b_actualRows);
+        assertRows(singletonList(d_b_rowValue), d_b_actualRows);
         logger.info("<<<<<<<<<<<<<<< 3 этап завершен >>>>>>>>>>>>>>>>>>>>>");
 
         logger.info("<<<<<<<<<<<<<<< 4 этап >>>>>>>>>>>>>>>>>>>>>");
         LocalDateTime s_b_publishTime = now();
         String s_b_storageCode = draftDataService.applyDraft(null, d_b_draftCode, s_b_publishTime);
         Collection<RowValue> s_b_actualRows = searchDataService.getData(new DataCriteria(s_b_storageCode, null, null, d_b_fields, emptySet(), null));
-        assertRows(asList(d_b_rowValue), s_b_actualRows);
+        assertRows(singletonList(d_b_rowValue), s_b_actualRows);
         logger.info("<<<<<<<<<<<<<<< 4 этап завершен >>>>>>>>>>>>>>>>>>>>>");
 
     }
