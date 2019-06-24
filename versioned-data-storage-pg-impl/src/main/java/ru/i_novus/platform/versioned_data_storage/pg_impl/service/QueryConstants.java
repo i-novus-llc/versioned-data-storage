@@ -115,11 +115,14 @@ public class QueryConstants {
     public static final String UPDATE_QUERY_TEMPLATE = "UPDATE data.%s SET %s WHERE \"SYS_RECORDID\" IN (%s);";
     public static final String UPDATE_REFERENCE_QUERY_TEMPLATE = "UPDATE data.%s as b SET %s WHERE b.\"SYS_RECORDID\" = ANY(%s\\:\\:bigint[]);";
 
+    public static final String REFERENCE_VALUATION_UPDATE_TABLE = "b";
     public static final String REFERENCE_VALUATION_SELECT_TABLE = "d";
     public static final String REFERENCE_VALUATION_SELECT_UNKNOWN = "select jsonb_build_object('value', ?)";
     public static final String REFERENCE_VALUATION_SELECT_EXPRESSION =
             "select jsonb_build_object('value', d.%1$s , 'displayValue', %2$s, 'hash', d.\"SYS_HASH\")\n" +
             "  from data.%3$s d where d.%1s=%4$s\\:\\:%5$s and %6$s";
+    public static final String REFERENCE_VALUATION_OLD_VALUE =
+            "(case when %1$s is null then null else %1$s->>'value' end)";
 
     public static final String IS_VERSION_NOT_EMPTY = "SELECT exists(SELECT * FROM data.%s);";
     public static final String IS_FIELD_NOT_EMPTY = "SELECT exists(SELECT * FROM data.%s WHERE %s.%s IS NOT NULL);";

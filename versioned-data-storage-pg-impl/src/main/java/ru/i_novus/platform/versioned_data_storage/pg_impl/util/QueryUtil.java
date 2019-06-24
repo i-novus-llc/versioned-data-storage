@@ -223,8 +223,10 @@ public class QueryUtil {
      * @return Тип отображения ссылки
      */
     public static ReferenceDisplayType getReferenceDisplayType(Reference reference) {
-        if (ofNullable(reference.getDisplayExpression()).map(DisplayExpression::getValue).isPresent())
-            return  ReferenceDisplayType.DISPLAY_EXPRESSION;
+
+        DisplayExpression displayExpression = reference.getDisplayExpression();
+        if (displayExpression != null && displayExpression.getValue() != null)
+            return ReferenceDisplayType.DISPLAY_EXPRESSION;
 
         if (reference.getDisplayField() != null)
             return ReferenceDisplayType.DISPLAY_FIELD;

@@ -160,7 +160,6 @@ public class UseCaseTest {
         assertRows(asList(d_b_rowValue), d_b_actualRows);
         logger.info("<<<<<<<<<<<<<<< 3 этап завершен >>>>>>>>>>>>>>>>>>>>>");
 
-
         logger.info("<<<<<<<<<<<<<<< 4 этап >>>>>>>>>>>>>>>>>>>>>");
         LocalDateTime s_b_publishTime = now();
         String s_b_storageCode = draftDataService.applyDraft(null, d_b_draftCode, s_b_publishTime);
@@ -204,13 +203,26 @@ public class UseCaseTest {
         assertRows(rows, actualRows);
 
         // Обновление значения ссылки.
-        ReferenceFieldValue newRefValue = new ReferenceFieldValue(ref.getName(), new Reference(existingStorageCode, now(), "ID", "NAME", "2", "test2"));
-        Object systemId = actualRows.get(0).getSystemId();
-        draftDataService.updateReferenceInRows(draftCode, newRefValue, asList(systemId, -1));
-        FieldValue fieldValue = rows.get(0).getFieldValue(ref.getName());
-        assertTrue((fieldValue instanceof ReferenceFieldValue));
-        ((ReferenceFieldValue) fieldValue).setValue(newRefValue.getValue());
+        List<Object> updatedIds = asList(actualRows.get(0).getSystemId(), -1);
+        String newDisplayValue = "test3";
+        // - отображаемое значение ссылки не должно меняться, т.к. данные не менялись в existingStorageCode.
+        ReferenceFieldValue updatedRefValue = new ReferenceFieldValue(ref.getName(), new Reference(existingStorageCode, now(), "ID", "NAME", null, null));
+        draftDataService.updateReferenceInRows(draftCode, updatedRefValue, updatedIds);
         actualRows = searchDataService.getData(new DataCriteria(draftCode, null, null, fields, emptySet(), null));
+        assertRows(rows, actualRows);
+        // - меняются данные в existingStorageCode.
+        Field existingFieldId = fieldFactory.createField("ID", FieldType.INTEGER);
+        Field existingFieldName = fieldFactory.createField("NAME", FieldType.STRING);
+        List<RowValue> existingRows = searchDataService.getData(new DataCriteria(existingStorageCode, null, null, singletonList(existingFieldId), emptySet(), null));
+        assertTrue(existingRows.size() > 0);
+        Object existingSystemId = existingRows.get(0).getSystemId();
+        FieldValue existingFieldValue = new StringFieldValue(existingFieldName.getName(), newDisplayValue);
+        draftDataService.updateRow(existingStorageCode, new LongRowValue((Long)existingSystemId, singletonList(existingFieldValue)));
+        // - отображаемое значение ссылки должно измениться, т.к. изменились данные в existingStorageCode.
+        draftDataService.updateReferenceInRows(draftCode, updatedRefValue, updatedIds);
+        actualRows = searchDataService.getData(new DataCriteria(draftCode, null, null, fields, emptySet(), null));
+        ReferenceFieldValue fieldValue = (ReferenceFieldValue)rows.get(0).getFieldValue(ref.getName());
+        fieldValue.getValue().setDisplayValue(newDisplayValue);
         assertRows(rows, actualRows);
 
         String storageCode = draftDataService.applyDraft(null, draftCode, now());

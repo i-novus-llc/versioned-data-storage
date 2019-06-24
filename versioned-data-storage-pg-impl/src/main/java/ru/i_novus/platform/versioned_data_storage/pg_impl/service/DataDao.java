@@ -396,7 +396,7 @@ public class DataDao {
      */
     private String getReferenceValuationSelect(ReferenceFieldValue fieldValue, String valueSubst) {
         Reference refValue = fieldValue.getValue();
-        if (refValue.getValue() == null)
+        if (refValue.getValue() == null && QUERY_NULL_VALUE.equals(valueSubst))
             return QUERY_NULL_VALUE;
 
         ReferenceDisplayType displayType = getReferenceDisplayType(refValue);
@@ -451,6 +451,7 @@ public class DataDao {
 
         String keys = String.join(",", keyList);
         Query query = entityManager.createNativeQuery(String.format(UPDATE_QUERY_TEMPLATE, addDoubleQuotes(tableName), keys, "?"));
+
         int i = 1;
         for (Object obj : rowValue.getFieldValues()) {
             FieldValue fieldValue = (FieldValue) obj;
@@ -462,6 +463,7 @@ public class DataDao {
                     query.setParameter(i++, fieldValue.getValue());
         }
         query.setParameter(i, rowValue.getSystemId());
+
         query.executeUpdate();
     }
 
@@ -486,20 +488,15 @@ public class DataDao {
     public void updateReferenceInRows(String tableName, ReferenceFieldValue fieldValue, List<Object> systemIds) {
 
         String quotedFieldName = addDoubleQuotes(fieldValue.getField());
-        String key = quotedFieldName + " = " +
-                (isFieldValueNull(fieldValue)
-                        ? QUERY_NULL_VALUE
-                        // NB: Заменить QUERY_VALUE_SUBST на sql-expression старого значения
-                        : getReferenceValuationSelect(fieldValue, QUERY_VALUE_SUBST)
-                );
+        String oldFieldExpression = sqlFieldExpression(fieldValue.getField(), REFERENCE_VALUATION_UPDATE_TABLE);
+        String oldFieldValue = String.format(REFERENCE_VALUATION_OLD_VALUE, oldFieldExpression);
+        String key = quotedFieldName + " = " + getReferenceValuationSelect(fieldValue, oldFieldValue);
 
         Query query = entityManager.createNativeQuery(String.format(UPDATE_REFERENCE_QUERY_TEMPLATE, addDoubleQuotes(tableName), key, "?"));
-        int i = 1;
-        if (fieldValue.getValue().getValue() != null)
-            query.setParameter(i++, fieldValue.getValue().getValue());
 
         String ids = systemIds.stream().map(String::valueOf).collect(Collectors.joining(","));
-        query.setParameter(i, "{" + ids + "}");
+        query.setParameter(1, "{" + ids + "}");
+
         query.executeUpdate();
     }
 
