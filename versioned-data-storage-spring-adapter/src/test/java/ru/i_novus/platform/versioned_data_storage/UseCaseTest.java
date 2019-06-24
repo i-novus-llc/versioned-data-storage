@@ -7,7 +7,6 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cglib.core.Local;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
@@ -190,16 +189,30 @@ public class UseCaseTest {
         Field date_col = fieldFactory.createField("DATE_COL", FieldType.DATE);
         draftDataService.addField(draftCode, date_col);
         fields.add(date_col);
+
+        // Добавление строк.
         List<RowValue> rows = new ArrayList<>();
+        ReferenceFieldValue oldRefValue = new ReferenceFieldValue(ref.getName(), new Reference(existingStorageCode, now(), "ID", "NAME", "1", "test"));
         RowValue rowValue = new LongRowValue(
                 code.valueOf("001"),
                 name.valueOf("name"),
-                ref_new.valueOf(new Reference(existingStorageCode, now(), "ID", "NAME", "1", "test")),
+                oldRefValue,
                 date_col.valueOf(LocalDate.now()));
         rows.add(rowValue);
         draftDataService.addRows(draftCode, rows);
         List<RowValue> actualRows = searchDataService.getData(new DataCriteria(draftCode, null, null, fields, emptySet(), null));
         assertRows(rows, actualRows);
+
+        // Обновление значения ссылки.
+        ReferenceFieldValue newRefValue = new ReferenceFieldValue(ref.getName(), new Reference(existingStorageCode, now(), "ID", "NAME", "2", "test2"));
+        Object systemId = actualRows.get(0).getSystemId();
+        draftDataService.updateReferenceInRows(draftCode, newRefValue, asList(systemId, -1));
+        FieldValue fieldValue = rows.get(0).getFieldValue(ref.getName());
+        assertTrue((fieldValue instanceof ReferenceFieldValue));
+        ((ReferenceFieldValue) fieldValue).setValue(newRefValue.getValue());
+        actualRows = searchDataService.getData(new DataCriteria(draftCode, null, null, fields, emptySet(), null));
+        assertRows(rows, actualRows);
+
         String storageCode = draftDataService.applyDraft(null, draftCode, now());
         actualRows = searchDataService.getData(new DataCriteria(storageCode, null, null, fields, emptySet(), null));
         assertRows(rows, actualRows);
@@ -208,12 +221,14 @@ public class UseCaseTest {
     private void assertRows(List<RowValue> expectedRows, Collection<RowValue> actualRows) {
         assertEquals("result size not equals", expectedRows.size(), actualRows.size());
         Assert.assertTrue(
-                "not equals actualRows: \n" + actualRows.stream().map(RowValue::toString).collect(Collectors.joining(", ")) + " \n and expected rows: \n" + expectedRows.stream().map(RowValue::toString).collect(Collectors.joining(", "))
+                "not equals actualRows: \n"
+                        + actualRows.stream().map(RowValue::toString).collect(Collectors.joining(", "))
+                        + " \n and expected rows: \n"
+                        + expectedRows.stream().map(RowValue::toString).collect(Collectors.joining(", "))
                 , actualRows.stream().anyMatch(actualRow ->
                         expectedRows.stream().anyMatch(expectedRow ->
                                 equalsFieldValues(expectedRow.getFieldValues(), actualRow.getFieldValues())
-                        )
-                )
+                        ))
         );
     }
 

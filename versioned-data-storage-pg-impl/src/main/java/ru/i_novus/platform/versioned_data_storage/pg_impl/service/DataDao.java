@@ -8,6 +8,7 @@ import org.apache.commons.lang.text.StrSubstitutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
+import ru.i_novus.platform.datastorage.temporal.enums.ReferenceDisplayType;
 import ru.i_novus.platform.datastorage.temporal.model.*;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.CompareDataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
@@ -334,31 +335,13 @@ public class DataDao {
             for (Object fieldValueObj : rowValue.getFieldValues()) {
                 FieldValue fieldValue = (FieldValue) fieldValueObj;
                 if (fieldValue.getValue() == null) {
-                    rowValues.add("null");
+                    rowValues.add(QUERY_NULL_VALUE);
                 } else if (fieldValue instanceof ReferenceFieldValue) {
-                    Reference refValue = ((ReferenceFieldValue) fieldValue).getValue();
-                    if (refValue.getValue() == null)
-                        rowValues.add("null");
-                    else {
-                        if (ofNullable(refValue.getDisplayExpression()).map(DisplayExpression::getValue).isPresent()) {
-                            rowValues.add(String.format("(select jsonb_build_object('value', d.%s , 'displayValue', %s, 'hash', d.\"SYS_HASH\") from data.%s d where d.%s=?\\:\\:" + getFieldType(refValue.getStorageCode(), refValue.getKeyField()) + " and %s)",
-                                    addDoubleQuotes(refValue.getKeyField()),
-                                    sqlDisplayExpression(refValue.getDisplayExpression(), "d"),
-                                    addDoubleQuotes(refValue.getStorageCode()), addDoubleQuotes(refValue.getKeyField()),
-                                    getDataWhereClauseStr(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(formatDateTime(refValue.getDate())))));
-                        } else if (refValue.getDisplayField() != null)
-                            rowValues.add(String.format("(select jsonb_build_object('value', d.%s , 'displayValue', d.%s, 'hash', d.\"SYS_HASH\") from data.%s d where d.%s=?\\:\\:" + getFieldType(refValue.getStorageCode(), refValue.getKeyField()) + " and %s)",
-                                    addDoubleQuotes(refValue.getKeyField()),
-                                    addDoubleQuotes(refValue.getDisplayField()),
-                                    addDoubleQuotes(refValue.getStorageCode()), addDoubleQuotes(refValue.getKeyField()),
-                                    getDataWhereClauseStr(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(formatDateTime(refValue.getDate())))));
-                        else
-                            rowValues.add("(select jsonb_build_object('value', ?))");
-                    }
+                    rowValues.add(getReferenceValuationSelect((ReferenceFieldValue) fieldValue, QUERY_VALUE_SUBST));
                 } else if (fieldValue instanceof TreeFieldValue) {
-                    rowValues.add("?\\:\\:ltree");
+                    rowValues.add(QUERY_LTREE_SUBST);
                 } else {
-                    rowValues.add("?");
+                    rowValues.add(QUERY_VALUE_SUBST);
                 }
             }
             values.add(String.join(",", rowValues));
@@ -395,10 +378,57 @@ public class DataDao {
     public void loadData(String draftCode, String sourceStorageCode, List<String> fields, LocalDateTime fromDate, LocalDateTime toDate ) {
         String keys = fields.stream().collect(Collectors.joining(","));
         String values = fields.stream().map(f -> "d." + f).collect(Collectors.joining(","));
+
         QueryWithParams queryWithParams = new QueryWithParams(String.format(COPY_QUERY_TEMPLATE, addDoubleQuotes(draftCode), keys, values,
                 addDoubleQuotes(sourceStorageCode)), null);
         queryWithParams.concat(getDataWhereClause(fromDate, toDate, null, null));
         queryWithParams.createQuery(entityManager).executeUpdate();
+    }
+
+    /**
+     * Формирование текста запроса для получения значения ссылочного поля.
+     *
+     * Используется при вставке или обновлении записи в таблицу,
+     * а также при обновлении значения ссылочного поля.
+     *
+     * @param fieldValue значение ссылочного поля
+     * @return Текст запроса или {@value QueryConstants#QUERY_NULL_VALUE}
+     */
+    private String getReferenceValuationSelect(ReferenceFieldValue fieldValue, String valueSubst) {
+        Reference refValue = fieldValue.getValue();
+        if (refValue.getValue() == null)
+            return QUERY_NULL_VALUE;
+
+        ReferenceDisplayType displayType = getReferenceDisplayType(refValue);
+        if (displayType == null)
+            return "(" + REFERENCE_VALUATION_SELECT_UNKNOWN + ")";
+
+        // NB: Replace getDataWhereClauseStr by simplified one.
+        String sqlExpression;
+        switch (displayType) {
+            case DISPLAY_EXPRESSION:
+                sqlExpression = sqlDisplayExpression(refValue.getDisplayExpression(), REFERENCE_VALUATION_SELECT_TABLE);
+                break;
+
+            case DISPLAY_FIELD:
+                sqlExpression = sqlFieldExpression(refValue.getDisplayField(), REFERENCE_VALUATION_SELECT_TABLE);
+                break;
+
+            default:
+                throw new UnsupportedOperationException("unknown.reference.dipslay.type");
+        }
+
+        String valueSelect = String.format(REFERENCE_VALUATION_SELECT_EXPRESSION,
+                addDoubleQuotes(refValue.getKeyField()),
+                sqlExpression,
+                addDoubleQuotes(refValue.getStorageCode()),
+                valueSubst,
+                getFieldType(refValue.getStorageCode(), refValue.getKeyField()),
+                getDataWhereClauseStr(refValue.getDate(), null, null, null)
+                        .replace(":bdate", addSingleQuotes(formatDateTime(refValue.getDate())))
+        );
+
+        return "(" + valueSelect + ")";
     }
 
     @Transactional
@@ -406,35 +436,16 @@ public class DataDao {
         List<String> keyList = new ArrayList<>();
         for (Object objectValue : rowValue.getFieldValues()) {
             FieldValue fieldValue = (FieldValue) objectValue;
-            String fieldName = fieldValue.getField();
-            if (fieldValue.getValue() == null || fieldValue.getValue().equals("null")) {
-                keyList.add(addDoubleQuotes(fieldName) + " = NULL");
+            String quotedFieldName = addDoubleQuotes(fieldValue.getField());
+            if (isFieldValueNull(fieldValue)) {
+                keyList.add(quotedFieldName + " = " + QUERY_NULL_VALUE);
             } else if (fieldValue instanceof ReferenceFieldValue) {
-                Reference refValue = ((ReferenceFieldValue) fieldValue).getValue();
-                if (refValue.getValue() == null)
-                    keyList.add(addDoubleQuotes(fieldName) + " = NULL");
-                else {
-                    if (ofNullable(refValue.getDisplayExpression()).map(DisplayExpression::getValue).isPresent()) {
-                        keyList.add(addDoubleQuotes(fieldName) + String.format("=(select jsonb_build_object('value', d.%s , 'displayValue', %s, 'hash', d.\"SYS_HASH\") from data.%s d where d.%s=?\\:\\:" + getFieldType(refValue.getStorageCode(), refValue.getKeyField()) + " and %s)",
-                                addDoubleQuotes(refValue.getKeyField()),
-                                sqlDisplayExpression(refValue.getDisplayExpression(), "d"),
-                                addDoubleQuotes(refValue.getStorageCode()),
-                                addDoubleQuotes(refValue.getKeyField()),
-                                getDataWhereClauseStr(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(formatDateTime(refValue.getDate())))));
-                    } else if (refValue.getDisplayField() != null)
-                        keyList.add(addDoubleQuotes(fieldName) + String.format("=(select jsonb_build_object('value', d.%s , 'displayValue', d.%s, 'hash', d.\"SYS_HASH\") from data.%s d where d.%s=?\\:\\:" + getFieldType(refValue.getStorageCode(), refValue.getKeyField()) + " and %s)",
-                                addDoubleQuotes(refValue.getKeyField()),
-                                addDoubleQuotes(refValue.getDisplayField()),
-                                addDoubleQuotes(refValue.getStorageCode()),
-                                addDoubleQuotes(refValue.getKeyField()),
-                                getDataWhereClauseStr(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(formatDateTime(refValue.getDate())))));
-                    else
-                        keyList.add(addDoubleQuotes(fieldName) + "=(select jsonb_build_object('value', ?))");
-                }
+                keyList.add(quotedFieldName + " = " +
+                        getReferenceValuationSelect((ReferenceFieldValue) fieldValue, QUERY_VALUE_SUBST));
             } else if (fieldValue instanceof TreeFieldValue) {
-                keyList.add(addDoubleQuotes(fieldName) + " = ?\\:\\:ltree");
+                keyList.add(quotedFieldName + " = " + QUERY_LTREE_SUBST);
             } else {
-                keyList.add(addDoubleQuotes(fieldName) + " = ?");
+                keyList.add(quotedFieldName + " = " + QUERY_VALUE_SUBST);
             }
         }
 
@@ -468,6 +479,27 @@ public class DataDao {
         for (Object systemId : systemIds) {
             query.setParameter(i++, systemId);
         }
+        query.executeUpdate();
+    }
+
+    @Transactional
+    public void updateReferenceInRows(String tableName, ReferenceFieldValue fieldValue, List<Object> systemIds) {
+
+        String quotedFieldName = addDoubleQuotes(fieldValue.getField());
+        String key = quotedFieldName + " = " +
+                (isFieldValueNull(fieldValue)
+                        ? QUERY_NULL_VALUE
+                        // NB: Заменить QUERY_VALUE_SUBST на sql-expression старого значения
+                        : getReferenceValuationSelect(fieldValue, QUERY_VALUE_SUBST)
+                );
+
+        Query query = entityManager.createNativeQuery(String.format(UPDATE_REFERENCE_QUERY_TEMPLATE, addDoubleQuotes(tableName), key, "?"));
+        int i = 1;
+        if (fieldValue.getValue().getValue() != null)
+            query.setParameter(i++, fieldValue.getValue().getValue());
+
+        String ids = systemIds.stream().map(String::valueOf).collect(Collectors.joining(","));
+        query.setParameter(i, "{" + ids + "}");
         query.executeUpdate();
     }
 

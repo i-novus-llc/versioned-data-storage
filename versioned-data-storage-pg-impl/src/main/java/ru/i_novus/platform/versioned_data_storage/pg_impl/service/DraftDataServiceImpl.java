@@ -8,6 +8,7 @@ import ru.i_novus.platform.datastorage.temporal.enums.FieldType;
 import ru.i_novus.platform.datastorage.temporal.exception.ListCodifiedException;
 import ru.i_novus.platform.datastorage.temporal.exception.NotUniqueException;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
+import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.BooleanField;
@@ -35,6 +36,7 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.
 public class DraftDataServiceImpl implements DraftDataService {
 
     private static final Logger logger = LoggerFactory.getLogger(DraftDataServiceImpl.class);
+
     private DataDao dataDao;
 
     public DraftDataServiceImpl(DataDao dataDao) {
@@ -80,6 +82,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     public void addRows(String draftCode, List<RowValue> data) {
         try {
             dataDao.insertData(draftCode, data);
+
         } catch (PersistenceException pe) {
             processNotUniqueRowException(pe);
         }
@@ -98,14 +101,21 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Override//
     public void updateRow(String draftCode, RowValue value) {
         List<CodifiedException> exceptions = new ArrayList<>();
-//        validateRow(draftCode, value, exceptions);
+        // NB: Валидация validateRow закомментирована
         if (value.getSystemId() == null)
             exceptions.add(new CodifiedException(FIELD_IS_REQUIRED_EXCEPTION_CODE, DATA_PRIMARY_COLUMN));
 
-        if (exceptions.size() != 0) {
+        if (!exceptions.isEmpty()) {
             throw new ListCodifiedException(exceptions);
         }
+
         dataDao.updateData(draftCode, value);
+    }
+
+    @Override
+    public void updateReferenceInRows(String draftCode, ReferenceFieldValue fieldValue, List<Object> systemIds) {
+        // NB: Формирование запроса на обновление записей одним update`ом.
+        dataDao.updateReferenceInRows(draftCode, fieldValue, systemIds);
     }
 
     @Override
@@ -120,9 +130,11 @@ public class DraftDataServiceImpl implements DraftDataService {
         if (!draftFields.equals(sourceFields)) {
             throw new CodifiedException(TABLES_NOT_EQUAL);
         }
+
         draftFields.add(addDoubleQuotes(DATA_PRIMARY_COLUMN));
         draftFields.add(addDoubleQuotes(FULL_TEXT_SEARCH));
         draftFields.add(addDoubleQuotes(SYS_HASH));
+
         dataDao.loadData(draftCode, sourceStorageCode, draftFields, fromDate, toDate);
         dataDao.updateSequence(draftCode);
     }

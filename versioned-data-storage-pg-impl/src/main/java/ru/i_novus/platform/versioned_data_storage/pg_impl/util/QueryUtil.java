@@ -4,6 +4,7 @@ import net.n2oapp.criteria.api.Criteria;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.text.StrSubstitutor;
+import ru.i_novus.platform.datastorage.temporal.enums.ReferenceDisplayType;
 import ru.i_novus.platform.datastorage.temporal.model.*;
 import ru.i_novus.platform.datastorage.temporal.model.value.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
@@ -13,12 +14,27 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
+import static java.util.Optional.ofNullable;
+
 /**
  * @author lgalimova
  * @since 21.03.2018
  */
 public class QueryUtil {
 
+    private QueryUtil() {
+    }
+
+    /**
+     * Преобразование полученных данных в список записей.
+     *
+     * При получении всех данных необходимо использовать
+     * совместно с {@link #generateSqlQuery} при {@code includeReference} = true.
+     *
+     * @param fields список полей
+     * @param data   список данных
+     * @return Список записей
+     */
     public static List<RowValue> convertToRowValue(List<Field> fields, List<Object[]> data) {
         List<RowValue> resultData = new ArrayList<>(data.size());
         for (Object objects : data) {
@@ -29,21 +45,23 @@ public class QueryUtil {
                 for (int i = 0; i < row.length; i++) {
                     Field field = fieldIterator.next();
                     Object value = row[i];
-                    if (i == 0) {
-                        //SYS_RECORD_ID
+
+                    if (i == 0) { // SYS_RECORD_ID
                         rowValue.setSystemId(Long.parseLong(row[i].toString()));
-                        continue;
-                    }
-                    if (i == 1) {
-                        //SYS_HASH
+
+                    } else if (i == 1) { // SYS_HASH
                         rowValue.setHash(row[i].toString());
-                        continue;
+
+                    } else { // FIELD
+                        if (field instanceof ReferenceField
+                                && (i + 1 < row.length)) {
+                            value = new Reference(row[i] != null ? row[i].toString() : null,
+                                    row[i + 1] != null ? row[i + 1].toString() : null);
+                            i++;
+                        }
+
+                        rowValue.getFieldValues().add(getFieldValue(field, value));
                     }
-                    if (field instanceof ReferenceField) {
-                        value = new Reference(row[i] != null ? row[i].toString() : null, row[i + 1] != null ? row[i + 1].toString() : null);
-                        i++;
-                    }
-                    rowValue.getFieldValues().add(getFieldValue(field, value));
                 }
             } else {
                 rowValue.getFieldValues().add(getFieldValue(fields.get(0), objects));
@@ -53,31 +71,57 @@ public class QueryUtil {
         return resultData;
     }
 
-    public static FieldValue getFieldValue(Field field, Object value) {
-        FieldValue fieldValue;
+    /**
+     * Получение значения поля в виде объекта соответствующего класса
+     *
+     * @param field поле
+     * @param value значение
+     * @return Значение поля
+     */
+    private static FieldValue getFieldValue(Field field, Object value) {
+
         String name = field.getName();
+
         if (field instanceof BooleanField) {
-            fieldValue = new BooleanFieldValue(name, (Boolean) value);
+            return new BooleanFieldValue(name, (Boolean) value);
+
         } else if (field instanceof DateField) {
-            fieldValue = new DateFieldValue(name, value != null ? ((java.sql.Date) value).toLocalDate() : null);
+            return new DateFieldValue(name,
+                    value != null ? ((java.sql.Date) value).toLocalDate() : null);
+
         } else if (field instanceof FloatField) {
-            fieldValue = new FloatFieldValue(name, (Number) value);
+            return new FloatFieldValue(name, (Number) value);
+
         } else if (field instanceof IntegerField) {
-            fieldValue = new IntegerFieldValue(name, value != null ? new BigInteger(value.toString()) : null);
+            return new IntegerFieldValue(name,
+                    value != null ? new BigInteger(value.toString()) : null);
+
         } else if (field instanceof ReferenceField) {
-            fieldValue = new ReferenceFieldValue(name, (Reference) value);
-        } else {
-            fieldValue = new StringFieldValue(name, value != null ? value.toString() : null);
+            return new ReferenceFieldValue(name, (Reference) value);
+
         }
-        return fieldValue;
+
+        return new StringFieldValue(name, value != null ? value.toString() : null);
+    }
+
+    /**
+     * Проверка значения поля на отсутствие.
+     *
+     * @param fieldValue значение поля
+     * @return Отсутствие значения
+     */
+    public static boolean isFieldValueNull(FieldValue fieldValue) {
+        return fieldValue.getValue() == null || fieldValue.getValue().equals("null");
     }
 
     public static String generateSqlQuery(String alias, List<Field> fields, boolean includeReference) {
         if (StringUtils.isEmpty(alias))
             alias = "";
+
         List<String> queryFields = new ArrayList<>();
         for (Field field : fields) {
             String query = formatFieldForQuery(field.getName(), alias);
+
             if (field instanceof ReferenceField) {
                 String queryValue = query + "->>'value' as " + addDoubleQuotes(alias + field.getName() + ".value");
                 queryFields.add(queryValue);
@@ -170,9 +214,42 @@ public class QueryUtil {
             default:
                 return new StringField(name);
         }
-
     }
 
+    /**
+     * Получение типа отображения ссылки.
+     *
+     * @param reference ссылка
+     * @return Тип отображения ссылки
+     */
+    public static ReferenceDisplayType getReferenceDisplayType(Reference reference) {
+        if (ofNullable(reference.getDisplayExpression()).map(DisplayExpression::getValue).isPresent())
+            return  ReferenceDisplayType.DISPLAY_EXPRESSION;
+
+        if (reference.getDisplayField() != null)
+            return ReferenceDisplayType.DISPLAY_FIELD;
+
+        return null;
+    }
+
+    /**
+     * Формирование sql-текста для значения отображаемого выражения.
+     *
+     * @param displayField  поле для получения отображаемого значения
+     * @param table         таблица, к которой привязано поле
+     * @return Текст для подстановки в SQL
+     */
+    public static String sqlFieldExpression(String displayField, String table) {
+        return table + ".\"" + displayField + "\"";
+    }
+
+    /**
+     * Формирование sql-текста для значения отображаемого выражения.
+     *
+     * @param displayExpression выражение для вычисления отображаемого значения
+     * @param table             таблица, к которой привязаны поля-placeholder`ы
+     * @return Текст для подстановки в SQL
+     */
     public static String sqlDisplayExpression(DisplayExpression displayExpression, String table) {
         String sqlDisplayExpression = StringEscapeUtils.escapeSql(displayExpression.getValue());
         Map<String, String> map = new HashMap<>();

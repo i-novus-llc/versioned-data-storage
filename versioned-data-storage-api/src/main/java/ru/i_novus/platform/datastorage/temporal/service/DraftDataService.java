@@ -2,6 +2,7 @@ package ru.i_novus.platform.datastorage.temporal.service;
 
 import ru.i_novus.platform.datastorage.temporal.exception.NotUniqueException;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
+import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 
 import java.time.LocalDateTime;
@@ -46,7 +47,7 @@ public interface DraftDataService {
     String applyDraft(String baseStorageCode, String draftCode, LocalDateTime publishTime, LocalDateTime closeTime);
 
     /**
-     * Добавление данных в черновик
+     * Добавление записей в таблицу
      *
      * @param draftCode код черновика
      * @param data      данные строки
@@ -55,15 +56,15 @@ public interface DraftDataService {
     void addRows(String draftCode, List<RowValue> data);
 
     /**
-     * Удалить записи из таблицы
+     * Удаление записей из таблицы
      *
      * @param draftCode код черновика
-     * @param systemIds системный идентификатор записи
+     * @param systemIds системные идентификаторы записей
      */
     void deleteRows(String draftCode, List<Object> systemIds);
 
     /**
-     * Удалить все записи из таблицы
+     * Удаление всех записей из таблицы
      *
      * @param draftCode код черновика
      */
@@ -76,6 +77,15 @@ public interface DraftDataService {
      * @param data      новые значения
      */
     void updateRow(String draftCode, RowValue data);
+
+    /**
+     * Обновление значения ссылки в записях таблицы
+     *
+     * @param draftCode  код черновика
+     * @param fieldValue данные поля
+     * @param systemIds  системные идентификаторы записей
+     */
+    void updateReferenceInRows(String draftCode, ReferenceFieldValue fieldValue, List<Object> systemIds);
 
     /**
      * Загрузить данные в черновик из хранилища
@@ -113,6 +123,12 @@ public interface DraftDataService {
      */
     void deleteField(String draftCode, String fieldName);
 
+    /**
+     * Изменение типа поля в таблице
+     *
+     * @param draftCode код черновика
+     * @param field     данные поля
+     */
     void updateField(String draftCode, Field field);
 
     /**
