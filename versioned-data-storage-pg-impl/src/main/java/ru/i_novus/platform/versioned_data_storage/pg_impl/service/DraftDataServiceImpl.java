@@ -103,7 +103,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         List<CodifiedException> exceptions = new ArrayList<>();
         // NB: Валидация validateRow закомментирована
         if (value.getSystemId() == null)
-            exceptions.add(new CodifiedException(FIELD_IS_REQUIRED_EXCEPTION_CODE, DATA_PRIMARY_COLUMN));
+            exceptions.add(new CodifiedException(FIELD_IS_REQUIRED_EXCEPTION_CODE, SYS_PRIMARY_COLUMN));
 
         if (!exceptions.isEmpty()) {
             throw new ListCodifiedException(exceptions);
@@ -131,8 +131,8 @@ public class DraftDataServiceImpl implements DraftDataService {
             throw new CodifiedException(TABLES_NOT_EQUAL);
         }
 
-        draftFields.add(addDoubleQuotes(DATA_PRIMARY_COLUMN));
-        draftFields.add(addDoubleQuotes(FULL_TEXT_SEARCH));
+        draftFields.add(addDoubleQuotes(SYS_PRIMARY_COLUMN));
+        draftFields.add(addDoubleQuotes(SYS_FULL_TEXT_SEARCH));
         draftFields.add(addDoubleQuotes(SYS_HASH));
 
         dataDao.loadData(draftCode, sourceStorageCode, draftFields, fromDate, toDate);

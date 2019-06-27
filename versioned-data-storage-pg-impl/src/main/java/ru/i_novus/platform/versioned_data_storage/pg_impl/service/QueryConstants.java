@@ -20,18 +20,20 @@ public class QueryConstants {
     public static final String DATE_FORMAT_FOR_INSERT_ROW = "yyyy-MM-dd";
     public static final String DATE_FORMAT_FOR_USING_CONVERTING = "DD.MM.YYYY";
     public static final String TIMESTAMP_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
+
+    public static final String SYS_PRIMARY_COLUMN = "SYS_RECORDID";
     public static final String SYS_PUBLISHTIME = "SYS_PUBLISHTIME";
     public static final String SYS_CLOSETIME = "SYS_CLOSETIME";
     public static final String SYS_HASH = "SYS_HASH";
     public static final String SYS_PATH = "SYS_PATH";
+    public static final String SYS_FULL_TEXT_SEARCH = "FTS";
+
+    static final List<String> SYS_RECORDS = Arrays.asList(SYS_PRIMARY_COLUMN, SYS_PUBLISHTIME, SYS_CLOSETIME, SYS_HASH, SYS_PATH, SYS_FULL_TEXT_SEARCH);
+    private static final String SYS_RECORDS_TEXT = SYS_RECORDS.stream().map(QueryUtil::addSingleQuotes).collect(Collectors.joining(", "));
+
     public static final String DATE_BEGIN = "DATEBEG";
     public static final String DATE_END = "DATEEND";
-    public static final String DATA_PRIMARY_COLUMN = "SYS_RECORDID";
     public static final String HAS_CHILD_BRANCH = "SYS_HAS_CHILD_BRANCH";
-    public static final String FULL_TEXT_SEARCH = "FTS";
-
-    static final List<String> SYS_RECORDS = Arrays.asList(DATA_PRIMARY_COLUMN, SYS_PUBLISHTIME, SYS_CLOSETIME, SYS_HASH, SYS_PATH, FULL_TEXT_SEARCH);
-    private static final String SYS_RECORDS_TEXT = SYS_RECORDS.stream().map(QueryUtil::addSingleQuotes).collect(Collectors.joining(", "));
 
     public static final String QUERY_NULL_VALUE = "null";
     public static final String QUERY_VALUE_SUBST = "?";
@@ -102,6 +104,7 @@ public class QueryConstants {
     public static final String ADD_NEW_COLUMN_WITH_DEFAULT = "ALTER TABLE data.\"%s\" ADD COLUMN \"%s\" %s DEFAULT %s;";
     public static final String DELETE_COLUMN = "ALTER TABLE data.\"%s\" DROP COLUMN \"%s\" CASCADE;";
     public static final String ALTER_COLUMN_WITH_USING = "ALTER TABLE data.%s ALTER COLUMN %s SET DATA TYPE %s USING %s";
+
     public static final String INSERT_QUERY_TEMPLATE_WITH_ID = "INSERT INTO data.%s (%s) VALUES(%s) returning \"SYS_RECORDID\";";
     public static final String INSERT_QUERY_TEMPLATE = "INSERT INTO data.%s (%s) VALUES(%s);";
     public static final String COPY_QUERY_TEMPLATE = "INSERT INTO data.%s (%s) SELECT %s FROM data.%s d ";

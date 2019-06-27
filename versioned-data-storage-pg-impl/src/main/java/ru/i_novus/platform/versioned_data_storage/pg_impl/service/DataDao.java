@@ -34,7 +34,6 @@ import java.util.stream.Stream;
 
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
-import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.joining;
 import static org.springframework.util.CollectionUtils.isEmpty;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.service.QueryConstants.*;
@@ -60,7 +59,7 @@ public class DataDao {
     @SuppressWarnings("unchecked")
     public List<RowValue> getData(DataCriteria criteria) {
         List<Field> fields = new ArrayList<>(criteria.getFields());
-        fields.add(0, new IntegerField(DATA_PRIMARY_COLUMN));
+        fields.add(0, new IntegerField(SYS_PRIMARY_COLUMN));
         if (fields.stream().noneMatch(field -> SYS_HASH.equals(field.getName())))
             fields.add(1, new StringField(SYS_HASH));
         QueryWithParams queryWithParams = new QueryWithParams("SELECT " + generateSqlQuery("d", fields, true) +
@@ -117,11 +116,11 @@ public class DataDao {
                 fields.add(getField(fieldName, entry.getValue()));
             }
         }
-        fields.add(0, new IntegerField(DATA_PRIMARY_COLUMN));
+        fields.add(0, new IntegerField(SYS_PRIMARY_COLUMN));
 
         String keys = generateSqlQuery(null, fields, true);
         List<Object[]> list = entityManager.createNativeQuery(String.format(SELECT_ROWS_FROM_DATA_BY_FIELD, keys,
-                addDoubleQuotes(tableName), addDoubleQuotes(DATA_PRIMARY_COLUMN)))
+                addDoubleQuotes(tableName), addDoubleQuotes(SYS_PRIMARY_COLUMN)))
                 .setParameter(1, systemId).getResultList();
         if (list.isEmpty())
             return null;
@@ -158,7 +157,7 @@ public class DataDao {
         if (sorting != null && sorting.getField() != null) {
             orderBy = orderBy + formatFieldForQuery(sorting.getField(), alias) + " " + sorting.getDirection().toString() + ", ";
         }
-        return orderBy + spaceAliasPoint + addDoubleQuotes(DATA_PRIMARY_COLUMN);
+        return orderBy + spaceAliasPoint + addDoubleQuotes(SYS_PRIMARY_COLUMN);
     }
 
     public BigInteger getDataCount(DataCriteria criteria) {
@@ -206,7 +205,7 @@ public class DataDao {
         if (!Util.isEmpty(search)) {
             //full text search
             search = search.trim();
-            String escapedFtsColumn = addDoubleQuotes(FULL_TEXT_SEARCH);
+            String escapedFtsColumn = addDoubleQuotes(SYS_FULL_TEXT_SEARCH);
             if (dataRegexp.matcher(search).matches()) {
                 queryStr += " and (" + escapedFtsColumn + " @@ to_tsquery(:search) or " + escapedFtsColumn + " @@ to_tsquery(:reverseSearch) ) ";
                 String[] dateArr = search.split("\\.");
@@ -604,7 +603,7 @@ public class DataDao {
     public void createFullTextSearchIndex(String tableName) {
         entityManager.createNativeQuery(String.format(CREATE_FTS_INDEX, addDoubleQuotes(tableName + "_fts_idx"),
                 addDoubleQuotes(tableName),
-                addDoubleQuotes(FULL_TEXT_SEARCH))).executeUpdate();
+                addDoubleQuotes(SYS_FULL_TEXT_SEARCH))).executeUpdate();
     }
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
@@ -921,8 +920,8 @@ public class DataDao {
         String oldStorage = criteria.getStorageCode();
         String newStorage = criteria.getNewStorageCode() != null ? criteria.getNewStorageCode() : criteria.getStorageCode();
         String countSelect = "SELECT count(*)";
-        String dataSelect = "SELECT t1." + addDoubleQuotes(DATA_PRIMARY_COLUMN) + " as sysId1, " + generateSqlQuery("t1", criteria.getFields(), false) + ", "
-                + "t2." + addDoubleQuotes(DATA_PRIMARY_COLUMN) + " as sysId2, " + generateSqlQuery("t2", criteria.getFields(), false);
+        String dataSelect = "SELECT t1." + addDoubleQuotes(SYS_PRIMARY_COLUMN) + " as sysId1, " + generateSqlQuery("t1", criteria.getFields(), false) + ", "
+                + "t2." + addDoubleQuotes(SYS_PRIMARY_COLUMN) + " as sysId2, " + generateSqlQuery("t2", criteria.getFields(), false);
         String primaryEquality = criteria.getPrimaryFields()
                 .stream()
                 .map(f -> formatFieldForQuery(f, "t1") + " = " + formatFieldForQuery(f, "t2"))
