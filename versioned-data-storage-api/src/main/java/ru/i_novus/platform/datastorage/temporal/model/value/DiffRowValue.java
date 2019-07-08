@@ -12,6 +12,7 @@ import static org.springframework.util.CollectionUtils.isEmpty;
  * @since 10.05.2018
  */
 public class DiffRowValue implements Serializable {
+
     private List<DiffFieldValue> values;
     private DiffStatusEnum status;
 
@@ -29,13 +30,13 @@ public class DiffRowValue implements Serializable {
     }
 
     public DiffFieldValue getDiffFieldValue(String fieldName) {
-        return !isEmpty(values) ?
-                values
-                        .stream()
-                        .filter(value -> fieldName.equals(value.getField().getName()))
-                        .findFirst()
-                        .orElse(null) :
-                null;
+        if (isEmpty(values))
+            return null;
+
+        return values.stream()
+                .filter(value -> fieldName.equals(value.getField().getName()))
+                .findFirst()
+                .orElse(null);
     }
 
 }
