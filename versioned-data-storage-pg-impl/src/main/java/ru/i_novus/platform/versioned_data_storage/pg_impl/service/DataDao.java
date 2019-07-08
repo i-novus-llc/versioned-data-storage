@@ -640,7 +640,7 @@ public class DataDao {
     public void alterDataType(String tableName, String field, String oldType, String newType) {
         String escapedField = addDoubleQuotes(field);
         String using = "";
-        if (DateField.TYPE.equals(oldType) && (StringField.TYPE.equals(newType) || IntegerStringField.TYPE.equals(newType))) {
+        if (DateField.TYPE.equals(oldType) && isVarcharType(newType)) {
             using = "to_char(" + escapedField + ", '" + DATE_FORMAT_FOR_USING_CONVERTING + "')";
         } else if (DateField.TYPE.equals(newType) && StringField.TYPE.equals(oldType)) {
             using = "to_date(" + escapedField + ", '" + DATE_FORMAT_FOR_USING_CONVERTING + "')";
@@ -648,8 +648,7 @@ public class DataDao {
             using = "(" + escapedField + "->>'value')" + "\\:\\:varchar\\:\\:" + newType;
         } else if (ReferenceField.TYPE.equals(newType)) {
             using = "nullif(jsonb_build_object('value'," + escapedField + "),jsonb_build_object('value',null))";
-        } else if (StringField.TYPE.equals(oldType) || IntegerStringField.TYPE.equals(oldType)
-                || StringField.TYPE.equals(newType) || IntegerStringField.TYPE.equals(newType)) {
+        } else if (isVarcharType(oldType) || isVarcharType(newType)) {
             using = escapedField + "\\:\\:" + newType;
         } else {
             using = escapedField + "\\:\\:varchar\\:\\:" + newType;

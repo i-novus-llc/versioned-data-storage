@@ -14,8 +14,6 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
-import static java.util.Optional.ofNullable;
-
 /**
  * @author lgalimova
  * @since 21.03.2018
@@ -185,6 +183,11 @@ public class QueryUtil {
         return 0;
     }
 
+    @SuppressWarnings("all")
+    public static boolean isVarcharType(String type) {
+        return StringField.TYPE.equals(type) || IntegerStringField.TYPE.equals(type);
+    }
+
     public static boolean isCompatibleTypes(String oldDataType, String newDataType) {
 //        if (ReferenceField.TYPE.equals(newDataType) || ListField.TYPE.equals(newDataType) || ReferenceField.TYPE.equals(oldDataType) || ListField.TYPE.equals(oldDataType)) {
 //            return false;
@@ -192,7 +195,7 @@ public class QueryUtil {
         if (oldDataType.equals(newDataType) || StringField.TYPE.equals(newDataType)) {
             return true;
         }
-        if ((StringField.TYPE.equals(oldDataType) || IntegerStringField.TYPE.equals(oldDataType))
+        if ((isVarcharType(oldDataType))
                 && (IntegerField.TYPE.equals(newDataType)) || IntegerStringField.TYPE.equals(newDataType)) {
             return true;
         }
