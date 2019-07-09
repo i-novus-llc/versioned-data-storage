@@ -39,6 +39,7 @@ import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.*;
+import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.*;
 
 /**
  * Created by tnurdinov on 08.06.2018.
@@ -49,8 +50,6 @@ public class UseCaseTest {
 
     private static final Logger logger = LoggerFactory.getLogger(UseCaseTest.class);
 
-    private static final String SYS_PUBLISHTIME = "SYS_PUBLISHTIME";
-    private static final String SYS_CLOSETIME = "SYS_CLOSETIME";
     private static final ZoneId UNIVERSAL_TIMEZONE = ZoneId.of("UTC");
 
     @Autowired
@@ -167,6 +166,10 @@ public class UseCaseTest {
         assertRows(singletonList(d_b_rowValue), s_b_actualRows);
         logger.info("<<<<<<<<<<<<<<< 4 этап завершен >>>>>>>>>>>>>>>>>>>>>");
 
+        ReferenceFieldValue referenceFieldValue = (ReferenceFieldValue)d_b_ref.valueOf(
+                new Reference(s_a_storageCode, s_a_publishTime, d_a_id.getName(),
+                        new DisplayExpression("${" + d_a_name.getName() + "}"), null, null)
+        );
     }
 
     @Test
@@ -351,7 +354,7 @@ public class UseCaseTest {
                 date.valueOf(LocalDate.now())));
         draftDataService.addRows(storageCode, rows);
 
-        List<Field> hashField = singletonList(fieldFactory.createField("SYS_HASH", FieldType.STRING));
+        List<Field> hashField = singletonList(fieldFactory.createField(SYS_HASH, FieldType.STRING));
         DataCriteria criteria = new DataCriteria(storageCode, null, null, hashField, emptySet(), null);
 
         RowValue hashBeforeDelete = searchDataService.getData(criteria).get(0);
@@ -387,7 +390,7 @@ public class UseCaseTest {
                 name.valueOf("test")));
         draftDataService.addRows(storageCode, rows);
 
-        List<Field> hashField = singletonList(fieldFactory.createField("SYS_HASH", FieldType.STRING));
+        List<Field> hashField = singletonList(fieldFactory.createField(SYS_HASH, FieldType.STRING));
         DataCriteria criteria = new DataCriteria(storageCode, null, null, hashField, emptySet(), null);
 
         RowValue hashBeforeAdd = searchDataService.getData(criteria).get(0);

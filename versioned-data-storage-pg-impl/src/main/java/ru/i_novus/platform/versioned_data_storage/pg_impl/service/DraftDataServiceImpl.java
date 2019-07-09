@@ -12,7 +12,6 @@ import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
-import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.BooleanField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.TreeField;
 import ru.kirkazan.common.exception.CodifiedException;
@@ -27,6 +26,7 @@ import java.util.stream.Collectors;
 
 import static java.util.Optional.of;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.ExceptionCodes.*;
+import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.addDoubleQuotes;
 
@@ -115,9 +115,17 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     @Override
-    public void updateReferenceInRows(String draftCode, ReferenceFieldValue fieldValue, List<Object> systemIds) {
-        // NB: Формирование запроса на обновление записей одним update`ом.
-        dataDao.updateReferenceInRows(draftCode, fieldValue, systemIds);
+    public void updateReferenceInRows(String storageCode, ReferenceFieldValue fieldValue, List<Object> systemIds) {
+        dataDao.updateReferenceInRows(storageCode, fieldValue, systemIds);
+    }
+
+    @Override
+    public void updateReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue,
+                                         LocalDateTime publishTime, LocalDateTime closeTime) {
+        BigInteger count = dataDao.countReferenceInRefRows(storageCode, fieldValue, publishTime, closeTime);
+        for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
+            dataDao.updateReferenceInRefRows(storageCode, fieldValue, i, TRANSACTION_SIZE, publishTime, closeTime);
+        }
     }
 
     @Override
@@ -144,7 +152,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Transactional
     @Override
     public void addField(String draftCode, Field field) {
-        if (SYS_RECORDS.contains(field.getName()))
+        if (systemFieldList().contains(field.getName()))
             throw new CodifiedException(SYS_FIELD_CONFLICT);
         if (dataDao.getFieldNames(draftCode).contains(addDoubleQuotes(field.getName())))
             throw new CodifiedException(COLUMN_ALREADY_EXISTS);
@@ -230,7 +238,7 @@ public class DraftDataServiceImpl implements DraftDataService {
 
         List<String> fieldNames = fields.stream()
                 .map(this::getHashUsedFieldName)
-                .filter(f -> !QueryConstants.SYS_RECORDS.contains(f))
+                .filter(f -> !systemFieldList().contains(f))
                 .collect(Collectors.toList());
         Collections.sort(fieldNames);
 

@@ -4,8 +4,9 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.*;
 
 /**
  * @author lgalimova
@@ -13,23 +14,19 @@ import java.util.stream.Collectors;
  */
 public class QueryConstants {
 
-    Pattern dataRegexp = Pattern.compile("([0-9]{2})\\.([0-9]{2})\\.([0-9]{4})");
-
     public static final int TRANSACTION_SIZE = 1000;
 
     public static final String DATE_FORMAT_FOR_INSERT_ROW = "yyyy-MM-dd";
     public static final String DATE_FORMAT_FOR_USING_CONVERTING = "DD.MM.YYYY";
     public static final String TIMESTAMP_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
-    public static final String SYS_PRIMARY_COLUMN = "SYS_RECORDID";
-    public static final String SYS_PUBLISHTIME = "SYS_PUBLISHTIME";
-    public static final String SYS_CLOSETIME = "SYS_CLOSETIME";
-    public static final String SYS_HASH = "SYS_HASH";
-    public static final String SYS_PATH = "SYS_PATH";
-    public static final String SYS_FULL_TEXT_SEARCH = "FTS";
-
-    public static final List<String> SYS_RECORDS = Arrays.asList(SYS_PRIMARY_COLUMN, SYS_PUBLISHTIME, SYS_CLOSETIME, SYS_HASH, SYS_PATH, SYS_FULL_TEXT_SEARCH);
-    private static final String SYS_RECORDS_TEXT = SYS_RECORDS.stream().map(QueryUtil::addSingleQuotes).collect(Collectors.joining(", "));
+    private static final List<String> SYS_RECORD_LIST = Arrays.asList(SYS_PRIMARY_COLUMN,
+            SYS_PUBLISHTIME, SYS_CLOSETIME,
+            SYS_HASH, SYS_PATH, SYS_FULL_TEXT_SEARCH
+    );
+    private static final String SYS_RECORDS_TEXT = SYS_RECORD_LIST.stream()
+            .map(QueryUtil::addSingleQuotes)
+            .collect(Collectors.joining(", "));
 
     public static final String DATE_BEGIN = "DATEBEG";
     public static final String DATE_END = "DATEEND";
@@ -38,6 +35,35 @@ public class QueryConstants {
     public static final String QUERY_NULL_VALUE = "null";
     public static final String QUERY_VALUE_SUBST = "?";
     public static final String QUERY_LTREE_SUBST = QUERY_VALUE_SUBST + "\\:\\:ltree";
+
+    private static final String SELECT_COUNT_ONLY = "SELECT count(*)\n";
+    private static final String ORDER_BY_SYS_RECORDID = " ORDER BY %s.\"SYS_RECORDID\"\n";
+    private static final String SELECT_LIMIT = " LIMIT ${limit}";
+    private static final String SELECT_OFFSET = " OFFSET ${offset}";
+    private static final String SUBQUERY_INDENT = "       ";
+
+    private static final String COALESCE_PUBLISH_TIME_FIELD = "coalesce(%s.\"SYS_PUBLISHTIME\", '-infinity')";
+    private static final String COALESCE_CLOSE_TIME_FIELD = "coalesce(%s.\"SYS_CLOSETIME\", 'infinity')";
+    private static final String COALESCE_PUBLISH_TIME_VALUE = "coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, '-infinity')";
+    private static final String COALESCE_CLOSE_TIME_VALUE = "coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, '-infinity')";
+
+    private static final String DRAFT_TABLE_ALIAS = "d";
+    private static final String VERSION_TABLE_ALIAS = "v";
+
+    private static final String FROM_DRAFT_TABLE = "  FROM ${draftTable} d\n";
+    private static final String FROM_VERSION_TABLE = "  FROM ${versionTable} v\n";
+
+    private static final String ORDER_DRAFT_BY_SYS_RECORDID = String.format(ORDER_BY_SYS_RECORDID, DRAFT_TABLE_ALIAS);
+    private static final String ORDER_VERSION_BY_SYS_RECORDID = String.format(ORDER_BY_SYS_RECORDID, VERSION_TABLE_ALIAS);
+
+    private static final String COALESCE_VERSION_PUBLISH_TIME_FIELD = String.format(COALESCE_PUBLISH_TIME_FIELD, VERSION_TABLE_ALIAS);
+    private static final String COALESCE_VERSION_CLOSE_TIME_FIELD = String.format(COALESCE_CLOSE_TIME_FIELD, VERSION_TABLE_ALIAS);
+
+    //todo: get rid of infinity
+    private static final String AND_IS_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME = "   AND (\n" +
+            "        (" + COALESCE_PUBLISH_TIME_VALUE + ", " + COALESCE_CLOSE_TIME_VALUE + ")\n" +
+            "        OVERLAPS (" + COALESCE_VERSION_PUBLISH_TIME_FIELD + ", " + COALESCE_VERSION_CLOSE_TIME_FIELD + ")\n" +
+            "        OR (" + COALESCE_PUBLISH_TIME_VALUE + " = " + COALESCE_VERSION_CLOSE_TIME_FIELD + ") )\n";
 
     public static final String CREATE_TABLE_TEMPLATE = "CREATE TABLE data.%s (\"SYS_RECORDID\" bigserial NOT NULL, " +
             "%s, " +
@@ -78,7 +104,7 @@ public class QueryConstants {
             "  FOR EACH ROW\n" +
             "  EXECUTE PROCEDURE data.\"%s_hash_tf\"();";
 
-    public static final String UPDATE_HASH = "UPDATE data.%s  SET \"SYS_HASH\" =  md5(ROW(%s)||'');";
+    public static final String UPDATE_HASH = "UPDATE data.%s SET \"SYS_HASH\" = md5(ROW(%s)||'');";
 
     public static final String DROP_FTS_TRIGGER = "DROP TRIGGER IF EXISTS fts_vector_tg ON data.%s;";
 
@@ -115,12 +141,24 @@ public class QueryConstants {
     public static final String DELETE_ALL_RECORDS_FROM_TABLE_QUERY_TEMPLATE = "DELETE FROM data.%s;";
     public static final String DELETE_EMPTY_RECORDS_FROM_TABLE_QUERY_TEMPLATE = "DELETE FROM data.%s WHERE %s;";
 
-    public static final String UPDATE_QUERY_TEMPLATE = "UPDATE data.%s SET %s WHERE \"SYS_RECORDID\" IN (%s);";
+    public static final String UPDATE_QUERY_TEMPLATE = "UPDATE data.%s as b SET %s WHERE b.\"SYS_RECORDID\" IN (%s);";
     public static final String UPDATE_REFERENCE_QUERY_TEMPLATE = "UPDATE data.%s as b SET %s WHERE b.\"SYS_RECORDID\" = ANY(%s\\:\\:bigint[]);";
+
+    public static final String COUNT_REFERENCE_IN_REF_ROWS = SELECT_COUNT_ONLY +
+            FROM_VERSION_TABLE +
+            " WHERE 1 = 1" +
+            AND_IS_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME;
+    public static final String WHERE_REFERENCE_IN_REF_ROWS = "\nSELECT v.\"SYS_RECORDID\"\n" +
+            FROM_VERSION_TABLE +
+            " WHERE 1 = 1" +
+            AND_IS_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME +
+            ORDER_VERSION_BY_SYS_RECORDID +
+            SELECT_LIMIT + SELECT_OFFSET
+            ;
 
     public static final String REFERENCE_VALUATION_UPDATE_TABLE = "b";
     public static final String REFERENCE_VALUATION_SELECT_TABLE = "d";
-    public static final String REFERENCE_VALUATION_SELECT_UNKNOWN = "select jsonb_build_object('value', ?)";
+    public static final String REFERENCE_VALUATION_SELECT_SUBST = "select jsonb_build_object('value', ?)";
     public static final String REFERENCE_VALUATION_SELECT_EXPRESSION =
             "select jsonb_build_object('value', d.%1$s , 'displayValue', %2$s, 'hash', d.\"SYS_HASH\")\n" +
             "  from data.%3$s d where d.%1s=%4$s\\:\\:%5$s and %6$s";
@@ -258,66 +296,70 @@ public class QueryConstants {
             "DECLARE tbl_cursor refcursor;\n" +
             " row data.%1$s%%rowtype;\n" +
             " i int;\n" +
+            "\n" +
             "BEGIN\n" +
-            "    OPEN tbl_cursor FOR select * from data.%2$s order by \"SYS_RECORDID\";\n" +
-            "    MOVE FORWARD %3$s FROM tbl_cursor;\t\n" +
-            "    i\\:=0;\t\n" +
-            "    while i<%4$s loop\n" +
-            "       FETCH FROM tbl_cursor INTO row;\t\n" +
-            "       EXIT WHEN NOT FOUND;\n" +
-            "       row.\"SYS_RECORDID\"\\:=nextval('data.%5$s');" +
-            "       insert into data.%1$s values( row.*);   \n" +
-            "       i\\:=i+1;\n" +
-            "    end loop;\n" +
-            "    CLOSE tbl_cursor;\n" +
+            "  OPEN tbl_cursor FOR\n" +
+            "SELECT * from data.%2$s\n" +
+            " ORDER BY \"SYS_RECORDID\";\n" +
+            "\n" +
+            "  MOVE FORWARD %3$s FROM tbl_cursor;\t\n" +
+            "  i \\:= 0;\n" +
+            "  while i < %4$s loop\n" +
+            "    FETCH FROM tbl_cursor INTO row;\t\n" +
+            "    EXIT WHEN NOT FOUND;\n" +
+            "    row.\"SYS_RECORDID\" \\:= nextval('data.%5$s');\n" +
+            "    INSERT INTO data.%1$s VALUES( row.*);\n" +
+            "    i \\:= i + 1;\n" +
+            "  end loop;\n" +
+            "\n" +
+            "  CLOSE tbl_cursor;\n" +
             "END$$;";
 
-    //todo: get rid of infinity
-    public static final String COUNT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME = "SELECT count(*)  FROM ${draftTable} d\n" +
-            "     WHERE exists(SELECT 1\n" +
-            "                      FROM ${versionTable} v\n" +
-            "                      WHERE v.\"SYS_HASH\" = d.\"SYS_HASH\" \n" +
-            "                           AND (( coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, '-infinity'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, 'infinity') ) " +
-            "                                   OVERLAPS " +
-            "                           (coalesce(v.\"SYS_PUBLISHTIME\", '-infinity') ,  coalesce(v.\"SYS_CLOSETIME\", 'infinity')) " +
-            "                           OR (coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, '-infinity') = (coalesce(v.\"SYS_CLOSETIME\", 'infinity'))))" +
-            "    )";
+    private static final String WHERE_EXISTS_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME = " WHERE exists(\n" +
+            "       SELECT 1 " + FROM_VERSION_TABLE +
+            "        WHERE v.\"SYS_HASH\" = d.\"SYS_HASH\"\n" +
+            SUBQUERY_INDENT + AND_IS_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME.replace("\n", "\n" + SUBQUERY_INDENT) +
+            "       )\n";
 
-    //todo: get rid of infinity
-    public static final String INSERT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME = "DO $$\n" +
+    static final String COUNT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME = SELECT_COUNT_ONLY + FROM_DRAFT_TABLE +
+            WHERE_EXISTS_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME;
+
+    static final String INSERT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME = "DO $$\n" +
             "DECLARE tbl_cursor refcursor;\n" +
             " row record;\n" +
             " i int;\n" +
+            "\n" +
             "BEGIN\n" +
-            "    OPEN tbl_cursor FOR select d.\"SYS_RECORDID\", ${dColumns}, d.\"FTS\", d.\"SYS_HASH\" FROM ${draftTable} d\n" +
-            "     WHERE exists(SELECT 1\n" +
-            "                      FROM ${versionTable} v\n" +
-            "                      WHERE v.\"SYS_HASH\" = d.\"SYS_HASH\" \n" +
-            "                           AND (( coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, '-infinity'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, 'infinity') ) \n" +
-            "                                 OVERLAPS \n" +
-            "                               (coalesce( v.\"SYS_PUBLISHTIME\", '-infinity') ,  coalesce(v.\"SYS_CLOSETIME\", 'infinity'))" +
-            "                           OR (coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, '-infinity') = (coalesce(v.\"SYS_CLOSETIME\", 'infinity'))))" +
-            "    ) order by d.\"SYS_RECORDID\";"+
-            "    MOVE FORWARD ${offset} FROM tbl_cursor;\t\n" +
-            "    i\\:=0;\t\n" +
-            "    while i<${transactionSize} loop\n" +
-            "       FETCH FROM tbl_cursor INTO row;\t\n" +
-            "       EXIT WHEN NOT FOUND;\n" +
-            "       row.\"SYS_RECORDID\" \\:= nextval('${newTableSeqName}');\n" +
-            "       insert into ${tableToInsert} (\"SYS_RECORDID\", ${columns}, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\") " +
-            "           SELECT \"SYS_RECORDID\", ${columns}, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\" " +
-            "           FROM data.merged_actual_rows('${columns}'\\:\\:text, row.\"SYS_HASH\", '${versionTable}'\\:\\:text, to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, 'infinity'),  row.\"SYS_RECORDID\") " +
-            "           t(\"SYS_RECORDID\" bigint, ${columnsWithType}, \"FTS\" tsvector, \"SYS_HASH\" character(32) , \"SYS_PUBLISHTIME\" timestamp without time zone, \"SYS_CLOSETIME\" timestamp without time zone);" +
-            "       i\\:=i+1;\n" +
-            "    end loop;\n" +
-            "    CLOSE tbl_cursor;\n" +
+            "  OPEN tbl_cursor FOR\n" +
+            "SELECT d.\"SYS_RECORDID\", ${dColumns}, d.\"FTS\", d.\"SYS_HASH\" " + FROM_DRAFT_TABLE +
+            WHERE_EXISTS_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME +
+            ORDER_DRAFT_BY_SYS_RECORDID +
+            ";\n" +
+            "  MOVE FORWARD ${offset} FROM tbl_cursor;\t\n" +
+            "  i \\:= 0;\n" +
+            "  while i < ${transactionSize} loop\n" +
+            "    FETCH FROM tbl_cursor INTO row;\n" +
+            "    EXIT WHEN NOT FOUND;\n" +
+            "    row.\"SYS_RECORDID\" \\:= nextval('${newTableSeqName}');\n" +
+            "    INSERT INTO ${tableToInsert} (\"SYS_RECORDID\", ${columns}, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\")\n" +
+            "    SELECT \"SYS_RECORDID\", ${columns}, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\" " +
+            "      FROM data.merged_actual_rows('${columns}'\\:\\:text, row.\"SYS_HASH\", '${versionTable}'\\:\\:text,\n" +
+            "               to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone,\n" +
+            "               coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, 'infinity'),\n" +
+            "               row.\"SYS_RECORDID\")\n" +
+            "           t(\"SYS_RECORDID\" bigint, ${columnsWithType}, \"FTS\" tsvector, \"SYS_HASH\" character(32),\n" +
+            "             \"SYS_PUBLISHTIME\" timestamp without time zone, \"SYS_CLOSETIME\" timestamp without time zone);\n" +
+            "    i \\:= i + 1;\n" +
+            "  end loop;\n" +
+            "\n" +
+            "  CLOSE tbl_cursor;\n" +
             "END$$;";
 
     //todo: get rid of infinity
     public static final String COUNT_NEW_VAL_FROM_DRAFT_WITH_CLOSE_TIME = "SELECT count(*)  FROM ${draftTable} d\n" +
             "     WHERE NOT exists(SELECT 1\n" +
             "                      FROM ${versionTable} v\n" +
-            "                      WHERE v.\"SYS_HASH\" = d.\"SYS_HASH\" \n" +
+            "                      WHERE v.\"SYS_HASH\" = d.\"SYS_HASH\"\n" +
             "                           AND (( coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, '-infinity'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, 'infinity') )" +
             "                                   OVERLAPS " +
             "                               (coalesce( v.\"SYS_PUBLISHTIME\", '-infinity') ,  coalesce(v.\"SYS_CLOSETIME\", 'infinity')) " +
@@ -336,7 +378,7 @@ public class QueryConstants {
             "     FROM ${draftTable} d\n" +
             "     WHERE NOT exists(SELECT 1\n" +
             "                      FROM ${versionTable} v\n" +
-            "                      WHERE v.\"SYS_HASH\" = d.\"SYS_HASH\" \n" +
+            "                      WHERE v.\"SYS_HASH\" = d.\"SYS_HASH\"\n" +
             "                           AND (( coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, '-infinity'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, 'infinity') )" +
             "                                   OVERLAPS " +
             "                               (coalesce( v.\"SYS_PUBLISHTIME\", '-infinity') ,  coalesce(v.\"SYS_CLOSETIME\", 'infinity')) " +
@@ -361,7 +403,7 @@ public class QueryConstants {
             " WHERE " +
             "    ( coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, '-infinity'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, 'infinity') ) " +
             "           OVERLAPS\n" +
-            "    ( v.\"SYS_PUBLISHTIME\", v.\"SYS_CLOSETIME\") \n" +
+            "    ( v.\"SYS_PUBLISHTIME\", v.\"SYS_CLOSETIME\")\n" +
             "      AND NOT exists(SELECT 1\n" +
             "                     FROM ${draftTable} d\n" +
             "                     WHERE d.\"SYS_HASH\" = v.\"SYS_HASH\");";
@@ -376,7 +418,7 @@ public class QueryConstants {
             " WHERE " +
             "    ( coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, '-infinity'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, 'infinity') ) " +
             "           OVERLAPS\n" +
-            "    ( v.\"SYS_PUBLISHTIME\", v.\"SYS_CLOSETIME\") \n" +
+            "    ( v.\"SYS_PUBLISHTIME\", v.\"SYS_CLOSETIME\")\n" +
             "      AND NOT exists(SELECT 1\n" +
             "                     FROM ${draftTable} d\n" +
             "                     WHERE d.\"SYS_HASH\" = v.\"SYS_HASH\") " +
@@ -394,4 +436,12 @@ public class QueryConstants {
             "END$$;";
 
     public static final String INSERT_FROM_SELECT_ACTUAL_DATA = "INSERT INTO data.%1$s(%2$s) SELECT %2$s FROM data.%3$s WHERE \"SYS_CLOSETIME\" IS NULL;";
+
+    private QueryConstants() {
+    }
+
+    // NB: Workaround to sonar issue "squid-S2386".
+    public static List<String> systemFieldList() {
+        return SYS_RECORD_LIST;
+    }
 }

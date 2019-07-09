@@ -79,13 +79,24 @@ public interface DraftDataService {
     void updateRow(String draftCode, RowValue data);
 
     /**
-     * Обновление значения ссылки в записях таблицы
+     * Обновление отображаемого значения ссылки в записях таблицы
      *
-     * @param draftCode  код черновика
-     * @param fieldValue данные поля
-     * @param systemIds  системные идентификаторы записей
+     * @param storageCode код хранилища данных
+     * @param fieldValue  данные поля
+     * @param systemIds   системные идентификаторы записей
      */
-    void updateReferenceInRows(String draftCode, ReferenceFieldValue fieldValue, List<Object> systemIds);
+    void updateReferenceInRows(String storageCode, ReferenceFieldValue fieldValue, List<Object> systemIds);
+
+    /**
+     * Обновление отображаемого значения ссылки во всех записях таблицы с заполненным значением ссылки.
+     *
+     * @param storageCode код хранилища данных
+     * @param fieldValue  данные поля
+     * @param publishTime дата и время публикации черновика
+     * @param closeTime   дата и время завершения действия версии
+     */
+    void updateReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue,
+                                  LocalDateTime publishTime, LocalDateTime closeTime);
 
     /**
      * Загрузить данные в черновик из хранилища

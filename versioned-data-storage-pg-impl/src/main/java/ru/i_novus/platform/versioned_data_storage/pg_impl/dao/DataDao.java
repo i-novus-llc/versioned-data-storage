@@ -36,16 +36,18 @@ import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.joining;
 import static org.springframework.util.CollectionUtils.isEmpty;
+import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.*;
 
 public class DataDao {
 
-    public static final LocalDateTime PG_MAX_TIMESTAMP = LocalDateTime.of(294276, 12, 31, 23, 59);
-    public static final DateTimeFormatter TIMESTAMP_DATE_FORMATTER = DateTimeFormatter.ofPattern(TIMESTAMP_DATE_FORMAT);
+    private static final LocalDateTime PG_MAX_TIMESTAMP = LocalDateTime.of(294276, 12, 31, 23, 59);
+    private static final DateTimeFormatter TIMESTAMP_DATE_FORMATTER = DateTimeFormatter.ofPattern(TIMESTAMP_DATE_FORMAT);
 
     private static final Logger logger = LoggerFactory.getLogger(DataDao.class);
-    private Pattern dataRegexp = Pattern.compile("([0-9]{2})\\.([0-9]{2})\\.([0-9]{4})");
+    private static final Pattern dataRegexp = Pattern.compile("([0-9]{2})\\.([0-9]{2})\\.([0-9]{4})");
+
     private EntityManager entityManager;
 
     public DataDao(EntityManager entityManager) {
@@ -145,7 +147,7 @@ public class DataDao {
         Map<String, String> map = new HashMap<>();
         for (Object[] dataType : dataTypes) {
             String fieldName = (String) dataType[0];
-            if (!SYS_RECORDS.contains(fieldName))
+            if (!systemFieldList().contains(fieldName))
                 map.put(fieldName, (String) dataType[1]);
         }
         return map;
@@ -408,7 +410,7 @@ public class DataDao {
 
         ReferenceDisplayType displayType = getReferenceDisplayType(refValue);
         if (displayType == null)
-            return "(" + REFERENCE_VALUATION_SELECT_UNKNOWN + ")";
+            return "(" + REFERENCE_VALUATION_SELECT_SUBST + ")";
 
         // NB: Replace getDataWhereClauseStr by simplified one.
         String sqlExpression;
@@ -457,7 +459,7 @@ public class DataDao {
         }
 
         String keys = String.join(",", keyList);
-        Query query = entityManager.createNativeQuery(String.format(UPDATE_QUERY_TEMPLATE, addDoubleQuotes(tableName), keys, "?"));
+        Query query = entityManager.createNativeQuery(String.format(UPDATE_QUERY_TEMPLATE, addDoubleQuotes(tableName), keys, QUERY_VALUE_SUBST));
 
         int i = 1;
         for (Object obj : rowValue.getFieldValues()) {
@@ -499,12 +501,51 @@ public class DataDao {
         String oldFieldValue = String.format(REFERENCE_VALUATION_OLD_VALUE, oldFieldExpression);
         String key = quotedFieldName + " = " + getReferenceValuationSelect(fieldValue, oldFieldValue);
 
-        Query query = entityManager.createNativeQuery(String.format(UPDATE_REFERENCE_QUERY_TEMPLATE, addDoubleQuotes(tableName), key, "?"));
+        Query query = entityManager.createNativeQuery(String.format(UPDATE_REFERENCE_QUERY_TEMPLATE, addDoubleQuotes(tableName), key, QUERY_VALUE_SUBST));
 
         String ids = systemIds.stream().map(String::valueOf).collect(Collectors.joining(","));
         query.setParameter(1, "{" + ids + "}");
 
         query.executeUpdate();
+    }
+
+    public BigInteger countReferenceInRefRows(String tableName, ReferenceFieldValue fieldValue, LocalDateTime publishTime, LocalDateTime closeTime) {
+        closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
+
+        Map<String, String> placeholderValues = new HashMap<>();
+        placeholderValues.put("versionTable", "data." + addDoubleQuotes(tableName));
+        placeholderValues.put("publishTime", formatDateTime(publishTime));
+        placeholderValues.put("closeTime", formatDateTime(closeTime));
+
+        String query = StrSubstitutor.replace(COUNT_REFERENCE_IN_REF_ROWS, placeholderValues);
+        return (BigInteger) entityManager.createNativeQuery(query).getSingleResult();
+    }
+
+    @Transactional
+    public void updateReferenceInRefRows(String tableName, ReferenceFieldValue fieldValue,
+                                         int offset, int limit,
+                                         LocalDateTime publishTime, LocalDateTime closeTime) {
+        closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
+
+        String quotedFieldName = addDoubleQuotes(fieldValue.getField());
+        String oldFieldExpression = sqlFieldExpression(fieldValue.getField(), REFERENCE_VALUATION_UPDATE_TABLE);
+        String oldFieldValue = String.format(REFERENCE_VALUATION_OLD_VALUE, oldFieldExpression);
+        String key = quotedFieldName + " = " + getReferenceValuationSelect(fieldValue, oldFieldValue);
+
+        Map<String, String> placeholderValues = new HashMap<>();
+        placeholderValues.put("versionTable", "data." + addDoubleQuotes(tableName));
+        placeholderValues.put("publishTime", formatDateTime(publishTime));
+        placeholderValues.put("closeTime", formatDateTime(closeTime));
+        placeholderValues.put("limit", "" + limit);
+        placeholderValues.put("offset", "" + offset);
+
+        String where = StrSubstitutor.replace(WHERE_REFERENCE_IN_REF_ROWS, placeholderValues);
+        String query = String.format(UPDATE_QUERY_TEMPLATE, addDoubleQuotes(tableName), key, where);
+        if (logger.isDebugEnabled()) {
+            logger.debug("updateReferenceInRefRows with closeTime method query: {}", query);
+        }
+        entityManager.createNativeQuery(query)
+                .executeUpdate();
     }
 
     @Transactional
@@ -709,7 +750,8 @@ public class DataDao {
                 .getSingleResult();
     }
 
-    public BigInteger countActualDataFromVersion(String versionTable, String draftTable, LocalDateTime publishTime, LocalDateTime closeTime) {
+    public BigInteger countActualDataFromVersion(String versionTable, String draftTable,
+                                                 LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
         Map<String, String> placeholderValues = new HashMap<>();
@@ -724,7 +766,8 @@ public class DataDao {
 
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void insertActualDataFromVersion(String tableToInsert, String versionTable, String draftTable,
-                                            Map<String, String> columns, int offset, int transactionSize, LocalDateTime publishTime, LocalDateTime closeTime) {
+                                            Map<String, String> columns, int offset, int transactionSize,
+                                            LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
         String columnsStr = columns.keySet().stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
@@ -735,8 +778,8 @@ public class DataDao {
         Map<String, String> placeholderValues = new HashMap<>();
         placeholderValues.put("dColumns", columnsWithPrefixD);
         placeholderValues.put("vValues", columnsWithPrefixValue);
-        placeholderValues.put("versionTable", "data." + addDoubleQuotes(versionTable));
         placeholderValues.put("draftTable", "data." + addDoubleQuotes(draftTable));
+        placeholderValues.put("versionTable", "data." + addDoubleQuotes(versionTable));
         placeholderValues.put("publishTime", formatDateTime(publishTime));
         placeholderValues.put("closeTime", formatDateTime(closeTime));
         placeholderValues.put("offset", "" + offset);
@@ -748,7 +791,7 @@ public class DataDao {
 
         String query = StrSubstitutor.replace(INSERT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME, placeholderValues);
         if (logger.isDebugEnabled()) {
-            logger.debug("insertActualDataFromVersion with closeTime method query: " + query);
+            logger.debug("insertActualDataFromVersion with closeTime method query: {}", query);
         }
         entityManager.createNativeQuery(query)
                 .executeUpdate();
@@ -788,7 +831,7 @@ public class DataDao {
         );
 
         if (logger.isDebugEnabled()) {
-            logger.debug("insertOldDataFromVersion with closeTime method query: " + query);
+            logger.debug("insertOldDataFromVersion with closeTime method query: {}", query);
         }
         entityManager.createNativeQuery(query)
                 .executeUpdate();
@@ -827,7 +870,7 @@ public class DataDao {
 
         String query = StrSubstitutor.replace(INSERT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME, placeholderValues);
         if (logger.isDebugEnabled()) {
-            logger.debug("insertClosedNowDataFromVersion with closeTime method query: " + query);
+            logger.debug("insertClosedNowDataFromVersion with closeTime method query: {}", query);
         }
         entityManager.createNativeQuery(query)
                 .executeUpdate();
@@ -867,7 +910,7 @@ public class DataDao {
         String query = StrSubstitutor.replace(INSERT_NEW_VAL_FROM_DRAFT_WITH_CLOSE_TIME, placeholderValues);
 
         if (logger.isDebugEnabled()) {
-            logger.debug("insertNewDataFromDraft with closeTime method query: " + query);
+            logger.debug("insertNewDataFromDraft with closeTime method query: {}", query);
         }
 
         entityManager.createNativeQuery(query)
@@ -892,7 +935,7 @@ public class DataDao {
                 columnsWithPrefix);
 
         if (logger.isDebugEnabled()) {
-            logger.debug("insertDataFromDraft with closeTime method query: " + query);
+            logger.debug("insertDataFromDraft with closeTime method query: {}", query);
         }
 
         entityManager.createNativeQuery(query)
@@ -905,7 +948,7 @@ public class DataDao {
                 addDoubleQuotes(targetTable));
 
         if (logger.isDebugEnabled()) {
-            logger.debug("deletePointRows method query: " + query);
+            logger.debug("deletePointRows method query: {}", query);
         }
 
         entityManager.createNativeQuery(query)
