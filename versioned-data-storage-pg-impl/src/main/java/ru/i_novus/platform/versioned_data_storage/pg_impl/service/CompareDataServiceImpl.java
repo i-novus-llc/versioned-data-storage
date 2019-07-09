@@ -3,6 +3,7 @@ package ru.i_novus.platform.versioned_data_storage.pg_impl.service;
 import ru.i_novus.platform.datastorage.temporal.model.DataDifference;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.CompareDataCriteria;
 import ru.i_novus.platform.datastorage.temporal.service.CompareDataService;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 
 /**
  * @author lgalimova

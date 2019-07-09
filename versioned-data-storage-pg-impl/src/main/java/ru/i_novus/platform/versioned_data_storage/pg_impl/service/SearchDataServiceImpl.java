@@ -4,6 +4,7 @@ import net.n2oapp.criteria.api.CollectionPage;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.SearchDataService;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 
 import java.math.BigInteger;
 import java.time.LocalDateTime;

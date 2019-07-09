@@ -1,4 +1,4 @@
-package ru.i_novus.platform.versioned_data_storage.pg_impl.service;
+package ru.i_novus.platform.versioned_data_storage.pg_impl.dao;
 
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
 
@@ -15,7 +15,7 @@ public class QueryConstants {
 
     Pattern dataRegexp = Pattern.compile("([0-9]{2})\\.([0-9]{2})\\.([0-9]{4})");
 
-    protected static final int TRANSACTION_SIZE = 1000;
+    public static final int TRANSACTION_SIZE = 1000;
 
     public static final String DATE_FORMAT_FOR_INSERT_ROW = "yyyy-MM-dd";
     public static final String DATE_FORMAT_FOR_USING_CONVERTING = "DD.MM.YYYY";
@@ -28,7 +28,7 @@ public class QueryConstants {
     public static final String SYS_PATH = "SYS_PATH";
     public static final String SYS_FULL_TEXT_SEARCH = "FTS";
 
-    static final List<String> SYS_RECORDS = Arrays.asList(SYS_PRIMARY_COLUMN, SYS_PUBLISHTIME, SYS_CLOSETIME, SYS_HASH, SYS_PATH, SYS_FULL_TEXT_SEARCH);
+    public static final List<String> SYS_RECORDS = Arrays.asList(SYS_PRIMARY_COLUMN, SYS_PUBLISHTIME, SYS_CLOSETIME, SYS_HASH, SYS_PATH, SYS_FULL_TEXT_SEARCH);
     private static final String SYS_RECORDS_TEXT = SYS_RECORDS.stream().map(QueryUtil::addSingleQuotes).collect(Collectors.joining(", "));
 
     public static final String DATE_BEGIN = "DATEBEG";

@@ -1,6 +1,7 @@
 package ru.i_novus.platform.versioned_data_storage;
 
 import ru.i_novus.platform.datastorage.temporal.service.*;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.service.*;
 
 import javax.enterprise.context.ApplicationScoped;

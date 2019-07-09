@@ -1,4 +1,4 @@
-package ru.i_novus.platform.versioned_data_storage.pg_impl.service;
+package ru.i_novus.platform.versioned_data_storage.pg_impl.dao;
 
 import cz.atria.common.lang.Util;
 import net.n2oapp.criteria.api.CollectionPage;
@@ -36,7 +36,7 @@ import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.joining;
 import static org.springframework.util.CollectionUtils.isEmpty;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.service.QueryConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.*;
 
 public class DataDao {
@@ -200,8 +200,10 @@ public class DataDao {
     }
 
     private QueryWithParams getDictionaryFilterQuery(String search, Set<List<FieldSearchCriteria>> filters, String alias) {
+
         Map<String, Object> params = new HashMap<>();
         String queryStr = "";
+
         if (!Util.isEmpty(search)) {
             //full text search
             search = search.trim();
@@ -227,10 +229,12 @@ public class DataDao {
                 for (FieldSearchCriteria searchCriteria : listOfFilters) {
                     i[0]++;
                     Field field = searchCriteria.getField();
+
                     String fieldName = searchCriteria.getField().getName();
                     String escapedFieldName = addDoubleQuotes(fieldName);
                     if (alias != null && !"".equals(alias))
                         escapedFieldName = alias + "." + escapedFieldName;
+
                     if (searchCriteria.getValues() == null || searchCriteria.getValues().get(0) == null) {
                         filter += " and " + escapedFieldName + " is null";
                     } else if (field instanceof IntegerField || field instanceof FloatField || field instanceof DateField) {
@@ -242,7 +246,9 @@ public class DataDao {
                     } else if (field instanceof TreeField) {
                         if (SearchTypeEnum.LESS.equals(searchCriteria.getType())) {
                             filter += " and " + escapedFieldName + "@> (cast(:" + fieldName + i[0] + " AS ltree[]))";
-                            String v = searchCriteria.getValues().stream().map(Object::toString).collect(Collectors.joining(",", "{", "}"));
+                            String v = searchCriteria.getValues().stream()
+                                    .map(Object::toString)
+                                    .collect(Collectors.joining(",", "{", "}"));
                             params.put(fieldName + i[0], v);
                         }
                     } else if (field instanceof BooleanField) {
@@ -263,7 +269,9 @@ public class DataDao {
                     }
                 }
                 return filter;
+
             }).collect(Collectors.joining(" or "));
+
             if (!queryStr.equals(""))
                 queryStr = " and (" + queryStr + ")";
         }
