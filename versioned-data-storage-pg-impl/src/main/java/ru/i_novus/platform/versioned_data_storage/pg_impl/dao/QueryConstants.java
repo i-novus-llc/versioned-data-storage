@@ -16,9 +16,9 @@ public class QueryConstants {
 
     public static final int TRANSACTION_SIZE = 1000;
 
-    public static final String DATE_FORMAT_FOR_INSERT_ROW = "yyyy-MM-dd";
-    public static final String DATE_FORMAT_FOR_USING_CONVERTING = "DD.MM.YYYY";
-    public static final String TIMESTAMP_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
+    static final String DATE_FORMAT_FOR_INSERT_ROW = "yyyy-MM-dd";
+    static final String DATE_FORMAT_FOR_USING_CONVERTING = "DD.MM.YYYY";
+    static final String TIMESTAMP_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
     private static final List<String> SYS_RECORD_LIST = Arrays.asList(SYS_PRIMARY_COLUMN,
             SYS_PUBLISHTIME, SYS_CLOSETIME,
@@ -28,15 +28,16 @@ public class QueryConstants {
             .map(QueryUtil::addSingleQuotes)
             .collect(Collectors.joining(", "));
 
-    public static final String DATE_BEGIN = "DATEBEG";
-    public static final String DATE_END = "DATEEND";
-    public static final String HAS_CHILD_BRANCH = "SYS_HAS_CHILD_BRANCH";
+    static final String DATE_BEGIN = "DATEBEG";
+    static final String DATE_END = "DATEEND";
+    static final String HAS_CHILD_BRANCH = "SYS_HAS_CHILD_BRANCH";
 
-    public static final String QUERY_NULL_VALUE = "null";
-    public static final String QUERY_VALUE_SUBST = "?";
-    public static final String QUERY_LTREE_SUBST = QUERY_VALUE_SUBST + "\\:\\:ltree";
+    static final String QUERY_NULL_VALUE = "null";
+    static final String QUERY_VALUE_SUBST = "?";
+    static final String QUERY_LTREE_SUBST = QUERY_VALUE_SUBST + "\\:\\:ltree";
 
     private static final String SELECT_COUNT_ONLY = "SELECT count(*)\n";
+    private static final String SELECT_WHERE = " WHERE 1 = 1\n";
     private static final String ORDER_BY_SYS_RECORDID = " ORDER BY %s.\"SYS_RECORDID\"\n";
     private static final String SELECT_LIMIT = " LIMIT ${limit}";
     private static final String SELECT_OFFSET = " OFFSET ${offset}";
@@ -141,28 +142,31 @@ public class QueryConstants {
     public static final String DELETE_ALL_RECORDS_FROM_TABLE_QUERY_TEMPLATE = "DELETE FROM data.%s;";
     public static final String DELETE_EMPTY_RECORDS_FROM_TABLE_QUERY_TEMPLATE = "DELETE FROM data.%s WHERE %s;";
 
-    public static final String UPDATE_QUERY_TEMPLATE = "UPDATE data.%s as b SET %s WHERE b.\"SYS_RECORDID\" IN (%s);";
-    public static final String UPDATE_REFERENCE_QUERY_TEMPLATE = "UPDATE data.%s as b SET %s WHERE b.\"SYS_RECORDID\" = ANY(%s\\:\\:bigint[]);";
+    static final String UPDATE_QUERY_TEMPLATE = "UPDATE data.%s as b SET %s WHERE b.\"SYS_RECORDID\" IN (%s);";
+    static final String UPDATE_REFERENCE_QUERY_TEMPLATE = "UPDATE data.%s as b SET %s WHERE b.\"SYS_RECORDID\" = ANY(%s\\:\\:bigint[]);";
 
-    public static final String COUNT_REFERENCE_IN_REF_ROWS = SELECT_COUNT_ONLY +
+    private static final String AND_EXISTS_VERSION_REF_VALUE = "   AND v.${refFieldName} is not null\n" +
+            "   AND (v.${refFieldName} -> 'value') is not null\n";
+
+    static final String COUNT_REFERENCE_IN_REF_ROWS = SELECT_COUNT_ONLY +
             FROM_VERSION_TABLE +
-            " WHERE 1 = 1" +
-            AND_IS_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME;
-    public static final String WHERE_REFERENCE_IN_REF_ROWS = "\nSELECT v.\"SYS_RECORDID\"\n" +
+            SELECT_WHERE +
+            AND_EXISTS_VERSION_REF_VALUE;
+
+    static final String WHERE_REFERENCE_IN_REF_ROWS = "\nSELECT v.\"SYS_RECORDID\"\n" +
             FROM_VERSION_TABLE +
-            " WHERE 1 = 1" +
-            AND_IS_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME +
+            SELECT_WHERE +
+            AND_EXISTS_VERSION_REF_VALUE +
             ORDER_VERSION_BY_SYS_RECORDID +
-            SELECT_LIMIT + SELECT_OFFSET
-            ;
+            SELECT_LIMIT + SELECT_OFFSET;
 
-    public static final String REFERENCE_VALUATION_UPDATE_TABLE = "b";
-    public static final String REFERENCE_VALUATION_SELECT_TABLE = "d";
-    public static final String REFERENCE_VALUATION_SELECT_SUBST = "select jsonb_build_object('value', ?)";
-    public static final String REFERENCE_VALUATION_SELECT_EXPRESSION =
+    static final String REFERENCE_VALUATION_UPDATE_TABLE = "b";
+    static final String REFERENCE_VALUATION_SELECT_TABLE = "d";
+    static final String REFERENCE_VALUATION_SELECT_SUBST = "select jsonb_build_object('value', ?)";
+    static final String REFERENCE_VALUATION_SELECT_EXPRESSION =
             "select jsonb_build_object('value', d.%1$s , 'displayValue', %2$s, 'hash', d.\"SYS_HASH\")\n" +
             "  from data.%3$s d where d.%1s=%4$s\\:\\:%5$s and %6$s";
-    public static final String REFERENCE_VALUATION_OLD_VALUE =
+    static final String REFERENCE_VALUATION_OLD_VALUE =
             "(case when %1$s is null then null else %1$s->>'value' end)";
 
     public static final String IS_VERSION_NOT_EMPTY = "SELECT exists(SELECT * FROM data.%s);";

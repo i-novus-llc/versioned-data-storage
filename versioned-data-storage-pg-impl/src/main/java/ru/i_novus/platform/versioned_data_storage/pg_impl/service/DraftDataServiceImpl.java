@@ -122,9 +122,9 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Override
     public void updateReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue,
                                          LocalDateTime publishTime, LocalDateTime closeTime) {
-        BigInteger count = dataDao.countReferenceInRefRows(storageCode, fieldValue, publishTime, closeTime);
+        BigInteger count = dataDao.countReferenceInRefRows(storageCode, fieldValue);
         for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
-            dataDao.updateReferenceInRefRows(storageCode, fieldValue, i, TRANSACTION_SIZE, publishTime, closeTime);
+            dataDao.updateReferenceInRefRows(storageCode, fieldValue, i, TRANSACTION_SIZE);
         }
     }
 

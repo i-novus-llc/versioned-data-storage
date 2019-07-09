@@ -65,7 +65,7 @@ public class DataDao {
         if (fields.stream().noneMatch(field -> SYS_HASH.equals(field.getName())))
             fields.add(1, new StringField(SYS_HASH));
         QueryWithParams queryWithParams = new QueryWithParams("SELECT " + generateSqlQuery("d", fields, true) +
-                " FROM data." + addDoubleQuotes(criteria.getTableName()) + " d ", null);
+                " FROM " + getSchemeTableName(criteria.getTableName()) + " as d ", null);
 
         QueryWithParams dataWhereClause;
         if (isEmpty(criteria.getHashList())) {
@@ -99,7 +99,7 @@ public class DataDao {
         QueryWithParams dataWhereClause = getDataWhereClause(bdate, edate, null, null);
         String query = "SELECT hash FROM (" +
                 "SELECT unnest(" + sqlHashArray + ") hash) hashes WHERE hash NOT IN (" +
-                "SELECT " + addDoubleQuotes(SYS_HASH) + " FROM data." + addDoubleQuotes(tableName) + " d " +
+                "SELECT " + addDoubleQuotes(SYS_HASH) + " FROM " + getSchemeTableName(tableName) + " as d " +
                 dataWhereClause.getQuery() + ")";
         params.putAll(dataWhereClause.params);
         QueryWithParams queryWithParams = new QueryWithParams(query, params);
@@ -164,7 +164,7 @@ public class DataDao {
 
     public BigInteger getDataCount(DataCriteria criteria) {
         QueryWithParams queryWithParams = new QueryWithParams("SELECT count(*)" +
-                " FROM data." + addDoubleQuotes(criteria.getTableName()) + " d ", null);
+                " FROM " + getSchemeTableName(criteria.getTableName()) + " as d ", null);
         queryWithParams.concat(getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter()));
         return (BigInteger) queryWithParams.createQuery(entityManager).getSingleResult();
     }
@@ -509,23 +509,24 @@ public class DataDao {
         query.executeUpdate();
     }
 
-    public BigInteger countReferenceInRefRows(String tableName, ReferenceFieldValue fieldValue, LocalDateTime publishTime, LocalDateTime closeTime) {
-        closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
+    public BigInteger countReferenceInRefRows(String tableName, ReferenceFieldValue fieldValue) {
 
         Map<String, String> placeholderValues = new HashMap<>();
-        placeholderValues.put("versionTable", "data." + addDoubleQuotes(tableName));
-        placeholderValues.put("publishTime", formatDateTime(publishTime));
-        placeholderValues.put("closeTime", formatDateTime(closeTime));
+        placeholderValues.put("versionTable", getSchemeTableName(tableName));
+        placeholderValues.put("refFieldName", addDoubleQuotes(fieldValue.getField()));
 
         String query = StrSubstitutor.replace(COUNT_REFERENCE_IN_REF_ROWS, placeholderValues);
-        return (BigInteger) entityManager.createNativeQuery(query).getSingleResult();
+        BigInteger count = (BigInteger) entityManager.createNativeQuery(query).getSingleResult();
+
+        if (logger.isDebugEnabled()) {
+            logger.debug("countReferenceInRefRows method count: {}, query: {}", count, query);
+        }
+
+        return count;
     }
 
     @Transactional
-    public void updateReferenceInRefRows(String tableName, ReferenceFieldValue fieldValue,
-                                         int offset, int limit,
-                                         LocalDateTime publishTime, LocalDateTime closeTime) {
-        closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
+    public void updateReferenceInRefRows(String tableName, ReferenceFieldValue fieldValue, int offset, int limit) {
 
         String quotedFieldName = addDoubleQuotes(fieldValue.getField());
         String oldFieldExpression = sqlFieldExpression(fieldValue.getField(), REFERENCE_VALUATION_UPDATE_TABLE);
@@ -533,17 +534,18 @@ public class DataDao {
         String key = quotedFieldName + " = " + getReferenceValuationSelect(fieldValue, oldFieldValue);
 
         Map<String, String> placeholderValues = new HashMap<>();
-        placeholderValues.put("versionTable", "data." + addDoubleQuotes(tableName));
-        placeholderValues.put("publishTime", formatDateTime(publishTime));
-        placeholderValues.put("closeTime", formatDateTime(closeTime));
+        placeholderValues.put("versionTable", getSchemeTableName(tableName));
+        placeholderValues.put("refFieldName", addDoubleQuotes(fieldValue.getField()));
         placeholderValues.put("limit", "" + limit);
         placeholderValues.put("offset", "" + offset);
 
         String where = StrSubstitutor.replace(WHERE_REFERENCE_IN_REF_ROWS, placeholderValues);
         String query = String.format(UPDATE_QUERY_TEMPLATE, addDoubleQuotes(tableName), key, where);
+
         if (logger.isDebugEnabled()) {
-            logger.debug("updateReferenceInRefRows with closeTime method query: {}", query);
+            logger.debug("updateReferenceInRefRows method query: {}", query);
         }
+
         entityManager.createNativeQuery(query)
                 .executeUpdate();
     }
@@ -568,7 +570,7 @@ public class DataDao {
 
         Query query = entityManager.createNativeQuery(
                 "SELECT " + fields + ", COUNT(*)" +
-                        " FROM data." + addDoubleQuotes(storageCode) + " d" +
+                        " FROM " + getSchemeTableName(storageCode) + " as d" +
                         " WHERE " + getDataWhereClauseStr(publishTime, null, null, null) +
                         " GROUP BY " + groupBy +
                         " HAVING COUNT(*) > 1"
@@ -581,8 +583,9 @@ public class DataDao {
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void updateSequence(String tableName) {
-        entityManager.createNativeQuery(String.format("SELECT setval('data.%s', (SELECT max(\"SYS_RECORDID\") FROM data.%s))",
-                getSequenceName(tableName), addDoubleQuotes(tableName))).getSingleResult();
+        String query = String.format("SELECT setval('%1$s.%2$s', (SELECT max(\"SYS_RECORDID\") FROM %1$s.%3$s))",
+                DATA_SCHEME_NAME, getSequenceName(tableName), addDoubleQuotes(tableName));
+        entityManager.createNativeQuery(query).getSingleResult();
     }
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
@@ -755,8 +758,8 @@ public class DataDao {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
         Map<String, String> placeholderValues = new HashMap<>();
-        placeholderValues.put("draftTable", "data." + addDoubleQuotes(draftTable));
-        placeholderValues.put("versionTable", "data." + addDoubleQuotes(versionTable));
+        placeholderValues.put("draftTable", getSchemeTableName(draftTable));
+        placeholderValues.put("versionTable", getSchemeTableName(versionTable));
         placeholderValues.put("publishTime", formatDateTime(publishTime));
         placeholderValues.put("closeTime", formatDateTime(closeTime));
 
@@ -778,14 +781,14 @@ public class DataDao {
         Map<String, String> placeholderValues = new HashMap<>();
         placeholderValues.put("dColumns", columnsWithPrefixD);
         placeholderValues.put("vValues", columnsWithPrefixValue);
-        placeholderValues.put("draftTable", "data." + addDoubleQuotes(draftTable));
-        placeholderValues.put("versionTable", "data." + addDoubleQuotes(versionTable));
+        placeholderValues.put("draftTable", getSchemeTableName(draftTable));
+        placeholderValues.put("versionTable", getSchemeTableName(versionTable));
         placeholderValues.put("publishTime", formatDateTime(publishTime));
         placeholderValues.put("closeTime", formatDateTime(closeTime));
         placeholderValues.put("offset", "" + offset);
         placeholderValues.put("transactionSize", "" + transactionSize);
-        placeholderValues.put("newTableSeqName", "data." + getSequenceName(tableToInsert));
-        placeholderValues.put("tableToInsert", "data." + addDoubleQuotes(tableToInsert));
+        placeholderValues.put("newTableSeqName", getSchemeSequenceName(tableToInsert));
+        placeholderValues.put("tableToInsert", getSchemeTableName(tableToInsert));
         placeholderValues.put("columns", columnsStr);
         placeholderValues.put("columnsWithType", columnsWithType);
 
@@ -841,8 +844,8 @@ public class DataDao {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
         Map<String, String> placeholderValues = new HashMap<>();
-        placeholderValues.put("versionTable", "data." + addDoubleQuotes(versionTable));
-        placeholderValues.put("draftTable", "data." + addDoubleQuotes(draftTable));
+        placeholderValues.put("versionTable", getSchemeTableName(versionTable));
+        placeholderValues.put("draftTable", getSchemeTableName(draftTable));
         placeholderValues.put("publishTime", formatDateTime(publishTime));
         placeholderValues.put("closeTime", formatDateTime(closeTime));
         String query = StrSubstitutor.replace(COUNT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME, placeholderValues);
@@ -857,16 +860,16 @@ public class DataDao {
         String columnsWithType = columns.keySet().stream().map(s -> s + " " + columns.get(s)).reduce((s1, s2) -> s1 + ", " + s2).get();
 
         Map<String, String> placeholderValues = new HashMap<>();
-        placeholderValues.put("tableToInsert", "data." + addDoubleQuotes(tableToInsert));
-        placeholderValues.put("draftTable", "data." + addDoubleQuotes(draftTable));
-        placeholderValues.put("versionTable", "data." + addDoubleQuotes(versionTable));
+        placeholderValues.put("tableToInsert", getSchemeTableName(tableToInsert));
+        placeholderValues.put("draftTable", getSchemeTableName(draftTable));
+        placeholderValues.put("versionTable", getSchemeTableName(versionTable));
         placeholderValues.put("publishTime", formatDateTime(publishTime));
         placeholderValues.put("closeTime", formatDateTime(closeTime));
         placeholderValues.put("columns", columnsStr);
         placeholderValues.put("offset", "" + offset);
         placeholderValues.put("transactionSize", "" + transactionSize);
         placeholderValues.put("columnsWithType", columnsWithType);
-        placeholderValues.put("sequenceName", "data." + getSequenceName(tableToInsert));
+        placeholderValues.put("sequenceName", getSchemeSequenceName(tableToInsert));
 
         String query = StrSubstitutor.replace(INSERT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME, placeholderValues);
         if (logger.isDebugEnabled()) {
@@ -880,8 +883,8 @@ public class DataDao {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
         Map<String, String> placeholderValues = new HashMap<>();
-        placeholderValues.put("draftTable", "data." + addDoubleQuotes(draftTable));
-        placeholderValues.put("versionTable", "data." + addDoubleQuotes(versionTable));
+        placeholderValues.put("draftTable", getSchemeTableName(draftTable));
+        placeholderValues.put("versionTable", getSchemeTableName(versionTable));
         placeholderValues.put("publishTime", formatDateTime(publishTime));
         placeholderValues.put("closeTime", formatDateTime(closeTime));
 
@@ -898,14 +901,14 @@ public class DataDao {
 
         Map<String, String> placeholderValues = new HashMap<>();
         placeholderValues.put("fields", columnsStr);
-        placeholderValues.put("draftTable", "data." + addDoubleQuotes(draftTable));
-        placeholderValues.put("versionTable", "data." + addDoubleQuotes(versionTable));
+        placeholderValues.put("draftTable", getSchemeTableName(draftTable));
+        placeholderValues.put("versionTable", getSchemeTableName(versionTable));
         placeholderValues.put("publishTime", formatDateTime(publishTime));
         placeholderValues.put("closeTime", formatDateTime(closeTime));
         placeholderValues.put("transactionSize", "" + transactionSize);
         placeholderValues.put("offset", "" + offset);
-        placeholderValues.put("sequenceName", "data." + getSequenceName(tableToInsert));
-        placeholderValues.put("tableToInsert", "data." + addDoubleQuotes(tableToInsert));
+        placeholderValues.put("sequenceName", getSchemeSequenceName(tableToInsert));
+        placeholderValues.put("tableToInsert", getSchemeTableName(tableToInsert));
         placeholderValues.put("rowFields", columnsWithPrefix);
         String query = StrSubstitutor.replace(INSERT_NEW_VAL_FROM_DRAFT_WITH_CLOSE_TIME, placeholderValues);
 
@@ -1030,8 +1033,8 @@ public class DataDao {
                 joinType = "full";
         }
 
-        String query = " from data." + addDoubleQuotes(oldStorage) + " t1 " + joinType +
-                " join data." + addDoubleQuotes(newStorage) + " t2 on " + primaryEquality +
+        String query = " from " + getSchemeTableName(oldStorage) + " t1 " + joinType +
+                " join " + getSchemeTableName(newStorage) + " t2 on " + primaryEquality +
                 " and (true" + oldPrimaryValuesFilter + " or true" + newPrimaryValuesFilter + ")" +
                 oldVersionDateFilter +
                 newVersionDateFilter +

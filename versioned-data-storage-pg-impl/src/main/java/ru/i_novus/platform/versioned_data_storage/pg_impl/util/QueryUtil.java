@@ -14,6 +14,8 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
+import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.*;
+
 /**
  * @author lgalimova
  * @since 21.03.2018
@@ -40,7 +42,9 @@ public class QueryUtil {
             Iterator<Field> fieldIterator = fields.iterator();
             if (objects instanceof Object[]) {
                 Object[] row = (Object[]) objects;
-                for (int i = 0; i < row.length; i++) {
+
+                int i = 0;
+                while (i < row.length) {
                     Field field = fieldIterator.next();
                     Object value = row[i];
 
@@ -60,6 +64,8 @@ public class QueryUtil {
 
                         rowValue.getFieldValues().add(getFieldValue(field, value));
                     }
+
+                    i++;
                 }
             } else {
                 rowValue.getFieldValues().add(getFieldValue(fields.get(0), objects));
@@ -166,8 +172,20 @@ public class QueryUtil {
         }
     }
 
+    public static String getTableName(String table) {
+        return addDoubleQuotes(table);
+    }
+
     public static String getSequenceName(String table) {
         return addDoubleQuotes(table + "_SYS_RECORDID_seq");
+    }
+
+    public static String getSchemeTableName(String table) {
+        return DATA_SCHEME_NAME + "." + getTableName(table);
+    }
+
+    public static String getSchemeSequenceName(String table) {
+        return DATA_SCHEME_NAME + "." + getSequenceName(table);
     }
 
     public static LocalDateTime truncateDateTo(LocalDateTime date, ChronoUnit unit) {
@@ -245,7 +263,7 @@ public class QueryUtil {
      * @return Текст для подстановки в SQL
      */
     public static String sqlFieldExpression(String displayField, String table) {
-        return table + ".\"" + displayField + "\"";
+        return table + "." + addDoubleQuotes(displayField);
     }
 
     /**
@@ -259,7 +277,7 @@ public class QueryUtil {
         String sqlDisplayExpression = StringEscapeUtils.escapeSql(displayExpression.getValue());
         Map<String, String> map = new HashMap<>();
         for (String placeholder : displayExpression.getPlaceholders()) {
-            map.put(placeholder, "' || " + table + ".\"" + placeholder + "\" || '");
+            map.put(placeholder, "' || " + table + "." + addDoubleQuotes(placeholder) + " || '");
         }
         return addSingleQuotes(StrSubstitutor.replace(sqlDisplayExpression, map));
     }
