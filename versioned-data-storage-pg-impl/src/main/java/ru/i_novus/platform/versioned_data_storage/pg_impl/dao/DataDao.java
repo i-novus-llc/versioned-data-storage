@@ -32,8 +32,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static java.util.Collections.singleton;
-import static java.util.Collections.singletonList;
+import static java.util.Collections.*;
 import static java.util.stream.Collectors.joining;
 import static org.springframework.util.CollectionUtils.isEmpty;
 import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.*;
@@ -69,7 +68,8 @@ public class DataDao {
 
         QueryWithParams dataWhereClause;
         if (isEmpty(criteria.getHashList())) {
-            dataWhereClause = getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter());
+            dataWhereClause = getDataWhereClause(criteria.getBdate(), criteria.getEdate(),
+                    criteria.getCommonFilter(), criteria.getFieldFilter(), criteria.getSystemIds());
         } else {
             dataWhereClause = getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(),
                     singleton(singletonList(new FieldSearchCriteria(new StringField(SYS_HASH), SearchTypeEnum.EXACT, criteria.getHashList()))));
@@ -165,7 +165,8 @@ public class DataDao {
     public BigInteger getDataCount(DataCriteria criteria) {
         QueryWithParams queryWithParams = new QueryWithParams("SELECT count(*)" +
                 " FROM " + getSchemeTableName(criteria.getTableName()) + " as d ", null);
-        queryWithParams.concat(getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter()));
+        queryWithParams.concat(getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(),
+                criteria.getFieldFilter(), criteria.getSystemIds()));
         return (BigInteger) queryWithParams.createQuery(entityManager).getSingleResult();
     }
 
@@ -181,11 +182,17 @@ public class DataDao {
         if (closeDate != null) {
             result += " and (date_trunc('second', d.\"SYS_CLOSETIME\") >= :edate or d.\"SYS_CLOSETIME\" is null)";
         }
-        result += getDictionaryFilterQuery(search, filter, null).getQuery();
+        result += getDictionaryFilterQuery(search, filter, emptyList(), null).getQuery();
         return result;
     }
 
     private QueryWithParams getDataWhereClause(LocalDateTime publishDate, LocalDateTime closeDate, String search, Set<List<FieldSearchCriteria>> filters) {
+        return getDataWhereClause(publishDate, closeDate, search, filters, emptyList());
+    }
+
+    private QueryWithParams getDataWhereClause(LocalDateTime publishDate, LocalDateTime closeDate, String search,
+                                               Set<List<FieldSearchCriteria>> filters, List<Long> rowSystemIds) {
+
         closeDate = closeDate == null ? PG_MAX_TIMESTAMP : closeDate;
         Map<String, Object> params = new HashMap<>();
         String result = " WHERE 1=1 ";
@@ -197,11 +204,11 @@ public class DataDao {
         }
 
         QueryWithParams queryWithParams = new QueryWithParams(result, params);
-        queryWithParams.concat(getDictionaryFilterQuery(search, filters, null));
+        queryWithParams.concat(getDictionaryFilterQuery(search, filters, rowSystemIds, null));
         return queryWithParams;
     }
 
-    private QueryWithParams getDictionaryFilterQuery(String search, Set<List<FieldSearchCriteria>> filters, String alias) {
+    private QueryWithParams getDictionaryFilterQuery(String search, Set<List<FieldSearchCriteria>> filters, List<Long> systemIds, String alias) {
 
         Map<String, Object> params = new HashMap<>();
         String queryStr = "";
@@ -274,9 +281,15 @@ public class DataDao {
 
             }).collect(Collectors.joining(" or "));
 
-            if (!queryStr.equals(""))
+            if (!"".equals(queryStr))
                 queryStr = " and (" + queryStr + ")";
         }
+
+        if (!isEmpty(systemIds)) {
+            queryStr += " and (\"" + SYS_PRIMARY_COLUMN + "\" in (:systemIds))";
+            params.put("systemIds", systemIds);
+        }
+
         return new QueryWithParams(queryStr, params);
     }
 
@@ -362,7 +375,7 @@ public class DataDao {
                 maxIndex = values.size();
             List<String> subValues = values.subList(firstIndex, maxIndex);
             List<RowValue> subData = data.subList(firstIndex, maxIndex);
-            String stringValues = subValues.stream().collect(Collectors.joining("),("));
+            String stringValues = String.join("),(", subValues);
             Query query = entityManager.createNativeQuery(String.format(INSERT_QUERY_TEMPLATE, addDoubleQuotes(tableName), String.join(",", keys), stringValues));
             for (RowValue rowValue : subData) {
                 for (Object value : rowValue.getFieldValues()) {
@@ -385,7 +398,7 @@ public class DataDao {
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void loadData(String draftCode, String sourceStorageCode, List<String> fields, LocalDateTime fromDate, LocalDateTime toDate ) {
-        String keys = fields.stream().collect(Collectors.joining(","));
+        String keys = String.join(",", fields);
         String values = fields.stream().map(f -> "d." + f).collect(Collectors.joining(","));
 
         QueryWithParams queryWithParams = new QueryWithParams(String.format(COPY_QUERY_TEMPLATE, addDoubleQuotes(draftCode), keys, values,
@@ -729,7 +742,7 @@ public class DataDao {
             }
         }
         if (id != null) {
-            query += " and " + addDoubleQuotes("SYS_RECORDID") + " != " + id;
+            query += " and " + addDoubleQuotes(SYS_PRIMARY_COLUMN) + " != " + id;
         }
 
         Query nativeQuery = entityManager.createNativeQuery(String.format(query, rows, addDoubleQuotes(tableName), addDoubleQuotes(field)));
@@ -1125,7 +1138,7 @@ public class DataDao {
     }
 
     private String getFieldValuesFilter(String alias, Map<String, Object> params, Set<List<FieldSearchCriteria>> fieldValuesFilters) {
-        QueryWithParams queryWithParams = getDictionaryFilterQuery(null, fieldValuesFilters, alias);
+        QueryWithParams queryWithParams = getDictionaryFilterQuery(null, fieldValuesFilters, emptyList(), alias);
         params.putAll(queryWithParams.getParams());
 
         return queryWithParams.getQuery();

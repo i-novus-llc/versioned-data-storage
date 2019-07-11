@@ -4,6 +4,7 @@ import ru.i_novus.platform.datastorage.temporal.model.Field;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Objects;
 
 
 /**
@@ -56,8 +57,8 @@ public class FieldSearchCriteria implements Serializable {
 
         FieldSearchCriteria that = (FieldSearchCriteria) o;
 
-        if (field != null ? !field.equals(that.field) : that.field != null) return false;
-        if (values != null ? !values.equals(that.values) : that.values != null) return false;
+        if (!Objects.equals(field, that.field)) return false;
+        if (!Objects.equals(values, that.values)) return false;
         return type == that.type;
 
     }
