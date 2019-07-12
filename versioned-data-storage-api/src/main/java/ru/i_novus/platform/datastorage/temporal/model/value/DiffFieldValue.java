@@ -11,6 +11,7 @@ import java.util.Objects;
  * @since 10.05.2018
  */
 public class DiffFieldValue<T> implements Serializable {
+
     private Field field;
     private T oldValue;
     private T newValue;
@@ -58,10 +59,15 @@ public class DiffFieldValue<T> implements Serializable {
         this.status = status;
     }
 
+    public T getValue(DiffStatusEnum status) {
+        return DiffStatusEnum.DELETED.equals(status) ? getOldValue() : getNewValue();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
+
         DiffFieldValue<?> that = (DiffFieldValue<?>) o;
         return Objects.equals(field, that.field) &&
                 Objects.equals(oldValue, that.oldValue) &&
