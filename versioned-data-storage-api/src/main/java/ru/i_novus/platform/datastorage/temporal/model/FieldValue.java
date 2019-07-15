@@ -1,12 +1,14 @@
 package ru.i_novus.platform.datastorage.temporal.model;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 /**
  * @author lgalimova
  * @since 01.02.2018
  */
-public abstract class FieldValue<T> {
+public abstract class FieldValue<T extends Serializable> implements Serializable {
+
     private String field;
     private T value;
 
@@ -38,6 +40,7 @@ public abstract class FieldValue<T> {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
+
         FieldValue<?> that = (FieldValue<?>) o;
         return Objects.equals(field, that.field) &&
                 Objects.equals(value, that.value);
