@@ -59,10 +59,6 @@ public class DiffFieldValue<T> implements Serializable {
         this.status = status;
     }
 
-    public T getValue(DiffStatusEnum status) {
-        return DiffStatusEnum.DELETED.equals(status) ? getOldValue() : getNewValue();
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
