@@ -6,9 +6,8 @@ import java.time.LocalDateTime;
 import java.sql.Timestamp;
 
 /**
- * AutoConverter LocalDateTime <-> Timestamp for JPA 2.1 that maps a LocalDateTime to a BLOB.
+ * AutoConverter between LocalDateTime and Timestamp for JPA 2.1 that maps a LocalDateTime to a BLOB.
  * URL: https://thoughts-on-java.org/persist-localdate-localdatetime-jpa/
- *
  */
 @Converter(autoApply = true)
 public class LocalDateTimeAttributeConverter implements AttributeConverter<LocalDateTime, Timestamp> {
