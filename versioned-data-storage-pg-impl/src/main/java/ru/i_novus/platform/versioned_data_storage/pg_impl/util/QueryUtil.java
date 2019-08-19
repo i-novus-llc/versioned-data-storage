@@ -1,9 +1,8 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.util;
 
 import net.n2oapp.criteria.api.Criteria;
-import org.apache.commons.lang.StringEscapeUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.text.StrSubstitutor;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.text.StrSubstitutor;
 import ru.i_novus.platform.datastorage.temporal.enums.ReferenceDisplayType;
 import ru.i_novus.platform.datastorage.temporal.model.*;
 import ru.i_novus.platform.datastorage.temporal.model.value.*;
@@ -27,7 +26,7 @@ public class QueryUtil {
 
     /**
      * Преобразование полученных данных в список записей.
-     *
+     * <p>
      * При получении всех данных необходимо использовать
      * совместно с {@link #generateSqlQuery} при {@code includeReference} = true.
      *
@@ -258,8 +257,8 @@ public class QueryUtil {
     /**
      * Формирование sql-текста для значения отображаемого выражения.
      *
-     * @param displayField  поле для получения отображаемого значения
-     * @param table         таблица, к которой привязано поле
+     * @param displayField поле для получения отображаемого значения
+     * @param table        таблица, к которой привязано поле
      * @return Текст для подстановки в SQL
      */
     public static String sqlFieldExpression(String displayField, String table) {
@@ -274,11 +273,36 @@ public class QueryUtil {
      * @return Текст для подстановки в SQL
      */
     public static String sqlDisplayExpression(DisplayExpression displayExpression, String table) {
-        String sqlDisplayExpression = StringEscapeUtils.escapeSql(displayExpression.getValue());
+        String sqlDisplayExpression = escapeSql(displayExpression.getValue());
         Map<String, String> map = new HashMap<>();
         for (String placeholder : displayExpression.getPlaceholders()) {
             map.put(placeholder, "' || " + table + "." + addDoubleQuotes(placeholder) + " || '");
         }
         return addSingleQuotes(StrSubstitutor.replace(sqlDisplayExpression, map));
+    }
+
+    /**
+     * <p>Escapes the characters in a <code>String</code> to be suitable to pass to
+     * an SQL query.</p>
+     *
+     * <p>For example,
+     * <pre>statement.executeQuery("SELECT * FROM MOVIES WHERE TITLE='" +
+     *   StringEscapeUtils.escapeSql("McHale Navy") +
+     *   "'");</pre>
+     * </p>
+     * <p>
+     * <p>At present, this method only turns single-quotes into doubled single-quotes
+     * (<code>"McHale Navy"</code> => <code>"McHale' Navy"</code>). It does not
+     * handle the cases of percent (%) or underscore (_) for use in LIKE clauses.</p>
+     *
+     * see http://www.jguru.com/faq/view.jsp?EID=8881
+     * @param str  the string to escape, may be null
+     * @return a new String, escaped for SQL, <code>null</code> if null string input
+     */
+    public static String escapeSql(String str) {
+        if (str == null) {
+            return null;
+        }
+        return StringUtils.replace(str, "'", "''");
     }
 }

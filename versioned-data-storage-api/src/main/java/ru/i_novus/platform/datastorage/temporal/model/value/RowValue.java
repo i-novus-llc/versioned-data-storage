@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import static org.springframework.util.CollectionUtils.isEmpty;
+import static ru.i_novus.platform.datastorage.temporal.CollectionUtils.isNullOrEmpty;
 
 /**
  * @author lgalimova
@@ -49,7 +49,7 @@ public abstract class RowValue<T> {
     }
 
     public FieldValue getFieldValue(String fieldName) {
-        return !isEmpty(fieldValues) ? fieldValues.stream().filter(fieldValue -> fieldName.equals(fieldValue.getField())).findFirst().orElse(null) : null;
+        return !isNullOrEmpty(fieldValues) ? fieldValues.stream().filter(fieldValue -> fieldName.equals(fieldValue.getField())).findFirst().orElse(null) : null;
     }
 
     public String getHash() {

@@ -2,26 +2,43 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <properties>
-        <maven.compiler.version>3.1</maven.compiler.version>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <javaee.api.version>7.0</javaee.api.version>
-        <jackson.version>2.8.7</jackson.version>
-        <hibernate.version>5.2.4.Final</hibernate.version>
-        <n2o.version>6.1.16</n2o.version>
-        <criteria.api.version>3.8</criteria.api.version>
-        <common-exception.version>1.0</common-exception.version>
-        <internal.repository.releases>https://maven.i-novus.ru/libs-release-local</internal.repository.releases>
-        <internal.repository.shapshots>https://maven.i-novus.ru/libs-snapshot-local</internal.repository.shapshots>
-        <internal.repository.id>i-novus-central</internal.repository.id>
-    </properties>
-
-    <groupId>ru.i-novus.platform</groupId>
+    <groupId>ru.i-novus.components</groupId>
     <artifactId>versioned-data-storage</artifactId>
     <version>2.8-SNAPSHOT</version>
     <packaging>pom</packaging>
+
+    <name>versioned-data-storage</name>
+    <description>Version data storage API and Implementation. Store different versions of data. Versions are based on save datetime. Works with PostgreSQL Database</description>
+    <url>https://github.com/i-novus-llc/versioned-data-storage</url>
+
+    <licenses>
+        <license>
+            <name>The Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+            <comments>A business-friendly OSS license</comments>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Alexander Belov</name>
+            <email>abelov@i-novus.ru</email>
+        </developer>
+        <developer>
+            <name>Timur Nurdinov</name>
+            <email>tnurdinov@i-novus.ru</email>
+        </developer>
+        <developer>
+            <name>Lilja Galimova</name>
+            <email>lgalimova@i-novus.ru</email>
+        </developer>
+    </developers>
+
+    <organization>
+        <name>I-Novus LLC</name>
+        <url>https://i-novus.ru/</url>
+    </organization>
 
     <scm>
         <connection>scm:git:https://git.i-novus.ru/platform/versioned-data-storage.git</connection>
@@ -30,7 +47,17 @@
         <tag>HEAD</tag>
     </scm>
 
-    <name>versioned-data-storage</name>
+    <properties>
+        <maven.compiler.version>3.1</maven.compiler.version>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <javaee.api.version>7.0</javaee.api.version>
+        <jackson.version>2.8.7</jackson.version>
+        <hibernate.version>5.2.4.Final</hibernate.version>
+        <n2o.version>7.3.17</n2o.version>
+        <common-exception.version>1.1</common-exception.version>
+    </properties>
 
     <modules>
         <module>versioned-data-storage-api</module>
@@ -38,20 +65,6 @@
         <module>versioned-data-storage-ee-adapter</module>
         <module>versioned-data-storage-spring-adapter</module>
     </modules>
-
-    <distributionManagement>
-        <repository>
-            <id>${internal.repository.id}</id>
-            <name>${internal.repository.id}</name>
-            <url>${internal.repository.releases}</url>
-        </repository>
-        <snapshotRepository>
-            <id>${internal.repository.id}</id>
-            <name>${internal.repository.id}</name>
-            <url>${internal.repository.shapshots}</url>
-            <uniqueVersion>true</uniqueVersion>
-        </snapshotRepository>
-    </distributionManagement>
 
     <dependencyManagement>
         <dependencies>
@@ -70,9 +83,21 @@
             </dependency>
 
             <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>1.7.28</version>
+            </dependency>
+
+            <dependency>
                 <groupId>net.n2oapp.criteria</groupId>
                 <artifactId>criteria-api</artifactId>
-                <version>${criteria.api.version}</version>
+                <version>${n2o.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>3.9</version>
             </dependency>
 
             <dependency>
@@ -83,13 +108,7 @@
             </dependency>
 
             <dependency>
-                <groupId>cz.atria</groupId>
-                <artifactId>common-lang</artifactId>
-                <version>1.7.2</version>
-            </dependency>
-
-            <dependency>
-                <groupId>ru.kirkazan.common</groupId>
+                <groupId>ru.i-novus.components</groupId>
                 <artifactId>common-exception-handling</artifactId>
                 <version>${common-exception.version}</version>
             </dependency>

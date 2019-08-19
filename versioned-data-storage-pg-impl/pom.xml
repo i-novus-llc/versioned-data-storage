@@ -3,8 +3,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
+        <groupId>ru.i-novus.components</groupId>
         <artifactId>versioned-data-storage</artifactId>
-        <groupId>ru.i-novus.platform</groupId>
         <version>2.8-SNAPSHOT</version>
     </parent>
 
@@ -13,14 +13,14 @@
 
     <dependencies>
         <dependency>
-            <groupId>ru.i-novus.platform</groupId>
+            <groupId>ru.i-novus.components</groupId>
             <artifactId>versioned-data-storage-api</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
 
         <dependency>
-            <groupId>cz.atria</groupId>
-            <artifactId>common-lang</artifactId>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
         </dependency>
 
         <dependency>
@@ -34,7 +34,12 @@
         </dependency>
 
         <dependency>
-            <groupId>ru.kirkazan.common</groupId>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>ru.i-novus.components</groupId>
             <artifactId>common-exception-handling</artifactId>
         </dependency>
 

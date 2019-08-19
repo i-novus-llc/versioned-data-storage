@@ -1,6 +1,6 @@
 package ru.i_novus.platform.datastorage.temporal.exception;
 
-import ru.kirkazan.common.exception.CodifiedException;
+import ru.i_novus.components.common.exception.CodifiedException;
 
 public class NotUniqueException extends CodifiedException {
     public NotUniqueException(String code, Object... args) {

@@ -5,7 +5,7 @@ import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
 import java.io.Serializable;
 import java.util.List;
 
-import static org.springframework.util.CollectionUtils.isEmpty;
+import static ru.i_novus.platform.datastorage.temporal.CollectionUtils.isNullOrEmpty;
 
 /**
  * @author lgalimova
@@ -30,7 +30,7 @@ public class DiffRowValue implements Serializable {
     }
 
     public DiffFieldValue getDiffFieldValue(String fieldName) {
-        if (isEmpty(values))
+        if (isNullOrEmpty(values))
             return null;
 
         return values.stream()

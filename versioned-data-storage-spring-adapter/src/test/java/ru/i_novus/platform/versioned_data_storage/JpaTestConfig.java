@@ -9,7 +9,6 @@ import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.Database;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
-import ru.inovus.util.pg.embeded.PatchedPgBinaryResolver;
 
 import javax.sql.DataSource;
 import java.io.IOException;
@@ -27,7 +26,7 @@ public class JpaTestConfig {
     public DataSource dataSource() {
         EmbeddedPostgres pg = null;
         try {
-            pg = EmbeddedPostgres.builder().setPgBinaryResolver(new PatchedPgBinaryResolver()).setPort(5448)
+            pg = EmbeddedPostgres.builder().setPort(5448)
                     .setCleanDataDirectory(true)
                     .start();
             return prepareDb(pg.getTemplateDatabase());

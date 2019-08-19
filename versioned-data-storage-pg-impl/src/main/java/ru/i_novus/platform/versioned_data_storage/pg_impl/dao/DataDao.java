@@ -1,12 +1,13 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.dao;
 
-import cz.atria.common.lang.Util;
 import net.n2oapp.criteria.api.CollectionPage;
 import net.n2oapp.criteria.api.Sorting;
-import org.apache.commons.lang.BooleanUtils;
-import org.apache.commons.lang.text.StrSubstitutor;
+import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.text.StrSubstitutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.i_novus.platform.datastorage.temporal.CollectionUtils;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
 import ru.i_novus.platform.datastorage.temporal.enums.ReferenceDisplayType;
 import ru.i_novus.platform.datastorage.temporal.model.*;
@@ -76,7 +77,7 @@ public class DataDao {
         }
         queryWithParams.concat(dataWhereClause);
         queryWithParams.concat(new QueryWithParams(
-                getDictionaryDataOrderBy((!Util.isEmpty(criteria.getSortings()) ? criteria.getSortings().get(0) : null), "d"),
+                getDictionaryDataOrderBy((!CollectionUtils.isNullOrEmpty(criteria.getSortings()) ? criteria.getSortings().get(0) : null), "d"),
                 null
         ));
 
@@ -213,7 +214,7 @@ public class DataDao {
         Map<String, Object> params = new HashMap<>();
         String queryStr = "";
 
-        if (!Util.isEmpty(search)) {
+        if (!StringUtils.isEmpty(search)) {
             //full text search
             search = search.trim();
             String escapedFtsColumn = addDoubleQuotes(SYS_FULL_TEXT_SEARCH);
@@ -229,7 +230,7 @@ public class DataDao {
                 params.put("formattedSearch", "'" + formattedSearch + "'");
                 params.put("original", "'''" + search + "'''");
             }
-        } else if (!Util.isEmpty(filters)) {
+        } else if (!CollectionUtils.isNullOrEmpty(filters)) {
             final int[] i = {-1};
             queryStr += filters.stream().map(listOfFilters -> {
                 if (isEmpty(listOfFilters))
@@ -299,7 +300,7 @@ public class DataDao {
 
     @Transactional
     public void createDraftTable(String tableName, List<Field> fields) {
-        if (Util.isEmpty(fields)) {
+        if (CollectionUtils.isNullOrEmpty(fields)) {
             entityManager.createNativeQuery(String.format(CREATE_EMPTY_DRAFT_TABLE_TEMPLATE, addDoubleQuotes(tableName), tableName)).executeUpdate();
         } else {
             String fieldsString = fields.stream().map(f -> addDoubleQuotes(f.getName()) + " " + f.getType()).collect(Collectors.joining(", "));
