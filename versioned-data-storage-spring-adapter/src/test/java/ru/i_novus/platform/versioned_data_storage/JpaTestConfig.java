@@ -52,8 +52,7 @@ public class JpaTestConfig {
                         "CREATE TEXT SEARCH DICTIONARY ispell_ru (\n" +
                              "template= ispell,\n" +
                              "dictfile= ru,\n" +
-                             "afffile=ru,\n" +
-                             "stopwords = russian\n" +
+                             "afffile=ru" +
                          ");\n" +
                          "CREATE TEXT SEARCH CONFIGURATION ru ( COPY = russian );\n" +
                          "ALTER TEXT SEARCH CONFIGURATION ru\n" +
