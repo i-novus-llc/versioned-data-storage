@@ -112,14 +112,14 @@ public class DataDao {
     public RowValue getRowData(String tableName, List<String> fieldNames, Object systemId) {
         Map<String, String> dataTypes = getColumnDataTypes(tableName);
         List<Field> fields = new ArrayList<>(fieldNames.size());
-
+        fields.add(new IntegerField(SYS_PRIMARY_COLUMN));
+        fields.add(new StringField(SYS_HASH));
         for (Map.Entry<String, String> entry : dataTypes.entrySet()) {
             String fieldName = entry.getKey();
             if (fieldNames.contains(fieldName)) {
                 fields.add(getField(fieldName, entry.getValue()));
             }
         }
-        fields.add(0, new IntegerField(SYS_PRIMARY_COLUMN));
 
         String keys = generateSqlQuery(null, fields, true);
         List<Object[]> list = entityManager.createNativeQuery(String.format(SELECT_ROWS_FROM_DATA_BY_FIELD, keys,
