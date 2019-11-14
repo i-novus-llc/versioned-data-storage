@@ -1,12 +1,12 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.service;
 
-import cz.atria.common.lang.Util;
 import net.n2oapp.criteria.api.CollectionPage;
 import net.n2oapp.criteria.api.Sorting;
-import org.apache.commons.lang.BooleanUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
 import ru.i_novus.platform.datastorage.temporal.model.DataDifference;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
@@ -52,7 +52,7 @@ public class DataDao {
                 " FROM data." + addDoubleQuotes(criteria.getTableName()) + " d ", null);
 
         queryWithParams.concat(getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(), criteria.getFieldFilter()));
-        queryWithParams.concat(new QueryWithParams(getDictionaryDataOrderBy((!Util.isEmpty(criteria.getSortings()) ? criteria.getSortings().get(0) : null), "d"), null));
+        queryWithParams.concat(new QueryWithParams(getDictionaryDataOrderBy((!CollectionUtils.isEmpty(criteria.getSortings()) ? criteria.getSortings().get(0) : null), "d"), null));
         Query query = queryWithParams.createQuery(entityManager);
         if (criteria.getPage() > 0 && criteria.getSize() > 0)
             query.setFirstResult(getOffset(criteria))
@@ -153,7 +153,7 @@ public class DataDao {
     private QueryWithParams getDictionaryFilterQuery(String search, List<FieldSearchCriteria> filter) {
         Map<String, Object> params = new HashMap<>();
         String queryStr = "";
-        if (!Util.isEmpty(search)) {
+        if (!StringUtils.isEmpty(search)) {
             //full text search
             search = search.trim();
             String escapedFtsColumn = addDoubleQuotes(FULL_TEXT_SEARCH);
@@ -169,7 +169,7 @@ public class DataDao {
                 params.put("formattedSearch", "'" + formattedSearch + "'");
                 params.put("original", "'''" + search + "''\\\\:*'");
             }
-        } else if (!Util.isEmpty(filter)) {
+        } else if (!CollectionUtils.isEmpty(filter)) {
             for (FieldSearchCriteria searchCriteria : filter) {
                 Field field = searchCriteria.getField();
                 String fieldName = searchCriteria.getField().getName();
@@ -217,7 +217,7 @@ public class DataDao {
 
     @Transactional
     public void createDraftTable(String tableName, List<Field> fields) {
-        if (Util.isEmpty(fields)) {
+        if (CollectionUtils.isEmpty(fields)) {
             entityManager.createNativeQuery(String.format(CREATE_EMPTY_DRAFT_TABLE_TEMPLATE, addDoubleQuotes(tableName), tableName)).executeUpdate();
         } else {
             String fieldsString = fields.stream().map(f -> addDoubleQuotes(f.getName()) + " " + f.getType()).collect(Collectors.joining(", "));

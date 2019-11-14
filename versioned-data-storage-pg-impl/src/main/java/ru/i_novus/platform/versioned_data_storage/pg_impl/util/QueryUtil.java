@@ -1,7 +1,7 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.util;
 
 import net.n2oapp.criteria.api.Criteria;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.LongRowValue;

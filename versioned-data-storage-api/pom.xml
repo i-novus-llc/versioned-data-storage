@@ -3,8 +3,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
+        <groupId>ru.i-novus.components</groupId>
         <artifactId>versioned-data-storage</artifactId>
-        <groupId>ru.i-novus.platform</groupId>
         <version>1.9-SNAPSHOT</version>
     </parent>
 
@@ -17,7 +17,7 @@
             <artifactId>criteria-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>ru.kirkazan.common</groupId>
+            <groupId>ru.i-novus.components</groupId>
             <artifactId>common-exception-handling</artifactId>
         </dependency>
     </dependencies>

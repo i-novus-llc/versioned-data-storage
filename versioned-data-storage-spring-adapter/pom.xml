@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
+        <groupId>ru.i-novus.components</groupId>
         <artifactId>versioned-data-storage</artifactId>
-        <groupId>ru.i-novus.platform</groupId>
         <version>1.9-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -12,22 +12,21 @@
 
     <dependencies>
         <dependency>
-            <groupId>ru.i-novus.platform</groupId>
+            <groupId>ru.i-novus.components</groupId>
             <artifactId>versioned-data-storage-api</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
 
         <dependency>
-            <groupId>ru.i-novus.platform</groupId>
+            <groupId>ru.i-novus.components</groupId>
             <artifactId>versioned-data-storage-pg-impl</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
 
-
         <dependency>
-            <groupId>ru.i-novus.util</groupId>
-            <artifactId>pg-embeded</artifactId>
-            <version>0.12.0</version>
+            <groupId>ru.i-novus.components</groupId>
+            <artifactId>otj-pg-embedded-rus</artifactId>
+            <version>0.13.2-alpha.1</version>
             <scope>test</scope>
         </dependency>
 
@@ -83,21 +82,23 @@
             <version>1.2</version>
         </dependency>
 
-
+        <dependency>
+            <groupId>org.liquibase</groupId>
+            <artifactId>liquibase-core</artifactId>
+            <version>3.4.1</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
-
 
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>net.n2oapp.platform</groupId>
                 <artifactId>n2o-platform-bom</artifactId>
-                <version>1.0</version>
+                <version>2.12</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
-
-
 </project>

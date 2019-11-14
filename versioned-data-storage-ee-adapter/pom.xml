@@ -3,8 +3,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
+        <groupId>ru.i-novus.components</groupId>
         <artifactId>versioned-data-storage</artifactId>
-        <groupId>ru.i-novus.platform</groupId>
         <version>1.9-SNAPSHOT</version>
     </parent>
 
@@ -13,13 +13,13 @@
 
     <dependencies>
         <dependency>
-            <groupId>ru.i-novus.platform</groupId>
+            <groupId>ru.i-novus.components</groupId>
             <artifactId>versioned-data-storage-api</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
 
         <dependency>
-            <groupId>ru.i-novus.platform</groupId>
+            <groupId>ru.i-novus.components</groupId>
             <artifactId>versioned-data-storage-pg-impl</artifactId>
             <version>${project.parent.version}</version>
         </dependency>

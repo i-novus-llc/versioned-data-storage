@@ -8,10 +8,10 @@ import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.Database;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
-import ru.inovus.util.pg.embeded.PatchedPgBinaryResolver;
 
 import javax.sql.DataSource;
 import java.io.IOException;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
@@ -26,7 +26,7 @@ public class JpaTestConfig {
     public DataSource dataSource() {
         EmbeddedPostgres pg = null;
         try {
-            pg = EmbeddedPostgres.builder().setPgBinaryResolver(new PatchedPgBinaryResolver()).setPort(5444)
+            pg = EmbeddedPostgres.builder().setPort(5448)
                     .setCleanDataDirectory(true)
                     .start();
             return prepareDb(pg.getTemplateDatabase());
@@ -43,21 +43,23 @@ public class JpaTestConfig {
     }
 
     private DataSource prepareDb(DataSource dataSource){
-
-        try (PreparedStatement stmt = dataSource.getConnection().prepareStatement(
-                "CREATE SCHEMA IF NOT EXISTS data;  " +
-                        "CREATE TEXT SEARCH DICTIONARY ispell_ru (\n" +
-                        "template= ispell,\n" +
-                        "dictfile= ru,\n" +
-                        "afffile=ru,\n" +
-                        "stopwords = russian\n" +
-                        ");\n" +
-                        "CREATE TEXT SEARCH CONFIGURATION ru ( COPY = russian );\n" +
-                        "ALTER TEXT SEARCH CONFIGURATION ru\n" +
-                        "ALTER MAPPING\n" +
-                        "FOR word, hword, hword_part\n" +
-                        "WITH ispell_ru, russian_stem;")) {
-            stmt.execute();
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(
+                     "CREATE SCHEMA IF NOT EXISTS data;  " +
+                             "DROP TEXT SEARCH CONFIGURATION IF EXISTS ru; " +
+                             "DROP TEXT SEARCH DICTIONARY IF EXISTS ispell_ru; " +
+                             "CREATE TEXT SEARCH DICTIONARY ispell_ru (\n" +
+                             "template= ispell,\n" +
+                             "dictfile= ru,\n" +
+                             "afffile=ru,\n" +
+                             "stopwords = russian\n" +
+                             ");\n" +
+                             "CREATE TEXT SEARCH CONFIGURATION ru ( COPY = russian );\n" +
+                             "ALTER TEXT SEARCH CONFIGURATION ru\n" +
+                             "ALTER MAPPING FOR word, hword, hword_part\n" +
+                             "WITH ispell_ru, russian_stem;"
+             )) {
+            preparedStatement.execute();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -88,4 +90,6 @@ public class JpaTestConfig {
 
         return txManager;
     }
+
+
 }
