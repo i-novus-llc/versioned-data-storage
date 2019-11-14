@@ -349,14 +349,17 @@ public class DataDao {
                 if (refValue.getValue() == null)
                     keyList.add(addDoubleQuotes(fieldName) + " = NULL");
                 else {
-                    if (refValue.getDisplayField() != null)
-                        keyList.add(addDoubleQuotes(fieldName) + String.format("=(select jsonb_build_object('value', d.%s , 'displayValue', d.%s, 'hash', d.\"SYS_HASH\") from data.%s d where d.%s=?\\:\\:" + getFieldType(refValue.getStorageCode(), refValue.getKeyField()) + " and %s)",
+                    if (refValue.getDisplayField() != null) {
+                        Date refDate = refValue.getDate();
+                        keyList.add(addDoubleQuotes(fieldName) + String.format(
+                                "=(select jsonb_build_object('value', d.%s , 'displayValue', d.%s, 'hash', d.\"SYS_HASH\") from data.%s d where d.%s=?\\:\\:" +
+                                        getFieldType(refValue.getStorageCode(), refValue.getKeyField()) + ((refDate != null) ? " and %s)" : ")"),
                                 addDoubleQuotes(refValue.getKeyField()),
                                 addDoubleQuotes(refValue.getDisplayField()),
                                 addDoubleQuotes(refValue.getStorageCode()),
                                 addDoubleQuotes(refValue.getKeyField()),
-                                getDataWhereClauseStr(refValue.getDate(), null, null, null).replace(":bdate", addSingleQuotes(sdf.format(refValue.getDate())))));
-                    else
+                                ((refDate != null) ? getDataWhereClauseStr(refDate, null, null, null).replace(":bdate", addSingleQuotes(sdf.format(refDate))) : "")));
+                    } else
                         keyList.add(addDoubleQuotes(fieldName) + "=(select jsonb_build_object('value', ?))");
                 }
             } else if (fieldValue instanceof TreeFieldValue) {
