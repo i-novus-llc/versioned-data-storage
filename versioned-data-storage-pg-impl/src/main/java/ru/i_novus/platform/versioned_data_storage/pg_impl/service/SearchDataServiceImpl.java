@@ -45,6 +45,11 @@ public class SearchDataServiceImpl implements SearchDataService {
     }
 
     @Override
+    public List<RowValue> findRows(String storageCode, List<String> fields, List<Object> systemIds) {
+        return dataDao.getRowData(storageCode, fields, systemIds);
+    }
+
+    @Override
     public List<String> getNotExists(String storageCode, LocalDateTime bdate, LocalDateTime edate, List<String> hashList) {
         return dataDao.getNotExists(storageCode, bdate, edate, hashList);
     }
