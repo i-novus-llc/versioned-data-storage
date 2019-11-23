@@ -128,10 +128,35 @@ public class DataDao {
         if (list.isEmpty())
             return null;
 
-
         RowValue row = convertToRowValue(fields, list).get(0);
-        row.setSystemId(systemId);
+        row.setSystemId(systemId); // ??
         return row;
+    }
+
+    public List<RowValue> getRowData(String tableName, List<String> fieldNames, List<Object> systemIds) {
+
+        Map<String, String> dataTypes = getColumnDataTypes(tableName);
+        List<Field> fields = new ArrayList<>(fieldNames.size());
+        fields.add(new IntegerField(SYS_PRIMARY_COLUMN));
+        fields.add(new StringField(SYS_HASH));
+        for (Map.Entry<String, String> entry : dataTypes.entrySet()) {
+            String fieldName = entry.getKey();
+            if (fieldNames.contains(fieldName)) {
+                fields.add(getField(fieldName, entry.getValue()));
+            }
+        }
+
+        String keys = generateSqlQuery(null, fields, true);
+        String sql = String.format(SELECT_ROWS_FROM_DATA_BY_FIELD_ALL, keys,
+                addDoubleQuotes(tableName), addDoubleQuotes(SYS_PRIMARY_COLUMN), QUERY_VALUE_SUBST);
+        Query query = entityManager.createNativeQuery(sql);
+
+        String ids = systemIds.stream().map(String::valueOf).collect(Collectors.joining(","));
+        query.setParameter(1, "{" + ids + "}");
+
+        @SuppressWarnings("unchecked")
+        List<Object[]> list = query.getResultList();
+        return !list.isEmpty() ? convertToRowValue(fields, list) : emptyList();
     }
 
     public boolean tableStructureEquals(String tableName1, String tableName2) {

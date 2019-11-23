@@ -248,7 +248,9 @@ public class QueryConstants {
 
     public static final String SELECT_ROWS_FROM_DATA = " select %s from data.%s d where %s";
 
-    public static final String SELECT_ROWS_FROM_DATA_BY_FIELD = " select %s from data.%s where %s=? ";
+    public static final String SELECT_ROWS_FROM_DATA_BY_FIELD = " select %s from data.%s where %s = %s ";
+
+    public static final String SELECT_ROWS_FROM_DATA_BY_FIELD_ALL = " select %s from data.%s where %s = ANY(%s\\:\\:bigint[]) ";
 
     public static final String SELECT_RELATION_ROW_FROM_DATA = " select %s from data.%s where %s=? limit 1;\n";
 
