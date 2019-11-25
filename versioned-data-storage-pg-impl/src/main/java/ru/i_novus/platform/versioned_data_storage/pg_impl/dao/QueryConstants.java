@@ -20,6 +20,8 @@ public class QueryConstants {
     static final String DATE_FORMAT_FOR_USING_CONVERTING = "DD.MM.YYYY";
     static final String TIMESTAMP_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
+    public static final String DEFAULT_TABLE_ALIAS = "d";
+
     private static final List<String> SYS_RECORD_LIST = Arrays.asList(SYS_PRIMARY_COLUMN,
             SYS_PUBLISHTIME, SYS_CLOSETIME,
             SYS_HASH, SYS_PATH, SYS_FULL_TEXT_SEARCH
@@ -51,8 +53,8 @@ public class QueryConstants {
     private static final String DRAFT_TABLE_ALIAS = "d";
     private static final String VERSION_TABLE_ALIAS = "v";
 
-    private static final String FROM_DRAFT_TABLE = "  FROM ${draftTable} d\n";
-    private static final String FROM_VERSION_TABLE = "  FROM ${versionTable} v\n";
+    private static final String FROM_DRAFT_TABLE = "  FROM ${draftTable} " + DRAFT_TABLE_ALIAS + "\n";
+    private static final String FROM_VERSION_TABLE = "  FROM ${versionTable} " + VERSION_TABLE_ALIAS + "\n";
 
     private static final String ORDER_DRAFT_BY_SYS_RECORDID = String.format(ORDER_BY_SYS_RECORDID, DRAFT_TABLE_ALIAS);
     private static final String ORDER_VERSION_BY_SYS_RECORDID = String.format(ORDER_BY_SYS_RECORDID, VERSION_TABLE_ALIAS);

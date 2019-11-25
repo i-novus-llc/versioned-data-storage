@@ -60,12 +60,17 @@ public class DataDao {
 
     @SuppressWarnings("unchecked")
     public List<RowValue> getData(DataCriteria criteria) {
+
         List<Field> fields = new ArrayList<>(criteria.getFields());
         fields.add(0, new IntegerField(SYS_PRIMARY_COLUMN));
         if (fields.stream().noneMatch(field -> SYS_HASH.equals(field.getName())))
             fields.add(1, new StringField(SYS_HASH));
-        QueryWithParams queryWithParams = new QueryWithParams("SELECT " + generateSqlQuery("d", fields, true) +
-                " FROM " + getSchemeTableName(criteria.getTableName()) + " as d ", null);
+
+        final String sqlFormat = "SELECT %1$s FROM %2$s as %3$s ";
+        String keys = generateSqlQuery(QueryConstants.DEFAULT_TABLE_ALIAS, fields, true);
+        String sql = String.format(sqlFormat, keys,
+                getSchemeTableName(criteria.getTableName()), QueryConstants.DEFAULT_TABLE_ALIAS);
+        QueryWithParams queryWithParams = new QueryWithParams(sql, null);
 
         QueryWithParams dataWhereClause;
         if (isEmpty(criteria.getHashList())) {
@@ -76,20 +81,24 @@ public class DataDao {
                     singleton(singletonList(new FieldSearchCriteria(new StringField(SYS_HASH), SearchTypeEnum.EXACT, criteria.getHashList()))));
         }
         queryWithParams.concat(dataWhereClause);
+
         queryWithParams.concat(new QueryWithParams(
                 getDictionaryDataOrderBy((!CollectionUtils.isNullOrEmpty(criteria.getSortings()) ? criteria.getSortings().get(0) : null), "d"),
                 null
         ));
 
         Query query = queryWithParams.createQuery(entityManager);
-        if (criteria.getPage() > 0 && criteria.getSize() > 0)
+        if (criteria.getPage() > 0 && criteria.getSize() > 0) {
             query.setFirstResult(getOffset(criteria))
                     .setMaxResults(criteria.getSize());
+        }
+
         List<Object[]> resultList = query.getResultList();
         return convertToRowValue(fields, resultList);
     }
 
     public List<String> getNotExists(String tableName, LocalDateTime bdate, LocalDateTime edate, List<String> hashList) {
+
         Map<String, Object> params = new HashMap<>();
         String sqlHashArray = "array[" + hashList.stream().map(hash -> {
             String hashPlaceHolder = "hash" + params.size();
@@ -103,12 +112,12 @@ public class DataDao {
                 "SELECT " + addDoubleQuotes(SYS_HASH) + " FROM " + getSchemeTableName(tableName) + " as d " +
                 dataWhereClause.getQuery() + ")";
         params.putAll(dataWhereClause.params);
+
         QueryWithParams queryWithParams = new QueryWithParams(query, params);
-        List<String> resultList = queryWithParams.createQuery(entityManager).getResultList();
-        return resultList;
+        return queryWithParams.createQuery(entityManager).getResultList();
     }
 
-    @SuppressWarnings("unchecked")
+    /** Получение строки данных таблицы по системному идентификатору. */
     public RowValue getRowData(String tableName, List<String> fieldNames, Object systemId) {
         Map<String, String> dataTypes = getColumnDataTypes(tableName);
         List<Field> fields = new ArrayList<>(fieldNames.size());
@@ -133,6 +142,7 @@ public class DataDao {
         return row;
     }
 
+    /** Получение строк данных таблицы по системным идентификаторам. */
     public List<RowValue> getRowData(String tableName, List<String> fieldNames, List<Object> systemIds) {
 
         Map<String, String> dataTypes = getColumnDataTypes(tableName);
