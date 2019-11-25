@@ -50,10 +50,10 @@ public interface DraftDataService {
      * Добавление записей в таблицу
      *
      * @param draftCode код черновика
-     * @param data      данные строки
+     * @param rowValues данные записей
      * @throws NotUniqueException если строки дублируются (нарушение уникальности SYS_HASH)
      */
-    void addRows(String draftCode, List<RowValue> data);
+    void addRows(String draftCode, List<RowValue> rowValues);
 
     /**
      * Удаление записей из таблицы
@@ -74,9 +74,17 @@ public interface DraftDataService {
      * Изменение записи таблицы
      *
      * @param draftCode код черновика
-     * @param data      новые значения
+     * @param rowValue  новые данные записи
      */
-    void updateRow(String draftCode, RowValue data);
+    void updateRow(String draftCode, RowValue rowValue);
+
+    /**
+     * Изменение записей таблицы
+     *
+     * @param draftCode код черновика
+     * @param rowValues новые данные записей
+     */
+    void updateRows(String draftCode, List<RowValue> rowValues);
 
     /**
      * Обновление отображаемого значения ссылки в записях таблицы
