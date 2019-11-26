@@ -81,9 +81,9 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     @Override
-    public void addRows(String draftCode, List<RowValue> data) {
+    public void addRows(String draftCode, List<RowValue> rowValues) {
         try {
-            dataDao.insertData(draftCode, data);
+            dataDao.insertData(draftCode, rowValues);
 
         } catch (PersistenceException pe) {
             processNotUniqueRowException(pe);
@@ -100,18 +100,34 @@ public class DraftDataServiceImpl implements DraftDataService {
         dataDao.deleteData(draftCode);
     }
 
-    @Override//
-    public void updateRow(String draftCode, RowValue value) {
+    @Override
+    public void updateRow(String draftCode, RowValue rowValue) {
+
         List<CodifiedException> exceptions = new ArrayList<>();
         // NB: Валидация validateRow закомментирована
-        if (value.getSystemId() == null)
+        if (rowValue.getSystemId() == null)
             exceptions.add(new CodifiedException(FIELD_IS_REQUIRED_EXCEPTION_CODE, SYS_PRIMARY_COLUMN));
 
         if (!exceptions.isEmpty()) {
             throw new ListCodifiedException(exceptions);
         }
 
-        dataDao.updateData(draftCode, value);
+        dataDao.updateData(draftCode, rowValue);
+    }
+
+    @Override
+    public void updateRows(String draftCode, List<RowValue> rowValues) {
+
+        List<CodifiedException> exceptions = new ArrayList<>();
+        // NB: Валидация validateRow закомментирована
+        if (rowValues.stream().anyMatch(rowValue -> rowValue.getSystemId() == null))
+            exceptions.add(new CodifiedException(FIELD_IS_REQUIRED_EXCEPTION_CODE, SYS_PRIMARY_COLUMN));
+
+        if (!exceptions.isEmpty()) {
+            throw new ListCodifiedException(exceptions);
+        }
+
+        rowValues.forEach(rowValue -> dataDao.updateData(draftCode, rowValue));
     }
 
     @Override
