@@ -552,6 +552,9 @@ public class DataDao {
     @Transactional
     public void updateReferenceInRows(String tableName, ReferenceFieldValue fieldValue, List<Object> systemIds) {
 
+        if (getReferenceDisplayType(fieldValue.getValue()) == null)
+            return;
+
         String quotedFieldName = addDoubleQuotes(fieldValue.getField());
         String oldFieldExpression = sqlFieldExpression(fieldValue.getField(), REFERENCE_VALUATION_UPDATE_TABLE);
         String oldFieldValue = String.format(REFERENCE_VALUATION_OLD_VALUE, oldFieldExpression);
@@ -566,6 +569,9 @@ public class DataDao {
     }
 
     public BigInteger countReferenceInRefRows(String tableName, ReferenceFieldValue fieldValue) {
+
+        if (getReferenceDisplayType(fieldValue.getValue()) == null)
+            return BigInteger.ZERO;
 
         Map<String, String> placeholderValues = new HashMap<>();
         placeholderValues.put("versionTable", getSchemeTableName(tableName));
