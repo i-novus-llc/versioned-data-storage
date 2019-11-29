@@ -119,6 +119,7 @@ public class DataDao {
 
     /** Получение строки данных таблицы по системному идентификатору. */
     public RowValue getRowData(String tableName, List<String> fieldNames, Object systemId) {
+
         Map<String, String> dataTypes = getColumnDataTypes(tableName);
         List<Field> fields = new ArrayList<>(fieldNames.size());
         fields.add(new IntegerField(SYS_PRIMARY_COLUMN));
@@ -131,9 +132,13 @@ public class DataDao {
         }
 
         String keys = generateSqlQuery(null, fields, true);
-        List<Object[]> list = entityManager.createNativeQuery(String.format(SELECT_ROWS_FROM_DATA_BY_FIELD, keys,
-                addDoubleQuotes(tableName), addDoubleQuotes(SYS_PRIMARY_COLUMN)))
-                .setParameter(1, systemId).getResultList();
+        String sql = String.format(SELECT_ROWS_FROM_DATA_BY_FIELD, keys,
+                addDoubleQuotes(tableName), addDoubleQuotes(SYS_PRIMARY_COLUMN), QUERY_VALUE_SUBST);
+
+        @SuppressWarnings("unchecked")
+        List<Object[]> list = entityManager.createNativeQuery(sql)
+                .setParameter(1, systemId)
+                .getResultList();
         if (list.isEmpty())
             return null;
 
@@ -175,11 +180,13 @@ public class DataDao {
         return dataTypes1.equals(dataTypes2);
     }
 
-    @SuppressWarnings("unchecked")
     public Map<String, String> getColumnDataTypes(String tableName) {
+
+        @SuppressWarnings("unchecked")
         List<Object[]> dataTypes = entityManager.createNativeQuery(SELECT_FIELD_NAMES_AND_TYPES)
                 .setParameter("table", tableName)
                 .getResultList();
+
         Map<String, String> map = new HashMap<>();
         for (Object[] dataType : dataTypes) {
             String fieldName = (String) dataType[0];

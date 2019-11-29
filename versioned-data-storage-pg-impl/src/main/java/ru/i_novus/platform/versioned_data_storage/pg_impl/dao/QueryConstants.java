@@ -68,26 +68,33 @@ public class QueryConstants {
             "        OVERLAPS (" + COALESCE_VERSION_PUBLISH_TIME_FIELD + ", " + COALESCE_VERSION_CLOSE_TIME_FIELD + ")\n" +
             "        OR (" + COALESCE_PUBLISH_TIME_VALUE + " = " + COALESCE_VERSION_CLOSE_TIME_FIELD + ") )\n";
 
-    public static final String CREATE_TABLE_TEMPLATE = "CREATE TABLE data.%s (\"SYS_RECORDID\" bigserial NOT NULL, " +
-            "%s, " +
-            "\"FTS\" tsvector, " +
-            "\"SYS_HASH\" char(32), " +
-            "\"SYS_PUBLISHTIME\" timestamp without time zone, " +
-            "\"SYS_CLOSETIME\" timestamp without time zone, "
-            + "CONSTRAINT \"%s_pkey\" PRIMARY KEY (\"SYS_RECORDID\"));";
+    public static final String CREATE_TABLE_TEMPLATE = "CREATE TABLE data.%s (" +
+            "  \"SYS_RECORDID\" bigserial NOT NULL," +
+            "  %s," +
+            "  \"FTS\" tsvector," +
+            "  \"SYS_HASH\" char(32)," +
+            "  \"SYS_PUBLISHTIME\" timestamp without time zone," +
+            "  \"SYS_CLOSETIME\" timestamp without time zone," +
+            "  CONSTRAINT \"%s_pkey\" PRIMARY KEY (\"SYS_RECORDID\")" +
+            ");";
 
-    public static final String CREATE_EMPTY_DRAFT_TABLE_TEMPLATE = "CREATE TABLE data.%s (\"SYS_RECORDID\" bigserial NOT NULL, " +
-            "\"FTS\" tsvector, " +
-            "\"SYS_HASH\" char(32) UNIQUE, " +
-            "CONSTRAINT \"%s_pkey\" PRIMARY KEY (\"SYS_RECORDID\"));";
+    public static final String CREATE_EMPTY_DRAFT_TABLE_TEMPLATE = "CREATE TABLE data.%s (" +
+            " \"SYS_RECORDID\" bigserial NOT NULL," +
+            "  \"FTS\" tsvector," +
+            "  \"SYS_HASH\" char(32) UNIQUE," +
+            "  CONSTRAINT \"%s_pkey\" PRIMARY KEY (\"SYS_RECORDID\")" +
+            ");";
 
-    public static final String CREATE_DRAFT_TABLE_TEMPLATE = "CREATE TABLE data.%s (\"SYS_RECORDID\" bigserial NOT NULL, " +
-            "%s, " +
-            "\"FTS\" tsvector, " +
-            "\"SYS_HASH\" char(32) UNIQUE, " +
-            "CONSTRAINT \"%s_pkey\" PRIMARY KEY (\"SYS_RECORDID\"));";
+    public static final String CREATE_DRAFT_TABLE_TEMPLATE = "CREATE TABLE data.%s (" +
+            "  \"SYS_RECORDID\" bigserial NOT NULL," +
+            "  %s," +
+            "  \"FTS\" tsvector," +
+            "  \"SYS_HASH\" char(32) UNIQUE," +
+            "  CONSTRAINT \"%s_pkey\" PRIMARY KEY (\"SYS_RECORDID\")" +
+            ");";
 
-    public static final String COPY_TABLE_TEMPLATE = "create table data.%s as select * from data.%s with no data;";
+    public static final String COPY_TABLE_TEMPLATE = "CREATE TABLE data.%s AS " +
+            "SELECT * FROM data.%s WITH NO DATA;";
 
     public static final String DROP_HASH_TRIGGER = "DROP TRIGGER IF EXISTS hash_tg ON data.%s;";
 
@@ -98,10 +105,9 @@ public class QueryConstants {
             "    NEW.\"SYS_HASH\" = md5(ROW(%s)||'');\n" +
             "    RETURN NEW;\n" +
             "  END;\n" +
-            "  $BODY$\n" +
-            "  LANGUAGE plpgsql;\n" +
+            "$BODY$ LANGUAGE plpgsql;\n" +
             "\n" +
-            "  CREATE TRIGGER hash_tg\n" +
+            "CREATE TRIGGER hash_tg\n" +
             "  BEFORE INSERT OR UPDATE OF %s\n" +
             "  ON data.%s\n" +
             "  FOR EACH ROW\n" +
@@ -118,16 +124,14 @@ public class QueryConstants {
             "    NEW.\"FTS\" = %s;\n" +
             "    RETURN NEW;\n" +
             "  END;\n" +
-            "  $BODY$\n" +
-            "  LANGUAGE plpgsql;\n" +
+            "$BODY$ LANGUAGE plpgsql;\n" +
             "\n" +
-            "  CREATE TRIGGER fts_vector_tg\n" +
+            "CREATE TRIGGER fts_vector_tg\n" +
             "  BEFORE INSERT OR UPDATE OF %s\n" +
             "  ON data.%s\n" +
             "  FOR EACH ROW\n" +
             "  EXECUTE PROCEDURE data.\"%s_fts_vector_tf\"();";
-    public static final String UPDATE_FTS = "UPDATE data.%s  SET \"FTS\" =  %s;";
-
+    public static final String UPDATE_FTS = "UPDATE data.%s SET \"FTS\" = %s;";
 
     public static final String ADD_NEW_COLUMN = "ALTER TABLE data.\"%s\" ADD COLUMN \"%s\" %s;";
     public static final String ADD_NEW_COLUMN_WITH_DEFAULT = "ALTER TABLE data.\"%s\" ADD COLUMN \"%s\" %s DEFAULT %s;";
