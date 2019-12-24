@@ -15,6 +15,7 @@ public class CompareDataCriteria extends Criteria {
     private Date targetDataDate;
     private List<String> primaryFields;
     private List<Field> fields;
+    private List<Field> targetFields;
     private DiffStatusEnum status;
     private Boolean countOnly;
     private DiffReturnTypeEnum returnType; //default ALL
@@ -73,6 +74,14 @@ public class CompareDataCriteria extends Criteria {
 
     public void setFields(List<Field> fields) {
         this.fields = fields;
+    }
+
+    public List<Field> getTargetFields() {
+        return targetFields;
+    }
+
+    public void setTargetFields(List<Field> targetFields) {
+        this.targetFields = targetFields;
     }
 
     public String getDraftCode() {
