@@ -4,7 +4,7 @@
 
     <groupId>ru.i-novus.components</groupId>
     <artifactId>versioned-data-storage</artifactId>
-    <version>1.10</version>
+    <version>1.11-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>versioned-data-storage</name>
