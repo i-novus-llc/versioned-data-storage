@@ -693,12 +693,12 @@ public class DataDao {
         String targetStorage = criteria.getDraftCode() != null ? criteria.getDraftCode() : criteria.getStorageCode();
         String countSelect = "SELECT count(*)";
         String dataSelect = "select t1." + addDoubleQuotes(DATA_PRIMARY_COLUMN) + " as sysId1," + generateSqlQuery("t1", criteria.getFields(), false) + ", "
-                + "t2." + addDoubleQuotes(DATA_PRIMARY_COLUMN) + " as sysId2, " + generateSqlQuery("t2", criteria.getFields(), false);
+                + "t2." + addDoubleQuotes(DATA_PRIMARY_COLUMN) + " as sysId2, " + generateSqlQuery("t2", criteria.getTargetFields(), false);
         String primaryEquality = criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t1") + "=" + formatFieldForQuery(f, "t2")).collect(Collectors.joining(","));
         String basePrimaryIsNull = criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t1") + " is null ").collect(Collectors.joining(" and "));
         String targetPrimaryIsNull = criteria.getPrimaryFields().stream().map(f -> formatFieldForQuery(f, "t2") + " is null ").collect(Collectors.joining(" and "));
         String baseFilter = " and t1.\"SYS_PUBLISHTIME\" <= :baseDate and (t1.\"SYS_CLOSETIME\" > :baseDate or t1.\"SYS_CLOSETIME\" is null) ";
-        String targetFilter = criteria.getDraftCode() == null ?
+        String targetFilter = criteria.getTargetDataDate() != null ?
                 " and t2.\"SYS_PUBLISHTIME\" <= :targetDate and (t2.\"SYS_CLOSETIME\" > :targetDate or t2.\"SYS_CLOSETIME\" is null) " : "";
         String joinType;
         switch (criteria.getReturnType()) {
