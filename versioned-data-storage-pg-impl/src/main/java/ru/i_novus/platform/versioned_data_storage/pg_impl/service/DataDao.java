@@ -429,6 +429,7 @@ public class DataDao {
     @Transactional
     public void createTrigger(String tableName, List<String> fields) {
         String escapedTableName = addDoubleQuotes(tableName);
+        fields.sort(String.CASE_INSENSITIVE_ORDER);
         entityManager.createNativeQuery(String.format(CREATE_HASH_TRIGGER,
                 tableName,
                 fields.stream().map(field -> "NEW." + field).collect(Collectors.joining(", ")),
@@ -684,11 +685,9 @@ public class DataDao {
 
     public DataDifference getDataDifference(CompareDataCriteria criteria) {
         DataDifference dataDifference;
-        List<String> fields = criteria.getFields().stream().map(Field::getName).collect(Collectors.toList());
+        List<String> fields;
         Map<String, Field> fieldMap = new HashMap<>();
-        for (Field field : criteria.getFields()) {
-            fieldMap.put(field.getName(), field);
-        }
+
         String baseStorage = criteria.getStorageCode();
         String targetStorage = criteria.getDraftCode() != null ? criteria.getDraftCode() : criteria.getStorageCode();
         String countSelect = "SELECT count(*)";
@@ -704,12 +703,24 @@ public class DataDao {
         switch (criteria.getReturnType()) {
             case NEW:
                 joinType = "right";
+                fields = criteria.getTargetFields().stream().map(Field::getName).collect(Collectors.toList());
+                for (Field field : criteria.getTargetFields()) {
+                    fieldMap.put(field.getName(), field);
+                }
                 break;
             case OLD:
                 joinType = "left";
+                fields = criteria.getFields().stream().map(Field::getName).collect(Collectors.toList());
+                for (Field field : criteria.getFields()) {
+                    fieldMap.put(field.getName(), field);
+                }
                 break;
             default:
                 joinType = "full";
+                fields = criteria.getFields().stream().map(Field::getName).collect(Collectors.toList());
+                for (Field field : criteria.getFields()) {
+                    fieldMap.put(field.getName(), field);
+                }
         }
         String query = " from data." + addDoubleQuotes(baseStorage) + " t1 " + joinType +
                 " join data." + addDoubleQuotes(targetStorage) + " t2 on " + primaryEquality +
