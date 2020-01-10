@@ -1,9 +1,9 @@
 package ru.i_novus.platform.datastorage.temporal.model;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -13,7 +13,7 @@ public class DisplayExpression implements Serializable {
 
     public static final String PLACEHOLDER_START = "${";
     public static final String PLACEHOLDER_END = "}";
-    public static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\$\\{(.+?)\\}");
+    public static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\$\\{(.+?)(:.+)?}");
 
     private String value;
 
@@ -29,12 +29,12 @@ public class DisplayExpression implements Serializable {
         this.value = value;
     }
 
-    public List<String> getPlaceholders() {
-        if (value == null) return Collections.emptyList();
-        List<String> placeholders = new ArrayList<>();
+    public Map<String, String> getPlaceholders() {
+        if (value == null) return Collections.emptyMap();
+        Map<String, String> placeholders = new HashMap<>();
         Matcher matcher = DisplayExpression.PLACEHOLDER_PATTERN.matcher(value);
         while (matcher.find()) {
-            placeholders.add(matcher.group(1));
+            placeholders.put(matcher.group(1), matcher.groupCount() > 1 ? matcher.group(2).substring(1) : "");
         }
         return placeholders;
     }
