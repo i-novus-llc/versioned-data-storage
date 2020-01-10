@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
-import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.*;
+import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.DATA_SCHEME_NAME;
 
 /**
  * @author lgalimova
@@ -275,8 +275,8 @@ public class QueryUtil {
     public static String sqlDisplayExpression(DisplayExpression displayExpression, String table) {
         String sqlDisplayExpression = escapeSql(displayExpression.getValue());
         Map<String, String> map = new HashMap<>();
-        for (String placeholder : displayExpression.getPlaceholders()) {
-            map.put(placeholder, "' || COALESCE(" + table + "." + addDoubleQuotes(placeholder) + ", 'null') || '");
+        for (Map.Entry<String, String> e : displayExpression.getPlaceholders().entrySet()) {
+            map.put(e.getKey(), "' || COALESCE(" + table + "." + addDoubleQuotes(e.getKey()) + ", '" + e.getValue() + "') || '");
         }
         return addSingleQuotes(StrSubstitutor.replace(sqlDisplayExpression, map));
     }
