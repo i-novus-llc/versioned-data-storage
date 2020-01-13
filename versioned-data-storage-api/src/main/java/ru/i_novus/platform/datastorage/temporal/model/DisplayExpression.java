@@ -34,7 +34,7 @@ public class DisplayExpression implements Serializable {
         Map<String, String> placeholders = new HashMap<>();
         Matcher matcher = DisplayExpression.PLACEHOLDER_PATTERN.matcher(value);
         while (matcher.find()) {
-            placeholders.put(matcher.group(1), matcher.groupCount() > 1 ? matcher.group(2).substring(1) : "");
+            placeholders.put(matcher.group(1), matcher.group(2) == null ? "" : matcher.group(2).substring(1));
         }
         return placeholders;
     }
