@@ -13,7 +13,7 @@ public class DisplayExpression implements Serializable {
 
     public static final String PLACEHOLDER_START = "${";
     public static final String PLACEHOLDER_END = "}";
-    public static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\$\\{(.+?)(:.+)?}");
+    public static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\$\\{(.+?)(:.*)?}");
 
     private String value;
 
