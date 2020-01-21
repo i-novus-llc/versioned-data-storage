@@ -23,6 +23,7 @@ import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
 import ru.i_novus.platform.datastorage.temporal.service.FieldFactory;
 import ru.i_novus.platform.datastorage.temporal.service.SearchDataService;
 import ru.i_novus.platform.versioned_data_storage.config.VersionedDataStorageConfig;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.model.IntegerField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.StringField;
 
 import java.math.BigInteger;
@@ -38,6 +39,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.*;
 import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.*;
 
@@ -1029,4 +1031,40 @@ public class UseCaseTest {
     public void testFirstApply() throws Exception {
 
     }
+
+    @Test
+    public void testGroupFilters() {
+        String id = "id";
+        List<Field> fields = new ArrayList<>();
+        Field integerField = new IntegerField(id);
+        fields.add(integerField);
+        String storageCode = draftDataService.createDraft(fields);
+        RowValue[] records = {
+            new LongRowValue(new IntegerFieldValue(id, 1)),
+            new LongRowValue(new IntegerFieldValue(id, 2)),
+            new LongRowValue(new IntegerFieldValue(id, 3)),
+            new LongRowValue(new IntegerFieldValue(id, 4)),
+            new LongRowValue(new IntegerFieldValue(id, 5)),
+            new LongRowValue(new IntegerFieldValue(id, 6))
+        };
+        draftDataService.addRows(storageCode, Arrays.asList(records));
+//      Имитируем поведение недалекого клиента, который хочет найти строки, у которых id равен либо 1, либо 2, либо 3.
+//      Для этого он, вместо того, чтобы создать new FieldSearchCriteria(integerField, SearchTypeEnum.EXACT, Arrays.asList(1, 2, 3),
+//      Создаст 3 разных FieldSearchCriteria, в которые аргументом values укажем синглтон лист со значениями 1, 2 и 3.
+//      Если мы не сгруппируем 3 данные FieldSearchCriteria в одну FieldSearchCriteria, наш генератор SQL-запросов составит запрос таким образом:
+//      "SELECT ... FROM ... WHERE 1 = 1 AND ("id" IN (1) AND "id" IN (2) AND "id" IN (3))". Последнее подвыражение никогда не будет правдой ни для какой записи.
+//      Пример не высосан из пальца и как минимум в RDM группировки не производятся.
+        FieldSearchCriteria criteria1 = new FieldSearchCriteria(integerField, SearchTypeEnum.EXACT, singletonList(1));
+        FieldSearchCriteria criteria2 = new FieldSearchCriteria(integerField, SearchTypeEnum.EXACT, singletonList(2));
+        FieldSearchCriteria criteria3 = new FieldSearchCriteria(integerField, SearchTypeEnum.EXACT, singletonList(3));
+        DataCriteria dataCriteria = new DataCriteria(storageCode, null, null, fields, Arrays.asList(criteria1, criteria2, criteria3), null);
+        CollectionPage<RowValue> data = searchDataService.getPagedData(dataCriteria);
+        assertEquals(3, data.getCount());
+        Collection<RowValue> collection = data.getCollection();
+        BigInteger[] searchIds = {BigInteger.valueOf(1), BigInteger.valueOf(2), BigInteger.valueOf(3)};
+        for (RowValue rowValue : collection) {
+            assertThat(Arrays.asList(searchIds), hasItem(rowValue.getFieldValue(id).getValue()));
+        }
+    }
+
 }
