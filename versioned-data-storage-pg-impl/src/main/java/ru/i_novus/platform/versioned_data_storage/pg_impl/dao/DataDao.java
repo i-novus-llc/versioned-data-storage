@@ -10,7 +10,10 @@ import org.slf4j.LoggerFactory;
 import ru.i_novus.platform.datastorage.temporal.CollectionUtils;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
 import ru.i_novus.platform.datastorage.temporal.enums.ReferenceDisplayType;
-import ru.i_novus.platform.datastorage.temporal.model.*;
+import ru.i_novus.platform.datastorage.temporal.model.DataDifference;
+import ru.i_novus.platform.datastorage.temporal.model.Field;
+import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
+import ru.i_novus.platform.datastorage.temporal.model.Reference;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.CompareDataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.FieldSearchCriteria;
@@ -35,6 +38,7 @@ import java.util.stream.Stream;
 
 import static java.util.Collections.*;
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
 import static org.springframework.util.CollectionUtils.isEmpty;
 import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
@@ -255,7 +259,6 @@ public class DataDao {
 
         Map<String, Object> params = new HashMap<>();
         String queryStr = "";
-
         if (!StringUtils.isEmpty(search)) {
             //full text search
             search = search.trim();
@@ -273,6 +276,7 @@ public class DataDao {
                 params.put("original", "'''" + search + "'''");
             }
         } else if (!CollectionUtils.isNullOrEmpty(filters)) {
+            filters = preprocessFilters(filters);
             final int[] i = {-1};
             queryStr += filters.stream().map(listOfFilters -> {
                 if (isEmpty(listOfFilters))
@@ -334,6 +338,30 @@ public class DataDao {
         }
 
         return new QueryWithParams(queryStr, params);
+    }
+
+    private Set<List<FieldSearchCriteria>> preprocessFilters(Set<List<FieldSearchCriteria>> filters) {
+        Set<List<FieldSearchCriteria>> set = new HashSet<>();
+        for (List<FieldSearchCriteria> list : filters) {
+            set.add(groupByFieldAndSearchTypeEnum(list));
+        }
+        return set;
+    }
+
+    private List<FieldSearchCriteria> groupByFieldAndSearchTypeEnum(List<FieldSearchCriteria> list) {
+        EnumMap<SearchTypeEnum, Map<String, FieldSearchCriteria>> group = new EnumMap<>(SearchTypeEnum.class);
+        for (FieldSearchCriteria criteria : list) {
+            Map<String, FieldSearchCriteria> map = group.computeIfAbsent(criteria.getType(), k -> new HashMap<>());
+            FieldSearchCriteria c = map.get(criteria.getField().getName());
+            if (c == null) {
+                criteria.setValues(new ArrayList<>(criteria.getValues()));
+                map.put(criteria.getField().getName(), criteria);
+            } else {
+                List<Object> unchecked = (List<Object>) c.getValues();
+                unchecked.addAll(criteria.getValues());
+            }
+        }
+        return group.values().stream().map(Map::values).flatMap(Collection::stream).collect(toList());
     }
 
     public BigInteger countData(String tableName) {
