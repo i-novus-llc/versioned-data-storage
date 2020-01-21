@@ -39,6 +39,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.*;
 import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.*;
 
@@ -1041,7 +1042,10 @@ public class UseCaseTest {
         RowValue[] records = {
             new LongRowValue(new IntegerFieldValue(id, 1)),
             new LongRowValue(new IntegerFieldValue(id, 2)),
-            new LongRowValue(new IntegerFieldValue(id, 3))
+            new LongRowValue(new IntegerFieldValue(id, 3)),
+            new LongRowValue(new IntegerFieldValue(id, 4)),
+            new LongRowValue(new IntegerFieldValue(id, 5)),
+            new LongRowValue(new IntegerFieldValue(id, 6))
         };
         draftDataService.addRows(storageCode, Arrays.asList(records));
 //      Имитируем поведение недалекого клиента, который хочет найти строки, у которых id равен либо 1, либо 2, либо 3.
@@ -1056,6 +1060,11 @@ public class UseCaseTest {
         DataCriteria dataCriteria = new DataCriteria(storageCode, null, null, fields, Arrays.asList(criteria1, criteria2, criteria3), null);
         CollectionPage<RowValue> data = searchDataService.getPagedData(dataCriteria);
         assertEquals(3, data.getCount());
+        Collection<RowValue> collection = data.getCollection();
+        BigInteger[] searchIds = {BigInteger.valueOf(1), BigInteger.valueOf(2), BigInteger.valueOf(3)};
+        for (RowValue rowValue : collection) {
+            assertThat(Arrays.asList(searchIds), hasItem(rowValue.getFieldValue(id).getValue()));
+        }
     }
 
 }
