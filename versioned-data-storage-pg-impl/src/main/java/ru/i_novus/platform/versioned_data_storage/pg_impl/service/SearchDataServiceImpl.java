@@ -34,8 +34,9 @@ public class SearchDataServiceImpl implements SearchDataService {
 
     @Override
     public List<RowValue> getData(DataCriteria criteria) {
-        criteria.setPage(0);
-        criteria.setSize(0);
+
+        criteria.setPage(DataCriteria.NO_PAGINATION_PAGE);
+        criteria.setSize(DataCriteria.NO_PAGINATION_SIZE);
         return dataDao.getData(criteria);
     }
 
