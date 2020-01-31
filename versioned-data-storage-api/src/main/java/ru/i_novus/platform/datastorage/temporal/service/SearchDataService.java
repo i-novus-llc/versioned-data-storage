@@ -15,7 +15,7 @@ import java.util.List;
  */
 public interface SearchDataService {
     /**
-     * Получение данных постранично
+     * Получение данных постранично.
      *
      * @param criteria параметры запроса
      * @return Список записей
@@ -23,7 +23,7 @@ public interface SearchDataService {
     CollectionPage<RowValue> getPagedData(DataCriteria criteria);
 
     /**
-     * Получение данных
+     * Получение данных.
      *
      * @param criteria параметры запроса
      * @return Список записей
@@ -31,7 +31,15 @@ public interface SearchDataService {
     List<RowValue> getData(DataCriteria criteria);
 
     /**
-     * Получение данных записи по системному идентификатору
+     * Проверка на наличие данных.
+     *
+     * @param storageCode код хранилища данных
+     * @return Признак наличия
+     */
+    boolean hasData(String storageCode);
+
+    /**
+     * Получение данных записи по системному идентификатору.
      *
      * @param storageCode код хранилища данных
      * @param fields      список полей в ответе
@@ -41,7 +49,7 @@ public interface SearchDataService {
     RowValue findRow(String storageCode, List<String> fields, Object systemId);
 
     /**
-     * Получение данных списка записей по системным идентификаторам
+     * Получение данных списка записей по системным идентификаторам.
      *
      * @param storageCode код хранилища данных
      * @param fields      список полей в ответе
@@ -51,12 +59,12 @@ public interface SearchDataService {
     List<RowValue> findRows(String storageCode, List<String> fields, List<Object> systemIds);
 
     /**
-     * Получение данных записи по системному идентификатору
+     * Получение данных записи по системному идентификатору.
      *
-     * @param storageCode   код хранилища данных
-     * @param bdate         дата публикации версии
-     * @param edate         дата создания версии
-     * @param hashList      список хешей строк
+     * @param storageCode код хранилища данных
+     * @param bdate       дата публикации версии
+     * @param edate       дата создания версии
+     * @param hashList    список хешей строк
      * @return Список несуществующих хешей
      */
     List<String> getNotExists(String storageCode, LocalDateTime bdate, LocalDateTime edate, List<String> hashList);

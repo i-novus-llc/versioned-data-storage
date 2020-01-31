@@ -8,7 +8,12 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 
 import java.math.BigInteger;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
+
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
+import static org.springframework.util.CollectionUtils.isEmpty;
 
 /**
  * @author lgalimova
@@ -38,6 +43,19 @@ public class SearchDataServiceImpl implements SearchDataService {
         criteria.setPage(DataCriteria.NO_PAGINATION_PAGE);
         criteria.setSize(DataCriteria.NO_PAGINATION_SIZE);
         return dataDao.getData(criteria);
+    }
+
+    @Override
+    public boolean hasData(String storageCode) {
+
+        DataCriteria criteria = new DataCriteria(storageCode, null, null,
+                emptyList(), emptySet(), null);
+        criteria.setCount(1);
+        criteria.setPage(DataCriteria.MIN_PAGE);
+        criteria.setSize(DataCriteria.MIN_SIZE);
+
+        Collection<RowValue> rowValues = getPagedData(criteria).getCollection();
+        return rowValues != null && !isEmpty(rowValues);
     }
 
     @Override
