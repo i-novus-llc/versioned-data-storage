@@ -9,7 +9,14 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+// add StorageDataCriteria with storageCode, fields, fieldFilter and statics
 public class DataCriteria extends Criteria {
+
+    public static final int MIN_PAGE = 1;
+    public static final int MIN_SIZE = 1;
+    public static final int NO_PAGINATION_PAGE = 0;
+    public static final int NO_PAGINATION_SIZE = 0;
+
     private final String tableName;
     private final LocalDateTime bdate;
     private final LocalDateTime edate;

@@ -92,9 +92,9 @@ public class DataDao {
         ));
 
         Query query = queryWithParams.createQuery(entityManager);
-        if (criteria.getPage() > 0 && criteria.getSize() > 0) {
-            query.setFirstResult(getOffset(criteria))
-                    .setMaxResults(criteria.getSize());
+        if (criteria.getPage() >= DataCriteria.MIN_PAGE
+                && criteria.getSize() >= DataCriteria.MIN_SIZE) {
+            query.setFirstResult(getOffset(criteria)).setMaxResults(criteria.getSize());
         }
 
         List<Object[]> resultList = query.getResultList();

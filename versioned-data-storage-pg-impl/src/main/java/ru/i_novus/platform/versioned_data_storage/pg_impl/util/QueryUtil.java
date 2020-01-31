@@ -276,7 +276,7 @@ public class QueryUtil {
         String sqlDisplayExpression = escapeSql(displayExpression.getValue());
         Map<String, String> map = new HashMap<>();
         for (Map.Entry<String, String> e : displayExpression.getPlaceholders().entrySet()) {
-            map.put(e.getKey(), "' || COALESCE(" + table + "." + addDoubleQuotes(e.getKey()) + "\\:\\:VARCHAR, '" + e.getValue() + "') || '");
+            map.put(e.getKey(), "' || COALESCE(" + table + "." + addDoubleQuotes(e.getKey()) + "\\:\\:TEXT, '" + e.getValue() + "') || '");
         }
         return addSingleQuotes(StrSubstitutor.replace(sqlDisplayExpression, map));
     }
