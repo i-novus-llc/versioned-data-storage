@@ -5,7 +5,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 import ru.i_novus.components.common.exception.CodifiedException;
-import ru.i_novus.platform.datastorage.temporal.enums.FieldType;
 import ru.i_novus.platform.datastorage.temporal.exception.ListCodifiedException;
 import ru.i_novus.platform.datastorage.temporal.exception.NotUniqueException;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
@@ -242,7 +241,7 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     private String getHashUsedFieldName(Field field) {
         String name = addDoubleQuotes(field.getName());
-        if (FieldType.REFERENCE.name().equals(field.getType()))
+        if (REFERENCE_FIELD_SQL_TYPE.equals(field.getType()))
             name += "->>'value'";
         return name;
     }

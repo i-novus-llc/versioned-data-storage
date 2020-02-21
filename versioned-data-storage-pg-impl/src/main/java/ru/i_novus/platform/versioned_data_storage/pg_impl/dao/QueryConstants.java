@@ -38,6 +38,8 @@ public class QueryConstants {
     static final String QUERY_VALUE_SUBST = "?";
     static final String QUERY_LTREE_SUBST = QUERY_VALUE_SUBST + "\\:\\:ltree";
 
+    public static final String REFERENCE_FIELD_SQL_TYPE = "jsonb";
+
     private static final String SELECT_COUNT_ONLY = "SELECT count(*)\n";
     private static final String SELECT_WHERE = " WHERE 1 = 1\n";
     private static final String ORDER_BY_SYS_RECORDID = " ORDER BY %s.\"SYS_RECORDID\"\n";
@@ -189,7 +191,7 @@ public class QueryConstants {
             FROM_INFO_SCHEMA_COLUMNS +
             WHERE_TABLE_AND_NOT_SYS_COLUMNS;
     public static final String SELECT_HASH_USED_FIELD_NAMES = SELECT_COLUMN_NAME +
-            "       || (case when data_type = 'jsonb' then '->>''value''' else '' end)\n" +
+            "       || (case when data_type = '" + REFERENCE_FIELD_SQL_TYPE + "' then '->>''value''' else '' end)\n" +
             FROM_INFO_SCHEMA_COLUMNS +
             WHERE_TABLE_AND_NOT_SYS_COLUMNS;
     public static final String SELECT_FIELD_TYPE = "SELECT data_type\n" +
