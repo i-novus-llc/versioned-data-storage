@@ -207,8 +207,26 @@ public class QueryConstants {
     public static final String SELECT_COUNT_QUERY_TEMPLATE = "SELECT count(*) FROM data.%s;";
     public static final String TRUNCATE_QUERY_TEMPLATE = "TRUNCATE TABLE data.%s;";
 
+    public static final String CHECK_INDEX_EXISTS = "select exists(select\n" +
+            "    t.relname as table_name,\n" +
+            "    i.relname as index_name,\n" +
+            "    a.attname as column_name\n" +
+            "from\n" +
+            "    pg_class t,\n" +
+            "    pg_class i,\n" +
+            "    pg_index ix,\n" +
+            "    pg_attribute a\n" +
+            "where\n" +
+            "    t.oid = ix.indrelid\n" +
+            "    and i.oid = ix.indexrelid\n" +
+            "    and a.attrelid = t.oid\n" +
+            "    and a.attnum = ANY(ix.indkey)\n" +
+            "\tand a.attname = '%s'\n" +
+            "    and t.relkind = 'r'\n" +
+            "\tand t.relname = '%s');";
+
     public static final String CREATE_TABLE_HASH_INDEX = "CREATE INDEX %s ON data.%s(\"SYS_HASH\");";
-    public static final String CREATE_TABLE_INDEX = "CREATE INDEX %s ON data.%s(%s);";
+    public static final String CREATE_TABLE_INDEX = "CREATE INDEX IF NOT EXISTS %s ON data.%s(%s);";
     public static final String DROP_TABLE_INDEX = "DROP INDEX IF EXISTS data.%s;";
     public static final String CREATE_FTS_INDEX = "CREATE INDEX %s ON data.%s USING gin (%s);";
     public static final String CREATE_LTREE_INDEX = "CREATE INDEX %s ON data.%s USING gist (%s);";

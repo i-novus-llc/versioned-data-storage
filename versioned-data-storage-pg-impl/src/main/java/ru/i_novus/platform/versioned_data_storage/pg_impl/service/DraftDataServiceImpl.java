@@ -24,8 +24,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.Optional.of;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.ExceptionCodes.*;
 import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.ExceptionCodes.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.addDoubleQuotes;
 
@@ -199,6 +199,10 @@ public class DraftDataServiceImpl implements DraftDataService {
             }
             dataDao.updateFtsRows(draftCode);
         }
+    }
+
+    public boolean isIndexExists(String draftCode, String fieldName) {
+        return dataDao.isIndexExists(draftCode, fieldName);
     }
 
     @Transactional
