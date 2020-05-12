@@ -210,10 +210,10 @@ public class DataDao {
     }
 
     public BigInteger getDataCount(DataCriteria criteria) {
-        QueryWithParams queryWithParams = new QueryWithParams("SELECT count(*)" +
-                " FROM " + getSchemeTableName(criteria.getTableName()) + " as d ", null);
-        queryWithParams.concat(getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(),
-                criteria.getFieldFilter(), criteria.getSystemIds()));
+        QueryWithParams queryWithParams = new QueryWithParams(SELECT_COUNT_ONLY +
+                "  FROM " + getSchemeTableName(criteria.getTableName()) + " as d ", null);
+        queryWithParams.concat(getDataWhereClause(criteria.getBdate(), criteria.getEdate(),
+                criteria.getCommonFilter(), criteria.getFieldFilter(), criteria.getSystemIds()));
         return (BigInteger) queryWithParams.createQuery(entityManager).getSingleResult();
     }
 
@@ -1140,7 +1140,7 @@ public class DataDao {
         } else if (DiffStatusEnum.DELETED.equals(criteria.getStatus())) {
             query += newPrimaryIsNull + oldVersionDateFilter;
         }
-        QueryWithParams countQueryWithParams = new QueryWithParams(countSelect + query, params);
+        QueryWithParams countQueryWithParams = new QueryWithParams(SELECT_COUNT_ONLY + query, params);
         Query countQuery = countQueryWithParams.createQuery(entityManager);
         BigInteger count = (BigInteger) countQuery.getSingleResult();
         if (BooleanUtils.toBoolean(criteria.getCountOnly())) {

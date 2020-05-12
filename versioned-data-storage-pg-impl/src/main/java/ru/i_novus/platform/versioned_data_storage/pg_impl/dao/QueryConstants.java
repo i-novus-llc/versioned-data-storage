@@ -40,7 +40,7 @@ public class QueryConstants {
 
     public static final String REFERENCE_FIELD_SQL_TYPE = "jsonb";
 
-    private static final String SELECT_COUNT_ONLY = "SELECT count(*)\n";
+    public static final String SELECT_COUNT_ONLY = "SELECT count(*)\n";
     private static final String SELECT_WHERE = " WHERE 1 = 1\n";
     private static final String ORDER_BY_SYS_RECORDID = " ORDER BY %s.\"SYS_RECORDID\"\n";
     private static final String SELECT_LIMIT = " LIMIT ${limit}";
@@ -204,7 +204,7 @@ public class QueryConstants {
             "   AND table_name = :table";
 
     public static final String INSERT_QUERY_FROM_DRAFT_TEMPLATE = "INSERT INTO data.%s SELECT %s FROM data.%s WHERE \"SYS_CLOSETIME\" IS NULL;";
-    public static final String SELECT_COUNT_QUERY_TEMPLATE = "SELECT count(*) FROM data.%s;";
+    public static final String SELECT_COUNT_QUERY_TEMPLATE = SELECT_COUNT_ONLY + "  FROM data.%s;";
     public static final String TRUNCATE_QUERY_TEMPLATE = "TRUNCATE TABLE data.%s;";
 
     public static final String CREATE_TABLE_HASH_INDEX = "CREATE INDEX %s ON data.%s(\"SYS_HASH\");";
@@ -262,19 +262,19 @@ public class QueryConstants {
 
     public static final String SELECT_RELATION_ROW_FROM_DATA = " select %s from data.%s where %s=? limit 1;\n";
 
-    public static final String COUNT_OLD_VAL_FROM_VERSION_WITH_CLOSE_TIME = "SELECT count(*)\n" +
-            "FROM data.%1$s v\n" +
-            "WHERE NOT (\n" +
-            "        v.\"SYS_CLOSETIME\" IS NULL AND (to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone >= v.\"SYS_PUBLISHTIME\" OR\n" +
-            "                                           to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone < v.\"SYS_PUBLISHTIME\" AND\n" +
-            "                                           ('%4$s' = 'null' OR to_timestamp('%4$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone >= v.\"SYS_PUBLISHTIME\"))\n" +
-            "        OR\n" +
-            "        v.\"SYS_CLOSETIME\" IS NOT NULL AND (v.\"SYS_PUBLISHTIME\" = to_timestamp('%4$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone OR\n" +
-            "                                               v.\"SYS_CLOSETIME\" = to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone OR\n" +
-            "                                               '%4$s' = 'null' AND to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone < v.\"SYS_CLOSETIME\" OR\n" +
-            "                                               (to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, to_timestamp('%4$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone) OVERLAPS\n" +
-            "                                               (v.\"SYS_PUBLISHTIME\", v.\"SYS_CLOSETIME\"))\n" +
-            "      );";
+    public static final String COUNT_OLD_VAL_FROM_VERSION_WITH_CLOSE_TIME = SELECT_COUNT_ONLY +
+            "  FROM data.%1$s v\n" +
+            " WHERE NOT (\n" +
+            "       v.\"SYS_CLOSETIME\" IS NULL AND (to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone >= v.\"SYS_PUBLISHTIME\" OR\n" +
+            "                                        to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone < v.\"SYS_PUBLISHTIME\" AND\n" +
+            "                                        ('%4$s' = 'null' OR to_timestamp('%4$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone >= v.\"SYS_PUBLISHTIME\"))\n" +
+            "       OR\n" +
+            "       v.\"SYS_CLOSETIME\" IS NOT NULL AND (v.\"SYS_PUBLISHTIME\" = to_timestamp('%4$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone OR\n" +
+            "                                            v.\"SYS_CLOSETIME\" = to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone OR\n" +
+            "                                            '%4$s' = 'null' AND to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone < v.\"SYS_CLOSETIME\" OR\n" +
+            "                                            (to_timestamp('%3$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, to_timestamp('%4$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone) OVERLAPS\n" +
+            "                                            (v.\"SYS_PUBLISHTIME\", v.\"SYS_CLOSETIME\"))\n" +
+            "       );";
 
     //todo: get rid of infinity
     public static final String INSERT_OLD_VAL_FROM_VERSION_WITH_CLOSE_DATE = "DO $$" +
@@ -335,7 +335,8 @@ public class QueryConstants {
             SUBQUERY_INDENT + AND_IS_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME.replace("\n", "\n" + SUBQUERY_INDENT) +
             "       )\n";
 
-    static final String COUNT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME = SELECT_COUNT_ONLY + FROM_DRAFT_TABLE +
+    static final String COUNT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME = SELECT_COUNT_ONLY +
+            FROM_DRAFT_TABLE +
             WHERE_EXISTS_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME;
 
     static final String INSERT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME = "DO $$\n" +
@@ -370,15 +371,18 @@ public class QueryConstants {
             "END$$;";
 
     //todo: get rid of infinity
-    public static final String COUNT_NEW_VAL_FROM_DRAFT_WITH_CLOSE_TIME = "SELECT count(*)  FROM ${draftTable} d\n" +
-            "     WHERE NOT exists(SELECT 1\n" +
-            "                      FROM ${versionTable} v\n" +
-            "                      WHERE v.\"SYS_HASH\" = d.\"SYS_HASH\"\n" +
-            "                           AND (( coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, '-infinity'), coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, 'infinity') )" +
-            "                                   OVERLAPS " +
-            "                               (coalesce( v.\"SYS_PUBLISHTIME\", '-infinity') ,  coalesce(v.\"SYS_CLOSETIME\", 'infinity')) " +
-            "                           OR (coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, '-infinity') = (coalesce(v.\"SYS_CLOSETIME\", 'infinity'))))" +
-            "    )";
+    public static final String COUNT_NEW_VAL_FROM_DRAFT_WITH_CLOSE_TIME = SELECT_COUNT_ONLY +
+            "    FROM ${draftTable} d \n" +
+            "   WHERE NOT exists(SELECT 1 \n" +
+            "                      FROM ${versionTable} v \n" +
+            "                     WHERE v.\"SYS_HASH\" = d.\"SYS_HASH\" \n" +
+            "                       AND ( (coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, '-infinity'),\n" +
+            "                              coalesce(to_timestamp('${closeTime}',   'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, 'infinity'))\n" +
+            "                             OVERLAPS " +
+            "                             (coalesce(v.\"SYS_PUBLISHTIME\", '-infinity'), coalesce(v.\"SYS_CLOSETIME\", 'infinity'))\n" +
+            "                            OR (coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, '-infinity') =\n" +
+            "                                coalesce(v.\"SYS_CLOSETIME\", 'infinity')) )\n" +
+            "         )";
 
 
     //todo: get rid of infinity
