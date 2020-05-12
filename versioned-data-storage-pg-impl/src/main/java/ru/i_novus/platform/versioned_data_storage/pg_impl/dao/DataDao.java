@@ -8,6 +8,7 @@ import org.apache.commons.lang3.text.StrSubstitutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.i_novus.platform.datastorage.temporal.CollectionUtils;
+import ru.i_novus.platform.datastorage.temporal.enums.DiffReturnTypeEnum;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
 import ru.i_novus.platform.datastorage.temporal.enums.ReferenceDisplayType;
 import ru.i_novus.platform.datastorage.temporal.model.DataDifference;
@@ -1049,17 +1050,18 @@ public class DataDao {
     }
 
     public DataDifference getDataDifference(CompareDataCriteria criteria) {
-        DataDifference dataDifference;
+
         List<String> fields = new ArrayList<>();
-        List<String> nonPrimaryFields = new ArrayList<>();
         Map<String, Field> fieldMap = new HashMap<>();
-        Map<String, Object> params = new HashMap<>();
+        List<String> nonPrimaryFields = new ArrayList<>();
         criteria.getFields().forEach(field -> {
             fields.add(field.getName());
+            fieldMap.put(field.getName(), field);
+
             if (!criteria.getPrimaryFields().contains(field.getName()))
                 nonPrimaryFields.add(field.getName());
-            fieldMap.put(field.getName(), field);
         });
+
         String oldStorage = criteria.getStorageCode();
         String newStorage = criteria.getNewStorageCode() != null ? criteria.getNewStorageCode() : criteria.getStorageCode();
         String countSelect = "SELECT count(*)";
@@ -1068,20 +1070,22 @@ public class DataDao {
         String primaryEquality = criteria.getPrimaryFields()
                 .stream()
                 .map(f -> formatFieldForQuery(f, "t1") + " = " + formatFieldForQuery(f, "t2"))
-                .collect(Collectors.joining(" and "));
+                .collect(joining(" and "));
+
+        Map<String, Object> params = new HashMap<>();
         String oldPrimaryValuesFilter = getFieldValuesFilter("t1", params, criteria.getPrimaryFieldsFilters());
         String newPrimaryValuesFilter = getFieldValuesFilter("t2", params, criteria.getPrimaryFieldsFilters());
-        String nonPrimaryFieldsInequality = isEmpty(nonPrimaryFields) ? " and false " : " and (" + nonPrimaryFields
-                .stream()
-                .map(field -> {
-                    String f1 = formatFieldForQuery(field, "t1");
-                    String f2 = formatFieldForQuery(field, "t2");
-                    return f1 + " is not null and " + f2 + " is not null and " + f1 + " != " + f2 +
-                            " or " + f1 + " is not null and " + f2 + " is null or " + f1 + " is null and " + f2 + " is not null";
-                })
-                .collect(Collectors.joining(" or ")) + ") ";
-        String oldPrimaryIsNull = criteria.getPrimaryFields()
-                .stream()
+
+        String nonPrimaryFieldsInequality = isEmpty(nonPrimaryFields)
+                ? " and false "
+                : " and (" + nonPrimaryFields.stream()
+                        .map(field ->
+                                formatFieldForQuery(field, "t1") + " is distinct from " + formatFieldForQuery(field, "t2")
+                        )
+                        .collect(joining(" or ")) +
+                        ") ";
+
+        String oldPrimaryIsNull = criteria.getPrimaryFields().stream()
                 .map(f -> formatFieldForQuery(f, "t1") + " is null ")
                 .collect(joining(" and "));
         String newPrimaryIsNull = criteria.getPrimaryFields().stream()
@@ -1090,37 +1094,21 @@ public class DataDao {
 
         String oldVersionDateFilter = "";
         if (criteria.getOldPublishDate() != null || criteria.getOldCloseDate() != null) {
-            oldVersionDateFilter = " and date_trunc('second', t1.\"SYS_PUBLISHTIME\") <= :oldPublishDate\\:\\:timestamp without time zone and date_trunc('second', t1.\"SYS_CLOSETIME\") >= :oldCloseDate\\:\\:timestamp without time zone ";
-            params.put("oldPublishDate", criteria.getOldPublishDate() != null
-                    ? truncateDateTo(criteria.getOldPublishDate(), ChronoUnit.SECONDS)
-                    : "'-infinity'");
-            params.put("oldCloseDate", criteria.getOldCloseDate() != null
-                    ? truncateDateTo(criteria.getOldCloseDate(), ChronoUnit.SECONDS)
-                    : PG_MAX_TIMESTAMP);
+            oldVersionDateFilter = " and date_trunc('second', t1.\"SYS_PUBLISHTIME\") <= :oldPublishDate\\:\\:timestamp without time zone \n" +
+                    " and date_trunc('second', t1.\"SYS_CLOSETIME\") >= :oldCloseDate\\:\\:timestamp without time zone ";
+            params.put("oldPublishDate", truncateDateTo(criteria.getOldPublishDate(), ChronoUnit.SECONDS, MIN_DATETIME_VALUE));
+            params.put("oldCloseDate", truncateDateTo(criteria.getOldCloseDate(), ChronoUnit.SECONDS, PG_MAX_TIMESTAMP));
         }
 
         String newVersionDateFilter = "";
         if (criteria.getNewPublishDate() != null || criteria.getNewCloseDate() != null) {
-            newVersionDateFilter = " and date_trunc('second', t2.\"SYS_PUBLISHTIME\") <= :newPublishDate\\:\\:timestamp without time zone and date_trunc('second', t2.\"SYS_CLOSETIME\") >= :newCloseDate\\:\\:timestamp without time zone ";
-            params.put("newPublishDate", criteria.getNewPublishDate() != null
-                    ? truncateDateTo(criteria.getNewPublishDate(), ChronoUnit.SECONDS)
-                    : "'-infinity'");
-            params.put("newCloseDate", criteria.getNewCloseDate() != null
-                    ? truncateDateTo(criteria.getNewCloseDate(), ChronoUnit.SECONDS)
-                    : PG_MAX_TIMESTAMP);
+            newVersionDateFilter = " and date_trunc('second', t2.\"SYS_PUBLISHTIME\") <= :newPublishDate\\:\\:timestamp without time zone \n" +
+                    " and date_trunc('second', t2.\"SYS_CLOSETIME\") >= :newCloseDate\\:\\:timestamp without time zone ";
+            params.put("newPublishDate", truncateDateTo(criteria.getNewPublishDate(), ChronoUnit.SECONDS, MIN_DATETIME_VALUE));
+            params.put("newCloseDate", truncateDateTo(criteria.getNewCloseDate(), ChronoUnit.SECONDS, PG_MAX_TIMESTAMP));
         }
 
-        String joinType;
-        switch (criteria.getReturnType()) {
-            case NEW:
-                joinType = "right";
-                break;
-            case OLD:
-                joinType = "left";
-                break;
-            default:
-                joinType = "full";
-        }
+        String joinType = diffReturnTypeToJoinType(criteria.getReturnType());
 
         String query = " from " + getSchemeTableName(oldStorage) + " t1 " + joinType +
                 " join " + getSchemeTableName(newStorage) + " t2 on " + primaryEquality +
@@ -1142,75 +1130,107 @@ public class DataDao {
         QueryWithParams countQueryWithParams = new QueryWithParams(SELECT_COUNT_ONLY + query, params);
         Query countQuery = countQueryWithParams.createQuery(entityManager);
         BigInteger count = (BigInteger) countQuery.getSingleResult();
-        if (BooleanUtils.toBoolean(criteria.getCountOnly())) {
-            dataDifference = new DataDifference(new CollectionPage<>(count.intValue(), null, criteria));
-        } else {
-            String orderBy = " order by " +
-                    criteria.getPrimaryFields()
-                            .stream()
-                            .map(f -> formatFieldForQuery(f, "t2"))
-                            .collect(Collectors.joining(",")) + "," +
-                    criteria.getPrimaryFields()
-                            .stream()
-                            .map(f -> formatFieldForQuery(f, "t1"))
-                            .collect(Collectors.joining(","));
 
-            QueryWithParams dataQueryWithParams = new QueryWithParams(dataSelect + query + orderBy, params);
-            Query dataQuery = dataQueryWithParams.createQuery(entityManager)
-                    .setFirstResult(getOffset(criteria))
-                    .setMaxResults(criteria.getSize());
-            List<Object[]> resultList = dataQuery.getResultList();
-            List<DiffRowValue> rowValues = new ArrayList<>();
-            if (!resultList.isEmpty()) {
-                for (Object[] row : resultList) {
-                    List<DiffFieldValue> fieldValues = new ArrayList<>();
-                    //get old/new versions data exclude sys_recordid
-                    int i = 1;
-                    List<String> primaryFields = criteria.getPrimaryFields();
-                    DiffStatusEnum rowStatus = null;
-                    for (String field : fields) {
-                        DiffFieldValue fieldValue = new DiffFieldValue();
-                        fieldValue.setField(fieldMap.get(field));
-                        Object oldValue = row[i];
-                        Object newValue = row[row.length / 2 + i];
-                        fieldValue.setOldValue(oldValue);
-                        fieldValue.setNewValue(newValue);
-                        if (primaryFields.contains(field)) {
-                            if (oldValue == null) {
-                                rowStatus = DiffStatusEnum.INSERTED;
-                            } else if (newValue == null) {
-                                rowStatus = DiffStatusEnum.DELETED;
-                            } else if (oldValue.equals(newValue)) {
-                                rowStatus = DiffStatusEnum.UPDATED;
-                            }
-                        }
-                        fieldValues.add(fieldValue);
-                        i++;
+        if (BooleanUtils.toBoolean(criteria.getCountOnly())) {
+            return new DataDifference(new CollectionPage<>(count.intValue(), null, criteria));
+        }
+
+        String orderBy = " order by " +
+                criteria.getPrimaryFields().stream()
+                        .map(f -> formatFieldForQuery(f, "t2"))
+                        .collect(joining(",")) + "," +
+                criteria.getPrimaryFields().stream()
+                        .map(f -> formatFieldForQuery(f, "t1"))
+                        .collect(joining(","));
+
+        QueryWithParams dataQueryWithParams = new QueryWithParams(dataSelect + query + orderBy, params);
+        Query dataQuery = dataQueryWithParams.createQuery(entityManager)
+                .setFirstResult(getOffset(criteria))
+                .setMaxResults(criteria.getSize());
+        List<Object[]> resultList = dataQuery.getResultList();
+
+        List<DiffRowValue> diffRowValues = getDiffRowValues(fields, fieldMap, resultList, criteria);
+        return new DataDifference(new CollectionPage<>(count.intValue(), diffRowValues, criteria));
+    }
+
+    private String diffReturnTypeToJoinType(DiffReturnTypeEnum typeEnum) {
+        switch (typeEnum) {
+            case NEW: return "right";
+            case OLD: return "left";
+            default: return "full";
+        }
+    }
+
+    private List<DiffRowValue> getDiffRowValues(List<String> fields, Map<String, Field> fieldMap,
+                                                List<Object[]> dataList, CompareDataCriteria criteria) {
+        List<DiffRowValue> result = new ArrayList<>();
+        if (dataList.isEmpty()) {
+            return result;
+        }
+
+        for (Object[] row : dataList) {
+            List<DiffFieldValue> fieldValues = new ArrayList<>();
+            int i = 1; // get old/new versions data exclude sys_recordid
+            List<String> primaryFields = criteria.getPrimaryFields();
+            DiffStatusEnum rowStatus = null;
+            for (String field : fields) {
+                DiffFieldValue fieldValue = new DiffFieldValue();
+                fieldValue.setField(fieldMap.get(field));
+                Object oldValue = row[i];
+                Object newValue = row[row.length / 2 + i];
+                fieldValue.setOldValue(oldValue);
+                fieldValue.setNewValue(newValue);
+
+                if (primaryFields.contains(field) && rowStatus == null) {
+                    rowStatus = diffFieldValueToStatusEnum(fieldValue);
+                }
+
+                fieldValues.add(fieldValue);
+                i++;
+            }
+
+            for (DiffFieldValue fieldValue : fieldValues) {
+                if (DiffStatusEnum.INSERTED.equals(rowStatus))
+                    fieldValue.setStatus(DiffStatusEnum.INSERTED);
+
+                else if (DiffStatusEnum.DELETED.equals(rowStatus))
+                    fieldValue.setStatus(DiffStatusEnum.DELETED);
+
+                else {
+                    Object oldValue = fieldValue.getOldValue();
+                    Object newValue = fieldValue.getNewValue();
+                    if (oldValue == null && newValue == null)
+                        continue;
+
+                    if (!Objects.equals(oldValue, newValue)) {
+                        fieldValue.setStatus(DiffStatusEnum.UPDATED);
+                    } else {
+                        //if value is not changed store only new value
+                        fieldValue.setOldValue(null);
                     }
-                    for (DiffFieldValue fieldValue : fieldValues) {
-                        if (DiffStatusEnum.INSERTED.equals(rowStatus))
-                            fieldValue.setStatus(DiffStatusEnum.INSERTED);
-                        else if (DiffStatusEnum.DELETED.equals(rowStatus))
-                            fieldValue.setStatus(DiffStatusEnum.DELETED);
-                        else {
-                            Object oldValue = fieldValue.getOldValue();
-                            Object newValue = fieldValue.getNewValue();
-                            if (oldValue == null && newValue == null)
-                                continue;
-                            if (oldValue == null || newValue == null || !oldValue.equals(newValue)) {
-                                fieldValue.setStatus(DiffStatusEnum.UPDATED);
-                            } else {
-                                //if value is not changed store only new value
-                                fieldValue.setOldValue(null);
-                            }
-                        }
-                    }
-                    rowValues.add(new DiffRowValue(fieldValues, rowStatus));
                 }
             }
-            dataDifference = new DataDifference(new CollectionPage<>(count.intValue(), rowValues, criteria));
+
+            result.add(new DiffRowValue(fieldValues, rowStatus));
         }
-        return dataDifference;
+        return result;
+    }
+
+    private DiffStatusEnum diffFieldValueToStatusEnum(DiffFieldValue value) {
+
+        if (value.getOldValue() == null) {
+            return DiffStatusEnum.INSERTED;
+        }
+
+        if (value.getNewValue() == null) {
+            return DiffStatusEnum.DELETED;
+        }
+
+        if (value.getOldValue().equals(value.getNewValue())) {
+            return DiffStatusEnum.UPDATED;
+        }
+
+        return null;
     }
 
     private String getFieldValuesFilter(String alias, Map<String, Object> params, Set<List<FieldSearchCriteria>> fieldValuesFilters) {

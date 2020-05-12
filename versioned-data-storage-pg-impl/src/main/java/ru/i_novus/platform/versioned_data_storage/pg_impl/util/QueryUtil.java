@@ -194,8 +194,8 @@ public class QueryUtil {
         return DATA_SCHEME_NAME + "." + getSequenceName(table);
     }
 
-    public static LocalDateTime truncateDateTo(LocalDateTime date, ChronoUnit unit) {
-        return date.truncatedTo(unit);
+    public static Object truncateDateTo(LocalDateTime date, ChronoUnit unit, Object defaultValue) {
+        return date != null ? date.truncatedTo(unit) : defaultValue;
     }
 
     public static int getOffset(Criteria criteria) {
