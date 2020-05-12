@@ -275,8 +275,8 @@ public class DraftDataServiceImpl implements DraftDataService {
         //todo никак не учитывается Field.unique - уникальность в рамках даты
         String newTable = UUID.randomUUID().toString();
         dataDao.copyTable(newTable, draftCode);
-        dataDao.addColumnToTable(newTable, SYS_PUBLISHTIME, "timestamp without time zone", "'-infinity'");
-        dataDao.addColumnToTable(newTable, SYS_CLOSETIME, "timestamp without time zone", "'infinity'");
+        dataDao.addColumnToTable(newTable, SYS_PUBLISHTIME, "timestamp without time zone", MIN_DATETIME_VALUE);
+        dataDao.addColumnToTable(newTable, SYS_CLOSETIME, "timestamp without time zone", MAX_DATETIME_VALUE);
         dataDao.createIndex(newTable, addDoubleQuotes(newTable + "_SYSDATE_idx"), Arrays.asList(SYS_PUBLISHTIME, SYS_CLOSETIME));
         List<String> fieldNames = dataDao.getHashUsedFieldNames(newTable);
         dataDao.createTrigger(newTable, fieldNames);

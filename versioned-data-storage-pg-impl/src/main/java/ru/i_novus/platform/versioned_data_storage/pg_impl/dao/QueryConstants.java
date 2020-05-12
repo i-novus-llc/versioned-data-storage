@@ -38,9 +38,12 @@ public class QueryConstants {
     static final String QUERY_VALUE_SUBST = "?";
     static final String QUERY_LTREE_SUBST = QUERY_VALUE_SUBST + "\\:\\:ltree";
 
+    public static final String MIN_DATETIME_VALUE = "'-infinity'";
+    public static final String MAX_DATETIME_VALUE = "'infinity'";
+
     public static final String REFERENCE_FIELD_SQL_TYPE = "jsonb";
 
-    public static final String SELECT_COUNT_ONLY = "SELECT count(*)\n";
+    static final String SELECT_COUNT_ONLY = "SELECT count(*)\n";
     private static final String SELECT_WHERE = " WHERE 1 = 1\n";
     private static final String ORDER_BY_SYS_RECORDID = " ORDER BY %s.\"SYS_RECORDID\"\n";
     private static final String SELECT_LIMIT = " LIMIT ${limit}";
