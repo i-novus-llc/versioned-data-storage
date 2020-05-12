@@ -1064,11 +1064,16 @@ public class DataDao {
 
         String oldStorage = criteria.getStorageCode();
         String newStorage = criteria.getNewStorageCode() != null ? criteria.getNewStorageCode() : criteria.getStorageCode();
-        String countSelect = "SELECT count(*)";
-        String dataSelect = "SELECT t1." + addDoubleQuotes(SYS_PRIMARY_COLUMN) + " as sysId1, " + generateSqlQuery("t1", criteria.getFields(), false) + ", "
-                + "t2." + addDoubleQuotes(SYS_PRIMARY_COLUMN) + " as sysId2, " + generateSqlQuery("t2", criteria.getFields(), false);
-        String primaryEquality = criteria.getPrimaryFields()
-                .stream()
+
+        String oldDataFields = generateSqlQuery("t1", criteria.getFields(), false);
+        String newDataFields = generateSqlQuery("t2", criteria.getFields(), false);
+
+        String dataSelectFormat = "SELECT t1.%1$s as sysId1 \n %2$s \n, t2.%1$s as sysId2 \n %3$s \n";
+        String dataSelect = String.format(dataSelectFormat, addDoubleQuotes(SYS_PRIMARY_COLUMN),
+                StringUtils.isEmpty(oldDataFields) ? "" : ", " + oldDataFields,
+                StringUtils.isEmpty(newDataFields) ? "" : ", " + newDataFields);
+
+        String primaryEquality = criteria.getPrimaryFields().stream()
                 .map(f -> formatFieldForQuery(f, "t1") + " = " + formatFieldForQuery(f, "t2"))
                 .collect(joining(" and "));
 
