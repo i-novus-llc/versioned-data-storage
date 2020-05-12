@@ -170,7 +170,7 @@ public class DataDao {
                 addDoubleQuotes(tableName), addDoubleQuotes(SYS_PRIMARY_COLUMN), QUERY_VALUE_SUBST);
         Query query = entityManager.createNativeQuery(sql);
 
-        String ids = systemIds.stream().map(String::valueOf).collect(Collectors.joining(","));
+        String ids = systemIds.stream().map(String::valueOf).collect(joining(","));
         query.setParameter(1, "{" + ids + "}");
 
         @SuppressWarnings("unchecked")
@@ -304,7 +304,7 @@ public class DataDao {
                             filter += " and " + escapedFieldName + "@> (cast(:" + fieldName + i[0] + " AS ltree[]))";
                             String v = searchCriteria.getValues().stream()
                                     .map(Object::toString)
-                                    .collect(Collectors.joining(",", "{", "}"));
+                                    .collect(joining(",", "{", "}"));
                             params.put(fieldName + i[0], v);
                         }
                     } else if (field instanceof BooleanField) {
@@ -326,7 +326,7 @@ public class DataDao {
                 }
                 return filter;
 
-            }).collect(Collectors.joining(" or "));
+            }).collect(joining(" or "));
 
             if (!"".equals(queryStr))
                 queryStr = " and (" + queryStr + ")";
@@ -373,7 +373,7 @@ public class DataDao {
         if (CollectionUtils.isNullOrEmpty(fields)) {
             entityManager.createNativeQuery(String.format(CREATE_EMPTY_DRAFT_TABLE_TEMPLATE, addDoubleQuotes(tableName), tableName)).executeUpdate();
         } else {
-            String fieldsString = fields.stream().map(f -> addDoubleQuotes(f.getName()) + " " + f.getType()).collect(Collectors.joining(", "));
+            String fieldsString = fields.stream().map(f -> addDoubleQuotes(f.getName()) + " " + f.getType()).collect(joining(", "));
             entityManager.createNativeQuery(String.format(CREATE_DRAFT_TABLE_TEMPLATE, addDoubleQuotes(tableName), fieldsString, tableName)).executeUpdate();
         }
     }
@@ -470,7 +470,7 @@ public class DataDao {
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void loadData(String draftCode, String sourceStorageCode, List<String> fields, LocalDateTime fromDate, LocalDateTime toDate ) {
         String keys = String.join(",", fields);
-        String values = fields.stream().map(f -> "d." + f).collect(Collectors.joining(","));
+        String values = fields.stream().map(f -> "d." + f).collect(joining(","));
 
         QueryWithParams queryWithParams = new QueryWithParams(String.format(COPY_QUERY_TEMPLATE, addDoubleQuotes(draftCode), keys, values,
                 addDoubleQuotes(sourceStorageCode)), null);
@@ -568,7 +568,7 @@ public class DataDao {
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void deleteData(String tableName, List<Object> systemIds) {
-        String ids = systemIds.stream().map(id -> "?").collect(Collectors.joining(","));
+        String ids = systemIds.stream().map(id -> "?").collect(joining(","));
         Query query = entityManager.createNativeQuery(String.format(DELETE_QUERY_TEMPLATE, addDoubleQuotes(tableName), ids));
         int i = 1;
         for (Object systemId : systemIds) {
@@ -590,7 +590,7 @@ public class DataDao {
 
         Query query = entityManager.createNativeQuery(String.format(UPDATE_REFERENCE_QUERY_TEMPLATE, addDoubleQuotes(tableName), key, QUERY_VALUE_SUBST));
 
-        String ids = systemIds.stream().map(String::valueOf).collect(Collectors.joining(","));
+        String ids = systemIds.stream().map(String::valueOf).collect(joining(","));
         query.setParameter(1, "{" + ids + "}");
 
         query.executeUpdate();
@@ -654,9 +654,9 @@ public class DataDao {
 
     public boolean isUnique(String storageCode, List<String> fieldNames, LocalDateTime publishTime) {
         String fields = fieldNames.stream().map(fieldName -> addDoubleQuotes(fieldName) + "\\:\\:text")
-                .collect(Collectors.joining(","));
+                .collect(joining(","));
         String groupBy = Stream.iterate(1, n -> n + 1).limit(fieldNames.size()).map(String::valueOf)
-                .collect(Collectors.joining(","));
+                .collect(joining(","));
 
         Query query = entityManager.createNativeQuery(
                 "SELECT " + fields + ", COUNT(*)" +
@@ -690,10 +690,10 @@ public class DataDao {
     @Transactional
     public void createTrigger(String tableName, List<String> fields) {
         String escapedTableName = addDoubleQuotes(tableName);
-        String tableFields = fields.stream().map(this::getFieldClearName).collect(Collectors.joining(", "));
+        String tableFields = fields.stream().map(this::getFieldClearName).collect(joining(", "));
         entityManager.createNativeQuery(String.format(CREATE_HASH_TRIGGER,
                 tableName,
-                fields.stream().map(field -> "NEW." + field).collect(Collectors.joining(", ")),
+                fields.stream().map(field -> "NEW." + field).collect(joining(", ")),
                 tableFields,
                 escapedTableName,
                 tableName)).executeUpdate();
@@ -701,7 +701,7 @@ public class DataDao {
                 tableName,
                 fields.stream()
                         .map(field -> "coalesce( to_tsvector('ru', NEW." + field + "\\:\\:text),'')")
-                        .collect(Collectors.joining(" || ' ' || ")),
+                        .collect(joining(" || ' ' || ")),
                 tableFields,
                 escapedTableName,
                 tableName)).executeUpdate();
@@ -712,7 +712,7 @@ public class DataDao {
         List<String> fieldNames = getHashUsedFieldNames(tableName);
         entityManager.createNativeQuery(String.format(UPDATE_HASH,
                 addDoubleQuotes(tableName),
-                fieldNames.stream().collect(Collectors.joining(", ")))).executeUpdate();
+                fieldNames.stream().collect(joining(", ")))).executeUpdate();
     }
 
     @Transactional
@@ -721,7 +721,7 @@ public class DataDao {
         entityManager.createNativeQuery(String.format(UPDATE_FTS,
                 addDoubleQuotes(tableName),
                 fieldNames.stream().map(field -> "coalesce( to_tsvector('ru', " + field + "\\:\\:text),'')")
-                        .collect(Collectors.joining(" || ' ' || ")))).executeUpdate();
+                        .collect(joining(" || ' ' || ")))).executeUpdate();
     }
 
 
@@ -737,7 +737,7 @@ public class DataDao {
     public void createIndex(String tableName, String name, List<String> fields) {
         entityManager.createNativeQuery(String.format(CREATE_TABLE_INDEX, name,
                 addDoubleQuotes(tableName),
-                fields.stream().map(QueryUtil::addDoubleQuotes).collect(Collectors.joining(","))))
+                fields.stream().map(QueryUtil::addDoubleQuotes).collect(joining(","))))
                 .executeUpdate();
     }
 
@@ -1083,11 +1083,10 @@ public class DataDao {
         String oldPrimaryIsNull = criteria.getPrimaryFields()
                 .stream()
                 .map(f -> formatFieldForQuery(f, "t1") + " is null ")
-                .collect(Collectors.joining(" and "));
-        String newPrimaryIsNull = criteria.getPrimaryFields()
-                .stream()
+                .collect(joining(" and "));
+        String newPrimaryIsNull = criteria.getPrimaryFields().stream()
                 .map(f -> formatFieldForQuery(f, "t2") + " is null ")
-                .collect(Collectors.joining(" and "));
+                .collect(joining(" and "));
 
         String oldVersionDateFilter = "";
         if (criteria.getOldPublishDate() != null || criteria.getOldCloseDate() != null) {
