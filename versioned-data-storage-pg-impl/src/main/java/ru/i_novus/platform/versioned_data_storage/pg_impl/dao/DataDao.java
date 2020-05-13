@@ -241,13 +241,14 @@ public class DataDao {
     private QueryWithParams getDataWhereClause(LocalDateTime publishDate, LocalDateTime closeDate, String search,
                                                Set<List<FieldSearchCriteria>> filters, List<Long> rowSystemIds) {
 
-        closeDate = closeDate == null ? PG_MAX_TIMESTAMP : closeDate;
         Map<String, Object> params = new HashMap<>();
         String result = " WHERE 1=1 ";
         if (publishDate != null) {
-            result += " and date_trunc('second', d.\"SYS_PUBLISHTIME\") <= :bdate and (date_trunc('second', d.\"SYS_CLOSETIME\") > :bdate or d.\"SYS_CLOSETIME\" is null)";
+            result += " and date_trunc('second', d.\"SYS_PUBLISHTIME\") <= :bdate \n" +
+                    " and (date_trunc('second', d.\"SYS_CLOSETIME\") > :bdate or d.\"SYS_CLOSETIME\" is null)";
             params.put("bdate", publishDate.truncatedTo(ChronoUnit.SECONDS));
             result += " and (date_trunc('second', d.\"SYS_CLOSETIME\") >= :edate or d.\"SYS_CLOSETIME\" is null)";
+            closeDate = closeDate == null ? PG_MAX_TIMESTAMP : closeDate;
             params.put("edate", closeDate.truncatedTo(ChronoUnit.SECONDS));
         }
 
