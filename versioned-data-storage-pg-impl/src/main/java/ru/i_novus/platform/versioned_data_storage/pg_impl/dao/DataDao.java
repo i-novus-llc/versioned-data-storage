@@ -1186,8 +1186,8 @@ public class DataDao {
                 fieldValue.setOldValue(oldValue);
                 fieldValue.setNewValue(newValue);
 
-                if (primaryFields.contains(field) && rowStatus == null) {
-                    rowStatus = diffFieldValueToStatusEnum(fieldValue);
+                if (primaryFields.contains(field)) {
+                    rowStatus = diffFieldValueToStatusEnum(fieldValue, rowStatus);
                 }
 
                 fieldValues.add(fieldValue);
@@ -1221,7 +1221,7 @@ public class DataDao {
         return result;
     }
 
-    private DiffStatusEnum diffFieldValueToStatusEnum(DiffFieldValue value) {
+    private DiffStatusEnum diffFieldValueToStatusEnum(DiffFieldValue value, DiffStatusEnum defaultValue) {
 
         if (value.getOldValue() == null) {
             return DiffStatusEnum.INSERTED;
@@ -1235,7 +1235,7 @@ public class DataDao {
             return DiffStatusEnum.UPDATED;
         }
 
-        return null;
+        return defaultValue;
     }
 
     private String getFieldValuesFilter(String alias, Map<String, Object> params, Set<List<FieldSearchCriteria>> fieldValuesFilters) {
