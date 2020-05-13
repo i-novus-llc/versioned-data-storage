@@ -117,7 +117,14 @@ public class QueryUtil {
         return fieldValue.getValue() == null || fieldValue.getValue().equals("null");
     }
 
-    public static String generateSqlQuery(String alias, List<Field> fields, boolean includeReference) {
+    /**
+     * Генерация списка полей для запроса.
+     * 
+     * @param alias    псевдоним таблицы
+     * @param fields   список полей таблицы
+     * @param detailed отображение дополнительных частей составных полей
+     */
+    public static String generateSqlQuery(String alias, List<Field> fields, boolean detailed) {
         if (StringUtils.isEmpty(alias))
             alias = "";
 
@@ -128,7 +135,7 @@ public class QueryUtil {
             if (field instanceof ReferenceField) {
                 String queryValue = query + "->>'value' as " + addDoubleQuotes(alias + field.getName() + ".value");
                 queryFields.add(queryValue);
-                if (includeReference) {
+                if (detailed) {
                     String queryDisplayValue = query + "->>'displayValue' as " + addDoubleQuotes(alias + field.getName() + ".displayValue");
                     queryFields.add(queryDisplayValue);
                 }
@@ -187,8 +194,8 @@ public class QueryUtil {
         return DATA_SCHEME_NAME + "." + getSequenceName(table);
     }
 
-    public static LocalDateTime truncateDateTo(LocalDateTime date, ChronoUnit unit) {
-        return date.truncatedTo(unit);
+    public static Object truncateDateTo(LocalDateTime date, ChronoUnit unit, Object defaultValue) {
+        return date != null ? date.truncatedTo(unit) : defaultValue;
     }
 
     public static int getOffset(Criteria criteria) {

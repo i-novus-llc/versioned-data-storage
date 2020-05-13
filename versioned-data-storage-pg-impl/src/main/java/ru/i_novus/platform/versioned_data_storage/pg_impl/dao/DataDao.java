@@ -8,6 +8,7 @@ import org.apache.commons.lang3.text.StrSubstitutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.i_novus.platform.datastorage.temporal.CollectionUtils;
+import ru.i_novus.platform.datastorage.temporal.enums.DiffReturnTypeEnum;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
 import ru.i_novus.platform.datastorage.temporal.enums.ReferenceDisplayType;
 import ru.i_novus.platform.datastorage.temporal.model.DataDifference;
@@ -170,7 +171,7 @@ public class DataDao {
                 addDoubleQuotes(tableName), addDoubleQuotes(SYS_PRIMARY_COLUMN), QUERY_VALUE_SUBST);
         Query query = entityManager.createNativeQuery(sql);
 
-        String ids = systemIds.stream().map(String::valueOf).collect(Collectors.joining(","));
+        String ids = systemIds.stream().map(String::valueOf).collect(joining(","));
         query.setParameter(1, "{" + ids + "}");
 
         @SuppressWarnings("unchecked")
@@ -210,10 +211,10 @@ public class DataDao {
     }
 
     public BigInteger getDataCount(DataCriteria criteria) {
-        QueryWithParams queryWithParams = new QueryWithParams("SELECT count(*)" +
-                " FROM " + getSchemeTableName(criteria.getTableName()) + " as d ", null);
-        queryWithParams.concat(getDataWhereClause(criteria.getBdate(), criteria.getEdate(), criteria.getCommonFilter(),
-                criteria.getFieldFilter(), criteria.getSystemIds()));
+        QueryWithParams queryWithParams = new QueryWithParams(SELECT_COUNT_ONLY +
+                "  FROM " + getSchemeTableName(criteria.getTableName()) + " as d ", null);
+        queryWithParams.concat(getDataWhereClause(criteria.getBdate(), criteria.getEdate(),
+                criteria.getCommonFilter(), criteria.getFieldFilter(), criteria.getSystemIds()));
         return (BigInteger) queryWithParams.createQuery(entityManager).getSingleResult();
     }
 
@@ -240,13 +241,14 @@ public class DataDao {
     private QueryWithParams getDataWhereClause(LocalDateTime publishDate, LocalDateTime closeDate, String search,
                                                Set<List<FieldSearchCriteria>> filters, List<Long> rowSystemIds) {
 
-        closeDate = closeDate == null ? PG_MAX_TIMESTAMP : closeDate;
         Map<String, Object> params = new HashMap<>();
         String result = " WHERE 1=1 ";
         if (publishDate != null) {
-            result += " and date_trunc('second', d.\"SYS_PUBLISHTIME\") <= :bdate and (date_trunc('second', d.\"SYS_CLOSETIME\") > :bdate or d.\"SYS_CLOSETIME\" is null)";
+            result += " and date_trunc('second', d.\"SYS_PUBLISHTIME\") <= :bdate \n" +
+                    " and (date_trunc('second', d.\"SYS_CLOSETIME\") > :bdate or d.\"SYS_CLOSETIME\" is null)";
             params.put("bdate", publishDate.truncatedTo(ChronoUnit.SECONDS));
             result += " and (date_trunc('second', d.\"SYS_CLOSETIME\") >= :edate or d.\"SYS_CLOSETIME\" is null)";
+            closeDate = closeDate == null ? PG_MAX_TIMESTAMP : closeDate;
             params.put("edate", closeDate.truncatedTo(ChronoUnit.SECONDS));
         }
 
@@ -304,7 +306,7 @@ public class DataDao {
                             filter += " and " + escapedFieldName + "@> (cast(:" + fieldName + i[0] + " AS ltree[]))";
                             String v = searchCriteria.getValues().stream()
                                     .map(Object::toString)
-                                    .collect(Collectors.joining(",", "{", "}"));
+                                    .collect(joining(",", "{", "}"));
                             params.put(fieldName + i[0], v);
                         }
                     } else if (field instanceof BooleanField) {
@@ -326,7 +328,7 @@ public class DataDao {
                 }
                 return filter;
 
-            }).collect(Collectors.joining(" or "));
+            }).collect(joining(" or "));
 
             if (!"".equals(queryStr))
                 queryStr = " and (" + queryStr + ")";
@@ -373,7 +375,7 @@ public class DataDao {
         if (CollectionUtils.isNullOrEmpty(fields)) {
             entityManager.createNativeQuery(String.format(CREATE_EMPTY_DRAFT_TABLE_TEMPLATE, addDoubleQuotes(tableName), tableName)).executeUpdate();
         } else {
-            String fieldsString = fields.stream().map(f -> addDoubleQuotes(f.getName()) + " " + f.getType()).collect(Collectors.joining(", "));
+            String fieldsString = fields.stream().map(f -> addDoubleQuotes(f.getName()) + " " + f.getType()).collect(joining(", "));
             entityManager.createNativeQuery(String.format(CREATE_DRAFT_TABLE_TEMPLATE, addDoubleQuotes(tableName), fieldsString, tableName)).executeUpdate();
         }
     }
@@ -470,7 +472,7 @@ public class DataDao {
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void loadData(String draftCode, String sourceStorageCode, List<String> fields, LocalDateTime fromDate, LocalDateTime toDate ) {
         String keys = String.join(",", fields);
-        String values = fields.stream().map(f -> "d." + f).collect(Collectors.joining(","));
+        String values = fields.stream().map(f -> "d." + f).collect(joining(","));
 
         QueryWithParams queryWithParams = new QueryWithParams(String.format(COPY_QUERY_TEMPLATE, addDoubleQuotes(draftCode), keys, values,
                 addDoubleQuotes(sourceStorageCode)), null);
@@ -568,7 +570,7 @@ public class DataDao {
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void deleteData(String tableName, List<Object> systemIds) {
-        String ids = systemIds.stream().map(id -> "?").collect(Collectors.joining(","));
+        String ids = systemIds.stream().map(id -> "?").collect(joining(","));
         Query query = entityManager.createNativeQuery(String.format(DELETE_QUERY_TEMPLATE, addDoubleQuotes(tableName), ids));
         int i = 1;
         for (Object systemId : systemIds) {
@@ -590,7 +592,7 @@ public class DataDao {
 
         Query query = entityManager.createNativeQuery(String.format(UPDATE_REFERENCE_QUERY_TEMPLATE, addDoubleQuotes(tableName), key, QUERY_VALUE_SUBST));
 
-        String ids = systemIds.stream().map(String::valueOf).collect(Collectors.joining(","));
+        String ids = systemIds.stream().map(String::valueOf).collect(joining(","));
         query.setParameter(1, "{" + ids + "}");
 
         query.executeUpdate();
@@ -654,9 +656,9 @@ public class DataDao {
 
     public boolean isUnique(String storageCode, List<String> fieldNames, LocalDateTime publishTime) {
         String fields = fieldNames.stream().map(fieldName -> addDoubleQuotes(fieldName) + "\\:\\:text")
-                .collect(Collectors.joining(","));
+                .collect(joining(","));
         String groupBy = Stream.iterate(1, n -> n + 1).limit(fieldNames.size()).map(String::valueOf)
-                .collect(Collectors.joining(","));
+                .collect(joining(","));
 
         Query query = entityManager.createNativeQuery(
                 "SELECT " + fields + ", COUNT(*)" +
@@ -690,10 +692,10 @@ public class DataDao {
     @Transactional
     public void createTrigger(String tableName, List<String> fields) {
         String escapedTableName = addDoubleQuotes(tableName);
-        String tableFields = fields.stream().map(this::getFieldClearName).collect(Collectors.joining(", "));
+        String tableFields = fields.stream().map(this::getFieldClearName).collect(joining(", "));
         entityManager.createNativeQuery(String.format(CREATE_HASH_TRIGGER,
                 tableName,
-                fields.stream().map(field -> "NEW." + field).collect(Collectors.joining(", ")),
+                fields.stream().map(field -> "NEW." + field).collect(joining(", ")),
                 tableFields,
                 escapedTableName,
                 tableName)).executeUpdate();
@@ -701,7 +703,7 @@ public class DataDao {
                 tableName,
                 fields.stream()
                         .map(field -> "coalesce( to_tsvector('ru', NEW." + field + "\\:\\:text),'')")
-                        .collect(Collectors.joining(" || ' ' || ")),
+                        .collect(joining(" || ' ' || ")),
                 tableFields,
                 escapedTableName,
                 tableName)).executeUpdate();
@@ -712,7 +714,7 @@ public class DataDao {
         List<String> fieldNames = getHashUsedFieldNames(tableName);
         entityManager.createNativeQuery(String.format(UPDATE_HASH,
                 addDoubleQuotes(tableName),
-                fieldNames.stream().collect(Collectors.joining(", ")))).executeUpdate();
+                fieldNames.stream().collect(joining(", ")))).executeUpdate();
     }
 
     @Transactional
@@ -721,7 +723,7 @@ public class DataDao {
         entityManager.createNativeQuery(String.format(UPDATE_FTS,
                 addDoubleQuotes(tableName),
                 fieldNames.stream().map(field -> "coalesce( to_tsvector('ru', " + field + "\\:\\:text),'')")
-                        .collect(Collectors.joining(" || ' ' || ")))).executeUpdate();
+                        .collect(joining(" || ' ' || ")))).executeUpdate();
     }
 
 
@@ -737,7 +739,7 @@ public class DataDao {
     public void createIndex(String tableName, String name, List<String> fields) {
         entityManager.createNativeQuery(String.format(CREATE_TABLE_INDEX, name,
                 addDoubleQuotes(tableName),
-                fields.stream().map(QueryUtil::addDoubleQuotes).collect(Collectors.joining(","))))
+                fields.stream().map(QueryUtil::addDoubleQuotes).collect(joining(","))))
                 .executeUpdate();
     }
 
@@ -1049,79 +1051,70 @@ public class DataDao {
     }
 
     public DataDifference getDataDifference(CompareDataCriteria criteria) {
-        DataDifference dataDifference;
+
         List<String> fields = new ArrayList<>();
-        List<String> nonPrimaryFields = new ArrayList<>();
         Map<String, Field> fieldMap = new HashMap<>();
-        Map<String, Object> params = new HashMap<>();
+        List<String> nonPrimaryFields = new ArrayList<>();
         criteria.getFields().forEach(field -> {
             fields.add(field.getName());
+            fieldMap.put(field.getName(), field);
+
             if (!criteria.getPrimaryFields().contains(field.getName()))
                 nonPrimaryFields.add(field.getName());
-            fieldMap.put(field.getName(), field);
         });
+
         String oldStorage = criteria.getStorageCode();
         String newStorage = criteria.getNewStorageCode() != null ? criteria.getNewStorageCode() : criteria.getStorageCode();
-        String countSelect = "SELECT count(*)";
-        String dataSelect = "SELECT t1." + addDoubleQuotes(SYS_PRIMARY_COLUMN) + " as sysId1, " + generateSqlQuery("t1", criteria.getFields(), false) + ", "
-                + "t2." + addDoubleQuotes(SYS_PRIMARY_COLUMN) + " as sysId2, " + generateSqlQuery("t2", criteria.getFields(), false);
-        String primaryEquality = criteria.getPrimaryFields()
-                .stream()
+
+        String oldDataFields = generateSqlQuery("t1", criteria.getFields(), false);
+        String newDataFields = generateSqlQuery("t2", criteria.getFields(), false);
+
+        String dataSelectFormat = "SELECT t1.%1$s as sysId1 \n %2$s \n, t2.%1$s as sysId2 \n %3$s \n";
+        String dataSelect = String.format(dataSelectFormat, addDoubleQuotes(SYS_PRIMARY_COLUMN),
+                StringUtils.isEmpty(oldDataFields) ? "" : ", " + oldDataFields,
+                StringUtils.isEmpty(newDataFields) ? "" : ", " + newDataFields);
+
+        String primaryEquality = criteria.getPrimaryFields().stream()
                 .map(f -> formatFieldForQuery(f, "t1") + " = " + formatFieldForQuery(f, "t2"))
-                .collect(Collectors.joining(" and "));
+                .collect(joining(" and "));
+
+        Map<String, Object> params = new HashMap<>();
         String oldPrimaryValuesFilter = getFieldValuesFilter("t1", params, criteria.getPrimaryFieldsFilters());
         String newPrimaryValuesFilter = getFieldValuesFilter("t2", params, criteria.getPrimaryFieldsFilters());
-        String nonPrimaryFieldsInequality = isEmpty(nonPrimaryFields) ? " and false " : " and (" + nonPrimaryFields
-                .stream()
-                .map(field -> {
-                    String f1 = formatFieldForQuery(field, "t1");
-                    String f2 = formatFieldForQuery(field, "t2");
-                    return f1 + " is not null and " + f2 + " is not null and " + f1 + " != " + f2 +
-                            " or " + f1 + " is not null and " + f2 + " is null or " + f1 + " is null and " + f2 + " is not null";
-                })
-                .collect(Collectors.joining(" or ")) + ") ";
-        String oldPrimaryIsNull = criteria.getPrimaryFields()
-                .stream()
+
+        String nonPrimaryFieldsInequality = isEmpty(nonPrimaryFields)
+                ? " and false "
+                : " and (" + nonPrimaryFields.stream()
+                        .map(field ->
+                                formatFieldForQuery(field, "t1") + " is distinct from " + formatFieldForQuery(field, "t2")
+                        )
+                        .collect(joining(" or ")) +
+                        ") ";
+
+        String oldPrimaryIsNull = criteria.getPrimaryFields().stream()
                 .map(f -> formatFieldForQuery(f, "t1") + " is null ")
-                .collect(Collectors.joining(" and "));
-        String newPrimaryIsNull = criteria.getPrimaryFields()
-                .stream()
+                .collect(joining(" and "));
+        String newPrimaryIsNull = criteria.getPrimaryFields().stream()
                 .map(f -> formatFieldForQuery(f, "t2") + " is null ")
-                .collect(Collectors.joining(" and "));
+                .collect(joining(" and "));
 
         String oldVersionDateFilter = "";
         if (criteria.getOldPublishDate() != null || criteria.getOldCloseDate() != null) {
-            oldVersionDateFilter = " and date_trunc('second', t1.\"SYS_PUBLISHTIME\") <= :oldPublishDate\\:\\:timestamp without time zone and date_trunc('second', t1.\"SYS_CLOSETIME\") >= :oldCloseDate\\:\\:timestamp without time zone ";
-            params.put("oldPublishDate", criteria.getOldPublishDate() != null
-                    ? truncateDateTo(criteria.getOldPublishDate(), ChronoUnit.SECONDS)
-                    : "'-infinity'");
-            params.put("oldCloseDate", criteria.getOldCloseDate() != null
-                    ? truncateDateTo(criteria.getOldCloseDate(), ChronoUnit.SECONDS)
-                    : PG_MAX_TIMESTAMP);
+            oldVersionDateFilter = " and date_trunc('second', t1.\"SYS_PUBLISHTIME\") <= :oldPublishDate\\:\\:timestamp without time zone \n" +
+                    " and date_trunc('second', t1.\"SYS_CLOSETIME\") >= :oldCloseDate\\:\\:timestamp without time zone ";
+            params.put("oldPublishDate", truncateDateTo(criteria.getOldPublishDate(), ChronoUnit.SECONDS, MIN_DATETIME_VALUE));
+            params.put("oldCloseDate", truncateDateTo(criteria.getOldCloseDate(), ChronoUnit.SECONDS, PG_MAX_TIMESTAMP));
         }
 
         String newVersionDateFilter = "";
         if (criteria.getNewPublishDate() != null || criteria.getNewCloseDate() != null) {
-            newVersionDateFilter = " and date_trunc('second', t2.\"SYS_PUBLISHTIME\") <= :newPublishDate\\:\\:timestamp without time zone and date_trunc('second', t2.\"SYS_CLOSETIME\") >= :newCloseDate\\:\\:timestamp without time zone ";
-            params.put("newPublishDate", criteria.getNewPublishDate() != null
-                    ? truncateDateTo(criteria.getNewPublishDate(), ChronoUnit.SECONDS)
-                    : "'-infinity'");
-            params.put("newCloseDate", criteria.getNewCloseDate() != null
-                    ? truncateDateTo(criteria.getNewCloseDate(), ChronoUnit.SECONDS)
-                    : PG_MAX_TIMESTAMP);
+            newVersionDateFilter = " and date_trunc('second', t2.\"SYS_PUBLISHTIME\") <= :newPublishDate\\:\\:timestamp without time zone \n" +
+                    " and date_trunc('second', t2.\"SYS_CLOSETIME\") >= :newCloseDate\\:\\:timestamp without time zone ";
+            params.put("newPublishDate", truncateDateTo(criteria.getNewPublishDate(), ChronoUnit.SECONDS, MIN_DATETIME_VALUE));
+            params.put("newCloseDate", truncateDateTo(criteria.getNewCloseDate(), ChronoUnit.SECONDS, PG_MAX_TIMESTAMP));
         }
 
-        String joinType;
-        switch (criteria.getReturnType()) {
-            case NEW:
-                joinType = "right";
-                break;
-            case OLD:
-                joinType = "left";
-                break;
-            default:
-                joinType = "full";
-        }
+        String joinType = diffReturnTypeToJoinType(criteria.getReturnType());
 
         String query = " from " + getSchemeTableName(oldStorage) + " t1 " + joinType +
                 " join " + getSchemeTableName(newStorage) + " t2 on " + primaryEquality +
@@ -1140,78 +1133,110 @@ public class DataDao {
         } else if (DiffStatusEnum.DELETED.equals(criteria.getStatus())) {
             query += newPrimaryIsNull + oldVersionDateFilter;
         }
-        QueryWithParams countQueryWithParams = new QueryWithParams(countSelect + query, params);
+        QueryWithParams countQueryWithParams = new QueryWithParams(SELECT_COUNT_ONLY + query, params);
         Query countQuery = countQueryWithParams.createQuery(entityManager);
         BigInteger count = (BigInteger) countQuery.getSingleResult();
-        if (BooleanUtils.toBoolean(criteria.getCountOnly())) {
-            dataDifference = new DataDifference(new CollectionPage<>(count.intValue(), null, criteria));
-        } else {
-            String orderBy = " order by " +
-                    criteria.getPrimaryFields()
-                            .stream()
-                            .map(f -> formatFieldForQuery(f, "t2"))
-                            .collect(Collectors.joining(",")) + "," +
-                    criteria.getPrimaryFields()
-                            .stream()
-                            .map(f -> formatFieldForQuery(f, "t1"))
-                            .collect(Collectors.joining(","));
 
-            QueryWithParams dataQueryWithParams = new QueryWithParams(dataSelect + query + orderBy, params);
-            Query dataQuery = dataQueryWithParams.createQuery(entityManager)
-                    .setFirstResult(getOffset(criteria))
-                    .setMaxResults(criteria.getSize());
-            List<Object[]> resultList = dataQuery.getResultList();
-            List<DiffRowValue> rowValues = new ArrayList<>();
-            if (!resultList.isEmpty()) {
-                for (Object[] row : resultList) {
-                    List<DiffFieldValue> fieldValues = new ArrayList<>();
-                    //get old/new versions data exclude sys_recordid
-                    int i = 1;
-                    List<String> primaryFields = criteria.getPrimaryFields();
-                    DiffStatusEnum rowStatus = null;
-                    for (String field : fields) {
-                        DiffFieldValue fieldValue = new DiffFieldValue();
-                        fieldValue.setField(fieldMap.get(field));
-                        Object oldValue = row[i];
-                        Object newValue = row[row.length / 2 + i];
-                        fieldValue.setOldValue(oldValue);
-                        fieldValue.setNewValue(newValue);
-                        if (primaryFields.contains(field)) {
-                            if (oldValue == null) {
-                                rowStatus = DiffStatusEnum.INSERTED;
-                            } else if (newValue == null) {
-                                rowStatus = DiffStatusEnum.DELETED;
-                            } else if (oldValue.equals(newValue)) {
-                                rowStatus = DiffStatusEnum.UPDATED;
-                            }
-                        }
-                        fieldValues.add(fieldValue);
-                        i++;
+        if (BooleanUtils.toBoolean(criteria.getCountOnly())) {
+            return new DataDifference(new CollectionPage<>(count.intValue(), null, criteria));
+        }
+
+        String orderBy = " order by " +
+                criteria.getPrimaryFields().stream()
+                        .map(f -> formatFieldForQuery(f, "t2"))
+                        .collect(joining(",")) + "," +
+                criteria.getPrimaryFields().stream()
+                        .map(f -> formatFieldForQuery(f, "t1"))
+                        .collect(joining(","));
+
+        QueryWithParams dataQueryWithParams = new QueryWithParams(dataSelect + query + orderBy, params);
+        Query dataQuery = dataQueryWithParams.createQuery(entityManager)
+                .setFirstResult(getOffset(criteria))
+                .setMaxResults(criteria.getSize());
+        List<Object[]> resultList = dataQuery.getResultList();
+
+        List<DiffRowValue> diffRowValues = getDiffRowValues(fields, fieldMap, resultList, criteria);
+        return new DataDifference(new CollectionPage<>(count.intValue(), diffRowValues, criteria));
+    }
+
+    private String diffReturnTypeToJoinType(DiffReturnTypeEnum typeEnum) {
+        switch (typeEnum) {
+            case NEW: return "right";
+            case OLD: return "left";
+            default: return "full";
+        }
+    }
+
+    private List<DiffRowValue> getDiffRowValues(List<String> fields, Map<String, Field> fieldMap,
+                                                List<Object[]> dataList, CompareDataCriteria criteria) {
+        List<DiffRowValue> result = new ArrayList<>();
+        if (dataList.isEmpty()) {
+            return result;
+        }
+
+        for (Object[] row : dataList) {
+            List<DiffFieldValue> fieldValues = new ArrayList<>();
+            int i = 1; // get old/new versions data exclude sys_recordid
+            List<String> primaryFields = criteria.getPrimaryFields();
+            DiffStatusEnum rowStatus = null;
+            for (String field : fields) {
+                DiffFieldValue fieldValue = new DiffFieldValue();
+                fieldValue.setField(fieldMap.get(field));
+                Object oldValue = row[i];
+                Object newValue = row[row.length / 2 + i];
+                fieldValue.setOldValue(oldValue);
+                fieldValue.setNewValue(newValue);
+
+                if (primaryFields.contains(field)) {
+                    rowStatus = diffFieldValueToStatusEnum(fieldValue, rowStatus);
+                }
+
+                fieldValues.add(fieldValue);
+                i++;
+            }
+
+            for (DiffFieldValue fieldValue : fieldValues) {
+                if (DiffStatusEnum.INSERTED.equals(rowStatus))
+                    fieldValue.setStatus(DiffStatusEnum.INSERTED);
+
+                else if (DiffStatusEnum.DELETED.equals(rowStatus))
+                    fieldValue.setStatus(DiffStatusEnum.DELETED);
+
+                else {
+                    Object oldValue = fieldValue.getOldValue();
+                    Object newValue = fieldValue.getNewValue();
+                    if (oldValue == null && newValue == null)
+                        continue;
+
+                    if (!Objects.equals(oldValue, newValue)) {
+                        fieldValue.setStatus(DiffStatusEnum.UPDATED);
+                    } else {
+                        //if value is not changed store only new value
+                        fieldValue.setOldValue(null);
                     }
-                    for (DiffFieldValue fieldValue : fieldValues) {
-                        if (DiffStatusEnum.INSERTED.equals(rowStatus))
-                            fieldValue.setStatus(DiffStatusEnum.INSERTED);
-                        else if (DiffStatusEnum.DELETED.equals(rowStatus))
-                            fieldValue.setStatus(DiffStatusEnum.DELETED);
-                        else {
-                            Object oldValue = fieldValue.getOldValue();
-                            Object newValue = fieldValue.getNewValue();
-                            if (oldValue == null && newValue == null)
-                                continue;
-                            if (oldValue == null || newValue == null || !oldValue.equals(newValue)) {
-                                fieldValue.setStatus(DiffStatusEnum.UPDATED);
-                            } else {
-                                //if value is not changed store only new value
-                                fieldValue.setOldValue(null);
-                            }
-                        }
-                    }
-                    rowValues.add(new DiffRowValue(fieldValues, rowStatus));
                 }
             }
-            dataDifference = new DataDifference(new CollectionPage<>(count.intValue(), rowValues, criteria));
+
+            result.add(new DiffRowValue(fieldValues, rowStatus));
         }
-        return dataDifference;
+        return result;
+    }
+
+    private DiffStatusEnum diffFieldValueToStatusEnum(DiffFieldValue value, DiffStatusEnum defaultValue) {
+
+        if (value.getOldValue() == null) {
+            return DiffStatusEnum.INSERTED;
+        }
+
+        if (value.getNewValue() == null) {
+            return DiffStatusEnum.DELETED;
+        }
+
+        if (value.getOldValue().equals(value.getNewValue())) {
+            return DiffStatusEnum.UPDATED;
+        }
+
+        return defaultValue;
     }
 
     private String getFieldValuesFilter(String alias, Map<String, Object> params, Set<List<FieldSearchCriteria>> fieldValuesFilters) {
