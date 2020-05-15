@@ -185,6 +185,12 @@ public class QueryConstants {
     public static final String IS_FIELD_CONTAIN_EMPTY_VALUES = "SELECT exists(SELECT * FROM data.%s WHERE %s.%s IS NULL);";
     public static final String IS_RELATED_VALUE_EXIST = "SELECT exists(SELECT * FROM data.%s where %s.%s = %s)";
 
+    public static final String SELECT_TABLE_EXISTS = "SELECT EXISTS(\n" +
+            "  SELECT 1 \n" +
+            "    FROM \"information_schema\".\"tables\" \n" +
+            "   WHERE table_schema = 'data' \n" +
+            "     AND table_name = :table \n" +
+            ")";
     private static final String SELECT_COLUMN_NAME = "SELECT '\"' || column_name || '\"'\n";
     private static final String FROM_INFO_SCHEMA_COLUMNS = "FROM \"information_schema\".\"columns\"\n";
     private static final String WHERE_TABLE_AND_NOT_SYS_COLUMNS = "WHERE table_name = '%s'\n" +

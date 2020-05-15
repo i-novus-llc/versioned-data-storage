@@ -47,6 +47,14 @@ public interface DraftDataService {
     String applyDraft(String baseStorageCode, String draftCode, LocalDateTime publishTime, LocalDateTime closeTime);
 
     /**
+     * Проверка существования черновика
+     *
+     * @param draftCode таблица черновика
+     * @return Признак существования
+     */
+    boolean draftExists(String draftCode);
+
+    /**
      * Добавление записей в таблицу
      *
      * @param draftCode код черновика

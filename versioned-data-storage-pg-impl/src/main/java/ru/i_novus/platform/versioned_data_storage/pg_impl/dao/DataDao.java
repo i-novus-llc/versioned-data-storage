@@ -401,6 +401,15 @@ public class DataDao {
         entityManager.createNativeQuery(String.format(DROP_TABLE, addDoubleQuotes(tableName))).executeUpdate();
     }
 
+    public boolean tableExists(String tableName) {
+
+        Boolean result = (Boolean) entityManager.createNativeQuery(SELECT_TABLE_EXISTS)
+                .setParameter("table", tableName)
+                .getSingleResult();
+
+        return result != null && result;
+    }
+
     @Transactional
     public void addColumnToTable(String tableName, String name, String type, String defaultValue) {
         if (defaultValue != null)
