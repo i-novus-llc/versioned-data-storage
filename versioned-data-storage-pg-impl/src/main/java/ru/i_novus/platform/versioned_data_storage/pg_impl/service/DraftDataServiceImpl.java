@@ -63,7 +63,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     public String applyDraft(String baseStorageCode, String draftCode, LocalDateTime publishTime, LocalDateTime closeTime) {
 
         if (!draftExists(draftCode))
-            throw new UnsupportedOperationException("draft.table.does.not.exist");
+            throw new IllegalArgumentException("draft.table.does.not.exist");
 
         String newTable = createVersionTable(draftCode);
         List<String> draftFields = dataDao.getFieldNames(draftCode);
