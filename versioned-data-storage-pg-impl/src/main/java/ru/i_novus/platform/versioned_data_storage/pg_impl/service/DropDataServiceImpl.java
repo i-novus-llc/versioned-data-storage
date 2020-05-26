@@ -19,6 +19,12 @@ public class DropDataServiceImpl implements DropDataService {
     }
 
     @Override
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void drop(String storageCode) {
+        dataDao.dropTable(storageCode);
+    }
+
+    @Override
     @Transactional
     public void drop(Set<String> storageCodes) {
         for (String storageCode : storageCodes) {
