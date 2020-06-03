@@ -10,5 +10,7 @@ import java.util.Set;
  */
 public interface DropDataService {
 
+    void drop(String storageCode);
+
     void drop(Set<String> storageCodes);
 }
