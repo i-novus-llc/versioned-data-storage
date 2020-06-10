@@ -1,9 +1,5 @@
 language: java
-
-branches:
-  except:
-    - master
-    - develop
+jdk: openjdk11
 
 before_install:
   - echo $GPG_SECRET_KEYS | base64 --decode | $GPG_EXECUTABLE --import
@@ -12,5 +8,4 @@ install:
   mvn --settings .maven.xml install -Dgpg.skip -DskipTests=true -Dmaven.javadoc.skip=true -B -V
 
 ## Build and release to maven central
-script:
-  mvn --settings .maven.xml clean deploy -DskipTests=true -Prelease -B -U
+script: bash .travis/build.sh
