@@ -9,11 +9,35 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Формат отображения.
+ * <p>
+ * Используется в полях-ссылках.
+ * <p>
+ * <br>
+ * Пример подстановки значений с помощью StringSubstitutor:
+ * <pre>
+ * {@code
+ * StringSubstitutor substitutor = new StringSubstitutor(map, DisplayExpression.PLACEHOLDER_START, DisplayExpression.PLACEHOLDER_END);
+ * substitutor.setValueDelimiter(DisplayExpression.PLACEHOLDER_DEFAULT_SEPARATOR);
+ * String display = substitutor.replace(displayExpression);
+ * }
+ * </pre>
+ */
 public class DisplayExpression implements Serializable {
 
-    public static final String PLACEHOLDER_START = "${";
-    public static final String PLACEHOLDER_END = "}";
-    public static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\$\\{(.+?)(:.*)?}");
+    private static final String VAR_ESCAPE = "$";
+    private static final String VAR_START = "{";
+    private static final String VAR_END = "}";
+    private static final String VAR_DEFAULT = ":";
+
+    public static final String PLACEHOLDER_START = VAR_ESCAPE + VAR_START;
+    public static final String PLACEHOLDER_END = VAR_END;
+    public static final String PLACEHOLDER_DEFAULT_DELIMITER = VAR_DEFAULT;
+
+    private static final String PLACEHOLDER_REGEX = "\\" + VAR_ESCAPE + "\\" + VAR_START +
+            "(.+?)" + "(" + VAR_DEFAULT + ".*)?" + VAR_END;
+    public static final Pattern PLACEHOLDER_PATTERN = Pattern.compile(PLACEHOLDER_REGEX);
 
     private String value;
 
@@ -31,10 +55,13 @@ public class DisplayExpression implements Serializable {
 
     public Map<String, String> getPlaceholders() {
         if (value == null) return Collections.emptyMap();
+
         Map<String, String> placeholders = new HashMap<>();
         Matcher matcher = DisplayExpression.PLACEHOLDER_PATTERN.matcher(value);
         while (matcher.find()) {
-            placeholders.put(matcher.group(1), matcher.group(2) == null ? "" : matcher.group(2).substring(1));
+            placeholders.put(matcher.group(1),
+                    matcher.group(2) == null ? "" : matcher.group(2).substring(VAR_DEFAULT.length())
+            );
         }
         return placeholders;
     }
@@ -52,6 +79,10 @@ public class DisplayExpression implements Serializable {
 
     public static String toPlaceholder(String field) {
         return field == null ? null : PLACEHOLDER_START + field + PLACEHOLDER_END;
+    }
+
+    public static String toPlaceholder(String field, String defaultValue) {
+        return field == null ? null : PLACEHOLDER_START + field + PLACEHOLDER_DEFAULT_DELIMITER + defaultValue + PLACEHOLDER_END;
     }
 
     @Override
