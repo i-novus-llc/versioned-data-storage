@@ -29,10 +29,12 @@ public class SearchDataServiceImpl implements SearchDataService {
 
     @Override
     public CollectionPage<RowValue> getPagedData(DataCriteria criteria) {
+
         if (criteria.getCount() == null) {
             BigInteger count = dataDao.getDataCount(criteria);
             criteria.setCount(count.intValue());
         }
+
         List<RowValue> data = dataDao.getData(criteria);
         return new CollectionPage<>(criteria.getCount(), data, criteria);
     }

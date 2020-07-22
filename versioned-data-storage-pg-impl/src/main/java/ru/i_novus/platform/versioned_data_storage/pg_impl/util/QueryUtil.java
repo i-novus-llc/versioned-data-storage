@@ -13,7 +13,9 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
-import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.DATA_SCHEME_NAME;
+import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.REFERENCE_FIELD_VALUE_OPERATOR;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.SQL_ALIAS_OPERATOR;
 
 /**
  * @author lgalimova
@@ -28,13 +30,14 @@ public class QueryUtil {
      * Преобразование полученных данных в список записей.
      * <p>
      * При получении всех данных необходимо использовать
-     * совместно с {@link #generateSqlQuery} при {@code includeReference} = true.
+     * совместно с {@link #generateSqlQuery} при {@code detailed} = true.
      *
      * @param fields список полей
      * @param data   список данных
      * @return Список записей
      */
     public static List<RowValue> convertToRowValue(List<Field> fields, List<Object[]> data) {
+
         List<RowValue> resultData = new ArrayList<>(data.size());
         for (Object objects : data) {
             LongRowValue rowValue = new LongRowValue();
@@ -50,7 +53,7 @@ public class QueryUtil {
                     if (i == 0) { // SYS_RECORD_ID
                         rowValue.setSystemId(Long.parseLong(row[i].toString()));
 
-                    } else if (i == 1) { // SYS_HASH
+                    } else if (i == 1 && SYS_HASH.equals(field.getName())) { // SYS_HASH
                         rowValue.setHash(row[i].toString());
 
                     } else { // FIELD
@@ -125,6 +128,7 @@ public class QueryUtil {
      * @param detailed отображение дополнительных частей составных полей
      */
     public static String generateSqlQuery(String alias, List<Field> fields, boolean detailed) {
+
         if (StringUtils.isEmpty(alias))
             alias = "";
 
@@ -133,21 +137,39 @@ public class QueryUtil {
             String query = formatFieldForQuery(field.getName(), alias);
 
             if (field instanceof ReferenceField) {
-                String queryValue = query + "->>'value' as " + addDoubleQuotes(alias + field.getName() + ".value");
+                final String jsonOperator = "->>";
+
+                String queryValue = query + jsonOperator +
+                        addSingleQuotes(REFERENCE_VALUE_NAME) +
+                        SQL_ALIAS_OPERATOR +
+                        sqlFieldAlias(field, alias, REFERENCE_VALUE_NAME);
                 queryFields.add(queryValue);
+
                 if (detailed) {
-                    String queryDisplayValue = query + "->>'displayValue' as " + addDoubleQuotes(alias + field.getName() + ".displayValue");
+                    String queryDisplayValue = query + jsonOperator +
+                            addSingleQuotes(REFERENCE_DISPLAY_VALUE_NAME) +
+                            SQL_ALIAS_OPERATOR +
+                            sqlFieldAlias(field, alias, REFERENCE_DISPLAY_VALUE_NAME);
                     queryFields.add(queryDisplayValue);
                 }
             } else {
                 if (field instanceof TreeField) {
                     query += "\\:\\:text";
                 }
-                query += " as " + addDoubleQuotes(alias + field.getName() + fields.indexOf(field));
+                query += SQL_ALIAS_OPERATOR +
+                        sqlFieldAlias(field, alias, fields.indexOf(field));
                 queryFields.add(query);
             }
         }
         return String.join(",", queryFields);
+    }
+
+    private static String sqlFieldAlias(Field<?> field, String prefix, String suffix) {
+        return addDoubleQuotes(prefix + field.getName() + "." + suffix);
+    }
+
+    private static String sqlFieldAlias(Field<?> field, String prefix, int index) {
+        return addDoubleQuotes(prefix + field.getName() + index);
     }
 
     public static String formatFieldForQuery(String field, String alias) {
@@ -155,11 +177,11 @@ public class QueryUtil {
         if (!StringUtils.isEmpty(alias))
             alias = alias + ".";
 
-        if (field.contains("->>")) {
-            String[] queryParts = field.split("->>");
+        if (field.contains(REFERENCE_FIELD_VALUE_OPERATOR)) {
+            String[] queryParts = field.split(REFERENCE_FIELD_VALUE_OPERATOR);
 
-            return alias + addDoubleQuotes(queryParts[0]) + "->>" + queryParts[1];
-
+            return alias + addDoubleQuotes(queryParts[0]) +
+                    REFERENCE_FIELD_VALUE_OPERATOR + queryParts[1];
         } else {
             return alias + addDoubleQuotes(field);
         }
@@ -173,21 +195,12 @@ public class QueryUtil {
         return "'" + source + "'";
     }
 
-    public static String formatJsonbAttrValueForMapping(String field) {
-        if (!field.contains("->>"))
-            return field;
-        else {
-            String[] parts = field.split("->>");
-            return parts[0] + "." + StringUtils.strip(parts[1], "'").toUpperCase();
-        }
-    }
-
     public static String getTableName(String table) {
         return addDoubleQuotes(table);
     }
 
     public static String getSequenceName(String table) {
-        return addDoubleQuotes(table + "_SYS_RECORDID_seq");
+        return addDoubleQuotes(table + "_" + SYS_PRIMARY_COLUMN + "_seq");
     }
 
     public static String getSchemeTableName(String table) {
@@ -203,9 +216,11 @@ public class QueryUtil {
     }
 
     public static int getOffset(Criteria criteria) {
+
         if (criteria != null) {
             if (criteria.getPage() <= 0 || criteria.getSize() <= 0)
                 throw new IllegalStateException("Criteria page and size should be greater than zero");
+
             return (criteria.getPage() - 1) * criteria.getSize();
         }
         return 0;
@@ -284,11 +299,13 @@ public class QueryUtil {
      * @return Текст для подстановки в SQL
      */
     public static String sqlDisplayExpression(DisplayExpression displayExpression, String table) {
+
         String sqlDisplayExpression = escapeSql(displayExpression.getValue());
         Map<String, String> map = new HashMap<>();
         for (Map.Entry<String, String> e : displayExpression.getPlaceholders().entrySet()) {
-            map.put(e.getKey(), "' || COALESCE(" + table + "." + addDoubleQuotes(e.getKey()) + "\\:\\:TEXT, '" + e.getValue() + "') || '");
+            map.put(e.getKey(), "' || coalesce(" + table + "." + addDoubleQuotes(e.getKey()) + "\\:\\:text, '" + e.getValue() + "') || '");
         }
+
         return addSingleQuotes(StrSubstitutor.replace(sqlDisplayExpression, map));
     }
 

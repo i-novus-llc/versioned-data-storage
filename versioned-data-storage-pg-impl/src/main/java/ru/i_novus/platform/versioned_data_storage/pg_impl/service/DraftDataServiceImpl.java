@@ -3,8 +3,8 @@ package ru.i_novus.platform.versioned_data_storage.pg_impl.service;
 import org.apache.commons.lang3.BooleanUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.CollectionUtils;
 import ru.i_novus.components.common.exception.CodifiedException;
+import ru.i_novus.platform.datastorage.temporal.CollectionUtils;
 import ru.i_novus.platform.datastorage.temporal.exception.ListCodifiedException;
 import ru.i_novus.platform.datastorage.temporal.exception.NotUniqueException;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
@@ -24,8 +24,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.Optional.of;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.ExceptionCodes.*;
 import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.ExceptionCodes.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.addDoubleQuotes;
 
@@ -187,35 +187,40 @@ public class DraftDataServiceImpl implements DraftDataService {
         dataDao.dropTrigger(draftCode);
         String defaultValue = (field instanceof BooleanField) ? "false" : null;
         dataDao.addColumnToTable(draftCode, field.getName(), field.getType(), defaultValue);
-        dataDao.createTrigger(draftCode);
+        dataDao.createTriggers(draftCode);
         dataDao.updateHashRows(draftCode);
     }
 
     @Transactional
     @Override
     public void deleteField(String draftCode, String fieldName) {
-        if (!dataDao.getFieldNames(draftCode).contains(addDoubleQuotes(fieldName)))
+
+        List<String> draftFields = dataDao.getFieldNames(draftCode);
+        if (!draftFields.contains(addDoubleQuotes(fieldName)))
             throw new CodifiedException(COLUMN_NOT_EXISTS);
 
         dataDao.dropTrigger(draftCode);
         dataDao.deleteColumnFromTable(draftCode, fieldName);
         dataDao.deleteEmptyRows(draftCode);
 
-        if (!CollectionUtils.isEmpty(dataDao.getFieldNames(draftCode))) {
-            dataDao.createTrigger(draftCode);
-            try {
-                dataDao.updateHashRows(draftCode);
+        draftFields = dataDao.getFieldNames(draftCode);
+        if (CollectionUtils.isNullOrEmpty(draftFields))
+            return;
 
-            } catch (PersistenceException pe) {
-                processNotUniqueRowException(pe);
-            }
-            dataDao.updateFtsRows(draftCode);
+        dataDao.createTriggers(draftCode);
+        try {
+            dataDao.updateHashRows(draftCode);
+
+        } catch (PersistenceException pe) {
+            processNotUniqueRowException(pe);
         }
+        dataDao.updateFtsRows(draftCode);
     }
 
     @Transactional
     @Override
     public void updateField(String draftCode, Field field) {
+
         String oldType = dataDao.getFieldType(draftCode, field.getName());
         String newType = field.getType();
         if (oldType.equals(newType))
@@ -224,7 +229,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         try {
             dataDao.dropTrigger(draftCode);
             dataDao.alterDataType(draftCode, field.getName(), oldType, newType);
-            dataDao.createTrigger(draftCode);
+            dataDao.createTriggers(draftCode);
 
         } catch (PersistenceException pe) {
             throw new CodifiedException(INCOMPATIBLE_NEW_DATA_TYPE_EXCEPTION_CODE, pe, field.getName());
@@ -259,6 +264,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     private void createDraftTable(String draftCode, List<Field> fields) {
+
         //todo никак не учитывается Field.unique - уникальность в рамках черновика
         logger.debug("creating table with name: {}", draftCode);
         dataDao.createDraftTable(draftCode, fields);
@@ -270,7 +276,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         Collections.sort(fieldNames);
 
         if (!fields.isEmpty()) {
-            dataDao.createTrigger(draftCode, fieldNames);
+            dataDao.createTriggers(draftCode, fieldNames);
             for (Field field : fields) {
                 if (field instanceof TreeField)
                     dataDao.createLtreeIndex(draftCode, field.getName());
@@ -291,7 +297,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         dataDao.addColumnToTable(newTable, SYS_CLOSETIME, "timestamp without time zone", MAX_DATETIME_VALUE);
         dataDao.createIndex(newTable, addDoubleQuotes(newTable + "_SYSDATE_idx"), Arrays.asList(SYS_PUBLISHTIME, SYS_CLOSETIME));
         List<String> fieldNames = dataDao.getHashUsedFieldNames(newTable);
-        dataDao.createTrigger(newTable, fieldNames);
+        dataDao.createTriggers(newTable, fieldNames);
         return newTable;
     }
 
@@ -300,6 +306,7 @@ public class DraftDataServiceImpl implements DraftDataService {
      * есть SYS_HASH (draftTable join actualVersionTable по SYS_HASH)
      */
     private void insertActualDataFromVersion(String actualVersionTable, String draftTable, String newTable, List<String> columns, LocalDateTime publishTime, LocalDateTime closeTime) {
+
         BigInteger count = dataDao.countActualDataFromVersion(actualVersionTable, draftTable, publishTime, closeTime);
         Map<String, String> columnsWithType = new LinkedHashMap<>();
         columns.forEach(column -> columnsWithType.put(column, dataDao.getFieldType(actualVersionTable, column.replaceAll("\"", ""))));
@@ -313,6 +320,7 @@ public class DraftDataServiceImpl implements DraftDataService {
      * нет SYS_HASH (из actualVersionTable те, которых нет в draftTable
      */
     private void insertOldDataFromVersion(String actualVersionTable, String draftTable, String newTable, List<String> columns, LocalDateTime publishTime, LocalDateTime closeTime) {
+
         BigInteger count = dataDao.countOldDataFromVersion(actualVersionTable, draftTable, publishTime, closeTime);
         for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
             dataDao.insertOldDataFromVersion(newTable, actualVersionTable, draftTable, columns, i, TRANSACTION_SIZE, publishTime, closeTime);
@@ -351,6 +359,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     private void processNotUniqueRowException(PersistenceException pe) {
+
         //Обработка кода ошибки о нарушении уникальности в postgres
         SQLException sqlException = (SQLException) of(pe).map(Throwable::getCause).map(Throwable::getCause)
                 .filter(e -> e instanceof SQLException).orElse(null);
@@ -359,5 +368,4 @@ public class DraftDataServiceImpl implements DraftDataService {
         }
         throw pe;
     }
-
 }

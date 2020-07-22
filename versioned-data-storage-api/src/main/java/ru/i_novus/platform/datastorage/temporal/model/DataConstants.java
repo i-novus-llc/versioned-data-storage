@@ -12,6 +12,9 @@ public class DataConstants {
     public static final String SYS_PATH = "SYS_PATH";
     public static final String SYS_FULL_TEXT_SEARCH = "FTS";
 
+    public static final String REFERENCE_VALUE_NAME = "value";
+    public static final String REFERENCE_DISPLAY_VALUE_NAME = "displayValue";
+
     private DataConstants() {
     }
 }

@@ -21,11 +21,11 @@ public interface DataDao {
 
     List<RowValue> getData(DataCriteria criteria);
 
-    List<String> getNotExists(String tableName, LocalDateTime bdate, LocalDateTime edate, List<String> hashList);
-
     RowValue getRowData(String tableName, List<String> fieldNames, Object systemId);
 
     List<RowValue> getRowData(String tableName, List<String> fieldNames, List<Object> systemIds);
+
+    List<String> getNotExists(String tableName, LocalDateTime bdate, LocalDateTime edate, List<String> hashList);
 
     boolean tableStructureEquals(String tableName1, String tableName2);
 
@@ -89,10 +89,10 @@ public interface DataDao {
     void updateSequence(String tableName);
 
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    void createTrigger(String tableName);
+    void createTriggers(String tableName);
 
     @Transactional
-    void createTrigger(String tableName, List<String> fields);
+    void createTriggers(String tableName, List<String> fields);
 
     @Transactional
     void updateHashRows(String tableName);

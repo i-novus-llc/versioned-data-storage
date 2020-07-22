@@ -20,7 +20,6 @@ public class VersionedDataStorageConfig {
     @PersistenceContext
     private EntityManager entityManager;
 
-
     @Bean
     public DataDao dataDao() {
         return new DataDaoImpl(entityManager);
