@@ -60,7 +60,8 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     @Override
     @Transactional(Transactional.TxType.NOT_SUPPORTED)
-    public String applyDraft(String baseStorageCode, String draftCode, LocalDateTime publishTime, LocalDateTime closeTime) {
+    public String applyDraft(String baseStorageCode, String draftCode,
+                             LocalDateTime publishTime, LocalDateTime closeTime) {
 
         if (!draftExists(draftCode))
             throw new IllegalArgumentException("draft.table.does.not.exist");
@@ -79,7 +80,7 @@ public class DraftDataServiceImpl implements DraftDataService {
             BigInteger count = dataDao.countData(draftCode);
             draftFields.add(addDoubleQuotes("FTS"));
             for (int i = 0; i < count.intValue(); i += TRANSACTION_SIZE) {
-                dataDao.insertDataFromDraft(draftCode, i, newTable, TRANSACTION_SIZE, publishTime, closeTime, draftFields);
+                dataDao.insertDataFromDraft(draftCode, newTable, draftFields, i, TRANSACTION_SIZE, publishTime, closeTime);
             }
         }
         return newTable;

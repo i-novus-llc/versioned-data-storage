@@ -44,7 +44,8 @@ public interface DraftDataService {
      * @param closeTime       дата и время завершения действия версии
      * @return Уникальный код хранилища данных, созданного в результате слияния данных исходного хранилища и черновика
      */
-    String applyDraft(String baseStorageCode, String draftCode, LocalDateTime publishTime, LocalDateTime closeTime);
+    String applyDraft(String baseStorageCode, String draftCode,
+                      LocalDateTime publishTime, LocalDateTime closeTime);
 
     /**
      * Проверка существования черновика

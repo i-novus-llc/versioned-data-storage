@@ -1,6 +1,7 @@
 package ru.i_novus.platform.versioned_data_storage;
 
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDaoImpl;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
@@ -20,6 +21,6 @@ public class DataDaoFactory implements Serializable {
 
     @Produces
     public DataDao getDataDao() {
-        return new DataDao(em);
+        return new DataDaoImpl(em);
     }
 }

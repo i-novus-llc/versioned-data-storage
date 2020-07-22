@@ -113,7 +113,7 @@ public class QueryUtil {
      * @param fieldValue значение поля
      * @return Отсутствие значения
      */
-    public static boolean isFieldValueNull(FieldValue fieldValue) {
+    public static boolean isFieldValueNull(FieldValue<?> fieldValue) {
         return fieldValue.getValue() == null || fieldValue.getValue().equals("null");
     }
 
@@ -129,7 +129,7 @@ public class QueryUtil {
             alias = "";
 
         List<String> queryFields = new ArrayList<>();
-        for (Field field : fields) {
+        for (Field<?> field : fields) {
             String query = formatFieldForQuery(field.getName(), alias);
 
             if (field instanceof ReferenceField) {
@@ -151,11 +151,15 @@ public class QueryUtil {
     }
 
     public static String formatFieldForQuery(String field, String alias) {
+
         if (!StringUtils.isEmpty(alias))
             alias = alias + ".";
+
         if (field.contains("->>")) {
             String[] queryParts = field.split("->>");
+
             return alias + addDoubleQuotes(queryParts[0]) + "->>" + queryParts[1];
+
         } else {
             return alias + addDoubleQuotes(field);
         }
