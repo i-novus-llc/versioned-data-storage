@@ -7,7 +7,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.i_novus.platform.datastorage.temporal.CollectionUtils;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffReturnTypeEnum;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
 import ru.i_novus.platform.datastorage.temporal.enums.ReferenceDisplayType;
@@ -28,13 +27,13 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Collections.*;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static org.springframework.util.CollectionUtils.isEmpty;
+import static ru.i_novus.platform.datastorage.temporal.CollectionUtils.isNullOrEmpty;
 import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.*;
@@ -88,7 +87,7 @@ public class DataDaoImpl implements DataDao {
         }
         queryWithParams.concat(whereClause);
 
-        Sorting sorting = !CollectionUtils.isNullOrEmpty(criteria.getSortings()) ? criteria.getSortings().get(0) : null;
+        Sorting sorting = !isNullOrEmpty(criteria.getSortings()) ? criteria.getSortings().get(0) : null;
         String orderBy = sortingToOrderBy(sorting, DEFAULT_TABLE_ALIAS);
         queryWithParams.concat(new QueryWithParams(orderBy, null));
 
@@ -111,7 +110,7 @@ public class DataDaoImpl implements DataDao {
         String keys = generateSqlQuery(null, fields, true);
         String sql = String.format(SELECT_ROWS_FROM_DATA_BY_FIELD,
                 keys,
-                DATA_SCHEME_NAME,
+                DATA_SCHEMA_NAME,
                 addDoubleQuotes(tableName),
                 addDoubleQuotes(SYS_PRIMARY_COLUMN),
                 QUERY_VALUE_SUBST);
@@ -137,7 +136,7 @@ public class DataDaoImpl implements DataDao {
         String keys = generateSqlQuery(null, fields, true);
         String sql = String.format(SELECT_ROWS_FROM_DATA_BY_FIELD_LIST,
                 keys,
-                DATA_SCHEME_NAME,
+                DATA_SCHEMA_NAME,
                 addDoubleQuotes(tableName),
                 addDoubleQuotes(SYS_PRIMARY_COLUMN),
                 QUERY_VALUE_SUBST);
@@ -189,6 +188,7 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     public boolean tableStructureEquals(String tableName1, String tableName2) {
+
         Map<String, String> dataTypes1 = getColumnDataTypes(tableName1);
         Map<String, String> dataTypes2 = getColumnDataTypes(tableName2);
         return dataTypes1.equals(dataTypes2);
@@ -255,7 +255,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     private QueryWithParams getDataWhereClause(LocalDateTime publishDate, LocalDateTime closeDate,
-                                               String search, Set<List<FieldSearchCriteria>> filters,
+                                               String search, Set<List<FieldSearchCriteria>> fieldFilters,
                                                List<Long> rowSystemIds) {
 
         Map<String, Object> params = new HashMap<>();
@@ -271,129 +271,192 @@ public class DataDaoImpl implements DataDao {
         }
 
         QueryWithParams query = new QueryWithParams(result, params);
-        query.concat(getDictionaryFilterQuery(search, filters, rowSystemIds, null));
+        query.concat(getDictionaryFilterQuery(search, fieldFilters, rowSystemIds, null));
         return query;
     }
 
-    private QueryWithParams getDictionaryFilterQuery(String search, Set<List<FieldSearchCriteria>> filters, List<Long> systemIds, String alias) {
+    private QueryWithParams getDictionaryFilterQuery(String search,
+                                                     Set<List<FieldSearchCriteria>> fieldFilters,
+                                                     List<Long> systemIds, String alias) {
 
-        Map<String, Object> params = new HashMap<>();
+        QueryWithParams query = new QueryWithParams();
+        query.concat(getDataWhereBySearch(search, alias));
+        query.concat(getDataWhereByFilters(fieldFilters, alias));
+        query.concat(getDataWhereBySystemIds(systemIds, alias));
+
+        return query;
+    }
+
+    private QueryWithParams getDataWhereBySearch(String search, String alias) {
+
+        search = search != null ? search.trim() : null;
+        if (StringUtils.isEmpty(search))
+            return null;
+
         String sql = "";
-        if (!StringUtils.isEmpty(search)) {
-            //full text search
-            search = search.trim();
-            String escapedFtsColumn = addDoubleQuotes(SYS_FULL_TEXT_SEARCH);
-            if (DATE_PATTERN.matcher(search).matches()) {
-                sql += " and (" + escapedFtsColumn + " @@ to_tsquery(:search) or " + escapedFtsColumn + " @@ to_tsquery(:reverseSearch) ) ";
-                String[] dateArr = search.split("\\.");
-                String reverseSearch = dateArr[2] + "-" + dateArr[1] + "-" + dateArr[0];
-                params.put("search", search.trim());
-                params.put("reverseSearch", reverseSearch);
-            } else {
-                String formattedSearch = search.toLowerCase().replaceAll(":", "\\\\:").replaceAll("/", "\\\\/").replace(" ", "+");
-                sql += " and (" + escapedFtsColumn + " @@ to_tsquery(:formattedSearch||':*') or " + escapedFtsColumn + " @@ to_tsquery('ru', :formattedSearch||':*') or " + escapedFtsColumn + " @@ to_tsquery('ru', :original||':*')) ";
-                params.put("formattedSearch", "'" + formattedSearch + "'");
-                params.put("original", "'''" + search + "'''");
-            }
-        } else if (!CollectionUtils.isNullOrEmpty(filters)) {
-            filters = preprocessFilters(filters);
-            final int[] i = {-1};
-            sql += filters.stream().map(listOfFilters -> {
-                if (isEmpty(listOfFilters))
-                    return "";
-                String filter = "1 = 1";
-                for (FieldSearchCriteria searchCriteria : listOfFilters) {
-                    i[0]++;
-                    Field field = searchCriteria.getField();
+        Map<String, Object> params = new HashMap<>();
 
-                    String fieldName = searchCriteria.getField().getName();
-                    String escapedFieldName = addDoubleQuotes(fieldName);
-                    if (alias != null && !"".equals(alias))
-                        escapedFieldName = alias + "." + escapedFieldName;
+        // full text search
+        String escapedFtsColumn = getTableFieldName(alias, SYS_FULL_TEXT_SEARCH);
+        if (DATE_PATTERN.matcher(search).matches()) {
+            sql += " and (" +
+                    escapedFtsColumn + " @@ to_tsquery(:search) or " +
+                    escapedFtsColumn + " @@ to_tsquery(:reverseSearch) ) ";
+            String[] dateArr = search.split("\\.");
+            String reverseSearch = dateArr[2] + "-" + dateArr[1] + "-" + dateArr[0];
+            params.put("search", search.trim());
+            params.put("reverseSearch", reverseSearch);
 
-                    if (searchCriteria.getValues() == null || searchCriteria.getValues().get(0) == null) {
-                        filter += " and " + escapedFieldName + " is null";
-                    } else if (field instanceof IntegerField || field instanceof FloatField || field instanceof DateField) {
-                        filter += " and " + escapedFieldName + " in (:" + fieldName + i[0] + ")";
-                        params.put(fieldName + i[0], searchCriteria.getValues());
-                    } else if (field instanceof ReferenceField) {
-                        filter += " and " + escapedFieldName + "->> 'value' in (:" + fieldName + i[0] + ")";
-                        params.put(fieldName + i[0], searchCriteria.getValues().stream().map(Object::toString).collect(Collectors.toList()));
-                    } else if (field instanceof TreeField) {
-                        if (SearchTypeEnum.LESS.equals(searchCriteria.getType())) {
-                            filter += " and " + escapedFieldName + "@> (cast(:" + fieldName + i[0] + " AS ltree[]))";
-                            String v = searchCriteria.getValues().stream()
-                                    .map(Object::toString)
-                                    .collect(joining(",", "{", "}"));
-                            params.put(fieldName + i[0], v);
-                        }
-                    } else if (field instanceof BooleanField) {
-                        if (searchCriteria.getValues().size() == 1) {
-                            filter += " and " + escapedFieldName +
-                                    ((Boolean) (searchCriteria.getValues().get(0)) ? " IS TRUE " : " IS NOT TRUE");
-                        }
-                    } else if (field instanceof StringField) {
-                        if (SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && searchCriteria.getValues().size() == 1) {
-                            filter += " and lower(" + escapedFieldName + ") like :" + fieldName + i[0] + "";
-                            params.put(fieldName + i[0], "%" + searchCriteria.getValues().get(0).toString().trim().toLowerCase() + "%");
-                        } else {
-                            filter += " and " + escapedFieldName + " in (:" + fieldName + i[0] + ")";
-                            params.put(fieldName + i[0], searchCriteria.getValues());
-                        }
-                    } else {
-                        params.put(fieldName + i[0], searchCriteria.getValues());
-                    }
-                }
-                return filter;
+        } else {
+            String formattedSearch = search.toLowerCase()
+                    .replaceAll(":", "\\\\:")
+                    .replaceAll("/", "\\\\/")
+                    .replace(" ", "+");
+            sql += " and (" + escapedFtsColumn + " @@ to_tsquery(:formattedSearch||':*') or " +
+                    escapedFtsColumn + " @@ to_tsquery('ru', :formattedSearch||':*') or " +
+                    escapedFtsColumn + " @@ to_tsquery('ru', :original||':*')) ";
+            params.put("formattedSearch", "'" + formattedSearch + "'");
+            params.put("original", "'''" + search + "'''");
 
-            }).collect(joining(" or "));
-
-            if (!"".equals(sql))
-                sql = " and (" + sql + ")";
-        }
-
-        if (!isEmpty(systemIds)) {
-            sql += " and (\"" + SYS_PRIMARY_COLUMN + "\" in (:systemIds))";
-            params.put("systemIds", systemIds);
         }
 
         return new QueryWithParams(sql, params);
     }
 
-    private Set<List<FieldSearchCriteria>> preprocessFilters(Set<List<FieldSearchCriteria>> filters) {
+    private QueryWithParams getDataWhereByFilters(Set<List<FieldSearchCriteria>> fieldFilters, String alias) {
+
+        if (isNullOrEmpty(fieldFilters))
+            return null;
+
+        String sql = "";
+        Map<String, Object> params = new HashMap<>();
+
+        fieldFilters = prepareFilters(fieldFilters);
+        final int[] i = {-1};
+        sql += fieldFilters.stream().map(list -> {
+            if (isEmpty(list))
+                return null;
+
+            List<String> filters = new ArrayList<>();
+            for (FieldSearchCriteria searchCriteria : list) {
+                i[0]++;
+                toWhereClauseByFilter(searchCriteria, i[0], alias, filters, params);
+            }
+
+            if (filters.isEmpty())
+                return null;
+
+            return WHERE_DEFAULT + String.join("\n", filters);
+        })
+                .filter(Objects::nonNull)
+                .collect(joining(" or "));
+
+        if (!"".equals(sql))
+            sql = " and (" + sql + ")";
+
+        return new QueryWithParams(sql, params);
+    }
+
+    private void toWhereClauseByFilter(FieldSearchCriteria searchCriteria,
+                                       int index, String alias,
+                                       List<String> filters, Map<String, Object> params) {
+
+        Field field = searchCriteria.getField();
+
+        String fieldName = searchCriteria.getField().getName();
+        String escapedFieldName = getTableFieldName(alias, fieldName);
+
+        if (searchCriteria.getValues() == null || searchCriteria.getValues().get(0) == null) {
+            filters.add(" and " + escapedFieldName + " is null");
+
+            return;
+        }
+
+        String indexedFieldName = fieldName + index;
+
+        if (field instanceof IntegerField || field instanceof FloatField || field instanceof DateField) {
+            filters.add(" and " + escapedFieldName + " in (:" + indexedFieldName + ")");
+            params.put(indexedFieldName, searchCriteria.getValues());
+
+        } else if (field instanceof ReferenceField) {
+            filters.add(" and " + escapedFieldName + "->> 'value' in (:" + indexedFieldName + ")");
+            params.put(indexedFieldName, searchCriteria.getValues().stream().map(Object::toString).collect(toList()));
+
+        } else if (field instanceof TreeField) {
+            if (SearchTypeEnum.LESS.equals(searchCriteria.getType())) {
+                filters.add(" and " + escapedFieldName + "@> (cast(:" + indexedFieldName + " AS ltree[]))");
+                String v = searchCriteria.getValues().stream()
+                        .map(Object::toString)
+                        .collect(joining(",", "{", "}"));
+                params.put(indexedFieldName, v);
+            }
+        } else if (field instanceof BooleanField) {
+            if (searchCriteria.getValues().size() == 1) {
+                filters.add(" and " + escapedFieldName +
+                        (Boolean.TRUE.equals(searchCriteria.getValues().get(0)) ? " IS TRUE " : " IS NOT TRUE")
+                );
+            }
+        } else if (field instanceof StringField) {
+            if (SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && searchCriteria.getValues().size() == 1) {
+                filters.add(" and lower(" + escapedFieldName + ") like :" + indexedFieldName + "");
+                params.put(indexedFieldName, "%" + searchCriteria.getValues().get(0).toString().trim().toLowerCase() + "%");
+            } else {
+                filters.add(" and " + escapedFieldName + " in (:" + indexedFieldName + ")");
+                params.put(indexedFieldName, searchCriteria.getValues());
+            }
+        } else {
+            params.put(indexedFieldName, searchCriteria.getValues());
+        }
+    }
+
+    private QueryWithParams getDataWhereBySystemIds(List<Long> systemIds, String alias) {
+
+        if (isNullOrEmpty(systemIds))
+            return null;
+
+        Map<String, Object> params = new HashMap<>();
+
+        String escapedColumn = getTableFieldName(alias, SYS_PRIMARY_COLUMN);
+        String sql = " and (" + escapedColumn + " in (:systemIds))";
+        params.put("systemIds", systemIds);
+
+        return new QueryWithParams(sql, params);
+    }
+
+    private Set<List<FieldSearchCriteria>> prepareFilters(Set<List<FieldSearchCriteria>> filters) {
 
         Set<List<FieldSearchCriteria>> set = new HashSet<>();
         for (List<FieldSearchCriteria> list : filters) {
-            set.add(groupByFieldAndSearchTypeEnum(list));
+            set.add(groupBySearchType(list));
         }
 
         return set;
     }
 
-    private List<FieldSearchCriteria> groupByFieldAndSearchTypeEnum(List<FieldSearchCriteria> list) {
+    private List<FieldSearchCriteria> groupBySearchType(List<FieldSearchCriteria> list) {
 
-        EnumMap<SearchTypeEnum, Map<String, FieldSearchCriteria>> group = new EnumMap<>(SearchTypeEnum.class);
+        EnumMap<SearchTypeEnum, Map<String, FieldSearchCriteria>> typedGroup = new EnumMap<>(SearchTypeEnum.class);
         for (FieldSearchCriteria criteria : list) {
-            Map<String, FieldSearchCriteria> map = group.computeIfAbsent(criteria.getType(), k -> new HashMap<>());
+            Map<String, FieldSearchCriteria> typedMap = typedGroup.computeIfAbsent(criteria.getType(), k -> new HashMap<>());
 
-            FieldSearchCriteria c = map.get(criteria.getField().getName());
-            if (c == null) {
+            FieldSearchCriteria typedCriteria = typedMap.get(criteria.getField().getName());
+            if (typedCriteria == null) {
                 criteria.setValues(new ArrayList<>(criteria.getValues()));
-                map.put(criteria.getField().getName(), criteria);
+                typedMap.put(criteria.getField().getName(), criteria);
 
             } else {
-                List<Object> unchecked = (List<Object>) c.getValues();
-                unchecked.addAll(criteria.getValues());
+                List<Object> typedValues = (List<Object>) typedCriteria.getValues();
+                typedValues.addAll(criteria.getValues());
             }
         }
 
-        return group.values().stream().map(Map::values).flatMap(Collection::stream).collect(toList());
+        return typedGroup.values().stream().map(Map::values).flatMap(Collection::stream).collect(toList());
     }
 
     @Override
     public BigInteger countData(String tableName) {
 
-        String sql = String.format(SELECT_COUNT_QUERY_TEMPLATE, DATA_SCHEME_NAME, addDoubleQuotes(tableName));
+        String sql = String.format(SELECT_COUNT_QUERY_TEMPLATE, DATA_SCHEMA_NAME, addDoubleQuotes(tableName));
         return (BigInteger) entityManager.createNativeQuery(sql).getSingleResult();
     }
 
@@ -402,7 +465,7 @@ public class DataDaoImpl implements DataDao {
     public void createDraftTable(String tableName, List<Field> fields) {
 
         String sql;
-        if (CollectionUtils.isNullOrEmpty(fields)) {
+        if (isNullOrEmpty(fields)) {
             sql = String.format(CREATE_EMPTY_DRAFT_TABLE_TEMPLATE, addDoubleQuotes(tableName), tableName);
 
         } else {
@@ -425,7 +488,7 @@ public class DataDaoImpl implements DataDao {
         entityManager.createNativeQuery(ddlCopyTable).executeUpdate();
 
         String ddlCreateSequence = String.format("CREATE SEQUENCE %1$s.\"%2$s_%3$s_seq\" start 1",
-                DATA_SCHEME_NAME,
+                DATA_SCHEMA_NAME,
                 newTableName,
                 SYS_PRIMARY_COLUMN);
         entityManager.createNativeQuery(ddlCreateSequence).executeUpdate();
@@ -441,13 +504,13 @@ public class DataDaoImpl implements DataDao {
         createHashIndex(newTableName);
 
         String ddlAddPrimaryKey = String.format("ALTER TABLE %1$s.%2$s ADD PRIMARY KEY (\"%3$s\");",
-                DATA_SCHEME_NAME,
+                DATA_SCHEMA_NAME,
                 addDoubleQuotes(newTableName),
                 SYS_PRIMARY_COLUMN);
         entityManager.createNativeQuery(ddlAddPrimaryKey).executeUpdate();
 
         String ddlAlterColumn = String.format("ALTER TABLE %1$s.%2$s ALTER COLUMN \"%3$s\" SET DEFAULT nextval('%1$s.\"%4$s_%3$s_seq\"');",
-                DATA_SCHEME_NAME,
+                DATA_SCHEMA_NAME,
                 addDoubleQuotes(newTableName),
                 SYS_PRIMARY_COLUMN,
                 newTableName);
@@ -458,15 +521,16 @@ public class DataDaoImpl implements DataDao {
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void dropTable(String tableName) {
 
-        String ddl = String.format(DROP_TABLE, DATA_SCHEME_NAME, addDoubleQuotes(tableName));
+        String ddl = String.format(DROP_TABLE, DATA_SCHEMA_NAME, addDoubleQuotes(tableName));
         entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
     @Override
-    public boolean tableExists(String tableName) {
+    public boolean tableExists(String schemaName, String tableName) {
 
         Boolean result = (Boolean) entityManager.createNativeQuery(SELECT_TABLE_EXISTS)
-                .setParameter("table", tableName)
+                .setParameter("schemaName", schemaName)
+                .setParameter("tableName", tableName)
                 .getSingleResult();
 
         return result != null && result;
@@ -815,7 +879,7 @@ public class DataDaoImpl implements DataDao {
     public void updateSequence(String tableName) {
 
         String sql = String.format("SELECT setval('%1$s.%2$s', (SELECT max(\"SYS_RECORDID\") FROM %1$s.%3$s))",
-                DATA_SCHEME_NAME, getSequenceName(tableName), addDoubleQuotes(tableName));
+                DATA_SCHEMA_NAME, getSequenceName(tableName), addDoubleQuotes(tableName));
         entityManager.createNativeQuery(sql).getSingleResult();
     }
 
@@ -885,10 +949,10 @@ public class DataDaoImpl implements DataDao {
 
         String escapedTableName = addDoubleQuotes(tableName);
 
-        String dropHashTrigger = String.format(DROP_TRIGGER, HASH_TRIGGER_NAME, DATA_SCHEME_NAME, escapedTableName);
+        String dropHashTrigger = String.format(DROP_TRIGGER, HASH_TRIGGER_NAME, DATA_SCHEMA_NAME, escapedTableName);
         entityManager.createNativeQuery(dropHashTrigger).executeUpdate();
 
-        String dropFtsTrigger = String.format(DROP_TRIGGER, FTS_TRIGGER_NAME, DATA_SCHEME_NAME, escapedTableName);
+        String dropFtsTrigger = String.format(DROP_TRIGGER, FTS_TRIGGER_NAME, DATA_SCHEMA_NAME, escapedTableName);
         entityManager.createNativeQuery(dropFtsTrigger).executeUpdate();
     }
 
@@ -899,7 +963,7 @@ public class DataDaoImpl implements DataDao {
 
         String ddl = String.format(CREATE_TABLE_INDEX,
                 name,
-                DATA_SCHEME_NAME,
+                DATA_SCHEMA_NAME,
                 addDoubleQuotes(tableName),
                 fields.stream().map(QueryUtil::addDoubleQuotes).collect(joining(",")));
         entityManager.createNativeQuery(ddl).executeUpdate();
@@ -911,7 +975,7 @@ public class DataDaoImpl implements DataDao {
 
         String ddl = String.format(CREATE_FTS_INDEX,
                 addDoubleQuotes(tableName + "_fts_idx"),
-                DATA_SCHEME_NAME,
+                DATA_SCHEMA_NAME,
                 addDoubleQuotes(tableName),
                 addDoubleQuotes(SYS_FULL_TEXT_SEARCH));
         entityManager.createNativeQuery(ddl).executeUpdate();
@@ -923,7 +987,7 @@ public class DataDaoImpl implements DataDao {
 
         String ddl = String.format(CREATE_LTREE_INDEX,
                 addDoubleQuotes(tableName + "_" + field.toLowerCase() + "_idx"),
-                DATA_SCHEME_NAME,
+                DATA_SCHEMA_NAME,
                 addDoubleQuotes(tableName),
                 addDoubleQuotes(field));
         entityManager.createNativeQuery(ddl).executeUpdate();
@@ -935,7 +999,7 @@ public class DataDaoImpl implements DataDao {
 
         String ddl = String.format(CREATE_TABLE_INDEX,
                 addDoubleQuotes(tableName + "_sys_hash_ix"),
-                DATA_SCHEME_NAME,
+                DATA_SCHEMA_NAME,
                 addDoubleQuotes(tableName),
                 addDoubleQuotes(SYS_HASH));
         entityManager.createNativeQuery(ddl).executeUpdate();
@@ -1189,8 +1253,8 @@ public class DataDaoImpl implements DataDao {
         placeholderValues.put("closeTime", formatDateTime(closeTime));
         placeholderValues.put("transactionSize", "" + transactionSize);
         placeholderValues.put("offset", "" + offset);
-        placeholderValues.put("sequenceName", getSchemeSequenceName(tableToInsert));
-        placeholderValues.put("tableToInsert", getSchemeTableName(tableToInsert));
+        placeholderValues.put("sequenceName", getSchemaSequenceName(DATA_SCHEMA_NAME, tableToInsert));
+        placeholderValues.put("tableToInsert", getSchemaTableName(DATA_SCHEMA_NAME, tableToInsert));
         placeholderValues.put("rowFields", columnsWithPrefix);
 
         String sql = StrSubstitutor.replace(INSERT_NEW_VAL_FROM_DRAFT_WITH_CLOSE_TIME, placeholderValues);
@@ -1444,11 +1508,15 @@ public class DataDaoImpl implements DataDao {
         return queryWithParams.getSql();
     }
 
-    private class QueryWithParams {
+    private static class QueryWithParams {
 
         private String sql;
 
         private Map<String, Object> params;
+
+        public QueryWithParams() {
+            this("", new HashMap<>());
+        }
 
         public QueryWithParams(String sql, Map<String, Object> params) {
             this.sql = sql;
@@ -1456,14 +1524,24 @@ public class DataDaoImpl implements DataDao {
         }
 
         public void concat(QueryWithParams query) {
+            if (query != null) {
+                concat(query.getSql(), query.getParams());
+            }
+        }
 
-            this.sql = this.sql + " " + query.getSql();
+        public void concat(String sql, Map<String, Object> params) {
 
-            if (this.params == null) {
-                this.params = query.getParams();
+            if (!StringUtils.isEmpty(sql)) {
+                this.sql = this.sql + " " + sql;
+            }
 
-            } else if (query.getParams() != null) {
-                params.putAll(query.getParams());
+            if (!isNullOrEmpty(params)) {
+                if (this.params == null) {
+                    this.params = new HashMap<>(params);
+
+                } else {
+                    this.params.putAll(params);
+                }
             }
         }
 

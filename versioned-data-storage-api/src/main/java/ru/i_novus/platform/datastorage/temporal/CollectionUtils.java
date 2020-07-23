@@ -9,10 +9,6 @@ public class CollectionUtils {
         throw new UnsupportedOperationException();
     }
 
-    public static boolean isNullOrEmpty(final String s) {
-        return s == null || "".equals(s);
-    }
-
     public static boolean isNullOrEmpty(final Collection<?> c) {
         return c == null || c.isEmpty();
     }

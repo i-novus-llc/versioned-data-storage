@@ -46,7 +46,8 @@ public class QueryConstants {
     public static final String REFERENCE_FIELD_VALUE_OPERATOR = "->>";
 
     static final String SELECT_COUNT_ONLY = "SELECT count(*)\n";
-    private static final String SELECT_WHERE = " WHERE 1 = 1\n";
+    static final String WHERE_DEFAULT = "1 = 1";
+    private static final String SELECT_WHERE = " WHERE " + WHERE_DEFAULT + "\n";
     private static final String ORDER_BY_ONE_FIELD = " ORDER BY %s.\"%s\"\n";
     private static final String SELECT_LIMIT = " LIMIT ${limit}";
     private static final String SELECT_OFFSET = " OFFSET ${offset}";
@@ -192,9 +193,10 @@ public class QueryConstants {
     public static final String SELECT_TABLE_EXISTS = "SELECT EXISTS(\n" +
             "  SELECT 1 \n" +
             "    FROM \"information_schema\".\"tables\" \n" +
-            "   WHERE table_schema = 'data' \n" +
-            "     AND table_name = :table \n" +
+            "   WHERE table_schema = :schemaName \n" +
+            "     AND table_name = :tableName \n" +
             ")";
+
     private static final String SELECT_COLUMN_NAME = "SELECT '\"' || column_name || '\"'\n";
     private static final String FROM_INFO_SCHEMA_COLUMNS = "FROM \"information_schema\".\"columns\"\n";
     private static final String WHERE_TABLE_AND_NOT_SYS_COLUMNS = "WHERE table_name = '%s'\n" +

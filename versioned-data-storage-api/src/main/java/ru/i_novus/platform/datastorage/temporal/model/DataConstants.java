@@ -2,7 +2,7 @@ package ru.i_novus.platform.datastorage.temporal.model;
 
 public class DataConstants {
 
-    public static final String DATA_SCHEME_NAME = "data";
+    public static final String DATA_SCHEMA_NAME = "data";
 
     // Системные поля справочников.
     public static final String SYS_PRIMARY_COLUMN = "SYS_RECORDID";
