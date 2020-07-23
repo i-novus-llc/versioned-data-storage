@@ -4,7 +4,6 @@ import ru.i_novus.platform.datastorage.temporal.model.DataDifference;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.CompareDataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
-import ru.i_novus.platform.datastorage.temporal.model.criteria.FieldSearchCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 
@@ -15,11 +14,12 @@ import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public interface DataDao {
 
     List<RowValue> getData(DataCriteria criteria);
+
+    BigInteger getDataCount(DataCriteria criteria);
 
     RowValue getRowData(String tableName, List<String> fieldNames, Object systemId);
 
@@ -30,12 +30,6 @@ public interface DataDao {
     boolean tableStructureEquals(String tableName1, String tableName2);
 
     Map<String, String> getColumnDataTypes(String tableName);
-
-    BigInteger getDataCount(DataCriteria criteria);
-
-    @Deprecated
-    String getDataWhereClauseStr(LocalDateTime publishDate, LocalDateTime closeDate,
-                                 String search, Set<List<FieldSearchCriteria>> filter);
 
     BigInteger countData(String tableName);
 
@@ -48,7 +42,7 @@ public interface DataDao {
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     void dropTable(String tableName);
 
-    boolean tableExists(String tableName);
+    boolean tableExists(String schemaName, String tableName);
 
     @Transactional
     void addColumnToTable(String tableName, String name, String type, String defaultValue);

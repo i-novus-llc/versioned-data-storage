@@ -43,7 +43,7 @@ public class DataDaoImpl implements DataDao {
     private static final Logger logger = LoggerFactory.getLogger(DataDaoImpl.class);
 
     private static final LocalDateTime PG_MAX_TIMESTAMP = LocalDateTime.of(294276, 12, 31, 23, 59);
-    private static final DateTimeFormatter TIMESTAMP_DATE_FORMATTER = DateTimeFormatter.ofPattern(TIMESTAMP_DATE_FORMAT);
+    private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern(DATETIME_FORMAT);
 
     private static final Pattern DATE_PATTERN = Pattern.compile("([0-9]{2})\\.([0-9]{2})\\.([0-9]{4})");
 
@@ -54,12 +54,14 @@ public class DataDaoImpl implements DataDao {
     }
 
     private String formatDateTime(LocalDateTime localDateTime) {
-        return (localDateTime != null) ? localDateTime.format(TIMESTAMP_DATE_FORMATTER) : null;
+        return (localDateTime != null) ? localDateTime.format(DATETIME_FORMATTER) : null;
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public List<RowValue> getData(DataCriteria criteria) {
+
+        final String schemaName = getExistedSchemaName(criteria.getSchemaName());
 
         List<Field> fields = new ArrayList<>(criteria.getFields());
         fields.add(0, new IntegerField(SYS_PRIMARY_COLUMN));
@@ -68,24 +70,13 @@ public class DataDaoImpl implements DataDao {
 
         String keys = generateSqlQuery(DEFAULT_TABLE_ALIAS, fields, true);
 
-        final String sqlFormat = "SELECT %1$s FROM %2$s as %3$s ";
+        final String sqlFormat = "SELECT %1$s \n  FROM %2$s as %3$s ";
         String sql = String.format(sqlFormat, keys,
-                getSchemeTableName(criteria.getTableName()),
+                getSchemaTableName(schemaName, criteria.getTableName()),
                 DEFAULT_TABLE_ALIAS);
-        QueryWithParams queryWithParams = new QueryWithParams(sql, null);
 
-        QueryWithParams whereClause;
-        if (isEmpty(criteria.getHashList())) {
-            whereClause = getDataWhereClause(criteria.getBdate(), criteria.getEdate(),
-                    criteria.getCommonFilter(), criteria.getFieldFilters(), criteria.getSystemIds());
-        } else {
-            Set<List<FieldSearchCriteria>> filters = singleton(singletonList(
-                    new FieldSearchCriteria(new StringField(SYS_HASH), SearchTypeEnum.EXACT, criteria.getHashList())
-            ));
-            whereClause = getDataWhereClause(criteria.getBdate(), criteria.getEdate(),
-                    criteria.getCommonFilter(), filters, emptyList());
-        }
-        queryWithParams.concat(whereClause);
+        QueryWithParams queryWithParams = new QueryWithParams(sql, null);
+        queryWithParams.concat(getCriteriaWhereClause(criteria, DEFAULT_TABLE_ALIAS));
 
         Sorting sorting = !isNullOrEmpty(criteria.getSortings()) ? criteria.getSortings().get(0) : null;
         String orderBy = sortingToOrderBy(sorting, DEFAULT_TABLE_ALIAS);
@@ -99,6 +90,23 @@ public class DataDaoImpl implements DataDao {
 
         List<Object[]> resultList = query.getResultList();
         return convertToRowValue(fields, resultList);
+    }
+
+    @Override
+    public BigInteger getDataCount(DataCriteria criteria) {
+
+        final String schemaName = getExistedSchemaName(criteria.getSchemaName());
+
+        final String sqlFormat = "  FROM %s as %s\n";
+        String sql = SELECT_COUNT_ONLY +
+                String.format(sqlFormat,
+                        getSchemaTableName(schemaName, criteria.getTableName()),
+                        DEFAULT_TABLE_ALIAS);
+
+        QueryWithParams queryWithParams = new QueryWithParams(sql, null);
+        queryWithParams.concat(getCriteriaWhereClause(criteria, DEFAULT_TABLE_ALIAS));
+
+        return (BigInteger) queryWithParams.createQuery(entityManager).getSingleResult();
     }
 
     /** Получение строки данных таблицы по системному идентификатору. */
@@ -175,14 +183,26 @@ public class DataDaoImpl implements DataDao {
             return ":" + hashPlaceHolder;
         }).collect(joining(",")) + "]";
 
-        QueryWithParams whereClause = getDataWhereClause(bdate, edate, null, null, emptyList());
-        String sql = "SELECT hash FROM (" +
-                "SELECT unnest(" + sqlHashArray + ") hash) hashes WHERE hash NOT IN (" +
-                "SELECT " + addDoubleQuotes(SYS_HASH) + " FROM " + getSchemeTableName(tableName) + " as d " +
-                whereClause.getSql() + ")";
-        params.putAll(whereClause.params);
+        QueryWithParams whereByDates = getWhereByDates(bdate, edate, DEFAULT_TABLE_ALIAS);
+        String sqlByDate = (whereByDates == null || StringUtils.isEmpty(whereByDates.getSql())) ? "" : whereByDates.getSql();
 
+        String sql = "SELECT hash \n" +
+                "  FROM (\n" +
+                "    SELECT unnest(" + sqlHashArray + ") hash \n" +
+                "  ) hashes \n" +
+                " WHERE hash NOT IN ( \n" +
+                "   SELECT " + addDoubleQuotes(SYS_HASH) + " \n" +
+                "     FROM " + getSchemaTableName(DATA_SCHEMA_NAME, tableName) +
+                SQL_ALIAS_OPERATOR + DEFAULT_TABLE_ALIAS + " \n" +
+                "    WHERE " + WHERE_DEFAULT +
+                "   " + sqlByDate +
+                " )";
         QueryWithParams queryWithParams = new QueryWithParams(sql, params);
+
+        if (whereByDates != null) {
+            queryWithParams.concat(whereByDates.params);
+        }
+
         return queryWithParams.createQuery(entityManager).getResultList();
     }
 
@@ -221,73 +241,58 @@ public class DataDaoImpl implements DataDao {
         return orderBy + " " + formatFieldForQuery(SYS_PRIMARY_COLUMN, alias);
     }
 
-    @Override
-    public BigInteger getDataCount(DataCriteria criteria) {
+    private QueryWithParams getCriteriaWhereClause(DataCriteria criteria, String alias) {
 
-        final String sqlFormat = "  FROM %s as %s\n";
-        String sql = SELECT_COUNT_ONLY +
-                String.format(sqlFormat, getSchemeTableName(criteria.getTableName()), DEFAULT_TABLE_ALIAS);
-        QueryWithParams queryWithParams = new QueryWithParams(sql, null);
+        DataCriteria whereCriteria = new DataCriteria(criteria);
+        if (!isEmpty(criteria.getHashList())) {
+            // Поиск только по списку hash:
+            Set<List<FieldSearchCriteria>> filters = singleton(singletonList(
+                    new FieldSearchCriteria(new StringField(SYS_HASH), SearchTypeEnum.EXACT, criteria.getHashList())
+            ));
+            whereCriteria.setFieldFilters(filters);
+            whereCriteria.setSystemIds(null);
+            whereCriteria.setHashList(null);
+        }
 
-        QueryWithParams whereClause = getDataWhereClause(criteria.getBdate(), criteria.getEdate(),
-                criteria.getCommonFilter(), criteria.getFieldFilters(), criteria.getSystemIds());
-        queryWithParams.concat(whereClause);
-
-        return (BigInteger) queryWithParams.createQuery(entityManager).getSingleResult();
+        return getWhereClause(whereCriteria, alias);
     }
 
-    /**
-     * @deprecated
-     */
-    @Override
-    @Deprecated
-    public String getDataWhereClauseStr(LocalDateTime publishDate, LocalDateTime closeDate,
-                                        String search, Set<List<FieldSearchCriteria>> filter) {
-        String result = " 1=1 ";
-        if (publishDate != null) {
-            result += " and date_trunc('second', d.\"SYS_PUBLISHTIME\") <= :bdate and (date_trunc('second', d.\"SYS_CLOSETIME\") > :bdate or d.\"SYS_CLOSETIME\" is null)";
-        }
-        if (closeDate != null) {
-            result += " and (date_trunc('second', d.\"SYS_CLOSETIME\") >= :edate or d.\"SYS_CLOSETIME\" is null)";
-        }
-        result += getDictionaryFilterQuery(search, filter, emptyList(), null).getSql();
-        return result;
+    private QueryWithParams getWhereClause(DataCriteria criteria, String alias) {
+
+        QueryWithParams query = new QueryWithParams(SELECT_WHERE, null);
+        query.concat(getWhereByDates(criteria.getBdate(), criteria.getEdate(), alias));
+        query.concat(getWhereByFts(criteria.getCommonFilter(), alias));
+        query.concat(getWhereByFilters(criteria.getFieldFilters(), alias));
+        query.concat(getWhereBySystemIds(criteria.getSystemIds(), alias));
+
+        return query;
     }
 
-    private QueryWithParams getDataWhereClause(LocalDateTime publishDate, LocalDateTime closeDate,
-                                               String search, Set<List<FieldSearchCriteria>> fieldFilters,
-                                               List<Long> rowSystemIds) {
+    private QueryWithParams getWhereByDates(LocalDateTime publishDate, LocalDateTime closeDate, String alias) {
 
+        if (publishDate == null)
+            return null;
+
+        String sql = "";
         Map<String, Object> params = new HashMap<>();
-        String result = " WHERE 1=1 ";
-        if (publishDate != null) {
-            result += " and date_trunc('second', d.\"SYS_PUBLISHTIME\") <= :bdate \n" +
-                    " and (date_trunc('second', d.\"SYS_CLOSETIME\") > :bdate or d.\"SYS_CLOSETIME\" is null)";
-            params.put("bdate", publishDate.truncatedTo(ChronoUnit.SECONDS));
 
-            result += " and (date_trunc('second', d.\"SYS_CLOSETIME\") >= :edate or d.\"SYS_CLOSETIME\" is null)";
-            closeDate = closeDate == null ? PG_MAX_TIMESTAMP : closeDate;
-            params.put("edate", closeDate.truncatedTo(ChronoUnit.SECONDS));
-        }
+        String sqlByPublishDate = " and date_trunc('second', %1$s.%2$s) <= :bdate \n" +
+                " and (date_trunc('second', %1$s.%3$s) > :bdate or %1$s.%3$s is null) \n";
+        sql += String.format(sqlByPublishDate, alias,
+                addDoubleQuotes(SYS_PUBLISHTIME),
+                addDoubleQuotes(SYS_CLOSETIME));
+        params.put("bdate", publishDate.truncatedTo(ChronoUnit.SECONDS));
 
-        QueryWithParams query = new QueryWithParams(result, params);
-        query.concat(getDictionaryFilterQuery(search, fieldFilters, rowSystemIds, null));
-        return query;
+        String sqlByCloseDate = " and (date_trunc('second', %1$s.%2$s) >= :edate or %1$s.%2$s is null) \n";
+        sql += String.format(sqlByCloseDate, alias, addDoubleQuotes(SYS_CLOSETIME));
+
+        closeDate = closeDate == null ? PG_MAX_TIMESTAMP : closeDate;
+        params.put("edate", closeDate.truncatedTo(ChronoUnit.SECONDS));
+
+        return new QueryWithParams(sql, params);
     }
 
-    private QueryWithParams getDictionaryFilterQuery(String search,
-                                                     Set<List<FieldSearchCriteria>> fieldFilters,
-                                                     List<Long> systemIds, String alias) {
-
-        QueryWithParams query = new QueryWithParams();
-        query.concat(getDataWhereBySearch(search, alias));
-        query.concat(getDataWhereByFilters(fieldFilters, alias));
-        query.concat(getDataWhereBySystemIds(systemIds, alias));
-
-        return query;
-    }
-
-    private QueryWithParams getDataWhereBySearch(String search, String alias) {
+    private QueryWithParams getWhereByFts(String search, String alias) {
 
         search = search != null ? search.trim() : null;
         if (StringUtils.isEmpty(search))
@@ -323,7 +328,7 @@ public class DataDaoImpl implements DataDao {
         return new QueryWithParams(sql, params);
     }
 
-    private QueryWithParams getDataWhereByFilters(Set<List<FieldSearchCriteria>> fieldFilters, String alias) {
+    private QueryWithParams getWhereByFilters(Set<List<FieldSearchCriteria>> fieldFilters, String alias) {
 
         if (isNullOrEmpty(fieldFilters))
             return null;
@@ -368,7 +373,6 @@ public class DataDaoImpl implements DataDao {
 
         if (searchCriteria.getValues() == null || searchCriteria.getValues().get(0) == null) {
             filters.add(" and " + escapedFieldName + " is null");
-
             return;
         }
 
@@ -409,20 +413,6 @@ public class DataDaoImpl implements DataDao {
         }
     }
 
-    private QueryWithParams getDataWhereBySystemIds(List<Long> systemIds, String alias) {
-
-        if (isNullOrEmpty(systemIds))
-            return null;
-
-        Map<String, Object> params = new HashMap<>();
-
-        String escapedColumn = getTableFieldName(alias, SYS_PRIMARY_COLUMN);
-        String sql = " and (" + escapedColumn + " in (:systemIds))";
-        params.put("systemIds", systemIds);
-
-        return new QueryWithParams(sql, params);
-    }
-
     private Set<List<FieldSearchCriteria>> prepareFilters(Set<List<FieldSearchCriteria>> filters) {
 
         Set<List<FieldSearchCriteria>> set = new HashSet<>();
@@ -451,6 +441,20 @@ public class DataDaoImpl implements DataDao {
         }
 
         return typedGroup.values().stream().map(Map::values).flatMap(Collection::stream).collect(toList());
+    }
+
+    private QueryWithParams getWhereBySystemIds(List<Long> systemIds, String alias) {
+
+        if (isNullOrEmpty(systemIds))
+            return null;
+
+        Map<String, Object> params = new HashMap<>();
+
+        String escapedColumn = getTableFieldName(alias, SYS_PRIMARY_COLUMN);
+        String sql = " and (" + escapedColumn + " in (:systemIds))";
+        params.put("systemIds", systemIds);
+
+        return new QueryWithParams(sql, params);
     }
 
     @Override
@@ -483,6 +487,7 @@ public class DataDaoImpl implements DataDao {
     public void copyTable(String newTableName, String sourceTableName) {
 
         String ddlCopyTable = String.format(COPY_TABLE_TEMPLATE,
+                DATA_SCHEMA_NAME,
                 addDoubleQuotes(newTableName),
                 addDoubleQuotes(sourceTableName));
         entityManager.createNativeQuery(ddlCopyTable).executeUpdate();
@@ -525,6 +530,24 @@ public class DataDaoImpl implements DataDao {
         entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
+    private boolean schemaExists(String schemaName) {
+
+        Boolean result = (Boolean) entityManager.createNativeQuery(SELECT_SCHEMA_EXISTS)
+                .setParameter("schemaName", schemaName)
+                .getSingleResult();
+
+        return result != null && result;
+    }
+
+    private String getExistedSchemaName(String schemaName) {
+
+        schemaName = getSchemaName(schemaName);
+        if (DATA_SCHEMA_NAME.equals(schemaName) || schemaExists(schemaName))
+            return schemaName;
+
+        return DATA_SCHEMA_NAME;
+    }
+
     @Override
     public boolean tableExists(String schemaName, String tableName) {
 
@@ -542,10 +565,10 @@ public class DataDaoImpl implements DataDao {
 
         String ddl;
         if (defaultValue != null) {
-            ddl = String.format(ADD_NEW_COLUMN_WITH_DEFAULT, tableName, name, type, defaultValue);
+            ddl = String.format(ADD_NEW_COLUMN_WITH_DEFAULT, DATA_SCHEMA_NAME, tableName, name, type, defaultValue);
 
         } else {
-            ddl = String.format(ADD_NEW_COLUMN, tableName, name, type);
+            ddl = String.format(ADD_NEW_COLUMN, DATA_SCHEMA_NAME, tableName, name, type);
         }
 
         entityManager.createNativeQuery(ddl).executeUpdate();
@@ -555,7 +578,7 @@ public class DataDaoImpl implements DataDao {
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void deleteColumnFromTable(String tableName, String field) {
 
-        String ddl = String.format(DELETE_COLUMN, tableName, field);
+        String ddl = String.format(DELETE_COLUMN, DATA_SCHEMA_NAME, tableName, field);
         entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
@@ -645,9 +668,7 @@ public class DataDaoImpl implements DataDao {
                 addDoubleQuotes(sourceStorageCode));
 
         QueryWithParams queryWithParams = new QueryWithParams(sql, null);
-
-        QueryWithParams where = getDataWhereClause(fromDate, toDate, null, null, emptyList());
-        queryWithParams.concat(where);
+        queryWithParams.concat(getWhereByDates(fromDate, toDate, DEFAULT_TABLE_ALIAS));
 
         queryWithParams.createQuery(entityManager).executeUpdate();
     }
@@ -686,14 +707,22 @@ public class DataDaoImpl implements DataDao {
                 throw new UnsupportedOperationException("unknown.reference.dipslay.type");
         }
 
+        QueryWithParams whereByDate = getWhereByDates(refValue.getDate(), null, DEFAULT_TABLE_ALIAS);
+        String sqlDateValue = formatDateTime(refValue.getDate());
+        sqlDateValue = String.format(TO_TIMESTAMP, addSingleQuotes(sqlDateValue)) + TIMESTAMP_NO_TZ;
+        String sqlByDate = (whereByDate == null || StringUtils.isEmpty(whereByDate.getSql()))
+                ? ""
+                : whereByDate.getSql()
+                .replace(":bdate", sqlDateValue)
+                .replace(":edate", "'-infinity'\\:\\:timestamp");
+
         String sql = String.format(REFERENCE_VALUATION_SELECT_EXPRESSION,
                 addDoubleQuotes(refValue.getKeyField()),
                 sqlExpression,
                 addDoubleQuotes(refValue.getStorageCode()),
                 valueSubst,
                 getFieldType(refValue.getStorageCode(), refValue.getKeyField()),
-                getDataWhereClauseStr(refValue.getDate(), null, null, null)
-                        .replace(":bdate", addSingleQuotes(formatDateTime(refValue.getDate())))
+                sqlByDate
         );
 
         return "(" + sql + ")";
@@ -794,7 +823,7 @@ public class DataDaoImpl implements DataDao {
             return BigInteger.ZERO;
 
         Map<String, String> placeholderValues = new HashMap<>();
-        placeholderValues.put("versionTable", getSchemeTableName(tableName));
+        placeholderValues.put("versionTable", getSchemaTableName(DATA_SCHEMA_NAME, tableName));
         placeholderValues.put("refFieldName", addDoubleQuotes(fieldValue.getField()));
 
         String sql = StrSubstitutor.replace(COUNT_REFERENCE_IN_REF_ROWS, placeholderValues);
@@ -817,7 +846,7 @@ public class DataDaoImpl implements DataDao {
         String key = quotedFieldName + " = " + getReferenceValuationSelect(fieldValue, oldFieldValue);
 
         Map<String, String> placeholderValues = new HashMap<>();
-        placeholderValues.put("versionTable", getSchemeTableName(tableName));
+        placeholderValues.put("versionTable", getSchemaTableName(DATA_SCHEMA_NAME, tableName));
         placeholderValues.put("refFieldName", addDoubleQuotes(fieldValue.getField()));
         placeholderValues.put("limit", "" + limit);
         placeholderValues.put("offset", "" + offset);
@@ -855,20 +884,26 @@ public class DataDaoImpl implements DataDao {
     @Override
     public boolean isUnique(String storageCode, List<String> fieldNames, LocalDateTime publishTime) {
 
-        String fields = fieldNames.stream().map(fieldName -> addDoubleQuotes(fieldName) + "\\:\\:text")
+        String fields = fieldNames.stream()
+                .map(fieldName -> addDoubleQuotes(fieldName) + "\\:\\:text")
                 .collect(joining(","));
-        String groupBy = Stream.iterate(1, n -> n + 1).limit(fieldNames.size()).map(String::valueOf)
+        String groupBy = Stream.iterate(1, n -> n + 1).limit(fieldNames.size())
+                .map(String::valueOf)
                 .collect(joining(","));
 
+        QueryWithParams whereByDate = getWhereByDates(publishTime, null, DEFAULT_TABLE_ALIAS);
+        String sqlByDate = (whereByDate == null || StringUtils.isEmpty(whereByDate.getSql())) ? "" : whereByDate.getSql();
+
         String sql = "SELECT " + fields + ", COUNT(*)" + "\n" +
-                "  FROM " + getSchemeTableName(storageCode) + " as " + DEFAULT_TABLE_ALIAS + "\n" +
-                " WHERE " + getDataWhereClauseStr(publishTime, null, null, null) +
+                "  FROM " + getSchemaTableName(DATA_SCHEMA_NAME, storageCode) +
+                " as " + DEFAULT_TABLE_ALIAS + "\n" +
+                " WHERE " + WHERE_DEFAULT + sqlByDate +
                 " GROUP BY " + groupBy + "\n" +
                 "HAVING COUNT(*) > 1";
         Query query = entityManager.createNativeQuery(sql);
 
-        if (publishTime != null)
-            query.setParameter("bdate", publishTime);
+        if (whereByDate != null)
+            whereByDate.fillQueryParameters(query);
 
         return query.getResultList().isEmpty();
     }
@@ -1038,10 +1073,10 @@ public class DataDaoImpl implements DataDao {
         String escapedField = addDoubleQuotes(field);
         String using = "";
         if (DateField.TYPE.equals(oldType) && isVarcharType(newType)) {
-            using = "to_char(" + escapedField + ", '" + DATE_FORMAT_FOR_USING_CONVERTING + "')";
+            using = "to_char(" + escapedField + ", '" + QUERY_DATE_FORMAT + "')";
 
         } else if (DateField.TYPE.equals(newType) && StringField.TYPE.equals(oldType)) {
-            using = "to_date(" + escapedField + ", '" + DATE_FORMAT_FOR_USING_CONVERTING + "')";
+            using = "to_date(" + escapedField + ", '" + QUERY_DATE_FORMAT + "')";
 
         } else if (ReferenceField.TYPE.equals(oldType)) {
             using = "(" + escapedField +
@@ -1061,6 +1096,7 @@ public class DataDaoImpl implements DataDao {
         }
 
         String ddl = String.format(ALTER_COLUMN_WITH_USING,
+                DATA_SCHEMA_NAME,
                 addDoubleQuotes(tableName),
                 escapedField, newType, using);
         entityManager.createNativeQuery(ddl).executeUpdate();
@@ -1092,8 +1128,8 @@ public class DataDaoImpl implements DataDao {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
         Map<String, String> placeholderValues = new HashMap<>();
-        placeholderValues.put("draftTable", getSchemeTableName(draftTable));
-        placeholderValues.put("versionTable", getSchemeTableName(versionTable));
+        placeholderValues.put("draftTable", getSchemaTableName(DATA_SCHEMA_NAME, draftTable));
+        placeholderValues.put("versionTable", getSchemaTableName(DATA_SCHEMA_NAME, versionTable));
         placeholderValues.put("publishTime", formatDateTime(publishTime));
         placeholderValues.put("closeTime", formatDateTime(closeTime));
 
@@ -1116,14 +1152,14 @@ public class DataDaoImpl implements DataDao {
         Map<String, String> placeholderValues = new HashMap<>();
         placeholderValues.put("dColumns", columnsWithPrefixD);
         placeholderValues.put("vValues", columnsWithPrefixValue);
-        placeholderValues.put("draftTable", getSchemeTableName(draftTable));
-        placeholderValues.put("versionTable", getSchemeTableName(versionTable));
+        placeholderValues.put("draftTable", getSchemaTableName(DATA_SCHEMA_NAME, draftTable));
+        placeholderValues.put("versionTable", getSchemaTableName(DATA_SCHEMA_NAME, versionTable));
         placeholderValues.put("publishTime", formatDateTime(publishTime));
         placeholderValues.put("closeTime", formatDateTime(closeTime));
         placeholderValues.put("offset", "" + offset);
         placeholderValues.put("transactionSize", "" + transactionSize);
-        placeholderValues.put("newTableSeqName", getSchemeSequenceName(tableToInsert));
-        placeholderValues.put("tableToInsert", getSchemeTableName(tableToInsert));
+        placeholderValues.put("newTableSeqName", getSchemaSequenceName(DATA_SCHEMA_NAME, tableToInsert));
+        placeholderValues.put("tableToInsert", getSchemaTableName(DATA_SCHEMA_NAME, tableToInsert));
         placeholderValues.put("columns", columnsStr);
         placeholderValues.put("columnsWithType", columnsWithType);
 
@@ -1183,8 +1219,8 @@ public class DataDaoImpl implements DataDao {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
         Map<String, String> placeholderValues = new HashMap<>();
-        placeholderValues.put("versionTable", getSchemeTableName(versionTable));
-        placeholderValues.put("draftTable", getSchemeTableName(draftTable));
+        placeholderValues.put("versionTable", getSchemaTableName(DATA_SCHEMA_NAME, versionTable));
+        placeholderValues.put("draftTable", getSchemaTableName(DATA_SCHEMA_NAME, draftTable));
         placeholderValues.put("publishTime", formatDateTime(publishTime));
         placeholderValues.put("closeTime", formatDateTime(closeTime));
 
@@ -1202,16 +1238,16 @@ public class DataDaoImpl implements DataDao {
         String columnsWithType = columns.keySet().stream().map(s -> s + " " + columns.get(s)).reduce((s1, s2) -> s1 + ", " + s2).get();
 
         Map<String, String> placeholderValues = new HashMap<>();
-        placeholderValues.put("tableToInsert", getSchemeTableName(tableToInsert));
-        placeholderValues.put("draftTable", getSchemeTableName(draftTable));
-        placeholderValues.put("versionTable", getSchemeTableName(versionTable));
+        placeholderValues.put("tableToInsert", getSchemaTableName(DATA_SCHEMA_NAME, tableToInsert));
+        placeholderValues.put("draftTable", getSchemaTableName(DATA_SCHEMA_NAME, draftTable));
+        placeholderValues.put("versionTable", getSchemaTableName(DATA_SCHEMA_NAME, versionTable));
         placeholderValues.put("publishTime", formatDateTime(publishTime));
         placeholderValues.put("closeTime", formatDateTime(closeTime));
         placeholderValues.put("columns", columnsStr);
         placeholderValues.put("offset", "" + offset);
         placeholderValues.put("transactionSize", "" + transactionSize);
         placeholderValues.put("columnsWithType", columnsWithType);
-        placeholderValues.put("sequenceName", getSchemeSequenceName(tableToInsert));
+        placeholderValues.put("sequenceName", getSchemaSequenceName(DATA_SCHEMA_NAME, tableToInsert));
 
         String sql = StrSubstitutor.replace(INSERT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME, placeholderValues);
 
@@ -1227,8 +1263,8 @@ public class DataDaoImpl implements DataDao {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
         Map<String, String> placeholderValues = new HashMap<>();
-        placeholderValues.put("draftTable", getSchemeTableName(draftTable));
-        placeholderValues.put("versionTable", getSchemeTableName(versionTable));
+        placeholderValues.put("draftTable", getSchemaTableName(DATA_SCHEMA_NAME, draftTable));
+        placeholderValues.put("versionTable", getSchemaTableName(DATA_SCHEMA_NAME, versionTable));
         placeholderValues.put("publishTime", formatDateTime(publishTime));
         placeholderValues.put("closeTime", formatDateTime(closeTime));
 
@@ -1247,8 +1283,8 @@ public class DataDaoImpl implements DataDao {
 
         Map<String, String> placeholderValues = new HashMap<>();
         placeholderValues.put("fields", columnsStr);
-        placeholderValues.put("draftTable", getSchemeTableName(draftTable));
-        placeholderValues.put("versionTable", getSchemeTableName(versionTable));
+        placeholderValues.put("draftTable", getSchemaTableName(DATA_SCHEMA_NAME, draftTable));
+        placeholderValues.put("versionTable", getSchemaTableName(DATA_SCHEMA_NAME, versionTable));
         placeholderValues.put("publishTime", formatDateTime(publishTime));
         placeholderValues.put("closeTime", formatDateTime(closeTime));
         placeholderValues.put("transactionSize", "" + transactionSize);
@@ -1358,7 +1394,7 @@ public class DataDaoImpl implements DataDao {
         if (criteria.getOldPublishDate() != null || criteria.getOldCloseDate() != null) {
             oldVersionDateFilter = " and date_trunc('second', t1.\"SYS_PUBLISHTIME\") <= :oldPublishDate\\:\\:timestamp without time zone \n" +
                     " and date_trunc('second', t1.\"SYS_CLOSETIME\") >= :oldCloseDate\\:\\:timestamp without time zone ";
-            params.put("oldPublishDate", truncateDateTo(criteria.getOldPublishDate(), ChronoUnit.SECONDS, MIN_DATETIME_VALUE));
+            params.put("oldPublishDate", truncateDateTo(criteria.getOldPublishDate(), ChronoUnit.SECONDS, MIN_TIMESTAMP_VALUE));
             params.put("oldCloseDate", truncateDateTo(criteria.getOldCloseDate(), ChronoUnit.SECONDS, PG_MAX_TIMESTAMP));
         }
 
@@ -1366,14 +1402,14 @@ public class DataDaoImpl implements DataDao {
         if (criteria.getNewPublishDate() != null || criteria.getNewCloseDate() != null) {
             newVersionDateFilter = " and date_trunc('second', t2.\"SYS_PUBLISHTIME\") <= :newPublishDate\\:\\:timestamp without time zone \n" +
                     " and date_trunc('second', t2.\"SYS_CLOSETIME\") >= :newCloseDate\\:\\:timestamp without time zone ";
-            params.put("newPublishDate", truncateDateTo(criteria.getNewPublishDate(), ChronoUnit.SECONDS, MIN_DATETIME_VALUE));
+            params.put("newPublishDate", truncateDateTo(criteria.getNewPublishDate(), ChronoUnit.SECONDS, MIN_TIMESTAMP_VALUE));
             params.put("newCloseDate", truncateDateTo(criteria.getNewCloseDate(), ChronoUnit.SECONDS, PG_MAX_TIMESTAMP));
         }
 
         String joinType = diffReturnTypeToJoinType(criteria.getReturnType());
 
-        String sql = " from " + getSchemeTableName(oldStorage) + " t1 " + joinType +
-                " join " + getSchemeTableName(newStorage) + " t2 on " + primaryEquality +
+        String sql = " from " + getSchemaTableName(DATA_SCHEMA_NAME, oldStorage) + " t1 " + joinType +
+                " join " + getSchemaTableName(DATA_SCHEMA_NAME, newStorage) + " t2 on " + primaryEquality +
                 " and (true" + oldPrimaryValuesFilter + " or true" + newPrimaryValuesFilter + ")" +
                 oldVersionDateFilter +
                 newVersionDateFilter +
@@ -1500,12 +1536,18 @@ public class DataDaoImpl implements DataDao {
         return defaultValue;
     }
 
-    private String getFieldValuesFilter(String alias, Map<String, Object> params, Set<List<FieldSearchCriteria>> fieldValuesFilters) {
+    private String getFieldValuesFilter(String alias, Map<String, Object> params,
+                                        Set<List<FieldSearchCriteria>> fieldFilters) {
 
-        QueryWithParams queryWithParams = getDictionaryFilterQuery(null, fieldValuesFilters, emptyList(), alias);
-        params.putAll(queryWithParams.getParams());
+        QueryWithParams query = getWhereByFilters(fieldFilters, alias);
+        if (query == null || StringUtils.isEmpty(query.getSql()))
+            return "";
 
-        return queryWithParams.getSql();
+        if (!isNullOrEmpty(query.getParams())) {
+            params.putAll(query.getParams());
+        }
+
+        return query.getSql();
     }
 
     private static class QueryWithParams {
@@ -1523,36 +1565,46 @@ public class DataDaoImpl implements DataDao {
             this.params = params;
         }
 
-        public void concat(QueryWithParams query) {
-            if (query != null) {
-                concat(query.getSql(), query.getParams());
+        public void concat(String sql) {
+
+            if (StringUtils.isEmpty(sql))
+                return;
+
+            this.sql = this.sql + " " + sql;
+        }
+
+        public void concat(Map<String, Object> params) {
+
+            if (isNullOrEmpty(params))
+                return;
+
+            if (this.params == null) {
+                this.params = new HashMap<>(params);
+
+            } else {
+                this.params.putAll(params);
             }
         }
 
         public void concat(String sql, Map<String, Object> params) {
 
-            if (!StringUtils.isEmpty(sql)) {
-                this.sql = this.sql + " " + sql;
-            }
+            concat(sql);
+            concat(params);
+        }
 
-            if (!isNullOrEmpty(params)) {
-                if (this.params == null) {
-                    this.params = new HashMap<>(params);
+        public void concat(QueryWithParams queryWithParams) {
 
-                } else {
-                    this.params.putAll(params);
-                }
-            }
+            if (queryWithParams == null)
+                return;
+
+            concat(queryWithParams.getSql(), queryWithParams.getParams());
         }
 
         public Query createQuery(EntityManager entityManager) {
 
             Query query = entityManager.createNativeQuery(getSql());
-            if (getParams() != null) {
-                for (Map.Entry<String, Object> paramEntry : getParams().entrySet()) {
-                    query = query.setParameter(paramEntry.getKey(), paramEntry.getValue());
-                }
-            }
+            fillQueryParameters(query);
+
             return query;
         }
 
@@ -1570,6 +1622,15 @@ public class DataDaoImpl implements DataDao {
 
         public void setParams(Map<String, Object> params) {
             this.params = params;
+        }
+
+        public void fillQueryParameters(Query query) {
+            if (getParams() == null)
+                return;
+
+            for (Map.Entry<String, Object> entry : getParams().entrySet()) {
+                query = query.setParameter(entry.getKey(), entry.getValue());
+            }
         }
     }
 }

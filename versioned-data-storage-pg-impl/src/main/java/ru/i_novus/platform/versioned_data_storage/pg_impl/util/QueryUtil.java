@@ -24,6 +24,7 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConsta
 public class QueryUtil {
 
     private QueryUtil() {
+        throw new UnsupportedOperationException();
     }
 
     /**
@@ -195,20 +196,30 @@ public class QueryUtil {
         return "'" + source + "'";
     }
 
+    public static String getSchemaName(String schema) {
+        return StringUtils.isEmpty(schema) ? DATA_SCHEMA_NAME : schema;
+    }
+
     public static String getTableName(String table) {
         return addDoubleQuotes(table);
+    }
+
+    public static String getSchemaTableName(String schema, String table) {
+        return getSchemaName(schema) + "." + getTableName(table);
+    }
+
+    public static String getTableFieldName(String tableAlias, String fieldName) {
+
+        String escapedFieldName = addDoubleQuotes(fieldName);
+        return StringUtils.isEmpty(tableAlias) ? escapedFieldName : tableAlias + "." + escapedFieldName;
     }
 
     public static String getSequenceName(String table) {
         return addDoubleQuotes(table + "_" + SYS_PRIMARY_COLUMN + "_seq");
     }
 
-    public static String getSchemeTableName(String table) {
-        return DATA_SCHEME_NAME + "." + getTableName(table);
-    }
-
-    public static String getSchemeSequenceName(String table) {
-        return DATA_SCHEME_NAME + "." + getSequenceName(table);
+    public static String getSchemaSequenceName(String schema, String table) {
+        return getSchemaName(schema) + "." + getSequenceName(table);
     }
 
     public static Object truncateDateTo(LocalDateTime date, ChronoUnit unit, Object defaultValue) {

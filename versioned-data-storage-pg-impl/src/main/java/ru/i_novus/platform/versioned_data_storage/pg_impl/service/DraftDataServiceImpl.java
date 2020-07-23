@@ -63,7 +63,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     public String applyDraft(String baseStorageCode, String draftCode,
                              LocalDateTime publishTime, LocalDateTime closeTime) {
 
-        if (!draftExists(draftCode))
+        if (!draftExists(DATA_SCHEMA_NAME, draftCode))
             throw new IllegalArgumentException("draft.table.does.not.exist");
 
         String newTable = createVersionTable(draftCode);
@@ -87,8 +87,8 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     @Override
-    public boolean draftExists(String draftCode) {
-        return dataDao.tableExists(draftCode);
+    public boolean draftExists(String schemaName, String draftCode) {
+        return dataDao.tableExists(schemaName, draftCode);
     }
 
     @Override
@@ -293,8 +293,8 @@ public class DraftDataServiceImpl implements DraftDataService {
         //todo никак не учитывается Field.unique - уникальность в рамках даты
         String newTable = UUID.randomUUID().toString();
         dataDao.copyTable(newTable, draftCode);
-        dataDao.addColumnToTable(newTable, SYS_PUBLISHTIME, "timestamp without time zone", MIN_DATETIME_VALUE);
-        dataDao.addColumnToTable(newTable, SYS_CLOSETIME, "timestamp without time zone", MAX_DATETIME_VALUE);
+        dataDao.addColumnToTable(newTable, SYS_PUBLISHTIME, "timestamp without time zone", MIN_TIMESTAMP_VALUE);
+        dataDao.addColumnToTable(newTable, SYS_CLOSETIME, "timestamp without time zone", MAX_TIMESTAMP_VALUE);
         dataDao.createIndex(newTable, addDoubleQuotes(newTable + "_SYSDATE_idx"), Arrays.asList(SYS_PUBLISHTIME, SYS_CLOSETIME));
         List<String> fieldNames = dataDao.getHashUsedFieldNames(newTable);
         dataDao.createTriggers(newTable, fieldNames);

@@ -50,10 +50,11 @@ public interface DraftDataService {
     /**
      * Проверка существования черновика
      *
-     * @param draftCode таблица черновика
+     * @param schemaName схема таблицы
+     * @param draftCode  таблица черновика
      * @return Признак существования
      */
-    boolean draftExists(String draftCode);
+    boolean draftExists(String schemaName, String draftCode);
 
     /**
      * Добавление записей в таблицу
