@@ -1,6 +1,6 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.dao;
 
-import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.util.DataUtil;
 
 import java.util.Arrays;
 import java.util.List;
@@ -24,13 +24,14 @@ public class QueryConstants {
 
     public static final String SQL_ALIAS_OPERATOR = " as ";
     public static final String DEFAULT_TABLE_ALIAS = "d";
+    static final String TRIGGER_NEW_ALIAS = "NEW";
 
     private static final List<String> SYS_RECORD_LIST = Arrays.asList(SYS_PRIMARY_COLUMN,
             SYS_PUBLISHTIME, SYS_CLOSETIME,
-            SYS_HASH, SYS_PATH, SYS_FULL_TEXT_SEARCH
+            SYS_HASH, SYS_PATH, SYS_FTS
     );
     private static final String SYS_RECORDS_TEXT = SYS_RECORD_LIST.stream()
-            .map(QueryUtil::addSingleQuotes)
+            .map(DataUtil::addSingleQuotes)
             .collect(Collectors.joining(", "));
 
     static final String DATE_BEGIN = "DATEBEG";
@@ -82,72 +83,45 @@ public class QueryConstants {
             "        OVERLAPS (" + COALESCE_VERSION_PUBLISH_TIME_FIELD + ", " + COALESCE_VERSION_CLOSE_TIME_FIELD + ")\n" +
             "        OR (" + COALESCE_PUBLISH_TIME_VALUE + " = " + COALESCE_VERSION_CLOSE_TIME_FIELD + ") )\n";
 
-    public static final String CREATE_TABLE_TEMPLATE = "CREATE TABLE data.%s (" +
+    static final String CREATE_DRAFT_TABLE_TEMPLATE = "CREATE TABLE %1$s.%2$s (" +
             "  \"SYS_RECORDID\" bigserial NOT NULL," +
-            "  %s," +
-            "  \"FTS\" tsvector," +
-            "  \"SYS_HASH\" char(32)," +
-            "  \"SYS_PUBLISHTIME\" timestamp without time zone," +
-            "  \"SYS_CLOSETIME\" timestamp without time zone," +
-            "  CONSTRAINT \"%s_pkey\" PRIMARY KEY (\"SYS_RECORDID\")" +
-            ");";
-
-    public static final String CREATE_EMPTY_DRAFT_TABLE_TEMPLATE = "CREATE TABLE data.%s (" +
-            " \"SYS_RECORDID\" bigserial NOT NULL," +
+            "  %3$s" +
             "  \"FTS\" tsvector," +
             "  \"SYS_HASH\" char(32) UNIQUE," +
-            "  CONSTRAINT \"%s_pkey\" PRIMARY KEY (\"SYS_RECORDID\")" +
+            "  CONSTRAINT \"%4$s_pkey\" PRIMARY KEY (\"SYS_RECORDID\")" +
             ");";
 
-    public static final String CREATE_DRAFT_TABLE_TEMPLATE = "CREATE TABLE data.%s (" +
-            "  \"SYS_RECORDID\" bigserial NOT NULL," +
-            "  %s," +
-            "  \"FTS\" tsvector," +
-            "  \"SYS_HASH\" char(32) UNIQUE," +
-            "  CONSTRAINT \"%s_pkey\" PRIMARY KEY (\"SYS_RECORDID\")" +
-            ");";
+    static final String CREATE_TABLE_SEQUENCE = "CREATE SEQUENCE %1$s.\"%2$s_%3$s_seq\" start 1";
 
-    public static final String COPY_TABLE_TEMPLATE = "CREATE TABLE %1$s.%2$s AS " +
+    static final String COPY_TABLE_TEMPLATE = "CREATE TABLE %1$s.%2$s AS " +
             "SELECT * FROM %1$s.%3$s WITH NO DATA;";
 
-    public static final String DROP_TRIGGER = "DROP TRIGGER IF EXISTS %1$s ON %2$s.%3$s;";
-
-    public static final String HASH_TRIGGER_NAME = "hash_tg";
-
-    public static final String CREATE_HASH_TRIGGER = "CREATE OR REPLACE FUNCTION data.\"%s_hash_tf\"()\n" +
+    static final String CREATE_TRIGGER = "CREATE OR REPLACE FUNCTION %1$s.\"%2$s_%3$s\"()\n" +
             "  RETURNS trigger AS\n" +
             "$BODY$\n" +
             "  BEGIN\n" +
-            "    NEW.\"SYS_HASH\" = md5(ROW(%s)||'');\n" +
+            "    %6$s\n" +
             "    RETURN NEW;\n" +
             "  END;\n" +
             "$BODY$ LANGUAGE plpgsql;\n" +
             "\n" +
-            "CREATE TRIGGER " + HASH_TRIGGER_NAME + "\n" +
-            "  BEFORE INSERT OR UPDATE OF %s\n" +
-            "  ON data.%s\n" +
+            "CREATE TRIGGER %4$s \n" +
+            "  BEFORE INSERT OR UPDATE OF %5$s\n" +
+            "  ON %1$s.\"%2$s\"\n" +
             "  FOR EACH ROW\n" +
-            "  EXECUTE PROCEDURE data.\"%s_hash_tf\"();";
+            "  EXECUTE PROCEDURE %1$s.\"%2$s_%3$s\"();";
 
-    public static final String UPDATE_HASH = "UPDATE data.%s SET \"SYS_HASH\" = md5(ROW(%s)||'');";
+    static final String DROP_TRIGGER = "DROP TRIGGER IF EXISTS %1$s ON %2$s.%3$s;";
 
-    public static final String FTS_TRIGGER_NAME = "fts_vector_tg";
+    static final String HASH_FUNCTION_NAME = "hash_tf";
+    static final String HASH_TRIGGER_NAME = "hash_tg";
+    static final String HASH_EXPRESSION = "md5(ROW(%s)||'')";
 
-    public static final String CREATE_FTS_TRIGGER = "CREATE OR REPLACE FUNCTION data.\"%s_fts_vector_tf\"()\n" +
-            "  RETURNS trigger AS\n" +
-            "$BODY$\n" +
-            "  BEGIN\n" +
-            "    NEW.\"FTS\" = %s;\n" +
-            "    RETURN NEW;\n" +
-            "  END;\n" +
-            "$BODY$ LANGUAGE plpgsql;\n" +
-            "\n" +
-            "CREATE TRIGGER " + FTS_TRIGGER_NAME + "\n" +
-            "  BEFORE INSERT OR UPDATE OF %s\n" +
-            "  ON data.%s\n" +
-            "  FOR EACH ROW\n" +
-            "  EXECUTE PROCEDURE data.\"%s_fts_vector_tf\"();";
-    public static final String UPDATE_FTS = "UPDATE data.%s SET \"FTS\" = %s;";
+    static final String FTS_FUNCTION_NAME = "fts_vector_tf";
+    static final String FTS_TRIGGER_NAME = "fts_vector_tg";
+
+    static final String ASSIGN_FIELD = "%1$s = %2$s";
+    static final String UPDATE_FIELD = "UPDATE %1$s.%2$s SET %3$s;";
 
     public static final String ADD_NEW_COLUMN = "ALTER TABLE %1$s.\"%2$s\" ADD COLUMN \"%3$s\" %4$s;";
     public static final String ADD_NEW_COLUMN_WITH_DEFAULT = "ALTER TABLE %1$s.\"%2$s\" ADD COLUMN \"%3$s\" %4$s DEFAULT %5$s;";
@@ -156,7 +130,10 @@ public class QueryConstants {
 
     public static final String INSERT_QUERY_TEMPLATE_WITH_ID = "INSERT INTO data.%s (%s) VALUES(%s) returning \"SYS_RECORDID\";";
     public static final String INSERT_QUERY_TEMPLATE = "INSERT INTO data.%s (%s) VALUES(%s);";
-    public static final String COPY_QUERY_TEMPLATE = "INSERT INTO data.%s (%s) SELECT %s FROM data.%s d ";
+    public static final String COPY_QUERY_TEMPLATE = "INSERT INTO %1$s.%2$s (%3$s)\n" +
+            "SELECT %4$s \n" +
+            "  FROM %1$s.%5$s d \n" +
+            SELECT_WHERE;
 
     public static final String DELETE_QUERY_TEMPLATE = "DELETE FROM data.%s WHERE \"SYS_RECORDID\" IN (%s);";
     //todo
@@ -232,20 +209,19 @@ public class QueryConstants {
 
     public static final String INSERT_QUERY_FROM_DRAFT_TEMPLATE = "INSERT INTO data.%s SELECT %s FROM data.%s WHERE \"SYS_CLOSETIME\" IS NULL;";
     public static final String SELECT_COUNT_QUERY_TEMPLATE = SELECT_COUNT_ONLY + "  FROM %1$s.%2$s;";
-    public static final String TRUNCATE_QUERY_TEMPLATE = "TRUNCATE TABLE data.%s;";
+    public static final String TRUNCATE_QUERY_TEMPLATE = "TRUNCATE TABLE %1$s.%2$s;";
 
     public static final String CREATE_TABLE_INDEX = "CREATE INDEX %1$s ON %2$s.%3$s(%4$s);";
     public static final String DROP_TABLE_INDEX = "DROP INDEX IF EXISTS %1$s.%2$s;";
     public static final String CREATE_FTS_INDEX = "CREATE INDEX %1$s ON %2$s.%3$s USING gin (%4$s);";
     public static final String CREATE_LTREE_INDEX = "CREATE INDEX %1$s ON %2$s.%3$s USING gist (%4$s);";
-    public static final String IF_TABLE_INDEX_EXISTS = "SELECT exists(SELECT *\n" +
-            "              FROM\n" +
+    public static final String IF_TABLE_INDEX_EXISTS = "SELECT exists(SELECT * \n" +
+            "              FROM \n" +
             "                pg_class t,\n" +
             "                pg_class i,\n" +
             "                pg_index ix,\n" +
             "                pg_attribute a\n" +
-            "              WHERE\n" +
-            "                t.oid = ix.indrelid\n" +
+            "              WHERE t.oid = ix.indrelid\n" +
             "                AND i.oid = ix.indexrelid\n" +
             "                AND a.attrelid = t.oid\n" +
             "                AND a.attnum = ANY(ix.indkey)\n" +
@@ -253,7 +229,7 @@ public class QueryConstants {
             "                AND t.relname = '%s'\n" +
             "                AND a.attname = '%s'\n" +
             "                AND i.relname = '%s'\n" +
-            "              ORDER BY\n" +
+            "              ORDER BY \n" +
             "                t.relname,\n" +
             "                i.relname\n" +
             ");";

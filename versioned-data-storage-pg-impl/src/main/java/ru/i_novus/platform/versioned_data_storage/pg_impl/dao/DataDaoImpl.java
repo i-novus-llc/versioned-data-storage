@@ -14,7 +14,7 @@ import ru.i_novus.platform.datastorage.temporal.model.*;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.*;
 import ru.i_novus.platform.datastorage.temporal.model.value.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
-import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.util.DataUtil;
 
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
@@ -36,6 +36,7 @@ import static org.springframework.util.CollectionUtils.isEmpty;
 import static ru.i_novus.platform.datastorage.temporal.CollectionUtils.isNullOrEmpty;
 import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.DataUtil.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.*;
 
 public class DataDaoImpl implements DataDao {
@@ -61,17 +62,22 @@ public class DataDaoImpl implements DataDao {
     @SuppressWarnings("unchecked")
     public List<RowValue> getData(DataCriteria criteria) {
 
-        final String schemaName = getExistedSchemaName(criteria.getSchemaName());
+        // В l10n перенести подмену схемы при отсутствии схемы/таблицы.
+        // Здесь оставить только использование схемы по умолчанию, если она не была задана.
+        // Схемы предлагается именовать в виде "data_" + код локализации, чтобы исключить случайное совпадение с другими схемами.
+        // Код локализации должен содержать только строчные латинские буквы a-z, цифры 0-9 и символ подчёркивания "_".
+        // В postgres макс. длина имени = NAMEDATALEN - 1 = 64 - 1, поэтому длина кода локализации должна быть <= 64 - 1 - "data_".len() = 58.
+        final String schemaName = getExistentTableSchemaName(criteria.getSchemaName(), criteria.getTableName());
 
         List<Field> fields = new ArrayList<>(criteria.getFields());
         fields.add(0, new IntegerField(SYS_PRIMARY_COLUMN));
         if (fields.stream().noneMatch(field -> SYS_HASH.equals(field.getName())))
             fields.add(1, new StringField(SYS_HASH));
 
-        String keys = generateSqlQuery(DEFAULT_TABLE_ALIAS, fields, true);
+        String sqlFields = getSelectFields(DEFAULT_TABLE_ALIAS, fields, true);
 
         final String sqlFormat = "SELECT %1$s \n  FROM %2$s as %3$s ";
-        String sql = String.format(sqlFormat, keys,
+        String sql = String.format(sqlFormat, sqlFields,
                 getSchemaTableName(schemaName, criteria.getTableName()),
                 DEFAULT_TABLE_ALIAS);
 
@@ -89,13 +95,13 @@ public class DataDaoImpl implements DataDao {
         }
 
         List<Object[]> resultList = query.getResultList();
-        return convertToRowValue(fields, resultList);
+        return toRowValues(fields, resultList);
     }
 
     @Override
     public BigInteger getDataCount(DataCriteria criteria) {
 
-        final String schemaName = getExistedSchemaName(criteria.getSchemaName());
+        final String schemaName = getExistentTableSchemaName(criteria.getSchemaName(), criteria.getTableName());
 
         final String sqlFormat = "  FROM %s as %s\n";
         String sql = SELECT_COUNT_ONLY +
@@ -115,9 +121,9 @@ public class DataDaoImpl implements DataDao {
 
         List<Field> fields = dataTypesToFields(getColumnDataTypes(tableName), fieldNames);
 
-        String keys = generateSqlQuery(null, fields, true);
+        String sqlFields = getSelectFields(null, fields, true);
         String sql = String.format(SELECT_ROWS_FROM_DATA_BY_FIELD,
-                keys,
+                sqlFields,
                 DATA_SCHEMA_NAME,
                 addDoubleQuotes(tableName),
                 addDoubleQuotes(SYS_PRIMARY_COLUMN),
@@ -130,7 +136,7 @@ public class DataDaoImpl implements DataDao {
         if (list.isEmpty())
             return null;
 
-        RowValue row = convertToRowValue(fields, list).get(0);
+        RowValue row = toRowValues(fields, list).get(0);
         row.setSystemId(systemId); // ??
         return row;
     }
@@ -141,9 +147,9 @@ public class DataDaoImpl implements DataDao {
 
         List<Field> fields = dataTypesToFields(getColumnDataTypes(tableName), fieldNames);
 
-        String keys = generateSqlQuery(null, fields, true);
+        String sqlFields = getSelectFields(null, fields, true);
         String sql = String.format(SELECT_ROWS_FROM_DATA_BY_FIELD_LIST,
-                keys,
+                sqlFields,
                 DATA_SCHEMA_NAME,
                 addDoubleQuotes(tableName),
                 addDoubleQuotes(SYS_PRIMARY_COLUMN),
@@ -155,7 +161,7 @@ public class DataDaoImpl implements DataDao {
 
         @SuppressWarnings("unchecked")
         List<Object[]> list = query.getResultList();
-        return !list.isEmpty() ? convertToRowValue(fields, list) : emptyList();
+        return !list.isEmpty() ? toRowValues(fields, list) : emptyList();
     }
 
     private List<Field> dataTypesToFields(Map<String, String> dataTypes, List<String> fieldNames) {
@@ -302,7 +308,7 @@ public class DataDaoImpl implements DataDao {
         Map<String, Object> params = new HashMap<>();
 
         // full text search
-        String escapedFtsColumn = getTableFieldName(alias, SYS_FULL_TEXT_SEARCH);
+        String escapedFtsColumn = getTableFieldName(alias, SYS_FTS);
         if (DATE_PATTERN.matcher(search).matches()) {
             sql += " and (" +
                     escapedFtsColumn + " @@ to_tsquery(:search) or " +
@@ -466,20 +472,23 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @Transactional
-    public void createDraftTable(String tableName, List<Field> fields) {
+    public void createDraftTable(String schemaName, String tableName, List<Field> fields) {
 
-        String sql;
-        if (isNullOrEmpty(fields)) {
-            sql = String.format(CREATE_EMPTY_DRAFT_TABLE_TEMPLATE, addDoubleQuotes(tableName), tableName);
+        schemaName = getExistentSchemaName(schemaName);
+        if (tableExists(schemaName, tableName))
+            throw new IllegalArgumentException("table.already.exists");
 
-        } else {
-            String columns = fields.stream()
+        String tableFields = "";
+        if (!isNullOrEmpty(fields)) {
+            tableFields = fields.stream()
                     .map(f -> addDoubleQuotes(f.getName()) + " " + f.getType())
-                    .collect(joining(", "));
-            sql = String.format(CREATE_DRAFT_TABLE_TEMPLATE, addDoubleQuotes(tableName), columns, tableName);
+                    .collect(joining(", \n")) + ", \n";
         }
 
-        entityManager.createNativeQuery(sql).executeUpdate();
+        String ddl = String.format(CREATE_DRAFT_TABLE_TEMPLATE,
+                schemaName, addDoubleQuotes(tableName), tableFields, tableName);
+
+        entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
     @Override
@@ -492,7 +501,7 @@ public class DataDaoImpl implements DataDao {
                 addDoubleQuotes(sourceTableName));
         entityManager.createNativeQuery(ddlCopyTable).executeUpdate();
 
-        String ddlCreateSequence = String.format("CREATE SEQUENCE %1$s.\"%2$s_%3$s_seq\" start 1",
+        String ddlCreateSequence = String.format(CREATE_TABLE_SEQUENCE,
                 DATA_SCHEMA_NAME,
                 newTableName,
                 SYS_PRIMARY_COLUMN);
@@ -506,7 +515,7 @@ public class DataDaoImpl implements DataDao {
             entityManager.createNativeQuery(index.replaceAll(sourceTableName, newTableName)).executeUpdate();
         }
 
-        createHashIndex(newTableName);
+        createHashIndex(DATA_SCHEMA_NAME, newTableName);
 
         String ddlAddPrimaryKey = String.format("ALTER TABLE %1$s.%2$s ADD PRIMARY KEY (\"%3$s\");",
                 DATA_SCHEMA_NAME,
@@ -530,7 +539,9 @@ public class DataDaoImpl implements DataDao {
         entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
-    private boolean schemaExists(String schemaName) {
+    @Override
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    public boolean schemaExists(String schemaName) {
 
         Boolean result = (Boolean) entityManager.createNativeQuery(SELECT_SCHEMA_EXISTS)
                 .setParameter("schemaName", schemaName)
@@ -539,7 +550,7 @@ public class DataDaoImpl implements DataDao {
         return result != null && result;
     }
 
-    private String getExistedSchemaName(String schemaName) {
+    private String getExistentSchemaName(String schemaName) {
 
         schemaName = getSchemaName(schemaName);
         if (DATA_SCHEMA_NAME.equals(schemaName) || schemaExists(schemaName))
@@ -549,6 +560,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public boolean tableExists(String schemaName, String tableName) {
 
         Boolean result = (Boolean) entityManager.createNativeQuery(SELECT_TABLE_EXISTS)
@@ -557,6 +569,15 @@ public class DataDaoImpl implements DataDao {
                 .getSingleResult();
 
         return result != null && result;
+    }
+
+    private String getExistentTableSchemaName(String schemaName, String tableName) {
+
+        schemaName = getExistentSchemaName(schemaName);
+        if (DATA_SCHEMA_NAME.equals(schemaName) || tableExists(schemaName, tableName))
+            return schemaName;
+
+        return DATA_SCHEMA_NAME;
     }
 
     @Override
@@ -654,7 +675,7 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void loadData(String draftCode, String sourceStorageCode, List<String> fields,
+    public void loadData(String draftTable, String sourceTable, List<String> fields,
                          LocalDateTime fromDate, LocalDateTime toDate) {
 
         String keys = String.join(",", fields);
@@ -663,9 +684,10 @@ public class DataDaoImpl implements DataDao {
                 .collect(joining(","));
 
         String sql = String.format(COPY_QUERY_TEMPLATE,
-                addDoubleQuotes(draftCode),
+                DATA_SCHEMA_NAME,
+                addDoubleQuotes(draftTable),
                 keys, values,
-                addDoubleQuotes(sourceStorageCode));
+                addDoubleQuotes(sourceTable));
 
         QueryWithParams queryWithParams = new QueryWithParams(sql, null);
         queryWithParams.concat(getWhereByDates(fromDate, toDate, DEFAULT_TABLE_ALIAS));
@@ -763,8 +785,9 @@ public class DataDaoImpl implements DataDao {
                 if (fieldValue instanceof ReferenceFieldValue) {
                     if (((ReferenceFieldValue) fieldValue).getValue().getValue() != null)
                         query.setParameter(i++, ((ReferenceFieldValue) fieldValue).getValue().getValue());
-                } else
+                } else {
                     query.setParameter(i++, fieldValue.getValue());
+                }
         }
         query.setParameter(i, rowValue.getSystemId());
 
@@ -920,38 +943,48 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void createTriggers(String tableName) {
-        createTriggers(tableName, getHashUsedFieldNames(tableName));
-    }
-
-    private String getFieldClearName(String field) {
-        return field.substring(0, field.indexOf('"', 1) + 1);
+    public void createTriggers(String schemaName, String tableName) {
+        createTriggers(schemaName, tableName, getHashUsedFieldNames(tableName));
     }
 
     @Override
     @Transactional
-    public void createTriggers(String tableName, List<String> fields) {
+    public void createTriggers(String schemaName, String tableName, List<String> fieldNames) {
 
-        String escapedTableName = addDoubleQuotes(tableName);
-        String tableFields = fields.stream().map(this::getFieldClearName).collect(joining(", "));
+        final String alias = TRIGGER_NEW_ALIAS + ".";
+        String tableFields = fieldNames.stream().map(this::getFieldClearName).collect(joining(", "));
 
-        String createHashTrigger = String.format(CREATE_HASH_TRIGGER,
+        String hashExpression = String.format(HASH_EXPRESSION,
+                fieldNames.stream().map(field -> alias + field).collect(joining(", ")));
+        String hashTriggerBody = String.format(ASSIGN_FIELD, alias + addDoubleQuotes(SYS_HASH), hashExpression);
+        String createHashTrigger = String.format(CREATE_TRIGGER,
+                schemaName,
                 tableName,
-                fields.stream().map(field -> "NEW." + field).collect(joining(", ")),
+                HASH_FUNCTION_NAME,
+                HASH_TRIGGER_NAME,
                 tableFields,
-                escapedTableName,
-                tableName);
+                hashTriggerBody + ";");
         entityManager.createNativeQuery(createHashTrigger).executeUpdate();
 
-        String createFtsTrigger = String.format(CREATE_FTS_TRIGGER,
+        String ftsExpression = fieldNames.stream()
+                .map(field -> "coalesce( to_tsvector('ru', " + alias + field + "\\:\\:text),'')")
+                .collect(joining(" || ' ' || "));
+        String ftsTriggerBody = String.format(ASSIGN_FIELD, alias + addDoubleQuotes(SYS_FTS), ftsExpression);
+        String createFtsTrigger = String.format(CREATE_TRIGGER,
+                schemaName,
                 tableName,
-                fields.stream()
-                        .map(field -> "coalesce( to_tsvector('ru', NEW." + field + "\\:\\:text),'')")
-                        .collect(joining(" || ' ' || ")),
+                FTS_FUNCTION_NAME,
+                FTS_TRIGGER_NAME,
                 tableFields,
-                escapedTableName,
-                tableName);
+                ftsTriggerBody + ";");
         entityManager.createNativeQuery(createFtsTrigger).executeUpdate();
+    }
+
+    /** Получение наименования поля с кавычками из наименования, сформированного по getHashUsedFieldNames. */
+    private String getFieldClearName(String fieldName) {
+
+        int closeQuoteIndex = fieldName.indexOf('"', 1);
+        return fieldName.substring(0, closeQuoteIndex + 1);
     }
 
     @Override
@@ -959,10 +992,12 @@ public class DataDaoImpl implements DataDao {
     public void updateHashRows(String tableName) {
 
         List<String> fieldNames = getHashUsedFieldNames(tableName);
-        String sql = String.format(UPDATE_HASH,
-                addDoubleQuotes(tableName),
+        String expression = String.format(HASH_EXPRESSION,
                 String.join(", ", fieldNames));
-        entityManager.createNativeQuery(sql).executeUpdate();
+        String ddlAssign = String.format(ASSIGN_FIELD, addDoubleQuotes(SYS_HASH), expression);
+
+        String ddl = String.format(UPDATE_FIELD, DATA_SCHEMA_NAME, addDoubleQuotes(tableName), ddlAssign);
+        entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
     @Override
@@ -970,17 +1005,18 @@ public class DataDaoImpl implements DataDao {
     public void updateFtsRows(String tableName) {
 
         List<String> fieldNames = getHashUsedFieldNames(tableName);
-        entityManager.createNativeQuery(String.format(UPDATE_FTS,
-                addDoubleQuotes(tableName),
-                fieldNames.stream().map(field -> "coalesce( to_tsvector('ru', " + field + "\\:\\:text),'')")
-                        .collect(joining(" || ' ' || ")))
-        ).executeUpdate();
-    }
+        String expression = fieldNames.stream()
+                .map(field -> "coalesce( to_tsvector('ru', " + field + "\\:\\:text),'')")
+                .collect(joining(" || ' ' || "));
+        String ddlAssign = String.format(ASSIGN_FIELD, addDoubleQuotes(SYS_FTS), expression);
 
+        String ddl = String.format(UPDATE_FIELD, DATA_SCHEMA_NAME, addDoubleQuotes(tableName), ddlAssign);
+        entityManager.createNativeQuery(ddl).executeUpdate();
+    }
 
     @Override
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void dropTrigger(String tableName) {
+    public void dropTriggers(String tableName) {
 
         String escapedTableName = addDoubleQuotes(tableName);
 
@@ -994,35 +1030,35 @@ public class DataDaoImpl implements DataDao {
     @Override
     @Transactional
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void createIndex(String tableName, String name, List<String> fields) {
+    public void createIndex(String schemaName, String tableName, String name, List<String> fields) {
 
         String ddl = String.format(CREATE_TABLE_INDEX,
                 name,
-                DATA_SCHEMA_NAME,
+                schemaName,
                 addDoubleQuotes(tableName),
-                fields.stream().map(QueryUtil::addDoubleQuotes).collect(joining(",")));
+                fields.stream().map(DataUtil::addDoubleQuotes).collect(joining(",")));
         entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
     @Override
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void createFullTextSearchIndex(String tableName) {
+    public void createFullTextSearchIndex(String schemaName, String tableName) {
 
         String ddl = String.format(CREATE_FTS_INDEX,
                 addDoubleQuotes(tableName + "_fts_idx"),
-                DATA_SCHEMA_NAME,
+                schemaName,
                 addDoubleQuotes(tableName),
-                addDoubleQuotes(SYS_FULL_TEXT_SEARCH));
+                addDoubleQuotes(SYS_FTS));
         entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
     @Override
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void createLtreeIndex(String tableName, String field) {
+    public void createLtreeIndex(String schemaName, String tableName, String field) {
 
         String ddl = String.format(CREATE_LTREE_INDEX,
                 addDoubleQuotes(tableName + "_" + field.toLowerCase() + "_idx"),
-                DATA_SCHEMA_NAME,
+                schemaName,
                 addDoubleQuotes(tableName),
                 addDoubleQuotes(field));
         entityManager.createNativeQuery(ddl).executeUpdate();
@@ -1030,11 +1066,11 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void createHashIndex(String tableName) {
+    public void createHashIndex(String schemaName, String tableName) {
 
         String ddl = String.format(CREATE_TABLE_INDEX,
                 addDoubleQuotes(tableName + "_sys_hash_ix"),
-                DATA_SCHEMA_NAME,
+                schemaName,
                 addDoubleQuotes(tableName),
                 addDoubleQuotes(SYS_HASH));
         entityManager.createNativeQuery(ddl).executeUpdate();
@@ -1139,15 +1175,16 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
-    public void insertActualDataFromVersion(String tableToInsert, String versionTable, String draftTable,
-                                            Map<String, String> columns, int offset, int transactionSize,
+    public void insertActualDataFromVersion(String tableToInsert, String versionTable,
+                                            String draftTable, Map<String, String> columns,
+                                            int offset, int transactionSize,
                                             LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
-        String columnsStr = columns.keySet().stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        String columnsWithType = columns.keySet().stream().map(s -> s + " " + columns.get(s)).reduce((s1, s2) -> s1 + ", " + s2).get();
-        String columnsWithPrefixValue = columns.keySet().stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        String columnsWithPrefixD = columns.keySet().stream().map(s -> "d." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsStr = columns.keySet().stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
+        String columnsWithType = columns.keySet().stream().map(s -> s + " " + columns.get(s)).reduce((s1, s2) -> s1 + ", " + s2).orElse("");
+        String columnsWithPrefixValue = columns.keySet().stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
+        String columnsWithPrefixD = columns.keySet().stream().map(s -> "d." + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
 
         Map<String, String> placeholderValues = new HashMap<>();
         placeholderValues.put("dColumns", columnsWithPrefixD);
@@ -1186,7 +1223,7 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
-    public void insertOldDataFromVersion(String tableToInsert, String tableFromInsert,
+    public void insertOldDataFromVersion(String tableToInsert, String versionTable,
                                          String draftTable, List<String> columns,
                                          int offset, int transactionSize,
                                          LocalDateTime publishTime, LocalDateTime closeTime) {
@@ -1197,7 +1234,7 @@ public class DataDaoImpl implements DataDao {
 
         String sql = String.format(INSERT_OLD_VAL_FROM_VERSION_WITH_CLOSE_DATE,
                 addDoubleQuotes(tableToInsert),
-                addDoubleQuotes(tableFromInsert),
+                addDoubleQuotes(versionTable),
                 addDoubleQuotes(draftTable),
                 offset,
                 transactionSize,
@@ -1230,12 +1267,13 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
-    public void insertClosedNowDataFromVersion(String tableToInsert, String versionTable, String draftTable,
-                                               Map<String, String> columns, int offset, int transactionSize,
+    public void insertClosedNowDataFromVersion(String tableToInsert, String versionTable,
+                                               String draftTable, Map<String, String> columns,
+                                               int offset, int transactionSize,
                                                LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
-        String columnsStr = columns.keySet().stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        String columnsWithType = columns.keySet().stream().map(s -> s + " " + columns.get(s)).reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsStr = columns.keySet().stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
+        String columnsWithType = columns.keySet().stream().map(s -> s + " " + columns.get(s)).reduce((s1, s2) -> s1 + ", " + s2).orElse("");
 
         Map<String, String> placeholderValues = new HashMap<>();
         placeholderValues.put("tableToInsert", getSchemaTableName(DATA_SCHEMA_NAME, tableToInsert));
@@ -1303,22 +1341,22 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
-    public void insertDataFromDraft(String draftTable, String targetTable, List<String> columns,
+    public void insertDataFromDraft(String draftTable, String tableToInsert, List<String> columns,
                                     int offset, int transactionSize,
                                     LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
-        String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
+        String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
 
         String sql = String.format(INSERT_FROM_DRAFT_TEMPLATE_WITH_CLOSE_TIME,
                 addDoubleQuotes(draftTable),
                 offset,
                 transactionSize,
-                addDoubleQuotes(targetTable),
+                addDoubleQuotes(tableToInsert),
                 formatDateTime(publishTime),
                 formatDateTime(closeTime),
-                getSequenceName(targetTable),
+                getSequenceName(tableToInsert),
                 columnsStr,
                 columnsWithPrefix);
 
@@ -1358,8 +1396,8 @@ public class DataDaoImpl implements DataDao {
         String oldStorage = criteria.getStorageCode();
         String newStorage = criteria.getNewStorageCode() != null ? criteria.getNewStorageCode() : criteria.getStorageCode();
 
-        String oldDataFields = generateSqlQuery("t1", criteria.getFields(), false);
-        String newDataFields = generateSqlQuery("t2", criteria.getFields(), false);
+        String oldDataFields = getSelectFields("t1", criteria.getFields(), false);
+        String newDataFields = getSelectFields("t2", criteria.getFields(), false);
 
         String dataSelectFormat = "SELECT t1.%1$s as sysId1 \n %2$s \n, t2.%1$s as sysId2 \n %3$s \n";
         String dataSelect = String.format(dataSelectFormat, addDoubleQuotes(SYS_PRIMARY_COLUMN),

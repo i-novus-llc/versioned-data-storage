@@ -9,13 +9,13 @@ import ru.i_novus.platform.datastorage.temporal.model.value.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 
 import java.math.BigInteger;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.REFERENCE_FIELD_VALUE_OPERATOR;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.SQL_ALIAS_OPERATOR;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.DataUtil.addDoubleQuotes;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.DataUtil.addSingleQuotes;
 
 /**
  * @author lgalimova
@@ -31,13 +31,13 @@ public class QueryUtil {
      * Преобразование полученных данных в список записей.
      * <p>
      * При получении всех данных необходимо использовать
-     * совместно с {@link #generateSqlQuery} при {@code detailed} = true.
+     * совместно с {@link #getSelectFields} при {@code detailed} = true.
      *
      * @param fields список полей
      * @param data   список данных
      * @return Список записей
      */
-    public static List<RowValue> convertToRowValue(List<Field> fields, List<Object[]> data) {
+    public static List<RowValue> toRowValues(List<Field> fields, List<Object[]> data) {
 
         List<RowValue> resultData = new ArrayList<>(data.size());
         for (Object objects : data) {
@@ -128,7 +128,7 @@ public class QueryUtil {
      * @param fields   список полей таблицы
      * @param detailed отображение дополнительных частей составных полей
      */
-    public static String generateSqlQuery(String alias, List<Field> fields, boolean detailed) {
+    public static String getSelectFields(String alias, List<Field> fields, boolean detailed) {
 
         if (StringUtils.isEmpty(alias))
             alias = "";
@@ -175,8 +175,12 @@ public class QueryUtil {
 
     public static String formatFieldForQuery(String field, String alias) {
 
-        if (!StringUtils.isEmpty(alias))
+        if (alias == null) {
+            alias = "";
+
+        } else if (!StringUtils.isEmpty(alias)) {
             alias = alias + ".";
+        }
 
         if (field.contains(REFERENCE_FIELD_VALUE_OPERATOR)) {
             String[] queryParts = field.split(REFERENCE_FIELD_VALUE_OPERATOR);
@@ -188,24 +192,16 @@ public class QueryUtil {
         }
     }
 
-    public static String addDoubleQuotes(String source) {
-        return "\"" + source + "\"";
-    }
-
-    public static String addSingleQuotes(String source) {
-        return "'" + source + "'";
-    }
-
     public static String getSchemaName(String schema) {
         return StringUtils.isEmpty(schema) ? DATA_SCHEMA_NAME : schema;
     }
 
-    public static String getTableName(String table) {
-        return addDoubleQuotes(table);
+    public static String getTableName(String tableName) {
+        return addDoubleQuotes(tableName);
     }
 
-    public static String getSchemaTableName(String schema, String table) {
-        return getSchemaName(schema) + "." + getTableName(table);
+    public static String getSchemaTableName(String schemaName, String tableName) {
+        return getSchemaName(schemaName) + "." + getTableName(tableName);
     }
 
     public static String getTableFieldName(String tableAlias, String fieldName) {
@@ -214,16 +210,12 @@ public class QueryUtil {
         return StringUtils.isEmpty(tableAlias) ? escapedFieldName : tableAlias + "." + escapedFieldName;
     }
 
-    public static String getSequenceName(String table) {
-        return addDoubleQuotes(table + "_" + SYS_PRIMARY_COLUMN + "_seq");
+    public static String getSequenceName(String tableName) {
+        return addDoubleQuotes(tableName + "_" + SYS_PRIMARY_COLUMN + "_seq");
     }
 
-    public static String getSchemaSequenceName(String schema, String table) {
-        return getSchemaName(schema) + "." + getSequenceName(table);
-    }
-
-    public static Object truncateDateTo(LocalDateTime date, ChronoUnit unit, Object defaultValue) {
-        return date != null ? date.truncatedTo(unit) : defaultValue;
+    public static String getSchemaSequenceName(String schemaName, String tableName) {
+        return getSchemaName(schemaName) + "." + getSequenceName(tableName);
     }
 
     public static int getOffset(Criteria criteria) {
@@ -295,26 +287,26 @@ public class QueryUtil {
      * Формирование sql-текста для значения отображаемого выражения.
      *
      * @param displayField поле для получения отображаемого значения
-     * @param table        таблица, к которой привязано поле
+     * @param tableName    таблица, к которой привязано поле
      * @return Текст для подстановки в SQL
      */
-    public static String sqlFieldExpression(String displayField, String table) {
-        return table + "." + addDoubleQuotes(displayField);
+    public static String sqlFieldExpression(String displayField, String tableName) {
+        return tableName + "." + addDoubleQuotes(displayField);
     }
 
     /**
      * Формирование sql-текста для значения отображаемого выражения.
      *
      * @param displayExpression выражение для вычисления отображаемого значения
-     * @param table             таблица, к которой привязаны поля-placeholder`ы
+     * @param tableName         таблица, к которой привязаны поля-placeholder`ы
      * @return Текст для подстановки в SQL
      */
-    public static String sqlDisplayExpression(DisplayExpression displayExpression, String table) {
+    public static String sqlDisplayExpression(DisplayExpression displayExpression, String tableName) {
 
         String sqlDisplayExpression = escapeSql(displayExpression.getValue());
         Map<String, String> map = new HashMap<>();
         for (Map.Entry<String, String> e : displayExpression.getPlaceholders().entrySet()) {
-            map.put(e.getKey(), "' || coalesce(" + table + "." + addDoubleQuotes(e.getKey()) + "\\:\\:text, '" + e.getValue() + "') || '");
+            map.put(e.getKey(), "' || coalesce(" + tableName + "." + addDoubleQuotes(e.getKey()) + "\\:\\:text, '" + e.getValue() + "') || '");
         }
 
         return addSingleQuotes(StrSubstitutor.replace(sqlDisplayExpression, map));
@@ -339,9 +331,10 @@ public class QueryUtil {
      * @return a new String, escaped for SQL, <code>null</code> if null string input
      */
     public static String escapeSql(String str) {
-        if (str == null) {
+
+        if (str == null)
             return null;
-        }
+
         return StringUtils.replace(str, "'", "''");
     }
 }
