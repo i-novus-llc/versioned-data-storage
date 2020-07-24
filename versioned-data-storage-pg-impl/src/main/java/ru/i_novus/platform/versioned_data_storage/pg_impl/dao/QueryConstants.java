@@ -117,7 +117,7 @@ public class QueryConstants {
 
     static final String HASH_FUNCTION_NAME = "hash_tf";
     static final String HASH_TRIGGER_NAME = "hash_tg";
-    static final String HASH_EXPRESSION = "md5(ROW(%s)||'')";
+    public static final String HASH_EXPRESSION = "md5(ROW(%s)||'')";
 
     static final String FTS_FUNCTION_NAME = "fts_vector_tf";
     static final String FTS_TRIGGER_NAME = "fts_vector_tg";

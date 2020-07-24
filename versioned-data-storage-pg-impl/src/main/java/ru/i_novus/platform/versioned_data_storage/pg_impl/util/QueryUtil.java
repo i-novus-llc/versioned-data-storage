@@ -160,7 +160,7 @@ public class QueryUtil {
                 queryFields.add(query);
             }
         }
-        return String.join(",", queryFields);
+        return String.join(", ", queryFields);
     }
 
     private static String sqlFieldAlias(Field<?> field, String prefix, String suffix) {
