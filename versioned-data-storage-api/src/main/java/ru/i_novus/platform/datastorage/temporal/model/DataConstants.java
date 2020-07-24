@@ -14,6 +14,7 @@ public class DataConstants {
 
     public static final String REFERENCE_VALUE_NAME = "value";
     public static final String REFERENCE_DISPLAY_VALUE_NAME = "displayValue";
+    public static final String REFERENCE_HASH_NAME = "hash";
 
     private DataConstants() {
     }

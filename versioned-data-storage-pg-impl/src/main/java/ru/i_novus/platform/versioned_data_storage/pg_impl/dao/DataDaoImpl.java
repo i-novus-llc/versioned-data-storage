@@ -2,8 +2,6 @@ package ru.i_novus.platform.versioned_data_storage.pg_impl.dao;
 
 import net.n2oapp.criteria.api.CollectionPage;
 import net.n2oapp.criteria.api.Sorting;
-import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -190,7 +188,7 @@ public class DataDaoImpl implements DataDao {
         }).collect(joining(",")) + "]";
 
         QueryWithParams whereByDates = getWhereByDates(bdate, edate, DEFAULT_TABLE_ALIAS);
-        String sqlByDate = (whereByDates == null || StringUtils.isEmpty(whereByDates.getSql())) ? "" : whereByDates.getSql();
+        String sqlByDate = (whereByDates == null || DataUtil.isNullOrEmpty(whereByDates.getSql())) ? "" : whereByDates.getSql();
 
         String sql = "SELECT hash \n" +
                 "  FROM (\n" +
@@ -301,7 +299,7 @@ public class DataDaoImpl implements DataDao {
     private QueryWithParams getWhereByFts(String search, String alias) {
 
         search = search != null ? search.trim() : null;
-        if (StringUtils.isEmpty(search))
+        if (DataUtil.isNullOrEmpty(search))
             return null;
 
         String sql = "";
@@ -649,6 +647,7 @@ public class DataDaoImpl implements DataDao {
             String stringValues = String.join("),(", subValues);
 
             String sql = String.format(INSERT_QUERY_TEMPLATE,
+                    DATA_SCHEMA_NAME,
                     addDoubleQuotes(tableName),
                     String.join(",", keys),
                     stringValues);
@@ -729,23 +728,24 @@ public class DataDaoImpl implements DataDao {
                 throw new UnsupportedOperationException("unknown.reference.dipslay.type");
         }
 
-        QueryWithParams whereByDate = getWhereByDates(refValue.getDate(), null, DEFAULT_TABLE_ALIAS);
+        QueryWithParams whereByDate = getWhereByDates(refValue.getDate(), null, REFERENCE_VALUATION_SELECT_TABLE);
         String sqlDateValue = formatDateTime(refValue.getDate());
         sqlDateValue = String.format(TO_TIMESTAMP, addSingleQuotes(sqlDateValue)) + TIMESTAMP_NO_TZ;
-        String sqlByDate = (whereByDate == null || StringUtils.isEmpty(whereByDate.getSql()))
+        String sqlByDate = (whereByDate == null || DataUtil.isNullOrEmpty(whereByDate.getSql()))
                 ? ""
                 : whereByDate.getSql()
                 .replace(":bdate", sqlDateValue)
                 .replace(":edate", "'-infinity'\\:\\:timestamp");
 
         String sql = String.format(REFERENCE_VALUATION_SELECT_EXPRESSION,
+                DATA_SCHEMA_NAME,
+                addDoubleQuotes(refValue.getStorageCode()),
+                REFERENCE_VALUATION_SELECT_TABLE,
                 addDoubleQuotes(refValue.getKeyField()),
                 sqlExpression,
-                addDoubleQuotes(refValue.getStorageCode()),
                 valueSubst,
                 getFieldType(refValue.getStorageCode(), refValue.getKeyField()),
-                sqlByDate
-        );
+                sqlByDate);
 
         return "(" + sql + ")";
     }
@@ -915,7 +915,7 @@ public class DataDaoImpl implements DataDao {
                 .collect(joining(","));
 
         QueryWithParams whereByDate = getWhereByDates(publishTime, null, DEFAULT_TABLE_ALIAS);
-        String sqlByDate = (whereByDate == null || StringUtils.isEmpty(whereByDate.getSql())) ? "" : whereByDate.getSql();
+        String sqlByDate = (whereByDate == null || DataUtil.isNullOrEmpty(whereByDate.getSql())) ? "" : whereByDate.getSql();
 
         String sql = "SELECT " + fields + ", COUNT(*)" + "\n" +
                 "  FROM " + getSchemaTableName(DATA_SCHEMA_NAME, storageCode) +
@@ -1400,9 +1400,10 @@ public class DataDaoImpl implements DataDao {
         String newDataFields = getSelectFields("t2", criteria.getFields(), false);
 
         String dataSelectFormat = "SELECT t1.%1$s as sysId1 \n %2$s \n, t2.%1$s as sysId2 \n %3$s \n";
-        String dataSelect = String.format(dataSelectFormat, addDoubleQuotes(SYS_PRIMARY_COLUMN),
-                StringUtils.isEmpty(oldDataFields) ? "" : ", " + oldDataFields,
-                StringUtils.isEmpty(newDataFields) ? "" : ", " + newDataFields);
+        String dataSelect = String.format(dataSelectFormat,
+                addDoubleQuotes(SYS_PRIMARY_COLUMN),
+                DataUtil.isNullOrEmpty(oldDataFields) ? "" : ", " + oldDataFields,
+                DataUtil.isNullOrEmpty(newDataFields) ? "" : ", " + newDataFields);
 
         String primaryEquality = criteria.getPrimaryFields().stream()
                 .map(f -> formatFieldForQuery(f, "t1") + " = " + formatFieldForQuery(f, "t2"))
@@ -1472,7 +1473,7 @@ public class DataDaoImpl implements DataDao {
         Query countQuery = countQueryWithParams.createQuery(entityManager);
         BigInteger count = (BigInteger) countQuery.getSingleResult();
 
-        if (BooleanUtils.toBoolean(criteria.getCountOnly())) {
+        if (Boolean.TRUE.equals(criteria.getCountOnly())) {
             return new DataDifference(new CollectionPage<>(count.intValue(), null, criteria));
         }
 
@@ -1578,7 +1579,7 @@ public class DataDaoImpl implements DataDao {
                                         Set<List<FieldSearchCriteria>> fieldFilters) {
 
         QueryWithParams query = getWhereByFilters(fieldFilters, alias);
-        if (query == null || StringUtils.isEmpty(query.getSql()))
+        if (query == null || DataUtil.isNullOrEmpty(query.getSql()))
             return "";
 
         if (!isNullOrEmpty(query.getParams())) {
@@ -1605,7 +1606,7 @@ public class DataDaoImpl implements DataDao {
 
         public void concat(String sql) {
 
-            if (StringUtils.isEmpty(sql))
+            if (DataUtil.isNullOrEmpty(sql))
                 return;
 
             this.sql = this.sql + " " + sql;

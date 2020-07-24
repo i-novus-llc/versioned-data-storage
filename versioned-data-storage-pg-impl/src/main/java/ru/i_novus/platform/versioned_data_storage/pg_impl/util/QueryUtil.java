@@ -1,8 +1,7 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.util;
 
 import net.n2oapp.criteria.api.Criteria;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.text.StrSubstitutor;
+import org.apache.commons.text.StringSubstitutor;
 import ru.i_novus.platform.datastorage.temporal.enums.ReferenceDisplayType;
 import ru.i_novus.platform.datastorage.temporal.model.*;
 import ru.i_novus.platform.datastorage.temporal.model.value.*;
@@ -14,8 +13,7 @@ import java.util.*;
 import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.REFERENCE_FIELD_VALUE_OPERATOR;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.SQL_ALIAS_OPERATOR;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.DataUtil.addDoubleQuotes;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.DataUtil.addSingleQuotes;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.DataUtil.*;
 
 /**
  * @author lgalimova
@@ -130,7 +128,7 @@ public class QueryUtil {
      */
     public static String getSelectFields(String alias, List<Field> fields, boolean detailed) {
 
-        if (StringUtils.isEmpty(alias))
+        if (isNullOrEmpty(alias))
             alias = "";
 
         List<String> queryFields = new ArrayList<>();
@@ -178,7 +176,7 @@ public class QueryUtil {
         if (alias == null) {
             alias = "";
 
-        } else if (!StringUtils.isEmpty(alias)) {
+        } else if (!alias.isEmpty()) {
             alias = alias + ".";
         }
 
@@ -193,7 +191,7 @@ public class QueryUtil {
     }
 
     public static String getSchemaName(String schema) {
-        return StringUtils.isEmpty(schema) ? DATA_SCHEMA_NAME : schema;
+        return isNullOrEmpty(schema) ? DATA_SCHEMA_NAME : schema;
     }
 
     public static String getTableName(String tableName) {
@@ -207,7 +205,7 @@ public class QueryUtil {
     public static String getTableFieldName(String tableAlias, String fieldName) {
 
         String escapedFieldName = addDoubleQuotes(fieldName);
-        return StringUtils.isEmpty(tableAlias) ? escapedFieldName : tableAlias + "." + escapedFieldName;
+        return isNullOrEmpty(tableAlias) ? escapedFieldName : tableAlias + "." + escapedFieldName;
     }
 
     public static String getSequenceName(String tableName) {
@@ -298,43 +296,57 @@ public class QueryUtil {
      * Формирование sql-текста для значения отображаемого выражения.
      *
      * @param displayExpression выражение для вычисления отображаемого значения
-     * @param tableName         таблица, к которой привязаны поля-placeholder`ы
+     * @param tableAlias        таблица, к которой привязаны поля-placeholder`ы
      * @return Текст для подстановки в SQL
      */
-    public static String sqlDisplayExpression(DisplayExpression displayExpression, String tableName) {
+    public static String sqlDisplayExpression(DisplayExpression displayExpression, String tableAlias) {
 
-        String sqlDisplayExpression = escapeSql(displayExpression.getValue());
-        Map<String, String> map = new HashMap<>();
+        final String valueFormat = "' || coalesce(" + tableAlias + ".%1$s\\:\\:text, '%2$s') || '";
+
+        Map<String, Object> map = new HashMap<>();
         for (Map.Entry<String, String> e : displayExpression.getPlaceholders().entrySet()) {
-            map.put(e.getKey(), "' || coalesce(" + tableName + "." + addDoubleQuotes(e.getKey()) + "\\:\\:text, '" + e.getValue() + "') || '");
+            String value = e.getValue() == null ? "" : e.getValue();
+            map.put(e.getKey(), String.format(valueFormat, addDoubleQuotes(e.getKey()), value));
         }
 
-        return addSingleQuotes(StrSubstitutor.replace(sqlDisplayExpression, map));
+        String escapedDisplayExpression = escapeSql(displayExpression.getValue());
+        String displayValue = createDisplayExpressionSubstitutor(map).replace(escapedDisplayExpression);
+        return addSingleQuotes(displayValue);
     }
 
     /**
-     * <p>Escapes the characters in a <code>String</code> to be suitable to pass to
-     * an SQL query.</p>
+     * <p>Escapes the characters in a <code>String</code> to be suitable to pass to an SQL query.
      *
      * <p>For example,
-     * <pre>statement.executeQuery("SELECT * FROM MOVIES WHERE TITLE='" +
-     *   StringEscapeUtils.escapeSql("McHale Navy") +
-     *   "'");</pre>
-     * </p>
+     * <pre>
+     *      statement.executeQuery("SELECT * FROM data_table WHERE name='" +
+     *          StringEscapeUtils.escapeSql("i_novus' style") +
+     *      "'");
+     * </pre>
      * <p>
      * <p>At present, this method only turns single-quotes into doubled single-quotes
-     * (<code>"McHale Navy"</code> => <code>"McHale' Navy"</code>). It does not
-     * handle the cases of percent (%) or underscore (_) for use in LIKE clauses.</p>
+     * (<code>"i_novus' style"</code> => <code>"i_novus'' style"</code>).
+     * It does not handle the cases of percent (%) or underscore (_) for use in LIKE clauses.
      *
      * see http://www.jguru.com/faq/view.jsp?EID=8881
-     * @param str  the string to escape, may be null
-     * @return a new String, escaped for SQL, <code>null</code> if null string input
+     * 
+     * @param str the string to escape, may be null
+     * @return A new String, escaped for SQL, <code>null</code> if null string input
      */
     public static String escapeSql(String str) {
 
         if (str == null)
             return null;
 
-        return StringUtils.replace(str, "'", "''");
+        return str.replace("'", "''");
+    }
+
+    /** Создание объекта подстановки в выражение для вычисления отображаемого значения. */
+    public static StringSubstitutor createDisplayExpressionSubstitutor(Map<String, Object> map) {
+
+        StringSubstitutor substitutor = new StringSubstitutor(map,
+                DisplayExpression.PLACEHOLDER_START, DisplayExpression.PLACEHOLDER_END);
+        substitutor.setValueDelimiter(DisplayExpression.PLACEHOLDER_DEFAULT_DELIMITER);
+        return substitutor;
     }
 }

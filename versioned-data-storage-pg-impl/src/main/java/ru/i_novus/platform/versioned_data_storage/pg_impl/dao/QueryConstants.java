@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.DataUtil.addDoubleQuotes;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.DataUtil.addSingleQuotes;
 
 /**
  * @author lgalimova
@@ -129,7 +131,7 @@ public class QueryConstants {
     public static final String ALTER_COLUMN_WITH_USING = "ALTER TABLE %1$s.%2$s ALTER COLUMN %3$s SET DATA TYPE %4$s USING %5$s";
 
     public static final String INSERT_QUERY_TEMPLATE_WITH_ID = "INSERT INTO data.%s (%s) VALUES(%s) returning \"SYS_RECORDID\";";
-    public static final String INSERT_QUERY_TEMPLATE = "INSERT INTO data.%s (%s) VALUES(%s);";
+    public static final String INSERT_QUERY_TEMPLATE = "INSERT INTO %1$s.%2$s (%3$s) VALUES(%4$s);";
     public static final String COPY_QUERY_TEMPLATE = "INSERT INTO %1$s.%2$s (%3$s)\n" +
             "SELECT %4$s \n" +
             "  FROM %1$s.%5$s d \n" +
@@ -162,9 +164,13 @@ public class QueryConstants {
     static final String REFERENCE_VALUATION_UPDATE_TABLE = "b";
     static final String REFERENCE_VALUATION_SELECT_TABLE = "d";
     static final String REFERENCE_VALUATION_SELECT_SUBST = "select jsonb_build_object('value', ?)";
-    static final String REFERENCE_VALUATION_SELECT_EXPRESSION =
-            "select jsonb_build_object('value', d.%1$s , 'displayValue', %2$s, 'hash', d.\"SYS_HASH\")\n" +
-            "  from data.%3$s d where d.%1s=%4$s\\:\\:%5$s %6$s";
+    static final String REFERENCE_VALUATION_SELECT_EXPRESSION = "select jsonb_build_object(" +
+            addSingleQuotes(REFERENCE_VALUE_NAME) + ", %3$s.%4$s, " +
+            addSingleQuotes(REFERENCE_DISPLAY_VALUE_NAME) + ", %5$s, " +
+            addSingleQuotes(REFERENCE_HASH_NAME) + ", %3$s." + addDoubleQuotes(SYS_HASH) +
+            ") " +
+            "  from %1$s.%2$s as %3$s " +
+            " where %3$s.%4$s=%6$s\\:\\:%7$s %8$s";
     static final String REFERENCE_VALUATION_OLD_VALUE =
             "(case when %1$s is null then null else %1$s->>'value' end)";
 

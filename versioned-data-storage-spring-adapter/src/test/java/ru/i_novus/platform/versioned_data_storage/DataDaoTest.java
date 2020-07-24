@@ -80,6 +80,19 @@ public class DataDaoTest {
         Assert.assertTrue(dataDao.tableExists(TEST_SCHEMA_NAME, tableName));
     }
 
+    @Test
+    public void testGetData() {
+
+        String tableName = "test_" + UUID.randomUUID().toString();
+        List<Field> fields = getTestFields();
+
+        dataDao.createDraftTable(DATA_SCHEMA_NAME, tableName, fields);
+        Assert.assertTrue(dataDao.tableExists(DATA_SCHEMA_NAME, tableName));
+
+        dataDao.createDraftTable(TEST_SCHEMA_NAME, tableName, fields);
+        Assert.assertTrue(dataDao.tableExists(TEST_SCHEMA_NAME, tableName));
+    }
+
     private List<Field> getTestFields() {
 
         List<Field> fields = new ArrayList<>();

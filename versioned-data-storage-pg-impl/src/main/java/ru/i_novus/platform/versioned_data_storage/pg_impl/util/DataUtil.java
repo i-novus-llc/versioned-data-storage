@@ -9,6 +9,10 @@ public class DataUtil {
         throw new UnsupportedOperationException();
     }
 
+    public static boolean isNullOrEmpty(String s) {
+        return s == null || s.isEmpty();
+    }
+
     public static String addDoubleQuotes(String source) {
         return "\"" + source + "\"";
     }

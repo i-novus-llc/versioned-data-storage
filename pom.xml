@@ -56,6 +56,7 @@
         <jackson.version>2.11.1</jackson.version>
         <hibernate.version>5.4.16.Final</hibernate.version>
         <n2o.version>7.7.1</n2o.version>
+        <commons.text.version>1.6</commons.text.version>
         <maven.source.version>3.0.1</maven.source.version>
         <maven.javadoc.version>3.1.0</maven.javadoc.version>
         <maven.javadoc.failOnError>false</maven.javadoc.failOnError>
@@ -98,6 +99,13 @@
                 <version>${n2o.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-text</artifactId>
+                <version>${commons.text.version}</version>
+            </dependency>
+
+            <!-- deprecated -->
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
