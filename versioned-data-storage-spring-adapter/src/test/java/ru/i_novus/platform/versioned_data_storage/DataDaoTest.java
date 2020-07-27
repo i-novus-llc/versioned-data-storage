@@ -10,9 +10,10 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.annotation.Transactional;
 import ru.i_novus.platform.datastorage.temporal.enums.FieldType;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
-import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
+import ru.i_novus.platform.datastorage.temporal.model.value.IntegerFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
+import ru.i_novus.platform.datastorage.temporal.model.value.StringFieldValue;
 import ru.i_novus.platform.datastorage.temporal.service.FieldFactory;
 import ru.i_novus.platform.versioned_data_storage.config.VersionedDataStorageConfig;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
@@ -20,6 +21,7 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceException;
+import java.math.BigInteger;
 import java.util.*;
 import java.util.stream.IntStream;
 
@@ -143,7 +145,6 @@ public class DataDaoTest {
     }
 
     @Test
-    @Transactional
     public void testNullGetData() {
 
         String tableName = newTestTableName();
@@ -176,9 +177,16 @@ public class DataDaoTest {
         assertEquals(2, dataValues.size());
 
         IntStream.range(0, nameValues.size()).forEach(index -> {
-            FieldValue nameValue = dataValues.get(index).getFieldValue(FIELD_NAME_CODE);
+            StringFieldValue nameValue = dataValues.stream()
+                    .filter(rowValue -> {
+                        IntegerFieldValue idValue = (IntegerFieldValue) rowValue.getFieldValue(FIELD_ID_CODE);
+                        BigInteger value = idValue != null ? idValue.getValue() : null;
+                        return value != null && value.equals(BigInteger.valueOf(index));
+                    })
+                    .map(rowValue -> (StringFieldValue) rowValue.getFieldValue(FIELD_NAME_CODE))
+                    .findFirst().orElse(null);
             assertNotNull(nameValue);
-            assertTrue(nameValues.contains((String) nameValue.getValue()));
+            assertEquals(nameValues.get(index), nameValue.getValue());
         });
     }
 
