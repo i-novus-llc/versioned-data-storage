@@ -135,17 +135,17 @@ public class QueryConstants {
     public static final String INSERT_QUERY_TEMPLATE = "INSERT INTO %1$s.%2$s (%3$s) VALUES(%4$s);";
     public static final String COPY_QUERY_TEMPLATE = "INSERT INTO %1$s.%2$s (%3$s)\n" +
             "SELECT %4$s \n" +
-            "  FROM %1$s.%5$s d \n" +
+            "  FROM %1$s.%5$s as d \n" +
             SELECT_WHERE;
 
-    public static final String DELETE_QUERY_TEMPLATE = "DELETE FROM data.%s WHERE \"SYS_RECORDID\" IN (%s);";
+    public static final String DELETE_ALL_QUERY_TEMPLATE = "DELETE FROM %1$s.%2$s;";
+    public static final String DELETE_QUERY_TEMPLATE = "DELETE FROM %1$s.%2$s WHERE %3$s IN (%4$s);";
     //todo
     public static final String DELETE_POINT_ROWS_QUERY_TEMPLATE = "DELETE FROM data.%s WHERE \"SYS_PUBLISHTIME\" = \"SYS_CLOSETIME\";";
-    public static final String DELETE_ALL_RECORDS_FROM_TABLE_QUERY_TEMPLATE = "DELETE FROM data.%s;";
     public static final String DELETE_EMPTY_RECORDS_FROM_TABLE_QUERY_TEMPLATE = "DELETE FROM data.%s WHERE %s;";
 
-    static final String UPDATE_QUERY_TEMPLATE = "UPDATE data.%s as b SET %s WHERE b.\"SYS_RECORDID\" IN (%s);";
-    static final String UPDATE_REFERENCE_QUERY_TEMPLATE = "UPDATE data.%s as b SET %s WHERE b.\"SYS_RECORDID\" = ANY(%s\\:\\:bigint[]);";
+    static final String UPDATE_QUERY_TEMPLATE = "UPDATE %1$s.%2$s as %3$s SET %4$s WHERE %3$s.%5$s IN (%6$s);";
+    static final String UPDATE_REFERENCE_QUERY_TEMPLATE = "UPDATE %1$s.%2$s as %3$s SET %4$s WHERE %3$s.%5$s = ANY(%6$s\\:\\:bigint[]);";
 
     private static final String AND_EXISTS_VERSION_REF_VALUE = "   AND v.${refFieldName} is not null\n" +
             "   AND (v.${refFieldName} -> 'value') is not null\n";

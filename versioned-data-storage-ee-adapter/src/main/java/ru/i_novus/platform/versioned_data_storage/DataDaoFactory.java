@@ -17,10 +17,10 @@ import java.io.Serializable;
 public class DataDaoFactory implements Serializable {
 
     @PersistenceContext
-    private EntityManager em;
+    private EntityManager entityManager;
 
     @Produces
     public DataDao getDataDao() {
-        return new DataDaoImpl(em);
+        return new DataDaoImpl(entityManager);
     }
 }

@@ -65,7 +65,7 @@ public class DataDaoImpl implements DataDao {
         // Схемы предлагается именовать в виде "data_" + код локализации, чтобы исключить случайное совпадение с другими схемами.
         // Код локализации должен содержать только строчные латинские буквы a-z, цифры 0-9 и символ подчёркивания "_".
         // В postgres макс. длина имени = NAMEDATALEN - 1 = 64 - 1, поэтому длина кода локализации должна быть <= 64 - 1 - "data_".len() = 58.
-        final String schemaName = getExistentTableSchemaName(criteria.getSchemaName(), criteria.getTableName());
+        final String schemaName = getSchemaName(criteria.getSchemaName());
 
         List<Field> fields = new ArrayList<>(criteria.getFields());
         fields.add(0, new IntegerField(SYS_PRIMARY_COLUMN));
@@ -99,7 +99,7 @@ public class DataDaoImpl implements DataDao {
     @Override
     public BigInteger getDataCount(DataCriteria criteria) {
 
-        final String schemaName = getExistentTableSchemaName(criteria.getSchemaName(), criteria.getTableName());
+        final String schemaName = getSchemaName(criteria.getSchemaName());
 
         final String sqlFormat = "  FROM %s as %s\n";
         String sql = SELECT_COUNT_ONLY +
@@ -115,14 +115,17 @@ public class DataDaoImpl implements DataDao {
 
     /** Получение строки данных таблицы по системному идентификатору. */
     @Override
-    public RowValue getRowData(String tableName, List<String> fieldNames, Object systemId) {
+    public RowValue getRowData(String storageCode, List<String> fieldNames, Object systemId) {
+
+        String schemaName = getSchemaName(toSchemaName(storageCode));
+        String tableName = toTableName(storageCode);
 
         List<Field> fields = dataTypesToFields(getColumnDataTypes(tableName), fieldNames);
 
         String sqlFields = getSelectFields(null, fields, true);
         String sql = String.format(SELECT_ROWS_FROM_DATA_BY_FIELD,
                 sqlFields,
-                DATA_SCHEMA_NAME,
+                schemaName,
                 addDoubleQuotes(tableName),
                 addDoubleQuotes(SYS_PRIMARY_COLUMN),
                 QUERY_VALUE_SUBST);
@@ -141,14 +144,17 @@ public class DataDaoImpl implements DataDao {
 
     /** Получение строк данных таблицы по системным идентификаторам. */
     @Override
-    public List<RowValue> getRowData(String tableName, List<String> fieldNames, List<Object> systemIds) {
+    public List<RowValue> getRowData(String storageCode, List<String> fieldNames, List<Object> systemIds) {
+
+        String schemaName = getSchemaName(toSchemaName(storageCode));
+        String tableName = toTableName(storageCode);
 
         List<Field> fields = dataTypesToFields(getColumnDataTypes(tableName), fieldNames);
 
         String sqlFields = getSelectFields(null, fields, true);
         String sql = String.format(SELECT_ROWS_FROM_DATA_BY_FIELD_LIST,
                 sqlFields,
-                DATA_SCHEMA_NAME,
+                schemaName,
                 addDoubleQuotes(tableName),
                 addDoubleQuotes(SYS_PRIMARY_COLUMN),
                 QUERY_VALUE_SUBST);
@@ -472,7 +478,7 @@ public class DataDaoImpl implements DataDao {
     @Transactional
     public void createDraftTable(String storageCode, List<Field> fields) {
 
-        String schemaName = getExistentSchemaName(toSchemaName(storageCode));
+        String schemaName = getSchemaName(toSchemaName(storageCode));
         String tableName = toTableName(storageCode);
         
         if (storageExists(storageCode))
@@ -550,15 +556,6 @@ public class DataDaoImpl implements DataDao {
         return result != null && result;
     }
 
-    private String getExistentSchemaName(String schemaName) {
-
-        schemaName = getSchemaName(schemaName);
-        if (DATA_SCHEMA_NAME.equals(schemaName) || schemaExists(schemaName))
-            return schemaName;
-
-        return DATA_SCHEMA_NAME;
-    }
-
     @Override
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public boolean storageExists(String storageCode) {
@@ -569,15 +566,6 @@ public class DataDaoImpl implements DataDao {
                 .getSingleResult();
 
         return result != null && result;
-    }
-
-    private String getExistentTableSchemaName(String schemaName, String tableName) {
-
-        schemaName = getExistentSchemaName(schemaName);
-        if (DATA_SCHEMA_NAME.equals(schemaName) || storageExists(schemaName + NAME_SEPARATOR + tableName))
-            return schemaName;
-
-        return DATA_SCHEMA_NAME;
     }
 
     @Override
@@ -605,7 +593,10 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @Transactional
-    public void insertData(String tableName, List<RowValue> data) {
+    public void insertData(String storageCode, List<RowValue> data) {
+
+        String schemaName = getSchemaName(toSchemaName(storageCode));
+        String tableName = toTableName(storageCode);
 
         if (isEmpty(data))
             return;
@@ -649,10 +640,8 @@ public class DataDaoImpl implements DataDao {
             String stringValues = String.join("),(", subValues);
 
             String sql = String.format(INSERT_QUERY_TEMPLATE,
-                    DATA_SCHEMA_NAME,
-                    addDoubleQuotes(tableName),
-                    String.join(",", keys),
-                    stringValues);
+                    schemaName, addDoubleQuotes(tableName),
+                    String.join(",", keys), stringValues);
             Query query = entityManager.createNativeQuery(sql);
 
             for (RowValue rowValue : subData) {
@@ -754,7 +743,10 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @Transactional
-    public void updateData(String tableName, RowValue rowValue) {
+    public void updateData(String storageCode, RowValue rowValue) {
+
+        String schemaName = getSchemaName(toSchemaName(storageCode));
+        String tableName = toTableName(storageCode);
 
         List<String> keyList = new ArrayList<>();
         for (Object objectValue : rowValue.getFieldValues()) {
@@ -777,7 +769,9 @@ public class DataDaoImpl implements DataDao {
         }
 
         String keys = String.join(",", keyList);
-        String sql = String.format(UPDATE_QUERY_TEMPLATE, addDoubleQuotes(tableName), keys, QUERY_VALUE_SUBST);
+        String sql = String.format(UPDATE_QUERY_TEMPLATE,
+                schemaName, addDoubleQuotes(tableName), "b",
+                keys, addDoubleQuotes(SYS_PRIMARY_COLUMN), QUERY_VALUE_SUBST);
         Query query = entityManager.createNativeQuery(sql);
 
         int i = 1;
@@ -798,19 +792,27 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void deleteData(String tableName) {
+    public void deleteData(String storageCode) {
 
-        String sql = String.format(DELETE_ALL_RECORDS_FROM_TABLE_QUERY_TEMPLATE, addDoubleQuotes(tableName));
+        String schemaName = getSchemaName(toSchemaName(storageCode));
+        String tableName = toTableName(storageCode);
+
+        String sql = String.format(DELETE_ALL_QUERY_TEMPLATE, schemaName, addDoubleQuotes(tableName));
         Query query = entityManager.createNativeQuery(sql);
         query.executeUpdate();
     }
 
     @Override
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void deleteData(String tableName, List<Object> systemIds) {
+    public void deleteData(String storageCode, List<Object> systemIds) {
+
+        String schemaName = getSchemaName(toSchemaName(storageCode));
+        String tableName = toTableName(storageCode);
 
         String ids = systemIds.stream().map(id -> "?").collect(joining(","));
-        String sql = String.format(DELETE_QUERY_TEMPLATE, addDoubleQuotes(tableName), ids);
+        String sql = String.format(DELETE_QUERY_TEMPLATE,
+                schemaName, addDoubleQuotes(tableName),
+                addDoubleQuotes(SYS_PRIMARY_COLUMN), ids);
         Query query = entityManager.createNativeQuery(sql);
 
         int i = 1;
@@ -832,7 +834,9 @@ public class DataDaoImpl implements DataDao {
         String oldFieldValue = String.format(REFERENCE_VALUATION_OLD_VALUE, oldFieldExpression);
         String key = quotedFieldName + " = " + getReferenceValuationSelect(fieldValue, oldFieldValue);
 
-        String sql = String.format(UPDATE_REFERENCE_QUERY_TEMPLATE, addDoubleQuotes(tableName), key, QUERY_VALUE_SUBST);
+        String sql = String.format(UPDATE_REFERENCE_QUERY_TEMPLATE,
+                DATA_SCHEMA_NAME, addDoubleQuotes(tableName), REFERENCE_VALUATION_UPDATE_TABLE,
+                key, addDoubleQuotes(SYS_PRIMARY_COLUMN), QUERY_VALUE_SUBST);
         Query query = entityManager.createNativeQuery(sql);
 
         String ids = systemIds.stream().map(String::valueOf).collect(joining(","));
@@ -877,7 +881,9 @@ public class DataDaoImpl implements DataDao {
         placeholderValues.put("offset", "" + offset);
 
         String where = StrSubstitutor.replace(WHERE_REFERENCE_IN_REF_ROWS, placeholderValues);
-        String sql = String.format(UPDATE_QUERY_TEMPLATE, addDoubleQuotes(tableName), key, where);
+        String sql = String.format(UPDATE_QUERY_TEMPLATE,
+                DATA_SCHEMA_NAME, addDoubleQuotes(tableName), "b",
+                key, addDoubleQuotes(SYS_PRIMARY_COLUMN), where);
 
         if (logger.isDebugEnabled()) {
             logger.debug("updateReferenceInRefRows method sql: {}", sql);

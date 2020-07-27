@@ -219,13 +219,13 @@ public class QueryUtil {
         return storageCode;
     }
 
-    public static String escapeTableName(String tableName) {
-        return addDoubleQuotes(tableName);
+    public static String toStorageCode(String schemaName, String tableName) {
+        return isNullOrEmpty(schemaName) ? tableName : schemaName + NAME_SEPARATOR + tableName;
     }
 
     public static String escapeSchemaTableName(String schemaName, String tableName) {
 
-        return getSchemaName(schemaName) + NAME_SEPARATOR + escapeTableName(tableName);
+        return getSchemaName(schemaName) + NAME_SEPARATOR + addDoubleQuotes(tableName);
     }
 
     public static String escapeTableFieldName(String tableAlias, String fieldName) {

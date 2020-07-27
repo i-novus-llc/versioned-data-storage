@@ -18,9 +18,9 @@ public interface DataDao {
 
     BigInteger getDataCount(DataCriteria criteria);
 
-    RowValue getRowData(String tableName, List<String> fieldNames, Object systemId);
+    RowValue getRowData(String storageCode, List<String> fieldNames, Object systemId);
 
-    List<RowValue> getRowData(String tableName, List<String> fieldNames, List<Object> systemIds);
+    List<RowValue> getRowData(String storageCode, List<String> fieldNames, List<Object> systemIds);
 
     List<String> getNotExists(String tableName, LocalDateTime bdate, LocalDateTime edate, List<String> hashList);
 
@@ -44,16 +44,16 @@ public interface DataDao {
 
     void deleteColumnFromTable(String tableName, String field);
 
-    void insertData(String tableName, List<RowValue> data);
+    void insertData(String storageCode, List<RowValue> data);
 
     void loadData(String draftTable, String sourceTable, List<String> fields,
                   LocalDateTime fromDate, LocalDateTime toDate);
 
-    void updateData(String tableName, RowValue rowValue);
+    void updateData(String storageCode, RowValue rowValue);
 
-    void deleteData(String tableName);
+    void deleteData(String storageCode);
 
-    void deleteData(String tableName, List<Object> systemIds);
+    void deleteData(String storageCode, List<Object> systemIds);
 
     void updateReferenceInRows(String tableName, ReferenceFieldValue fieldValue, List<Object> systemIds);
 
