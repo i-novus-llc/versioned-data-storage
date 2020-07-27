@@ -30,7 +30,7 @@ public interface DataDao {
 
     BigInteger countData(String tableName);
 
-    void createDraftTable(String schemaName, String tableName, List<Field> fields);
+    void createDraftTable(String storageCode, List<Field> fields);
 
     void copyTable(String newTableName, String sourceTableName);
 
@@ -38,7 +38,7 @@ public interface DataDao {
 
     boolean schemaExists(String schemaName);
 
-    boolean tableExists(String schemaName, String tableName);
+    boolean storageExists(String storageCode);
 
     void addColumnToTable(String tableName, String name, String type, String defaultValue);
 

@@ -24,7 +24,8 @@ public class QueryConstants {
     static final String QUERY_DATE_FORMAT = "DD.MM.YYYY";
     static final String QUERY_TIMESTAMP_FORMAT = "YYYY-MM-DD HH24:MI:SS";
 
-    public static final String SQL_ALIAS_OPERATOR = " as ";
+    public static final String NAME_SEPARATOR = ".";
+    public static final String ALIAS_OPERATOR = " as ";
     public static final String DEFAULT_TABLE_ALIAS = "d";
     static final String TRIGGER_NEW_ALIAS = "NEW";
 
@@ -70,8 +71,8 @@ public class QueryConstants {
     private static final String DRAFT_TABLE_ALIAS = "d";
     private static final String VERSION_TABLE_ALIAS = "v";
 
-    private static final String FROM_DRAFT_TABLE = "  FROM ${draftTable}" + SQL_ALIAS_OPERATOR + DRAFT_TABLE_ALIAS + " \n";
-    private static final String FROM_VERSION_TABLE = "  FROM ${versionTable}" + SQL_ALIAS_OPERATOR + VERSION_TABLE_ALIAS + " \n";
+    private static final String FROM_DRAFT_TABLE = "  FROM ${draftTable}" + ALIAS_OPERATOR + DRAFT_TABLE_ALIAS + " \n";
+    private static final String FROM_VERSION_TABLE = "  FROM ${versionTable}" + ALIAS_OPERATOR + VERSION_TABLE_ALIAS + " \n";
 
     private static final String ORDER_DRAFT_BY_SYS_RECORDID = String.format(ORDER_BY_ONE_FIELD, DRAFT_TABLE_ALIAS, SYS_PRIMARY_COLUMN);
     private static final String ORDER_VERSION_BY_SYS_RECORDID = String.format(ORDER_BY_ONE_FIELD, VERSION_TABLE_ALIAS, SYS_PRIMARY_COLUMN);

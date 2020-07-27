@@ -62,7 +62,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     public String applyDraft(String baseStorageCode, String draftCode,
                              LocalDateTime publishTime, LocalDateTime closeTime) {
 
-        if (!draftExists(DATA_SCHEMA_NAME, draftCode))
+        if (!storageExists(draftCode))
             throw new IllegalArgumentException("draft.table.does.not.exist");
 
         String newTable = createVersionTable(draftCode);
@@ -86,8 +86,8 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     @Override
-    public boolean draftExists(String schemaName, String draftCode) {
-        return dataDao.tableExists(schemaName, draftCode);
+    public boolean storageExists(String storageCode) {
+        return dataDao.storageExists(storageCode);
     }
 
     @Override
@@ -269,7 +269,7 @@ public class DraftDataServiceImpl implements DraftDataService {
 
         //todo никак не учитывается Field.unique - уникальность в рамках черновика
         logger.debug("creating table with name: {}", draftCode);
-        dataDao.createDraftTable(DATA_SCHEMA_NAME,draftCode, fields);
+        dataDao.createDraftTable(draftCode, fields);
 
         List<String> fieldNames = fields.stream()
                 .map(this::getHashUsedFieldName)

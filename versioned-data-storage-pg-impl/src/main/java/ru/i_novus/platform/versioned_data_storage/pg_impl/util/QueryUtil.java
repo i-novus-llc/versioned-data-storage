@@ -11,8 +11,7 @@ import java.math.BigInteger;
 import java.util.*;
 
 import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.REFERENCE_FIELD_VALUE_OPERATOR;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.SQL_ALIAS_OPERATOR;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.DataUtil.*;
 
 /**
@@ -140,14 +139,14 @@ public class QueryUtil {
 
                 String queryValue = query + jsonOperator +
                         addSingleQuotes(REFERENCE_VALUE_NAME) +
-                        SQL_ALIAS_OPERATOR +
+                        ALIAS_OPERATOR +
                         sqlFieldAlias(field, alias, REFERENCE_VALUE_NAME);
                 queryFields.add(queryValue);
 
                 if (detailed) {
                     String queryDisplayValue = query + jsonOperator +
                             addSingleQuotes(REFERENCE_DISPLAY_VALUE_NAME) +
-                            SQL_ALIAS_OPERATOR +
+                            ALIAS_OPERATOR +
                             sqlFieldAlias(field, alias, REFERENCE_DISPLAY_VALUE_NAME);
                     queryFields.add(queryDisplayValue);
                 }
@@ -155,7 +154,7 @@ public class QueryUtil {
                 if (field instanceof TreeField) {
                     query += "\\:\\:text";
                 }
-                query += SQL_ALIAS_OPERATOR +
+                query += ALIAS_OPERATOR +
                         sqlFieldAlias(field, alias, fields.indexOf(field));
                 queryFields.add(query);
             }
@@ -177,7 +176,7 @@ public class QueryUtil {
             alias = "";
 
         } else if (!alias.isEmpty()) {
-            alias = alias + ".";
+            alias = alias + NAME_SEPARATOR;
         }
 
         if (field.contains(REFERENCE_FIELD_VALUE_OPERATOR)) {
@@ -190,30 +189,58 @@ public class QueryUtil {
         }
     }
 
-    public static String getSchemaName(String schema) {
-        return isNullOrEmpty(schema) ? DATA_SCHEMA_NAME : schema;
+    public static String getSchemaName(String schemaName) {
+        return isNullOrEmpty(schemaName) ? DATA_SCHEMA_NAME : schemaName;
     }
 
-    public static String getTableName(String tableName) {
+    public static String toSchemaName(String storageCode) {
+
+        if (isNullOrEmpty(storageCode))
+            return DATA_SCHEMA_NAME;
+
+        int separatorIndex = storageCode.indexOf(NAME_SEPARATOR);
+        if (separatorIndex > 0) {
+            return storageCode.substring(0, separatorIndex);
+        }
+
+        return DATA_SCHEMA_NAME;
+    }
+
+    public static String toTableName(String storageCode) {
+
+        if (isNullOrEmpty(storageCode))
+            return null;
+
+        int separatorIndex = storageCode.indexOf(NAME_SEPARATOR);
+        if (separatorIndex >= 0) {
+            return storageCode.substring(separatorIndex + 1);
+        }
+
+        return storageCode;
+    }
+
+    public static String escapeTableName(String tableName) {
         return addDoubleQuotes(tableName);
     }
 
-    public static String getSchemaTableName(String schemaName, String tableName) {
-        return getSchemaName(schemaName) + "." + getTableName(tableName);
+    public static String escapeSchemaTableName(String schemaName, String tableName) {
+
+        return getSchemaName(schemaName) + NAME_SEPARATOR + escapeTableName(tableName);
     }
 
-    public static String getTableFieldName(String tableAlias, String fieldName) {
+    public static String escapeTableFieldName(String tableAlias, String fieldName) {
 
         String escapedFieldName = addDoubleQuotes(fieldName);
-        return isNullOrEmpty(tableAlias) ? escapedFieldName : tableAlias + "." + escapedFieldName;
+        return isNullOrEmpty(tableAlias) ? escapedFieldName : tableAlias + NAME_SEPARATOR + escapedFieldName;
     }
 
-    public static String getSequenceName(String tableName) {
+    public static String escapeSequenceName(String tableName) {
         return addDoubleQuotes(tableName + "_" + SYS_PRIMARY_COLUMN + "_seq");
     }
 
-    public static String getSchemaSequenceName(String schemaName, String tableName) {
-        return getSchemaName(schemaName) + "." + getSequenceName(tableName);
+    public static String escapeSchemaSequenceName(String schemaName, String tableName) {
+
+        return getSchemaName(schemaName) + NAME_SEPARATOR + escapeSequenceName(tableName);
     }
 
     public static int getOffset(Criteria criteria) {
@@ -285,11 +312,11 @@ public class QueryUtil {
      * Формирование sql-текста для значения отображаемого выражения.
      *
      * @param displayField поле для получения отображаемого значения
-     * @param tableName    таблица, к которой привязано поле
+     * @param tableAlias   таблица, к которой привязано поле
      * @return Текст для подстановки в SQL
      */
-    public static String sqlFieldExpression(String displayField, String tableName) {
-        return tableName + "." + addDoubleQuotes(displayField);
+    public static String sqlFieldExpression(String displayField, String tableAlias) {
+        return tableAlias + NAME_SEPARATOR + addDoubleQuotes(displayField);
     }
 
     /**
@@ -301,7 +328,7 @@ public class QueryUtil {
      */
     public static String sqlDisplayExpression(DisplayExpression displayExpression, String tableAlias) {
 
-        final String valueFormat = "' || coalesce(" + tableAlias + ".%1$s\\:\\:text, '%2$s') || '";
+        final String valueFormat = "' || coalesce(" + tableAlias + NAME_SEPARATOR + "%1$s\\:\\:text, '%2$s') || '";
 
         Map<String, Object> map = new HashMap<>();
         for (Map.Entry<String, String> e : displayExpression.getPlaceholders().entrySet()) {

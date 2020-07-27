@@ -17,16 +17,17 @@ import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.FieldFactory;
 import ru.i_novus.platform.versioned_data_storage.config.VersionedDataStorageConfig;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
-import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import java.util.*;
+import java.util.stream.IntStream;
 
 import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.HASH_EXPRESSION;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.INSERT_QUERY_TEMPLATE;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.DataUtil.addDoubleQuotes;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.DataUtil.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.escapeTableName;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.getSchemaName;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {JpaTestConfig.class, VersionedDataStorageConfig.class})
@@ -57,11 +58,17 @@ public class DataDaoTest {
 
     @Test
     @Transactional
-    public void testTableExists() {
+    public void testStorageExists() {
 
         String tableName = "test_table_exists";
+        testStorageExists(null, tableName);
+        testStorageExists(TEST_SCHEMA_NAME, tableName);
+    }
 
-        Assert.assertFalse(dataDao.tableExists(DATA_SCHEMA_NAME, tableName));
+    private void testStorageExists(String schemaName, String tableName) {
+
+        String storageCode = toStorageCode(schemaName, tableName);
+        Assert.assertFalse(dataDao.storageExists(storageCode));
 
         String ddlFormat = "CREATE TABLE %1$s.%2$s (\n" +
                 "  " + addDoubleQuotes(SYS_PRIMARY_COLUMN) + " bigserial NOT NULL,\n" +
@@ -70,10 +77,9 @@ public class DataDaoTest {
                 "  " + addDoubleQuotes(SYS_HASH) + " char(32)\n" +
                 ");";
 
-        String ddl = String.format(ddlFormat, DATA_SCHEMA_NAME, addDoubleQuotes(tableName));
+        String ddl = String.format(ddlFormat, getSchemaName(schemaName), addDoubleQuotes(tableName));
         entityManager.createNativeQuery(ddl).executeUpdate();
-
-        Assert.assertTrue(dataDao.tableExists(DATA_SCHEMA_NAME, tableName));
+        Assert.assertTrue(dataDao.storageExists(storageCode));
     }
 
     @Test
@@ -82,11 +88,16 @@ public class DataDaoTest {
         String tableName = "test_" + UUID.randomUUID().toString();
         List<Field> fields = getTestFields();
 
-        dataDao.createDraftTable(DATA_SCHEMA_NAME, tableName, fields);
-        Assert.assertTrue(dataDao.tableExists(DATA_SCHEMA_NAME, tableName));
+        testCreateDraftTable(null, tableName, fields);
+        testCreateDraftTable(TEST_SCHEMA_NAME, tableName, fields);
+    }
 
-        dataDao.createDraftTable(TEST_SCHEMA_NAME, tableName, fields);
-        Assert.assertTrue(dataDao.tableExists(TEST_SCHEMA_NAME, tableName));
+    private void testCreateDraftTable(String schemaName, String tableName, List<Field> fields) {
+
+        String storageCode = toStorageCode(schemaName, tableName);
+
+        dataDao.createDraftTable(storageCode, fields);
+        Assert.assertTrue(dataDao.storageExists(storageCode));
     }
 
     @Test
@@ -94,7 +105,7 @@ public class DataDaoTest {
     public void testGetData() {
 
         String tableName = "test_" + UUID.randomUUID().toString();
-        String escapedTableName = QueryUtil.getTableName(tableName);
+        String escapedTableName = escapeTableName(tableName);
 
         List<Field> fields = getTestFields();
         String columnsStr = fields.stream()
@@ -102,34 +113,38 @@ public class DataDaoTest {
                 .reduce((s1, s2) -> s1 + ", " + s2).orElse("");
         columnsStr += ", " + addDoubleQuotes(SYS_HASH);
 
-        dataDao.createDraftTable(DATA_SCHEMA_NAME, tableName, fields);
+        dataDao.createDraftTable(tableName, fields);
 
         final String dataName1 = "первый";
         final String dataName2 = "второй";
         final List<String> dataNames = Arrays.asList(dataName1, dataName2);
 
         String sqlValuesFormat = "%1$s" + ", " + String.format(HASH_EXPRESSION, "%1$s");
+
         String sqlInsert = String.format(INSERT_QUERY_TEMPLATE,
                 DATA_SCHEMA_NAME, escapedTableName, columnsStr, sqlValuesFormat);
-        entityManager.createNativeQuery(String.format(sqlInsert, "1, '" + dataName1 + "'")).executeUpdate();
-        entityManager.createNativeQuery(String.format(sqlInsert, "2, '" + dataName2 + "'")).executeUpdate();
-
+        insertValues(sqlInsert, dataNames);
         testGetIdName(null, tableName, fields, dataNames);
-        testGetIdName(DATA_SCHEMA_NAME, tableName, fields, dataNames);
         testGetIdName(TEST_SCHEMA_NAME, tableName, fields, dataNames);
 
         final String testName1 = "first";
         final String testName2 = "second";
         final List<String> testNames = Arrays.asList(testName1, testName2);
 
-        dataDao.createDraftTable(TEST_SCHEMA_NAME, tableName, fields);
+        dataDao.createDraftTable(TEST_SCHEMA_NAME + NAME_SEPARATOR + tableName, fields);
 
         sqlInsert = String.format(INSERT_QUERY_TEMPLATE, TEST_SCHEMA_NAME,
                 escapedTableName, columnsStr, sqlValuesFormat);
-        entityManager.createNativeQuery(String.format(sqlInsert, "1, '" + testName1 + "'")).executeUpdate();
-        entityManager.createNativeQuery(String.format(sqlInsert, "2, '" + testName2 + "'")).executeUpdate();
-
+        insertValues(sqlInsert, testNames);
         testGetIdName(TEST_SCHEMA_NAME, tableName, fields, testNames);
+    }
+
+    private void insertValues(String sqlInsert, List<String> nameValues) {
+
+        IntStream.range(0, nameValues.size()).forEach(index -> {
+            String sql = String.format(sqlInsert, index + ", " + addSingleQuotes(nameValues.get(index)));
+            entityManager.createNativeQuery(sql).executeUpdate();
+        });
     }
 
     private void testGetIdName(String schemaName, String tableName,
@@ -141,13 +156,11 @@ public class DataDaoTest {
         Assert.assertNotNull(dataValues);
         Assert.assertEquals(2, dataValues.size());
 
-        FieldValue nameValue = dataValues.get(0).getFieldValue(FIELD_NAME_CODE);
-        Assert.assertNotNull(nameValue);
-        Assert.assertTrue(nameValues.contains((String) nameValue.getValue()));
-
-        nameValue = dataValues.get(1).getFieldValue(FIELD_NAME_CODE);
-        Assert.assertNotNull(nameValue);
-        Assert.assertTrue(nameValues.contains((String) nameValue.getValue()));
+        IntStream.range(0, nameValues.size()).forEach(index -> {
+            FieldValue nameValue = dataValues.get(index).getFieldValue(FIELD_NAME_CODE);
+            Assert.assertNotNull(nameValue);
+            Assert.assertTrue(nameValues.contains((String) nameValue.getValue()));
+        });
     }
 
     private List<Field> getTestFields() {
@@ -159,5 +172,9 @@ public class DataDaoTest {
         fields.add(fieldName);
 
         return fields;
+    }
+
+    private String toStorageCode(String schemaName, String tableName) {
+        return isNullOrEmpty(schemaName) ? tableName : schemaName + NAME_SEPARATOR + tableName;
     }
 }

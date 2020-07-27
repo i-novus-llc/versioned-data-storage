@@ -48,13 +48,12 @@ public interface DraftDataService {
                       LocalDateTime publishTime, LocalDateTime closeTime);
 
     /**
-     * Проверка существования черновика
+     * Проверка существования хранилища
      *
-     * @param schemaName схема таблицы
-     * @param draftCode  таблица черновика
+     * @param storageCode таблица черновика
      * @return Признак существования
      */
-    boolean draftExists(String schemaName, String draftCode);
+    boolean storageExists(String storageCode);
 
     /**
      * Добавление записей в таблицу

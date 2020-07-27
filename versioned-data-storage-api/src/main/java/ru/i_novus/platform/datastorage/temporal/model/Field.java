@@ -1,14 +1,17 @@
 package ru.i_novus.platform.datastorage.temporal.model;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * @author lgalimova
  * @since 01.02.2018
  */
 public abstract class Field<T> implements Serializable {
+
     private String name;
     private Integer maxLength;
+
     private Boolean searchEnabled = false;
     private Boolean required = false;
     private Boolean unique = false;
@@ -30,7 +33,7 @@ public abstract class Field<T> implements Serializable {
      */
     public abstract String getType();
 
-    public abstract FieldValue valueOf(T value);
+    public abstract FieldValue<Serializable> valueOf(T value);
 
     public Boolean getSearchEnabled() {
         return searchEnabled;
@@ -69,24 +72,17 @@ public abstract class Field<T> implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        Field<?> field = (Field<?>) o;
+        Field<?> that = (Field<?>) o;
 
-        if (name != null ? !name.equals(field.name) : field.name != null) return false;
-        if (maxLength != null ? !maxLength.equals(field.maxLength) : field.maxLength != null) return false;
-        if (searchEnabled != null ? !searchEnabled.equals(field.searchEnabled) : field.searchEnabled != null)
-            return false;
-        if (required != null ? !required.equals(field.required) : field.required != null) return false;
-        return !(unique != null ? !unique.equals(field.unique) : field.unique != null);
-
+        return Objects.equals(name, that.name) &&
+                Objects.equals(maxLength, that.maxLength) &&
+                Objects.equals(searchEnabled, that.searchEnabled) &&
+                Objects.equals(required, that.required) &&
+                Objects.equals(unique, that.unique);
     }
 
     @Override
     public int hashCode() {
-        int result = name != null ? name.hashCode() : 0;
-        result = 31 * result + (maxLength != null ? maxLength.hashCode() : 0);
-        result = 31 * result + (searchEnabled != null ? searchEnabled.hashCode() : 0);
-        result = 31 * result + (required != null ? required.hashCode() : 0);
-        result = 31 * result + (unique != null ? unique.hashCode() : 0);
-        return result;
+        return Objects.hash(name, maxLength, searchEnabled, required, unique);
     }
 }
