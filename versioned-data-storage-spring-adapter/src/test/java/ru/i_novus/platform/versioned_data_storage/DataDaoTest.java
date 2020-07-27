@@ -38,8 +38,6 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.
 @ContextConfiguration(classes = {JpaTestConfig.class, VersionedDataStorageConfig.class})
 public class DataDaoTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(DataDaoTest.class);
-
     private static final String TEST_SCHEMA_NAME = "data_test";
     private static final String NULL_SCHEMA_NAME = "data_null";
 

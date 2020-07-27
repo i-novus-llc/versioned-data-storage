@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <parent>
-        <groupId>ru.i-novus.components</groupId>
-        <artifactId>versioned-data-storage</artifactId>
-        <version>2.24-SNAPSHOT</version>
-    </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>versioned-data-storage-spring-adapter</artifactId>
     <packaging>jar</packaging>
+
+    <parent>
+        <groupId>ru.i-novus.components</groupId>
+        <artifactId>versioned-data-storage</artifactId>
+        <version>3.00-SNAPSHOT</version>
+    </parent>
 
     <dependencies>
         <dependency>
@@ -101,4 +102,20 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.2</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>
