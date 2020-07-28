@@ -27,6 +27,7 @@ import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.ExceptionCodes.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.DataUtil.addDoubleQuotes;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.*;
 
 /**
  * @author lgalimova
@@ -66,7 +67,7 @@ public class DraftDataServiceImpl implements DraftDataService {
             throw new IllegalArgumentException("draft.table.does.not.exist");
 
         String newTable = createVersionTable(draftCode);
-        List<String> draftFields = dataDao.getFieldNames(draftCode);
+        List<String> draftFields = dataDao.getEscapedFieldNames(draftCode);
 
         if (baseStorageCode != null && dataDao.tableStructureEquals(baseStorageCode, draftCode)) {
             insertActualDataFromVersion(baseStorageCode, draftCode, newTable, draftFields, publishTime, closeTime);
@@ -162,8 +163,8 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Override
     public void loadData(String draftCode, String sourceStorageCode, LocalDateTime fromDate, LocalDateTime toDate) {
 
-        List<String> draftFields = dataDao.getFieldNames(draftCode);
-        List<String> sourceFields = dataDao.getFieldNames(draftCode);
+        List<String> draftFields = dataDao.getEscapedFieldNames(draftCode);
+        List<String> sourceFields = dataDao.getEscapedFieldNames(draftCode);
         if (!draftFields.equals(sourceFields)) {
             throw new CodifiedException(TABLES_NOT_EQUAL);
         }
@@ -183,13 +184,13 @@ public class DraftDataServiceImpl implements DraftDataService {
         if (systemFieldList().contains(field.getName()))
             throw new CodifiedException(SYS_FIELD_CONFLICT);
 
-        if (dataDao.getFieldNames(draftCode).contains(addDoubleQuotes(field.getName())))
+        if (dataDao.getEscapedFieldNames(draftCode).contains(addDoubleQuotes(field.getName())))
             throw new CodifiedException(COLUMN_ALREADY_EXISTS);
 
         dataDao.dropTriggers(draftCode);
         String defaultValue = (field instanceof BooleanField) ? "false" : null;
         dataDao.addColumnToTable(draftCode, field.getName(), field.getType(), defaultValue);
-        dataDao.createTriggers(DATA_SCHEMA_NAME, draftCode);
+        dataDao.createTriggers(draftCode);
         dataDao.updateHashRows(draftCode);
     }
 
@@ -197,7 +198,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Override
     public void deleteField(String draftCode, String fieldName) {
 
-        List<String> draftFields = dataDao.getFieldNames(draftCode);
+        List<String> draftFields = dataDao.getEscapedFieldNames(draftCode);
         if (!draftFields.contains(addDoubleQuotes(fieldName)))
             throw new CodifiedException(COLUMN_NOT_EXISTS);
 
@@ -205,11 +206,11 @@ public class DraftDataServiceImpl implements DraftDataService {
         dataDao.deleteColumnFromTable(draftCode, fieldName);
         dataDao.deleteEmptyRows(draftCode);
 
-        draftFields = dataDao.getFieldNames(draftCode);
+        draftFields = dataDao.getEscapedFieldNames(draftCode);
         if (CollectionUtils.isNullOrEmpty(draftFields))
             return;
 
-        dataDao.createTriggers(DATA_SCHEMA_NAME, draftCode);
+        dataDao.createTriggers(draftCode);
         try {
             dataDao.updateHashRows(draftCode);
 
@@ -231,7 +232,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         try {
             dataDao.dropTriggers(draftCode);
             dataDao.alterDataType(draftCode, field.getName(), oldType, newType);
-            dataDao.createTriggers(DATA_SCHEMA_NAME, draftCode);
+            dataDao.createTriggers(draftCode);
 
         } catch (PersistenceException pe) {
             throw new CodifiedException(INCOMPATIBLE_NEW_DATA_TYPE_EXCEPTION_CODE, pe, field.getName());
@@ -278,39 +279,40 @@ public class DraftDataServiceImpl implements DraftDataService {
         Collections.sort(fieldNames);
 
         if (!fields.isEmpty()) {
-            dataDao.createTriggers(DATA_SCHEMA_NAME, draftCode, fieldNames);
+            dataDao.createTriggers(draftCode, fieldNames);
 
             for (Field field : fields) {
                 if (field instanceof TreeField)
-                    dataDao.createLtreeIndex(DATA_SCHEMA_NAME,draftCode, field.getName());
+                    dataDao.createLtreeIndex(draftCode, field.getName());
 
                 else if (Boolean.TRUE.equals(field.getSearchEnabled())) {
-                    dataDao.createIndex(DATA_SCHEMA_NAME, draftCode,
+                    dataDao.createIndex(draftCode,
                             addDoubleQuotes(draftCode + "_" + field.getName().toLowerCase() + "_idx"),
                             Collections.singletonList(field.getName()));
                 }
             }
         }
-        dataDao.createFullTextSearchIndex(DATA_SCHEMA_NAME, draftCode);
+        dataDao.createFullTextSearchIndex(draftCode);
     }
 
     private String createVersionTable(String draftCode) {
 
         //todo никак не учитывается Field.unique - уникальность в рамках даты
-        String newTable = UUID.randomUUID().toString();
-        dataDao.copyTable(newTable, draftCode);
+        String versionName = UUID.randomUUID().toString();
+        String versionCode = toStorageCode(toSchemaName(draftCode), versionName);
+        dataDao.copyTable(versionCode, draftCode);
 
-        dataDao.addColumnToTable(newTable, SYS_PUBLISHTIME, "timestamp without time zone", MIN_TIMESTAMP_VALUE);
-        dataDao.addColumnToTable(newTable, SYS_CLOSETIME, "timestamp without time zone", MAX_TIMESTAMP_VALUE);
+        dataDao.addColumnToTable(versionName, SYS_PUBLISHTIME, "timestamp without time zone", MIN_TIMESTAMP_VALUE);
+        dataDao.addColumnToTable(versionName, SYS_CLOSETIME, "timestamp without time zone", MAX_TIMESTAMP_VALUE);
 
-        dataDao.createIndex(DATA_SCHEMA_NAME, newTable,
-                addDoubleQuotes(newTable + "_SYSDATE_idx"),
+        dataDao.createIndex(versionCode,
+                addDoubleQuotes(versionName + "_SYSDATE_idx"),
                 Arrays.asList(SYS_PUBLISHTIME, SYS_CLOSETIME));
 
-        List<String> fieldNames = dataDao.getHashUsedFieldNames(newTable);
-        dataDao.createTriggers(DATA_SCHEMA_NAME, newTable, fieldNames);
+        List<String> fieldNames = dataDao.getHashUsedFieldNames(versionName);
+        dataDao.createTriggers(versionName, fieldNames);
 
-        return newTable;
+        return versionName;
     }
 
     /*

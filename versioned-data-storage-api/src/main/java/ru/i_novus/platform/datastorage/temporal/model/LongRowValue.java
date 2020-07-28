@@ -11,6 +11,7 @@ import static java.util.Arrays.asList;
  * @since 01.02.2018
  */
 public class LongRowValue extends RowValue<Long> {
+
     public LongRowValue() {
         super();
     }

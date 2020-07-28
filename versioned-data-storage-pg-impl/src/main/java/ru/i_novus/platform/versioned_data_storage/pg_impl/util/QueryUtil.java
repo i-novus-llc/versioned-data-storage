@@ -189,10 +189,6 @@ public class QueryUtil {
         }
     }
 
-    public static String getSchemaName(String schemaName) {
-        return isNullOrEmpty(schemaName) ? DATA_SCHEMA_NAME : schemaName;
-    }
-
     public static String toSchemaName(String storageCode) {
 
         if (isNullOrEmpty(storageCode))
@@ -220,15 +216,23 @@ public class QueryUtil {
     }
 
     public static String toStorageCode(String schemaName, String tableName) {
-        return isNullOrEmpty(schemaName) ? tableName : schemaName + NAME_SEPARATOR + tableName;
+
+        return isNullOrEmpty(schemaName) || DATA_SCHEMA_NAME.equals(schemaName)
+                ? tableName
+                : schemaName + NAME_SEPARATOR + tableName;
     }
 
-    public static String escapeSchemaTableName(String schemaName, String tableName) {
+    public static String getSchemaName(String schemaName) {
+
+        return isNullOrEmpty(schemaName) ? DATA_SCHEMA_NAME : schemaName;
+    }
+
+    public static String escapeTableName(String schemaName, String tableName) {
 
         return getSchemaName(schemaName) + NAME_SEPARATOR + addDoubleQuotes(tableName);
     }
 
-    public static String escapeTableFieldName(String tableAlias, String fieldName) {
+    public static String escapeFieldName(String tableAlias, String fieldName) {
 
         String escapedFieldName = addDoubleQuotes(fieldName);
         return isNullOrEmpty(tableAlias) ? escapedFieldName : tableAlias + NAME_SEPARATOR + escapedFieldName;
@@ -328,12 +332,13 @@ public class QueryUtil {
      */
     public static String sqlDisplayExpression(DisplayExpression displayExpression, String tableAlias) {
 
-        final String valueFormat = "' || coalesce(" + tableAlias + NAME_SEPARATOR + "%1$s\\:\\:text, '%2$s') || '";
+        final String valueFormat = "' || coalesce(%1$s\\:\\:text, '%2$s') || '";
 
         Map<String, Object> map = new HashMap<>();
         for (Map.Entry<String, String> e : displayExpression.getPlaceholders().entrySet()) {
             String value = e.getValue() == null ? "" : e.getValue();
-            map.put(e.getKey(), String.format(valueFormat, addDoubleQuotes(e.getKey()), value));
+            value = String.format(valueFormat, escapeFieldName(tableAlias, e.getKey()), value);
+            map.put(e.getKey(), value);
         }
 
         String escapedDisplayExpression = escapeSql(displayExpression.getValue());

@@ -55,8 +55,10 @@ public class QueryConstants {
 
     static final String SELECT_COUNT_ONLY = "SELECT count(*)\n";
     static final String WHERE_DEFAULT = " true"; // 1 = 1
+    static final String SELECT_FROM = "  FROM ";
     static final String SELECT_WHERE = " WHERE" + WHERE_DEFAULT + "\n";
-    private static final String ORDER_BY_ONE_FIELD = " ORDER BY %s.\"%s\"\n";
+    static final String SELECT_ORDER = " ORDER BY ";
+    private static final String ORDER_BY_ONE_FIELD = SELECT_ORDER + " %1$s.\"%2$s\"\n";
     private static final String SELECT_LIMIT = " LIMIT ${limit}";
     private static final String SELECT_OFFSET = " OFFSET ${offset}";
     private static final String SUBQUERY_INDENT = "       ";
@@ -86,18 +88,20 @@ public class QueryConstants {
             "        OVERLAPS (" + COALESCE_VERSION_PUBLISH_TIME_FIELD + ", " + COALESCE_VERSION_CLOSE_TIME_FIELD + ")\n" +
             "        OR (" + COALESCE_PUBLISH_TIME_VALUE + " = " + COALESCE_VERSION_CLOSE_TIME_FIELD + ") )\n";
 
-    static final String CREATE_DRAFT_TABLE_TEMPLATE = "CREATE TABLE %1$s.%2$s (" +
+    static final String CREATE_DRAFT_TABLE = "CREATE TABLE %1$s.%2$s (" +
             "  \"SYS_RECORDID\" bigserial NOT NULL," +
             "  %3$s" +
             "  \"FTS\" tsvector," +
             "  \"SYS_HASH\" char(32) UNIQUE," +
             "  CONSTRAINT \"%4$s_pkey\" PRIMARY KEY (\"SYS_RECORDID\")" +
             ");";
+    static final String DROP_TABLE = "DROP TABLE IF EXISTS %1$s.%2$s";
+    static final String TRUNCATE_TABLE = "TRUNCATE TABLE %1$s.%2$s;";
+
+    static final String CREATE_TABLE_COPY = "CREATE TABLE %1$s.%2$s AS " +
+            "SELECT * FROM %3$s.%4$s WITH NO DATA;";
 
     static final String CREATE_TABLE_SEQUENCE = "CREATE SEQUENCE %1$s.\"%2$s_%3$s_seq\" start 1";
-
-    static final String COPY_TABLE_TEMPLATE = "CREATE TABLE %1$s.%2$s AS " +
-            "SELECT * FROM %1$s.%3$s WITH NO DATA;";
 
     static final String CREATE_TRIGGER = "CREATE OR REPLACE FUNCTION %1$s.\"%2$s_%3$s\"()\n" +
             "  RETURNS trigger AS\n" +
@@ -126,26 +130,20 @@ public class QueryConstants {
     static final String ASSIGN_FIELD = "%1$s = %2$s";
     static final String UPDATE_FIELD = "UPDATE %1$s.%2$s SET %3$s;";
 
-    public static final String ADD_NEW_COLUMN = "ALTER TABLE %1$s.\"%2$s\" ADD COLUMN \"%3$s\" %4$s;";
-    public static final String ADD_NEW_COLUMN_WITH_DEFAULT = "ALTER TABLE %1$s.\"%2$s\" ADD COLUMN \"%3$s\" %4$s DEFAULT %5$s;";
-    public static final String DELETE_COLUMN = "ALTER TABLE %1$s.\"%2$s\" DROP COLUMN \"%3$s\" CASCADE;";
-    public static final String ALTER_COLUMN_WITH_USING = "ALTER TABLE %1$s.%2$s ALTER COLUMN %3$s SET DATA TYPE %4$s USING %5$s";
+    static final String ADD_NEW_COLUMN = "ALTER TABLE %1$s.\"%2$s\" ADD COLUMN \"%3$s\" %4$s;";
+    static final String ADD_NEW_COLUMN_WITH_DEFAULT = "ALTER TABLE %1$s.\"%2$s\" ADD COLUMN \"%3$s\" %4$s DEFAULT %5$s;";
+    static final String DELETE_COLUMN = "ALTER TABLE %1$s.\"%2$s\" DROP COLUMN \"%3$s\" CASCADE;";
+    static final String ALTER_COLUMN_WITH_USING = "ALTER TABLE %1$s.%2$s ALTER COLUMN %3$s SET DATA TYPE %4$s USING %5$s";
 
-    public static final String INSERT_QUERY_TEMPLATE_WITH_ID = "INSERT INTO data.%s (%s) VALUES(%s) returning \"SYS_RECORDID\";";
-    public static final String INSERT_QUERY_TEMPLATE = "INSERT INTO %1$s.%2$s (%3$s) VALUES(%4$s);";
-    public static final String COPY_QUERY_TEMPLATE = "INSERT INTO %1$s.%2$s (%3$s)\n" +
-            "SELECT %4$s \n" +
-            "  FROM %1$s.%5$s as d \n" +
-            SELECT_WHERE;
+    static final String INSERT_RECORD = "INSERT INTO %1$s.%2$s (%3$s)\n";
+    static final String INSERT_VALUES = "VALUES(%s)\n";
+    static final String INSERT_SELECT = "SELECT %4$s \n" + "  FROM %1$s.%2$s as %3$s \n" + SELECT_WHERE;
+    static final String DELETE_RECORD = "DELETE FROM %1$s.%2$s WHERE %3$s;";
+    static final String UPDATE_RECORD = "UPDATE %1$s.%2$s as %3$s SET %4$s WHERE %5$s;";
 
-    public static final String DELETE_ALL_QUERY_TEMPLATE = "DELETE FROM %1$s.%2$s;";
-    public static final String DELETE_QUERY_TEMPLATE = "DELETE FROM %1$s.%2$s WHERE %3$s IN (%4$s);";
-    //todo
-    public static final String DELETE_POINT_ROWS_QUERY_TEMPLATE = "DELETE FROM data.%s WHERE \"SYS_PUBLISHTIME\" = \"SYS_CLOSETIME\";";
-    public static final String DELETE_EMPTY_RECORDS_FROM_TABLE_QUERY_TEMPLATE = "DELETE FROM data.%s WHERE %s;";
-
-    static final String UPDATE_QUERY_TEMPLATE = "UPDATE %1$s.%2$s as %3$s SET %4$s WHERE %3$s.%5$s IN (%6$s);";
-    static final String UPDATE_REFERENCE_QUERY_TEMPLATE = "UPDATE %1$s.%2$s as %3$s SET %4$s WHERE %3$s.%5$s = ANY(%6$s\\:\\:bigint[]);";
+    static final String CONDITION_IN = "%1$s IN (%2$s)";
+    static final String CONDITION_ANY_BIGINT = "%1$s = ANY(%2$s\\:\\:bigint[])";
+    static final String CONDITION_POINT_DATED = " \"SYS_PUBLISHTIME\" = \"SYS_CLOSETIME\" ";
 
     private static final String AND_EXISTS_VERSION_REF_VALUE = "   AND v.${refFieldName} is not null\n" +
             "   AND (v.${refFieldName} -> 'value') is not null\n";
@@ -155,7 +153,7 @@ public class QueryConstants {
             SELECT_WHERE +
             AND_EXISTS_VERSION_REF_VALUE;
 
-    static final String WHERE_REFERENCE_IN_REF_ROWS = "\nSELECT v.\"SYS_RECORDID\"\n" +
+    static final String SELECT_REFERENCE_IN_REF_ROWS = "\nSELECT v.\"SYS_RECORDID\"\n" +
             FROM_VERSION_TABLE +
             SELECT_WHERE +
             AND_EXISTS_VERSION_REF_VALUE +
@@ -180,6 +178,10 @@ public class QueryConstants {
     public static final String IS_FIELD_CONTAIN_EMPTY_VALUES = "SELECT exists(SELECT * FROM data.%s WHERE %s.%s IS NULL);";
     public static final String IS_RELATED_VALUE_EXIST = "SELECT exists(SELECT * FROM data.%s where %s.%s = %s)";
 
+    static final String BIND_INFO_SCHEMA_NAME = "schemaName";
+    static final String BIND_INFO_TABLE_NAME = "tableName";
+    static final String BIND_INFO_COLUMN_NAME = "columnName";
+
     public static final String SELECT_SCHEMA_EXISTS = "SELECT EXISTS(\n" +
             "  SELECT 1 \n" +
             "    FROM \"information_schema\".\"schemata\" \n" +
@@ -193,36 +195,50 @@ public class QueryConstants {
             "     AND table_name = :tableName \n" +
             ")";
 
-    private static final String SELECT_COLUMN_NAME = "SELECT '\"' || column_name || '\"'\n";
-    private static final String FROM_INFO_SCHEMA_COLUMNS = "FROM \"information_schema\".\"columns\"\n";
-    private static final String WHERE_TABLE_AND_NOT_SYS_COLUMNS = "WHERE table_name = '%s'\n" +
-            "  AND column_name NOT IN (" + SYS_RECORDS_TEXT + ")";
+    private static final String SELECT_ESCAPED_COLUMN_NAME = "SELECT '\"' || column_name || '\"' \n";
+    private static final String FROM_INFO_SCHEMA_COLUMNS = "  FROM \"information_schema\".\"columns\" \n";
 
-    public static final String SELECT_FIELD_NAMES = SELECT_COLUMN_NAME +
+    private static final String AND_INFO_SCHEMA_NAME = "  AND table_schema = :schemaName \n";
+    private static final String AND_INFO_TABLE_NAME = "  AND table_name = :tableName \n";
+    private static final String AND_INFO_COLUMN_NAME = "  AND column_name = :columnName \n";
+    private static final String AND_INFO_SCHEMA_COLUMN_NOT_IN_SYS_COLUMNS = "  AND column_name NOT IN (" + SYS_RECORDS_TEXT + ")";
+
+    public static final String SELECT_ESCAPED_FIELD_NAMES = SELECT_ESCAPED_COLUMN_NAME +
             FROM_INFO_SCHEMA_COLUMNS +
-            WHERE_TABLE_AND_NOT_SYS_COLUMNS;
-    public static final String SELECT_HASH_USED_FIELD_NAMES = SELECT_COLUMN_NAME +
+            SELECT_WHERE +
+            AND_INFO_SCHEMA_NAME +
+            AND_INFO_TABLE_NAME +
+            AND_INFO_SCHEMA_COLUMN_NOT_IN_SYS_COLUMNS;
+    public static final String SELECT_HASH_USED_FIELD_NAMES = SELECT_ESCAPED_COLUMN_NAME +
             "       || (case when data_type = '" + REFERENCE_FIELD_SQL_TYPE + "' then '->>''value''' else '' end)\n" +
             FROM_INFO_SCHEMA_COLUMNS +
-            WHERE_TABLE_AND_NOT_SYS_COLUMNS;
+            SELECT_WHERE +
+            AND_INFO_SCHEMA_NAME +
+            AND_INFO_TABLE_NAME +
+            AND_INFO_SCHEMA_COLUMN_NOT_IN_SYS_COLUMNS;
     public static final String SELECT_FIELD_TYPE = "SELECT data_type\n" +
             FROM_INFO_SCHEMA_COLUMNS +
-            " WHERE table_name = '%s'\n" +
-            "   AND column_name = '%s'";
+            SELECT_WHERE +
+            AND_INFO_SCHEMA_NAME +
+            AND_INFO_TABLE_NAME +
+            AND_INFO_COLUMN_NAME;
     public static final String SELECT_FIELD_NAMES_AND_TYPES = "SELECT column_name, data_type\n" +
             FROM_INFO_SCHEMA_COLUMNS +
-            " WHERE table_schema = 'data'\n" +
-            "   AND table_name = :table";
+            SELECT_WHERE +
+            AND_INFO_SCHEMA_NAME +
+            AND_INFO_TABLE_NAME;
 
-    public static final String INSERT_QUERY_FROM_DRAFT_TEMPLATE = "INSERT INTO data.%s SELECT %s FROM data.%s WHERE \"SYS_CLOSETIME\" IS NULL;";
-    public static final String SELECT_COUNT_QUERY_TEMPLATE = SELECT_COUNT_ONLY + "  FROM %1$s.%2$s;";
-    public static final String TRUNCATE_QUERY_TEMPLATE = "TRUNCATE TABLE %1$s.%2$s;";
+    public static final String SELECT_DDL_INDEXES = "SELECT indexdef \n" +
+            "  FROM pg_indexes \n" +
+            " WHERE schemaname = :schemaName \n" +
+            "   AND tablename = :tableName \n" +
+            "   AND NOT indexdef LIKE '%" + addDoubleQuotes(SYS_HASH)  + "%'";
 
-    public static final String CREATE_TABLE_INDEX = "CREATE INDEX %1$s ON %2$s.%3$s(%4$s);";
-    public static final String DROP_TABLE_INDEX = "DROP INDEX IF EXISTS %1$s.%2$s;";
-    public static final String CREATE_FTS_INDEX = "CREATE INDEX %1$s ON %2$s.%3$s USING gin (%4$s);";
-    public static final String CREATE_LTREE_INDEX = "CREATE INDEX %1$s ON %2$s.%3$s USING gist (%4$s);";
-    public static final String IF_TABLE_INDEX_EXISTS = "SELECT exists(SELECT * \n" +
+    static final String CREATE_TABLE_INDEX = "CREATE INDEX %1$s ON %2$s.%3$s(%4$s);";
+    static final String DROP_TABLE_INDEX = "DROP INDEX IF EXISTS %1$s.%2$s;";
+    static final String CREATE_FTS_INDEX = "CREATE INDEX %1$s ON %2$s.%3$s USING gin (%4$s);";
+    static final String CREATE_LTREE_INDEX = "CREATE INDEX %1$s ON %2$s.%3$s USING gist (%4$s);";
+    static final String IF_TABLE_INDEX_EXISTS = "SELECT exists(SELECT * \n" +
             "              FROM \n" +
             "                pg_class t,\n" +
             "                pg_class i,\n" +
@@ -241,10 +257,8 @@ public class QueryConstants {
             "                i.relname\n" +
             ");";
 
-    public static final String DROP_TABLE = "DROP TABLE IF EXISTS %1$s.%2$s";
-
     //todo: get rid of infinity
-    public static final String INSERT_FROM_DRAFT_TEMPLATE_WITH_CLOSE_TIME = "DO $$\n" +
+    public static final String INSERT_FROM_DRAFT_WITH_CLOSE_TIME = "DO $$\n" +
             "DECLARE tbl_cursor refcursor;\n" +
             " row data.%1$s%%rowtype;\n" +
             " i int;\n" +
@@ -265,9 +279,9 @@ public class QueryConstants {
 
     public static final String SELECT_ROWS_FROM_DATA = " select %s from data.%s d where %s";
 
-    public static final String SELECT_ROWS_FROM_DATA_BY_FIELD = " select %1$s from %2$s.%3$s where %4$s = %5$s ";
+    public static final String SELECT_ROWS_FROM_DATA_BY_FIELD_ONE = " select %1$s from %2$s.%3$s where %4$s = %5$s ";
 
-    public static final String SELECT_ROWS_FROM_DATA_BY_FIELD_LIST = " select %1$s from %2$s.%3$s where %4$s = ANY(%5$s\\:\\:bigint[]) ";
+    public static final String SELECT_ROWS_FROM_DATA_BY_FIELD_ANY = " select %1$s from %2$s.%3$s where %4$s = ANY(%5$s\\:\\:bigint[]) ";
 
     public static final String SELECT_RELATION_ROW_FROM_DATA = " select %s from data.%s where %s=? limit 1;\n";
 

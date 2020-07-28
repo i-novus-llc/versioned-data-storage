@@ -26,15 +26,15 @@ public interface DataDao {
 
     boolean tableStructureEquals(String tableName1, String tableName2);
 
-    Map<String, String> getColumnDataTypes(String tableName);
+    Map<String, String> getColumnDataTypes(String storageCode);
 
     BigInteger countData(String tableName);
 
     void createDraftTable(String storageCode, List<Field> fields);
 
-    void copyTable(String newTableName, String sourceTableName);
+    void copyTable(String targetCode, String sourceCode);
 
-    void dropTable(String tableName);
+    void dropTable(String storageCode);
 
     boolean schemaExists(String schemaName);
 
@@ -55,11 +55,11 @@ public interface DataDao {
 
     void deleteData(String storageCode, List<Object> systemIds);
 
-    void updateReferenceInRows(String tableName, ReferenceFieldValue fieldValue, List<Object> systemIds);
+    void updateReferenceInRows(String storageCode, ReferenceFieldValue fieldValue, List<Object> systemIds);
 
-    BigInteger countReferenceInRefRows(String tableName, ReferenceFieldValue fieldValue);
+    BigInteger countReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue);
 
-    void updateReferenceInRefRows(String tableName, ReferenceFieldValue fieldValue, int offset, int limit);
+    void updateReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue, int offset, int limit);
 
     void deleteEmptyRows(String draftCode);
 
@@ -67,9 +67,9 @@ public interface DataDao {
 
     void updateSequence(String tableName);
 
-    void createTriggers(String schemaName, String tableName);
+    void createTriggers(String storageCode);
 
-    void createTriggers(String schemaName, String tableName, List<String> fieldNames);
+    void createTriggers(String storageCode, List<String> fieldNames);
 
     void updateHashRows(String tableName);
 
@@ -77,21 +77,21 @@ public interface DataDao {
 
     void dropTriggers(String tableName);
 
-    void createIndex(String schemaName, String tableName, String name, List<String> fields);
+    void createIndex(String storageCode, String name, List<String> fields);
 
-    void createFullTextSearchIndex(String schemaName, String tableName);
+    void createFullTextSearchIndex(String storageCode);
 
-    void createLtreeIndex(String schemaName, String tableName, String field);
+    void createLtreeIndex(String storageCode, String field);
 
-    void createHashIndex(String schemaName, String tableName);
+    void createHashIndex(String storageCode);
 
-    List<String> getFieldNames(String tableName, String sqlFieldNames);
+    List<String> getFieldNames(String storageCode, String sqlSelect);
 
-    List<String> getFieldNames(String tableName);
+    List<String> getEscapedFieldNames(String storageCode);
 
-    List<String> getHashUsedFieldNames(String tableName);
+    List<String> getHashUsedFieldNames(String storageCode);
 
-    String getFieldType(String tableName, String field);
+    String getFieldType(String storageCode, String fieldName);
 
     void alterDataType(String tableName, String field, String oldType, String newType);
 

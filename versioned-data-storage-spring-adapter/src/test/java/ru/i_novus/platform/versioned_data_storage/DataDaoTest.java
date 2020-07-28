@@ -1,15 +1,16 @@
 package ru.i_novus.platform.versioned_data_storage;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.annotation.Transactional;
 import ru.i_novus.platform.datastorage.temporal.enums.FieldType;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
+import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
+import ru.i_novus.platform.datastorage.temporal.model.LongRowValue;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.value.IntegerFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
@@ -25,10 +26,10 @@ import java.math.BigInteger;
 import java.util.*;
 import java.util.stream.IntStream;
 
+import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.*;
 import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.HASH_EXPRESSION;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.INSERT_QUERY_TEMPLATE;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.DataUtil.addDoubleQuotes;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.DataUtil.addSingleQuotes;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.getSchemaName;
@@ -41,8 +42,21 @@ public class DataDaoTest {
     private static final String TEST_SCHEMA_NAME = "data_test";
     private static final String NULL_SCHEMA_NAME = "data_null";
 
+    private static final String INSERT_RECORD = "INSERT INTO %1$s.%2$s (%3$s)\n";
+    private static final String INSERT_VALUES = "VALUES(%s)\n";
+
     private static final String FIELD_ID_CODE = "id";
     private static final String FIELD_NAME_CODE = "name";
+
+    private final String dataName1 = "первый";
+    private final String dataName2 = "второй";
+    private final List<String> dataNames = Arrays.asList(dataName1, dataName2);
+
+    private final String testName1 = "first";
+    private final String testName2 = "second";
+    private final List<String> testNames = Arrays.asList(testName1, testName2);
+
+    private Field hashField;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -52,6 +66,11 @@ public class DataDaoTest {
 
     @Autowired
     private FieldFactory fieldFactory;
+
+    @Before
+    public void setUp() {
+        hashField = fieldFactory.createField(SYS_HASH, FieldType.STRING);
+    }
 
     @Test
     public void testSchemaExists() {
@@ -90,7 +109,7 @@ public class DataDaoTest {
     public void testCreateDraftTable() {
 
         String tableName = newTestTableName();
-        List<Field> fields = getTestFields();
+        List<Field> fields = newTestFields();
 
         testCreateDraftTable(null, tableName, fields);
         testCreateDraftTable(TEST_SCHEMA_NAME, tableName, fields);
@@ -111,33 +130,25 @@ public class DataDaoTest {
         String tableName = newTestTableName();
         String escapedTableName = addDoubleQuotes(tableName);
 
-        List<Field> fields = getTestFields();
-        String columnsStr = fields.stream()
+        List<Field> fields = newTestFields();
+        String columns = fields.stream()
                 .map(field -> addDoubleQuotes(field.getName()))
                 .reduce((s1, s2) -> s1 + ", " + s2).orElse("");
-        columnsStr += ", " + addDoubleQuotes(SYS_HASH);
+        columns += ", " + addDoubleQuotes(SYS_HASH);
 
         createDraftTable(null, tableName, fields);
 
-        final String dataName1 = "первый";
-        final String dataName2 = "второй";
-        final List<String> dataNames = Arrays.asList(dataName1, dataName2);
-
         String sqlValuesFormat = "%1$s" + ", " + String.format(HASH_EXPRESSION, "%1$s");
 
-        String sqlInsert = String.format(INSERT_QUERY_TEMPLATE,
-                DATA_SCHEMA_NAME, escapedTableName, columnsStr, sqlValuesFormat);
+        String sqlInsert = String.format(INSERT_RECORD, DATA_SCHEMA_NAME, escapedTableName, columns) +
+                String.format(INSERT_VALUES, sqlValuesFormat);
         insertValues(sqlInsert, dataNames);
         testGetIdName(null, tableName, fields, dataNames);
 
-        final String testName1 = "first";
-        final String testName2 = "second";
-        final List<String> testNames = Arrays.asList(testName1, testName2);
-
         createDraftTable(TEST_SCHEMA_NAME, tableName, fields);
 
-        sqlInsert = String.format(INSERT_QUERY_TEMPLATE, TEST_SCHEMA_NAME,
-                escapedTableName, columnsStr, sqlValuesFormat);
+        sqlInsert = String.format(INSERT_RECORD, TEST_SCHEMA_NAME, escapedTableName, columns) +
+                String.format(INSERT_VALUES, sqlValuesFormat);
         insertValues(sqlInsert, testNames);
         testGetIdName(TEST_SCHEMA_NAME, tableName, fields, testNames);
     }
@@ -146,7 +157,7 @@ public class DataDaoTest {
     public void testNullGetData() {
 
         String tableName = newTestTableName();
-        List<Field> fields = getTestFields();
+        List<Field> fields = newTestFields();
         try {
             getData(NULL_SCHEMA_NAME, tableName, fields);
             fail();
@@ -165,6 +176,39 @@ public class DataDaoTest {
             String sql = String.format(sqlInsert, index + ", " + addSingleQuotes(nameValues.get(index)));
             entityManager.createNativeQuery(sql).executeUpdate();
         });
+    }
+
+    @Test
+    @Transactional
+    public void testProcessData() {
+
+        String tableName = newTestTableName();
+
+        List<Field> fields = newTestFields();
+        createDraftTable(null, tableName, fields);
+
+        dataDao.insertData(tableName, toRowValues(fields, dataNames));
+        testGetIdName(null, tableName, fields, dataNames);
+
+        createDraftTable(TEST_SCHEMA_NAME, tableName, fields);
+
+        dataDao.insertData(toStorageCode(TEST_SCHEMA_NAME, tableName), toRowValues(fields, testNames));
+        testGetIdName(TEST_SCHEMA_NAME, tableName, fields, testNames);
+    }
+
+    private List<RowValue> toRowValues(List<Field> fields, List<String> nameValues) {
+
+        return IntStream.range(0, nameValues.size()).boxed()
+                .map(index -> toRowValue(index, nameValues.get(index), fields))
+                .collect(toList());
+    }
+
+    private RowValue toRowValue(int id, String name, List<Field> fields) {
+
+        FieldValue idValue = findFieldOrThrow(FIELD_ID_CODE, fields).valueOf(BigInteger.valueOf(id));
+        FieldValue nameValue = findFieldOrThrow(FIELD_NAME_CODE, fields).valueOf(name);
+        FieldValue hashValue = hashField.valueOf(String.valueOf(id));
+        return new LongRowValue(idValue, nameValue, hashValue);
     }
 
     private void testGetIdName(String schemaName, String tableName,
@@ -193,15 +237,22 @@ public class DataDaoTest {
         return "test_" + UUID.randomUUID().toString();
     }
 
-    private List<Field> getTestFields() {
+    private List<Field> newTestFields() {
 
         List<Field> fields = new ArrayList<>();
-        Field fieldId = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
-        Field fieldName = fieldFactory.createField(FIELD_NAME_CODE, FieldType.STRING);
-        fields.add(fieldId);
-        fields.add(fieldName);
+        Field idField = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field nameField = fieldFactory.createField(FIELD_NAME_CODE, FieldType.STRING);
+        fields.add(idField);
+        fields.add(nameField);
 
         return fields;
+    }
+
+    private Field findFieldOrThrow(String name, List<Field> fields) {
+        return fields.stream()
+                .filter(field -> name.equals(field.getName()))
+                .findFirst().orElseThrow(() ->
+                        new IllegalArgumentException("field '" + name + "' is not found"));
     }
 
     private void createDraftTable(String schemaName, String tableName, List<Field> fields) {
