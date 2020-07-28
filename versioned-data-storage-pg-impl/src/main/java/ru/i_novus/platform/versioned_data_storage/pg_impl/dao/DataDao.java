@@ -134,7 +134,7 @@ public interface DataDao {
                              int offset, int transactionSize,
                              LocalDateTime publishTime, LocalDateTime closeTime);
 
-    void deletePointRows(String targetTable);
+    void deletePointRows(String targetCode);
 
     DataDifference getDataDifference(CompareDataCriteria criteria);
 }

@@ -47,15 +47,24 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Override
     @Transactional
     public String createDraft(List<Field> fields) {
+
+        return createDraft(null, fields);
+    }
+
+    @Override
+    @Transactional
+    public String createDraft(String schemaName, List<Field> fields) {
+
         String draftCode = UUID.randomUUID().toString();
-        createDraftTable(draftCode, fields);
+        createDraftTable(toStorageCode(schemaName, draftCode), fields);
         return draftCode;
     }
 
     @Override
     @Transactional(Transactional.TxType.NOT_SUPPORTED)
-    public String applyDraft(String sourceStorageCode, String draftCode, LocalDateTime publishTime) {
-        return applyDraft(sourceStorageCode, draftCode, publishTime, null);
+    public String applyDraft(String baseStorageCode, String draftCode, LocalDateTime publishTime) {
+
+        return applyDraft(baseStorageCode, draftCode, publishTime, null);
     }
 
     @Override

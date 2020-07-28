@@ -77,6 +77,7 @@ public class DataDaoTest {
 
         assertTrue(dataDao.schemaExists(DATA_SCHEMA_NAME));
         assertTrue(dataDao.schemaExists(TEST_SCHEMA_NAME));
+        assertFalse(dataDao.schemaExists(NULL_SCHEMA_NAME));
     }
 
     @Test
@@ -128,29 +129,29 @@ public class DataDaoTest {
     public void testGetData() {
 
         String tableName = newTestTableName();
-        String escapedTableName = addDoubleQuotes(tableName);
-
         List<Field> fields = newTestFields();
+
+        testGetData(null, tableName, fields, dataNames);
+        testGetData(TEST_SCHEMA_NAME, tableName, fields, testNames);
+    }
+
+    private void testGetData(String schemaName, String tableName,
+                             List<Field> fields, List<String> nameValues) {
+
+        createDraftTable(schemaName, tableName, fields);
+
+        String escapedTableName = addDoubleQuotes(tableName);
         String columns = fields.stream()
                 .map(field -> addDoubleQuotes(field.getName()))
                 .reduce((s1, s2) -> s1 + ", " + s2).orElse("");
         columns += ", " + addDoubleQuotes(SYS_HASH);
 
-        createDraftTable(null, tableName, fields);
-
         String sqlValuesFormat = "%1$s" + ", " + String.format(HASH_EXPRESSION, "%1$s");
-
-        String sqlInsert = String.format(INSERT_RECORD, DATA_SCHEMA_NAME, escapedTableName, columns) +
+        String sqlInsert = String.format(INSERT_RECORD, getSchemaName(schemaName), escapedTableName, columns) +
                 String.format(INSERT_VALUES, sqlValuesFormat);
-        insertValues(sqlInsert, dataNames);
-        testGetIdName(null, tableName, fields, dataNames);
-
-        createDraftTable(TEST_SCHEMA_NAME, tableName, fields);
-
-        sqlInsert = String.format(INSERT_RECORD, TEST_SCHEMA_NAME, escapedTableName, columns) +
-                String.format(INSERT_VALUES, sqlValuesFormat);
-        insertValues(sqlInsert, testNames);
-        testGetIdName(TEST_SCHEMA_NAME, tableName, fields, testNames);
+        insertValues(sqlInsert, nameValues);
+        List<RowValue> dataValues = getData(schemaName, tableName, fields);
+        assertValues(dataValues, nameValues);
     }
 
     @Test
@@ -185,15 +186,22 @@ public class DataDaoTest {
         String tableName = newTestTableName();
 
         List<Field> fields = newTestFields();
-        createDraftTable(null, tableName, fields);
 
-        dataDao.insertData(tableName, toRowValues(fields, dataNames));
-        testGetIdName(null, tableName, fields, dataNames);
+        testProcessData(null, tableName, fields, dataNames);
+        testProcessData(TEST_SCHEMA_NAME, tableName, fields, testNames);
+    }
 
-        createDraftTable(TEST_SCHEMA_NAME, tableName, fields);
+    private void testProcessData(String schemaName, String tableName,
+                                 List<Field> fields, List<String> nameValues) {
 
-        dataDao.insertData(toStorageCode(TEST_SCHEMA_NAME, tableName), toRowValues(fields, testNames));
-        testGetIdName(TEST_SCHEMA_NAME, tableName, fields, testNames);
+        createDraftTable(schemaName, tableName, fields);
+
+        // Вставка записей.
+        dataDao.insertData(toStorageCode(schemaName, tableName), toRowValues(fields, nameValues));
+        List<RowValue> dataValues = getData(schemaName, tableName, fields);
+        assertValues(dataValues, nameValues);
+
+        //dataDao.updateData();
     }
 
     private List<RowValue> toRowValues(List<Field> fields, List<String> nameValues) {
@@ -211,12 +219,10 @@ public class DataDaoTest {
         return new LongRowValue(idValue, nameValue, hashValue);
     }
 
-    private void testGetIdName(String schemaName, String tableName,
-                               List<Field> fields, List<String> nameValues) {
+    private void assertValues(List<RowValue> dataValues, List<String> nameValues) {
 
-        List<RowValue> dataValues = getData(schemaName, tableName, fields);
         assertNotNull(dataValues);
-        assertEquals(2, dataValues.size());
+        assertEquals(nameValues.size(), dataValues.size());
 
         IntStream.range(0, nameValues.size()).forEach(index -> {
             StringFieldValue nameValue = dataValues.stream()

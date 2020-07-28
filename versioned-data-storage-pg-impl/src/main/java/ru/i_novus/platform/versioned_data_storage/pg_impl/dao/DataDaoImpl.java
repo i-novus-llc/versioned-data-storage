@@ -621,38 +621,37 @@ public class DataDaoImpl implements DataDao {
             return;
 
         List<FieldValue> fieldValues = data.get(0).getFieldValues();
-        List<String> keys = fieldValues.stream()
+        List<String> keyList = fieldValues.stream()
                 .map(fieldValue -> addDoubleQuotes(fieldValue.getField()))
                 .collect(toList());
 
-        List<String> values = data.stream()
+        List<String> substList = data.stream()
                 .map(rowValue -> {
-                    List<String> stringValues =
+                    List<String> substValues =
                             ((List<FieldValue>) rowValue.getFieldValues()).stream()
-                                    .map(fieldValue -> toValueSubst(schemaName, fieldValue))
+                                    .map(fieldValue -> toInsertValueSubst(schemaName, fieldValue))
                                     .collect(toList());
-                    return String.join(",", stringValues);
+                    return String.join(",", substValues);
                 })
                 .collect(toList());
 
-        int i = 1;
         int batchSize = 500;
+        String keys = String.join(",", keyList);
+
+        int i = 1;
         for (int firstIndex = 0, nextIndex = batchSize;
-             firstIndex < values.size();
+             firstIndex < substList.size();
              firstIndex = nextIndex, nextIndex = firstIndex + batchSize) {
 
-            int valueCount = Math.min(nextIndex, values.size());
-            List<String> subValues = values.subList(firstIndex, valueCount);
-            List<RowValue> subData = data.subList(firstIndex, valueCount);
-            String batchValues = String.join("),(", subValues);
+            int valueCount = Math.min(nextIndex, substList.size());
+            List<String> subValues = substList.subList(firstIndex, valueCount);
 
             String sql = String.format(INSERT_RECORD,
-                    schemaName, addDoubleQuotes(tableName),
-                    String.join(",", keys)) +
-                    String.format(INSERT_VALUES, batchValues);
+                    schemaName, addDoubleQuotes(tableName), keys) +
+                    String.format(INSERT_VALUES, String.join("),(", subValues));
             Query query = entityManager.createNativeQuery(sql);
 
-            for (RowValue rowValue : subData) {
+            for (RowValue rowValue : data.subList(firstIndex, valueCount)) {
                 for (Object value : rowValue.getFieldValues()) {
                     FieldValue fieldValue = (FieldValue) value;
                     if (fieldValue.getValue() != null) {
@@ -671,7 +670,7 @@ public class DataDaoImpl implements DataDao {
         }
     }
 
-    private String toValueSubst(String schemaName, FieldValue fieldValue) {
+    private String toInsertValueSubst(String schemaName, FieldValue fieldValue) {
 
         if (fieldValue.getValue() == null) {
             return QUERY_NULL_VALUE;
@@ -770,25 +769,13 @@ public class DataDaoImpl implements DataDao {
         String schemaName = toSchemaName(storageCode);
         String tableName = toTableName(storageCode);
 
-        List<String> keyList = new ArrayList<>();
-        for (Object objectValue : rowValue.getFieldValues()) {
-            FieldValue<?> fieldValue = (FieldValue<?>) objectValue;
-
-            String quotedFieldName = addDoubleQuotes(fieldValue.getField());
-            if (isFieldValueNull(fieldValue)) {
-                keyList.add(quotedFieldName + " = " + QUERY_NULL_VALUE);
-
-            } else if (fieldValue instanceof ReferenceFieldValue) {
-                keyList.add(quotedFieldName + " = " +
-                        getReferenceValuationSelect(schemaName, (ReferenceFieldValue) fieldValue, QUERY_VALUE_SUBST));
-
-            } else if (fieldValue instanceof TreeFieldValue) {
-                keyList.add(quotedFieldName + " = " + QUERY_LTREE_SUBST);
-
-            } else {
-                keyList.add(quotedFieldName + " = " + QUERY_VALUE_SUBST);
-            }
-        }
+        List<String> keyList = ((List<FieldValue>) rowValue.getFieldValues()).stream()
+                .map(fieldValue -> {
+                    String quotedFieldName = addDoubleQuotes(fieldValue.getField());
+                    String substValue = toUpdateValueSubst(schemaName, fieldValue);
+                    return String.format(UPDATE_VALUE, quotedFieldName, substValue);
+                })
+                .collect(toList());
 
         final String tableAlias = "b";
         String keys = String.join(",", keyList);
@@ -814,17 +801,32 @@ public class DataDaoImpl implements DataDao {
         query.executeUpdate();
     }
 
+    private String toUpdateValueSubst(String schemaName, FieldValue fieldValue) {
+
+        if (isFieldValueNull(fieldValue)) {
+            return QUERY_NULL_VALUE;
+        }
+
+        if (fieldValue instanceof ReferenceFieldValue) {
+            return getReferenceValuationSelect(schemaName, (ReferenceFieldValue) fieldValue, QUERY_VALUE_SUBST);
+        }
+
+        if (fieldValue instanceof TreeFieldValue) {
+            return QUERY_LTREE_SUBST;
+        }
+
+        return QUERY_VALUE_SUBST;
+    }
+
     @Override
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void deleteData(String storageCode) {
 
-        String schemaName = toSchemaName(storageCode);
         String tableName = toTableName(storageCode);
-
         String sql = String.format(DELETE_RECORD,
-                schemaName, addDoubleQuotes(tableName), WHERE_DEFAULT);
-        Query query = entityManager.createNativeQuery(sql);
-        query.executeUpdate();
+                toSchemaName(storageCode), addDoubleQuotes(tableName), WHERE_DEFAULT);
+
+        entityManager.createNativeQuery(sql).executeUpdate();
     }
 
     @Override
@@ -834,10 +836,10 @@ public class DataDaoImpl implements DataDao {
         String schemaName = toSchemaName(storageCode);
         String tableName = toTableName(storageCode);
 
-        String ids = systemIds.stream().map(id -> "?").collect(joining(","));
+        String ids = systemIds.stream().map(id -> QUERY_VALUE_SUBST).collect(joining(","));
         String condition = String.format(CONDITION_IN, addDoubleQuotes(SYS_PRIMARY_COLUMN), ids);
-        String sql = String.format(DELETE_RECORD,
-                schemaName, addDoubleQuotes(tableName), condition);
+
+        String sql = String.format(DELETE_RECORD, schemaName, addDoubleQuotes(tableName), condition);
         Query query = entityManager.createNativeQuery(sql);
 
         int i = 1;
@@ -857,10 +859,11 @@ public class DataDaoImpl implements DataDao {
         String schemaName = toSchemaName(storageCode);
         String tableName = toTableName(storageCode);
 
-        String quotedFieldName = addDoubleQuotes(fieldValue.getField());
+        String escapedFieldName = addDoubleQuotes(fieldValue.getField());
         String oldFieldExpression = sqlFieldExpression(fieldValue.getField(), REFERENCE_VALUATION_UPDATE_TABLE);
         String oldFieldValue = String.format(REFERENCE_VALUATION_OLD_VALUE, oldFieldExpression);
-        String key = quotedFieldName + " = " + getReferenceValuationSelect(schemaName, fieldValue, oldFieldValue);
+        String key = String.format(UPDATE_VALUE,
+                escapedFieldName, getReferenceValuationSelect(schemaName, fieldValue, oldFieldValue));
 
         String condition = String.format(CONDITION_ANY_BIGINT,
                 escapeFieldName(REFERENCE_VALUATION_UPDATE_TABLE, SYS_PRIMARY_COLUMN), QUERY_VALUE_SUBST);
@@ -936,15 +939,15 @@ public class DataDaoImpl implements DataDao {
         if (isEmpty(fieldNames)) {
             deleteData(draftCode);
 
-        } else {
-            String condition = fieldNames.stream()
-                    .map(s -> s + " IS NULL")
-                    .collect(joining(" AND "));
-
-            String sql = String.format(DELETE_RECORD,
-                    DATA_SCHEMA_NAME, addDoubleQuotes(draftCode), condition);
-            entityManager.createNativeQuery(sql).executeUpdate();
+            return;
         }
+
+        String condition = fieldNames.stream()
+                .map(s -> s + " IS NULL")
+                .collect(joining(" AND "));
+
+        String sql = String.format(DELETE_RECORD, DATA_SCHEMA_NAME, addDoubleQuotes(draftCode), condition);
+        entityManager.createNativeQuery(sql).executeUpdate();
     }
 
     @Override
@@ -1433,10 +1436,12 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
-    public void deletePointRows(String targetTable) {
+    public void deletePointRows(String targetCode) {
+
+        String tableName = toTableName(targetCode);
 
         String sql = String.format(DELETE_RECORD,
-                DATA_SCHEMA_NAME, addDoubleQuotes(targetTable), CONDITION_POINT_DATED);
+                toSchemaName(targetCode), addDoubleQuotes(tableName), CONDITION_POINT_DATED);
 
         if (logger.isDebugEnabled()) {
             logger.debug("deletePointRows method sql: {}", sql);
