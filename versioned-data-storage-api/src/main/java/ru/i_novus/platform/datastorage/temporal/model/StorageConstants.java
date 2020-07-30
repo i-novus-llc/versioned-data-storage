@@ -1,6 +1,8 @@
 package ru.i_novus.platform.datastorage.temporal.model;
 
-public class DataConstants {
+public class StorageConstants {
+
+    public static final String CODE_SEPARATOR = ".";
 
     public static final String DATA_SCHEMA_NAME = "data";
 
@@ -16,6 +18,6 @@ public class DataConstants {
     public static final String REFERENCE_DISPLAY_VALUE_NAME = "displayValue";
     public static final String REFERENCE_HASH_NAME = "hash";
 
-    private DataConstants() {
+    private StorageConstants() {
     }
 }

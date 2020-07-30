@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import static ru.i_novus.platform.datastorage.temporal.CollectionUtils.isNullOrEmpty;
+import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
 
 /**
  * @author lgalimova

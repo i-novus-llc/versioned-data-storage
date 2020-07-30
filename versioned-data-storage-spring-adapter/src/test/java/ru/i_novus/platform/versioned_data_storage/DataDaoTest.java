@@ -28,12 +28,12 @@ import java.util.stream.IntStream;
 
 import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.*;
-import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.DataUtil.addDoubleQuotes;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.DataUtil.addSingleQuotes;
+import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
+import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.toStorageCode;
+import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addDoubleQuotes;
+import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addSingleQuotes;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.HASH_EXPRESSION;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.getSchemaName;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.toStorageCode;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {JpaTestConfig.class, VersionedDataStorageConfig.class})

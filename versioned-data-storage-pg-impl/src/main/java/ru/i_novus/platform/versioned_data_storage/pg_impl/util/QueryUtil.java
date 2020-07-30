@@ -8,11 +8,13 @@ import ru.i_novus.platform.datastorage.temporal.model.value.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 
 import java.math.BigInteger;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
-import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.*;
+import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
+import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.DataUtil.*;
 
 /**
  * @author lgalimova
@@ -189,39 +191,6 @@ public class QueryUtil {
         }
     }
 
-    public static String toSchemaName(String storageCode) {
-
-        if (isNullOrEmpty(storageCode))
-            return DATA_SCHEMA_NAME;
-
-        int separatorIndex = storageCode.indexOf(NAME_SEPARATOR);
-        if (separatorIndex > 0) {
-            return storageCode.substring(0, separatorIndex);
-        }
-
-        return DATA_SCHEMA_NAME;
-    }
-
-    public static String toTableName(String storageCode) {
-
-        if (isNullOrEmpty(storageCode))
-            return null;
-
-        int separatorIndex = storageCode.indexOf(NAME_SEPARATOR);
-        if (separatorIndex >= 0) {
-            return storageCode.substring(separatorIndex + 1);
-        }
-
-        return storageCode;
-    }
-
-    public static String toStorageCode(String schemaName, String tableName) {
-
-        return isNullOrEmpty(schemaName) || DATA_SCHEMA_NAME.equals(schemaName)
-                ? tableName
-                : schemaName + NAME_SEPARATOR + tableName;
-    }
-
     public static String getSchemaName(String schemaName) {
 
         return isNullOrEmpty(schemaName) ? DATA_SCHEMA_NAME : schemaName;
@@ -320,6 +289,7 @@ public class QueryUtil {
      * @return Текст для подстановки в SQL
      */
     public static String sqlFieldExpression(String displayField, String tableAlias) {
+
         return tableAlias + NAME_SEPARATOR + addDoubleQuotes(displayField);
     }
 
@@ -367,10 +337,7 @@ public class QueryUtil {
      */
     public static String escapeSql(String str) {
 
-        if (str == null)
-            return null;
-
-        return str.replace("'", "''");
+        return (str == null) ? null : str.replace("'", "''");
     }
 
     /** Создание объекта подстановки в выражение для вычисления отображаемого значения. */
@@ -380,5 +347,9 @@ public class QueryUtil {
                 DisplayExpression.PLACEHOLDER_START, DisplayExpression.PLACEHOLDER_END);
         substitutor.setValueDelimiter(DisplayExpression.PLACEHOLDER_DEFAULT_DELIMITER);
         return substitutor;
+    }
+
+    public static Object truncateDateTo(LocalDateTime date, ChronoUnit unit, Object defaultValue) {
+        return date != null ? date.truncatedTo(unit) : defaultValue;
     }
 }

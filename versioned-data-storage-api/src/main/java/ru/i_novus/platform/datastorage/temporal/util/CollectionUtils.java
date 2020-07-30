@@ -1,4 +1,4 @@
-package ru.i_novus.platform.datastorage.temporal;
+package ru.i_novus.platform.datastorage.temporal.util;
 
 import java.util.Collection;
 import java.util.Map;

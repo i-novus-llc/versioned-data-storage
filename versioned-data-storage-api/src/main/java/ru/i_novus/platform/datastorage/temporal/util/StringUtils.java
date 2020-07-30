@@ -1,11 +1,8 @@
-package ru.i_novus.platform.versioned_data_storage.pg_impl.util;
+package ru.i_novus.platform.datastorage.temporal.util;
 
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
+public class StringUtils {
 
-public class DataUtil {
-
-    private DataUtil() {
+    private StringUtils() {
         throw new UnsupportedOperationException();
     }
 
@@ -21,7 +18,4 @@ public class DataUtil {
         return "'" + source + "'";
     }
 
-    public static Object truncateDateTo(LocalDateTime date, ChronoUnit unit, Object defaultValue) {
-        return date != null ? date.truncatedTo(unit) : defaultValue;
-    }
 }

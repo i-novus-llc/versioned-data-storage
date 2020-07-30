@@ -1,14 +1,14 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.dao;
 
-import ru.i_novus.platform.versioned_data_storage.pg_impl.util.DataUtil;
+import ru.i_novus.platform.datastorage.temporal.util.StringUtils;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.DataUtil.addDoubleQuotes;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.DataUtil.addSingleQuotes;
+import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
+import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addDoubleQuotes;
+import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addSingleQuotes;
 
 /**
  * @author lgalimova
@@ -34,7 +34,7 @@ public class QueryConstants {
             SYS_HASH, SYS_PATH, SYS_FTS
     );
     private static final String SYS_RECORDS_TEXT = SYS_RECORD_LIST.stream()
-            .map(DataUtil::addSingleQuotes)
+            .map(StringUtils::addSingleQuotes)
             .collect(Collectors.joining(", "));
 
     static final String DATE_BEGIN = "DATEBEG";

@@ -3,13 +3,14 @@ package ru.i_novus.platform.versioned_data_storage.pg_impl.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.i_novus.components.common.exception.CodifiedException;
-import ru.i_novus.platform.datastorage.temporal.CollectionUtils;
 import ru.i_novus.platform.datastorage.temporal.exception.ListCodifiedException;
 import ru.i_novus.platform.datastorage.temporal.exception.NotUniqueException;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
+import ru.i_novus.platform.datastorage.temporal.util.CollectionUtils;
+import ru.i_novus.platform.datastorage.temporal.util.StorageUtils;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.BooleanField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.TreeField;
@@ -23,17 +24,15 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.Optional.of;
-import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.*;
+import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
+import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addDoubleQuotes;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.ExceptionCodes.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.DataUtil.addDoubleQuotes;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.*;
 
 /**
  * @author lgalimova
  * @since 22.03.2018
  */
-
 public class DraftDataServiceImpl implements DraftDataService {
 
     private static final Logger logger = LoggerFactory.getLogger(DraftDataServiceImpl.class);
@@ -56,7 +55,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     public String createDraft(String schemaName, List<Field> fields) {
 
         String draftCode = UUID.randomUUID().toString();
-        createDraftTable(toStorageCode(schemaName, draftCode), fields);
+        createDraftTable(StorageUtils.toStorageCode(schemaName, draftCode), fields);
         return draftCode;
     }
 
@@ -308,7 +307,7 @@ public class DraftDataServiceImpl implements DraftDataService {
 
         //todo никак не учитывается Field.unique - уникальность в рамках даты
         String versionName = UUID.randomUUID().toString();
-        String versionCode = toStorageCode(toSchemaName(draftCode), versionName);
+        String versionCode = StorageUtils.toStorageCode(StorageUtils.toSchemaName(draftCode), versionName);
         dataDao.copyTable(versionCode, draftCode);
 
         dataDao.addColumnToTable(versionName, SYS_PUBLISHTIME, "timestamp without time zone", MIN_TIMESTAMP_VALUE);

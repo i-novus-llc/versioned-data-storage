@@ -4,10 +4,9 @@ import net.n2oapp.criteria.api.Criteria;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
+
+import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.*;
 
 public class DataCriteria extends Criteria {
 
@@ -16,7 +15,7 @@ public class DataCriteria extends Criteria {
     public static final int NO_PAGINATION_PAGE = 0;
     public static final int NO_PAGINATION_SIZE = 0;
 
-    /** Наименование таблицы (хранилища данных). */
+    /** Наименование таблицы. */
     private final String tableName;
     /** Дата публикации записей. */
     private final LocalDateTime bdate;
@@ -37,17 +36,12 @@ public class DataCriteria extends Criteria {
     private List<Long> systemIds;
 
     public DataCriteria(String storageCode, LocalDateTime bdate, LocalDateTime edate, List<Field> fields) {
-        this.tableName = storageCode;
+
+        this.tableName = toTableName(storageCode);
+        this.schemaName = toSchemaName(storageCode);
         this.bdate = bdate;
         this.edate = edate;
         this.fields = fields;
-    }
-
-    public DataCriteria(String storageCode, LocalDateTime bdate, LocalDateTime edate, List<Field> fields,
-                        List<String> hashList) {
-        this(storageCode, bdate, edate, fields);
-
-        this.hashList = hashList;
     }
 
     public DataCriteria(String storageCode, LocalDateTime bdate, LocalDateTime edate, List<Field> fields,
@@ -67,19 +61,14 @@ public class DataCriteria extends Criteria {
         this.commonFilter = commonFilter;
     }
 
-    public DataCriteria(String storageCode, LocalDateTime bdate, LocalDateTime edate, List<Field> fields,
-                        Set<List<FieldSearchCriteria>> fieldFilters, String commonFilter, List<Long> systemIds) {
-        this(storageCode, bdate, edate, fields, fieldFilters, commonFilter);
-
-        this.systemIds = systemIds;
-    }
-
     public DataCriteria(DataCriteria criteria) {
-        this(criteria.tableName, criteria.bdate, criteria.edate, criteria.fields,
-                criteria.fieldFilters, criteria.commonFilter, criteria.systemIds);
 
-        this.schemaName = criteria.getSchemaName();
-        this.hashList = criteria.getHashList();
+        this(toStorageCode(criteria.schemaName, criteria.tableName),
+                criteria.bdate, criteria.edate, criteria.fields,
+                criteria.fieldFilters, criteria.commonFilter);
+
+        this.hashList = criteria.hashList;
+        this.systemIds = criteria.systemIds;
     }
 
     public String getTableName() {
@@ -138,6 +127,10 @@ public class DataCriteria extends Criteria {
         this.systemIds = systemIds;
     }
 
+    public String getStorageCode() {
+        return toStorageCode(schemaName, tableName);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -148,6 +141,7 @@ public class DataCriteria extends Criteria {
                 Objects.equals(bdate, that.bdate) &&
                 Objects.equals(edate, that.edate) &&
                 Objects.equals(fields, that.fields) &&
+
                 Objects.equals(schemaName, that.schemaName) &&
                 Objects.equals(fieldFilters, that.fieldFilters) &&
                 Objects.equals(commonFilter, that.commonFilter) &&
