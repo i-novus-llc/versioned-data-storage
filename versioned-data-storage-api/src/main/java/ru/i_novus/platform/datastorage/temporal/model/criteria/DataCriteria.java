@@ -17,20 +17,26 @@ public class DataCriteria extends Criteria {
 
     /** Наименование таблицы. */
     private final String tableName;
+
     /** Дата публикации записей. */
     private final LocalDateTime bdate;
+
     /** Дата прекращения действия записей. */
     private final LocalDateTime edate;
+
     /** Список требуемых полей в результате. */
     private final List<Field> fields;
 
     /** Наименование схемы. */
     private String schemaName;
+
     /** Множество фильтров по отдельным полям. */
     private Set<List<FieldSearchCriteria>> fieldFilters;
+
     /** Общее условие поиска (с использованием FTS). */
     private String commonFilter;
-    /** Хеши записей. */
+
+    /** Список хешей записей. */
     private List<String> hashList;
     /** Список системных идентификаторов записей. */
     private List<Long> systemIds;
@@ -63,9 +69,16 @@ public class DataCriteria extends Criteria {
 
     public DataCriteria(DataCriteria criteria) {
 
-        this(toStorageCode(criteria.schemaName, criteria.tableName),
-                criteria.bdate, criteria.edate, criteria.fields,
-                criteria.fieldFilters, criteria.commonFilter);
+        super(criteria);
+
+        this.tableName = criteria.tableName;
+        this.schemaName = criteria.schemaName;
+        this.bdate = criteria.bdate;
+        this.edate = criteria.edate;
+        this.fields = criteria.fields;
+
+        this.fieldFilters = criteria.fieldFilters;
+        this.commonFilter = criteria.commonFilter;
 
         this.hashList = criteria.hashList;
         this.systemIds = criteria.systemIds;
