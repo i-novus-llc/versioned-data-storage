@@ -6,4 +6,6 @@ import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageCodeCriter
 public interface StorageCodeService {
 
     String toStorageCode(StorageCodeCriteria criteria);
+
+    String getSchemaName(StorageCodeCriteria criteria);
 }

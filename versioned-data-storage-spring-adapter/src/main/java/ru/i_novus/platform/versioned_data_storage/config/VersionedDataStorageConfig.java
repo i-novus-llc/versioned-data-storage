@@ -13,7 +13,6 @@ import javax.persistence.PersistenceContext;
 /**
  * Created by tnurdinov on 25.05.2018.
  */
-
 @Configuration
 public class VersionedDataStorageConfig {
 
