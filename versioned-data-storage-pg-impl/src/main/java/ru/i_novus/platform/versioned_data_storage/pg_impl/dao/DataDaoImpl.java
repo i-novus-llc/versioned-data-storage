@@ -462,10 +462,17 @@ public class DataDaoImpl implements DataDao {
             return null;
 
         Map<String, Object> params = new HashMap<>();
-
         String escapedColumn = escapeFieldName(alias, SYS_PRIMARY_COLUMN);
-        String sql = " and (" + escapedColumn + " in (:systemIds))";
-        params.put("systemIds", systemIds);
+
+        String sql;
+        if (systemIds.size() > 1) {
+            sql = " and (" + escapedColumn + " in (:systemIds))";
+            params.put("systemIds", systemIds);
+
+        } else {
+            sql = " and (" + escapedColumn + " = :systemId)";
+            params.put("systemId", systemIds.get(0));
+        }
 
         return new QueryWithParams(sql, params);
     }
