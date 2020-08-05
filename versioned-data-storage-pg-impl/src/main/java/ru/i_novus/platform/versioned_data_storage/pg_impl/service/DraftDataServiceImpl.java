@@ -44,9 +44,13 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     @Override
+    public void createSchema(String schemaName) {
+        dataDao.createSchema(schemaName);
+    }
+
+    @Override
     @Transactional
     public String createDraft(List<Field> fields) {
-
         return createDraft(null, fields);
     }
 
@@ -92,6 +96,11 @@ public class DraftDataServiceImpl implements DraftDataService {
             }
         }
         return newTable;
+    }
+
+    @Override
+    public boolean schemaExists(String schemaName) {
+        return dataDao.schemaExists(schemaName);
     }
 
     @Override
