@@ -88,6 +88,8 @@ public class QueryConstants {
             "        OVERLAPS (" + COALESCE_VERSION_PUBLISH_TIME_FIELD + ", " + COALESCE_VERSION_CLOSE_TIME_FIELD + ")\n" +
             "        OR (" + COALESCE_PUBLISH_TIME_VALUE + " = " + COALESCE_VERSION_CLOSE_TIME_FIELD + ") )\n";
 
+    static final String CREATE_SCHEMA = "CREATE SCHEMA IF NOT EXISTS %s;";
+
     static final String CREATE_DRAFT_TABLE = "CREATE TABLE %1$s.%2$s (" +
             "  \"SYS_RECORDID\" bigserial NOT NULL," +
             "  %3$s" +

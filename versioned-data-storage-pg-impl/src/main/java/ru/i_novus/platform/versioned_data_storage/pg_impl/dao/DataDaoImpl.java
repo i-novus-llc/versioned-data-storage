@@ -34,6 +34,8 @@ import static java.util.stream.Collectors.toList;
 import static org.springframework.util.CollectionUtils.isEmpty;
 import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
 import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
+import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.isDefaultSchema;
+import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.isValidSchemaName;
 import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addDoubleQuotes;
 import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addSingleQuotes;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
@@ -482,6 +484,20 @@ public class DataDaoImpl implements DataDao {
 
         String sql = SELECT_COUNT_ONLY + SELECT_FROM + escapeTableName(DATA_SCHEMA_NAME, tableName);
         return (BigInteger) entityManager.createNativeQuery(sql).getSingleResult();
+    }
+
+    @Override
+    @Transactional
+    public void createSchema(String schemaName) {
+
+        if (isDefaultSchema(schemaName))
+            return;
+
+        if (!isValidSchemaName(schemaName))
+            throw new IllegalArgumentException("schema.name.is.invalid");
+
+        String ddl = String.format(CREATE_SCHEMA, schemaName);
+        entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
     @Override

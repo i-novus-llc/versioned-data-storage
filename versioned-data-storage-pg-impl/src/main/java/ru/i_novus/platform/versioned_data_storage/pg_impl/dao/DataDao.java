@@ -30,6 +30,8 @@ public interface DataDao {
 
     BigInteger countData(String tableName);
 
+    void createSchema(String schemaName);
+
     void createDraftTable(String storageCode, List<Field> fields);
 
     void copyTable(String targetCode, String sourceCode);

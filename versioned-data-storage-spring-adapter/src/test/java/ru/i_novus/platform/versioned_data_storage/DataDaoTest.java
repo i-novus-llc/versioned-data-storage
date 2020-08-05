@@ -41,6 +41,8 @@ public class DataDaoTest {
 
     private static final String TEST_SCHEMA_NAME = "data_test";
     private static final String NULL_SCHEMA_NAME = "data_null";
+    private static final String NEW_GOOD_SCHEMA_NAME = "data_good";
+    private static final String NEW_BAD_SCHEMA_NAME = "data\"bad";
 
     private static final String INSERT_RECORD = "INSERT INTO %1$s.%2$s (%3$s)\n";
     private static final String INSERT_VALUES = "VALUES(%s)\n";
@@ -70,6 +72,32 @@ public class DataDaoTest {
     @Before
     public void setUp() {
         hashField = fieldFactory.createField(SYS_HASH, FieldType.STRING);
+    }
+
+    @Test
+    public void testCreateSchema() {
+
+        try {
+            dataDao.createSchema(NEW_GOOD_SCHEMA_NAME);
+
+        } catch (Exception e) {
+            fail("Error creating schema '" + NEW_GOOD_SCHEMA_NAME + "':\n" + e.getMessage());
+        }
+
+        try {
+            dataDao.createSchema(NEW_GOOD_SCHEMA_NAME);
+
+        } catch (Exception e) {
+            fail("Error creating same schema '" + NEW_GOOD_SCHEMA_NAME + "':\n" + e.getMessage());
+        }
+
+        try {
+            dataDao.createSchema(NEW_BAD_SCHEMA_NAME);
+            fail("Error creating bad schema '" + NEW_BAD_SCHEMA_NAME + "'");
+
+        } catch (Exception e) {
+            // Nothing to do.
+        }
     }
 
     @Test

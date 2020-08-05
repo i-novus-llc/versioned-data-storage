@@ -1,6 +1,11 @@
 package ru.i_novus.platform.datastorage.temporal.model;
 
+import java.util.regex.Pattern;
+
 public class StorageConstants {
+
+    private static final String SCHEMA_NAME_REGEX = "[a-z][a-z\\d_]{0,62}";
+    public static final Pattern SCHEMA_NAME_PATTERN = Pattern.compile(SCHEMA_NAME_REGEX);
 
     public static final String CODE_SEPARATOR = ".";
 
