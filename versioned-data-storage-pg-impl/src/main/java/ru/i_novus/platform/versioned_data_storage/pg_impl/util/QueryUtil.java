@@ -22,6 +22,10 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConsta
  */
 public class QueryUtil {
 
+    private static final String SUBST_PREFIX = "${";
+    private static final String SUBST_SUFFIX = "}";
+    private static final String SUBST_DEFAULT = ":";
+
     private QueryUtil() {
         throw new UnsupportedOperationException();
     }
@@ -338,6 +342,13 @@ public class QueryUtil {
     public static String escapeSql(String str) {
 
         return (str == null) ? null : str.replace("'", "''");
+    }
+
+    public static String substitute(String template, Map<String, String> map) {
+
+        StringSubstitutor substitutor = new StringSubstitutor(map, SUBST_PREFIX, SUBST_SUFFIX);
+        substitutor.setValueDelimiter(SUBST_DEFAULT);
+        return substitutor.replace(template);
     }
 
     /** Создание объекта подстановки в выражение для вычисления отображаемого значения. */

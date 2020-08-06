@@ -2,7 +2,6 @@ package ru.i_novus.platform.versioned_data_storage.pg_impl.dao;
 
 import net.n2oapp.criteria.api.CollectionPage;
 import net.n2oapp.criteria.api.Sorting;
-import org.apache.commons.lang3.text.StrSubstitutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffReturnTypeEnum;
@@ -902,11 +901,11 @@ public class DataDaoImpl implements DataDao {
         if (getReferenceDisplayType(fieldValue.getValue()) == null)
             return BigInteger.ZERO;
 
-        Map<String, String> placeholderValues = new HashMap<>();
-        placeholderValues.put("versionTable", escapeTableName(schemaName, tableName));
-        placeholderValues.put("refFieldName", addDoubleQuotes(fieldValue.getField()));
+        Map<String, String> map = new HashMap<>();
+        map.put("versionTable", escapeTableName(schemaName, tableName));
+        map.put("refFieldName", addDoubleQuotes(fieldValue.getField()));
 
-        String sql = StrSubstitutor.replace(COUNT_REFERENCE_IN_REF_ROWS, placeholderValues);
+        String sql = substitute(COUNT_REFERENCE_IN_REF_ROWS, map);
         BigInteger count = (BigInteger) entityManager.createNativeQuery(sql).getSingleResult();
 
         if (logger.isDebugEnabled()) {
@@ -928,13 +927,13 @@ public class DataDaoImpl implements DataDao {
         String oldFieldValue = String.format(REFERENCE_VALUATION_OLD_VALUE, oldFieldExpression);
         String key = quotedFieldName + " = " + getReferenceValuationSelect(schemaName, fieldValue, oldFieldValue);
 
-        Map<String, String> placeholderValues = new HashMap<>();
-        placeholderValues.put("versionTable", escapeTableName(schemaName, tableName));
-        placeholderValues.put("refFieldName", addDoubleQuotes(fieldValue.getField()));
-        placeholderValues.put("limit", "" + limit);
-        placeholderValues.put("offset", "" + offset);
+        Map<String, String> map = new HashMap<>();
+        map.put("versionTable", escapeTableName(schemaName, tableName));
+        map.put("refFieldName", addDoubleQuotes(fieldValue.getField()));
+        map.put("limit", "" + limit);
+        map.put("offset", "" + offset);
 
-        String select = StrSubstitutor.replace(SELECT_REFERENCE_IN_REF_ROWS, placeholderValues);
+        String select = substitute(SELECT_REFERENCE_IN_REF_ROWS, map);
         String condition = String.format(CONDITION_IN,
                 escapeFieldName(REFERENCE_VALUATION_UPDATE_TABLE, SYS_PRIMARY_COLUMN), select);
         String sql = String.format(UPDATE_RECORD,
@@ -1245,13 +1244,13 @@ public class DataDaoImpl implements DataDao {
                                                  LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
-        Map<String, String> placeholderValues = new HashMap<>();
-        placeholderValues.put("draftTable", escapeTableName(DATA_SCHEMA_NAME, draftTable));
-        placeholderValues.put("versionTable", escapeTableName(DATA_SCHEMA_NAME, versionTable));
-        placeholderValues.put("publishTime", formatDateTime(publishTime));
-        placeholderValues.put("closeTime", formatDateTime(closeTime));
+        Map<String, String> map = new HashMap<>();
+        map.put("draftTable", escapeTableName(DATA_SCHEMA_NAME, draftTable));
+        map.put("versionTable", escapeTableName(DATA_SCHEMA_NAME, versionTable));
+        map.put("publishTime", formatDateTime(publishTime));
+        map.put("closeTime", formatDateTime(closeTime));
 
-        String sql = StrSubstitutor.replace(COUNT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME, placeholderValues);
+        String sql = substitute(COUNT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME, map);
         return (BigInteger) entityManager.createNativeQuery(sql).getSingleResult();
     }
 
@@ -1268,21 +1267,21 @@ public class DataDaoImpl implements DataDao {
         String columnsWithPrefixValue = columns.keySet().stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
         String columnsWithPrefixD = columns.keySet().stream().map(s -> "d." + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
 
-        Map<String, String> placeholderValues = new HashMap<>();
-        placeholderValues.put("dColumns", columnsWithPrefixD);
-        placeholderValues.put("vValues", columnsWithPrefixValue);
-        placeholderValues.put("draftTable", escapeTableName(DATA_SCHEMA_NAME, draftTable));
-        placeholderValues.put("versionTable", escapeTableName(DATA_SCHEMA_NAME, versionTable));
-        placeholderValues.put("publishTime", formatDateTime(publishTime));
-        placeholderValues.put("closeTime", formatDateTime(closeTime));
-        placeholderValues.put("offset", "" + offset);
-        placeholderValues.put("transactionSize", "" + transactionSize);
-        placeholderValues.put("newTableSeqName", escapeSchemaSequenceName(DATA_SCHEMA_NAME, tableToInsert));
-        placeholderValues.put("tableToInsert", escapeTableName(DATA_SCHEMA_NAME, tableToInsert));
-        placeholderValues.put("columns", columnsStr);
-        placeholderValues.put("columnsWithType", columnsWithType);
+        Map<String, String> map = new HashMap<>();
+        map.put("dColumns", columnsWithPrefixD);
+        map.put("vValues", columnsWithPrefixValue);
+        map.put("draftTable", escapeTableName(DATA_SCHEMA_NAME, draftTable));
+        map.put("versionTable", escapeTableName(DATA_SCHEMA_NAME, versionTable));
+        map.put("publishTime", formatDateTime(publishTime));
+        map.put("closeTime", formatDateTime(closeTime));
+        map.put("offset", "" + offset);
+        map.put("transactionSize", "" + transactionSize);
+        map.put("newTableSeqName", escapeSchemaSequenceName(DATA_SCHEMA_NAME, tableToInsert));
+        map.put("tableToInsert", escapeTableName(DATA_SCHEMA_NAME, tableToInsert));
+        map.put("columns", columnsStr);
+        map.put("columnsWithType", columnsWithType);
 
-        String sql = StrSubstitutor.replace(INSERT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME, placeholderValues);
+        String sql = substitute(INSERT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME, map);
 
         if (logger.isDebugEnabled()) {
             logger.debug("insertActualDataFromVersion with closeTime method sql: {}", sql);
@@ -1337,13 +1336,13 @@ public class DataDaoImpl implements DataDao {
                                                     LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
-        Map<String, String> placeholderValues = new HashMap<>();
-        placeholderValues.put("versionTable", escapeTableName(DATA_SCHEMA_NAME, versionTable));
-        placeholderValues.put("draftTable", escapeTableName(DATA_SCHEMA_NAME, draftTable));
-        placeholderValues.put("publishTime", formatDateTime(publishTime));
-        placeholderValues.put("closeTime", formatDateTime(closeTime));
+        Map<String, String> map = new HashMap<>();
+        map.put("versionTable", escapeTableName(DATA_SCHEMA_NAME, versionTable));
+        map.put("draftTable", escapeTableName(DATA_SCHEMA_NAME, draftTable));
+        map.put("publishTime", formatDateTime(publishTime));
+        map.put("closeTime", formatDateTime(closeTime));
 
-        String sql = StrSubstitutor.replace(COUNT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME, placeholderValues);
+        String sql = substitute(COUNT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME, map);
         return (BigInteger) entityManager.createNativeQuery(sql).getSingleResult();
     }
 
@@ -1357,19 +1356,19 @@ public class DataDaoImpl implements DataDao {
         String columnsStr = columns.keySet().stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
         String columnsWithType = columns.keySet().stream().map(s -> s + " " + columns.get(s)).reduce((s1, s2) -> s1 + ", " + s2).orElse("");
 
-        Map<String, String> placeholderValues = new HashMap<>();
-        placeholderValues.put("tableToInsert", escapeTableName(DATA_SCHEMA_NAME, tableToInsert));
-        placeholderValues.put("draftTable", escapeTableName(DATA_SCHEMA_NAME, draftTable));
-        placeholderValues.put("versionTable", escapeTableName(DATA_SCHEMA_NAME, versionTable));
-        placeholderValues.put("publishTime", formatDateTime(publishTime));
-        placeholderValues.put("closeTime", formatDateTime(closeTime));
-        placeholderValues.put("columns", columnsStr);
-        placeholderValues.put("offset", "" + offset);
-        placeholderValues.put("transactionSize", "" + transactionSize);
-        placeholderValues.put("columnsWithType", columnsWithType);
-        placeholderValues.put("sequenceName", escapeSchemaSequenceName(DATA_SCHEMA_NAME, tableToInsert));
+        Map<String, String> map = new HashMap<>();
+        map.put("tableToInsert", escapeTableName(DATA_SCHEMA_NAME, tableToInsert));
+        map.put("draftTable", escapeTableName(DATA_SCHEMA_NAME, draftTable));
+        map.put("versionTable", escapeTableName(DATA_SCHEMA_NAME, versionTable));
+        map.put("publishTime", formatDateTime(publishTime));
+        map.put("closeTime", formatDateTime(closeTime));
+        map.put("columns", columnsStr);
+        map.put("offset", "" + offset);
+        map.put("transactionSize", "" + transactionSize);
+        map.put("columnsWithType", columnsWithType);
+        map.put("sequenceName", escapeSchemaSequenceName(DATA_SCHEMA_NAME, tableToInsert));
 
-        String sql = StrSubstitutor.replace(INSERT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME, placeholderValues);
+        String sql = substitute(INSERT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME, map);
 
         if (logger.isDebugEnabled()) {
             logger.debug("insertClosedNowDataFromVersion with closeTime method sql: {}", sql);
@@ -1382,13 +1381,13 @@ public class DataDaoImpl implements DataDao {
                                            LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
-        Map<String, String> placeholderValues = new HashMap<>();
-        placeholderValues.put("draftTable", escapeTableName(DATA_SCHEMA_NAME, draftTable));
-        placeholderValues.put("versionTable", escapeTableName(DATA_SCHEMA_NAME, versionTable));
-        placeholderValues.put("publishTime", formatDateTime(publishTime));
-        placeholderValues.put("closeTime", formatDateTime(closeTime));
+        Map<String, String> map = new HashMap<>();
+        map.put("draftTable", escapeTableName(DATA_SCHEMA_NAME, draftTable));
+        map.put("versionTable", escapeTableName(DATA_SCHEMA_NAME, versionTable));
+        map.put("publishTime", formatDateTime(publishTime));
+        map.put("closeTime", formatDateTime(closeTime));
 
-        String sql = StrSubstitutor.replace(COUNT_NEW_VAL_FROM_DRAFT_WITH_CLOSE_TIME, placeholderValues);
+        String sql = substitute(COUNT_NEW_VAL_FROM_DRAFT_WITH_CLOSE_TIME, map);
         return (BigInteger) entityManager.createNativeQuery(sql).getSingleResult();
     }
 
@@ -1401,19 +1400,19 @@ public class DataDaoImpl implements DataDao {
         String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
 
-        Map<String, String> placeholderValues = new HashMap<>();
-        placeholderValues.put("fields", columnsStr);
-        placeholderValues.put("draftTable", escapeTableName(DATA_SCHEMA_NAME, draftTable));
-        placeholderValues.put("versionTable", escapeTableName(DATA_SCHEMA_NAME, versionTable));
-        placeholderValues.put("publishTime", formatDateTime(publishTime));
-        placeholderValues.put("closeTime", formatDateTime(closeTime));
-        placeholderValues.put("transactionSize", "" + transactionSize);
-        placeholderValues.put("offset", "" + offset);
-        placeholderValues.put("sequenceName", escapeSchemaSequenceName(DATA_SCHEMA_NAME, tableToInsert));
-        placeholderValues.put("tableToInsert", escapeTableName(DATA_SCHEMA_NAME, tableToInsert));
-        placeholderValues.put("rowFields", columnsWithPrefix);
+        Map<String, String> map = new HashMap<>();
+        map.put("fields", columnsStr);
+        map.put("draftTable", escapeTableName(DATA_SCHEMA_NAME, draftTable));
+        map.put("versionTable", escapeTableName(DATA_SCHEMA_NAME, versionTable));
+        map.put("publishTime", formatDateTime(publishTime));
+        map.put("closeTime", formatDateTime(closeTime));
+        map.put("transactionSize", "" + transactionSize);
+        map.put("offset", "" + offset);
+        map.put("sequenceName", escapeSchemaSequenceName(DATA_SCHEMA_NAME, tableToInsert));
+        map.put("tableToInsert", escapeTableName(DATA_SCHEMA_NAME, tableToInsert));
+        map.put("rowFields", columnsWithPrefix);
 
-        String sql = StrSubstitutor.replace(INSERT_NEW_VAL_FROM_DRAFT_WITH_CLOSE_TIME, placeholderValues);
+        String sql = substitute(INSERT_NEW_VAL_FROM_DRAFT_WITH_CLOSE_TIME, map);
 
         if (logger.isDebugEnabled()) {
             logger.debug("insertNewDataFromDraft with closeTime method sql: {}", sql);
