@@ -129,6 +129,10 @@ public class QueryConstants {
     static final String FTS_FUNCTION_NAME = "fts_vector_tf";
     static final String FTS_TRIGGER_NAME = "fts_vector_tg";
 
+    static final String ALTER_TABLE_ADD_PRIMARY_KEY = "ALTER TABLE %1$s.%2$s ADD PRIMARY KEY (\"%3$s\");";
+    static final String APPLY_TABLE_SEQUENCE_FOR_PRIMARY_KEY = "ALTER TABLE %1$s.%2$s \n" +
+            "  ALTER COLUMN \"%3$s\" SET DEFAULT nextval('%1$s.\"%4$s_%3$s_seq\"');";
+
     static final String ASSIGN_FIELD = "%1$s = %2$s";
     static final String UPDATE_FIELD = "UPDATE %1$s.%2$s SET %3$s;";
 

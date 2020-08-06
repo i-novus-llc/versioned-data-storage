@@ -538,22 +538,19 @@ public class DataDaoImpl implements DataDao {
             throw new IllegalArgumentException("source.table.name.is.empty");
 
         String ddlCopyTable = String.format(CREATE_TABLE_COPY,
-                targetSchema,
-                addDoubleQuotes(targetTable),
-                sourceSchema,
-                addDoubleQuotes(sourceTable));
+                targetSchema, addDoubleQuotes(targetTable),
+                sourceSchema, addDoubleQuotes(sourceTable));
         entityManager.createNativeQuery(ddlCopyTable).executeUpdate();
 
         String ddlCreateSequence = String.format(CREATE_TABLE_SEQUENCE,
-                targetSchema,
-                targetTable,
-                SYS_PRIMARY_COLUMN);
+                targetSchema, targetTable, SYS_PRIMARY_COLUMN);
         entityManager.createNativeQuery(ddlCreateSequence).executeUpdate();
 
         List<String> ddlIndexes = entityManager.createNativeQuery(SELECT_DDL_INDEXES)
                 .setParameter(BIND_INFO_SCHEMA_NAME, sourceSchema)
                 .setParameter(BIND_INFO_TABLE_NAME, sourceTable)
                 .getResultList();
+
         for (String ddlIndex : ddlIndexes) {
             String ddl = ddlIndex.replace(
                     escapeTableName(sourceSchema, sourceTable),
@@ -564,17 +561,12 @@ public class DataDaoImpl implements DataDao {
 
         createHashIndex(targetCode);
 
-        String ddlAddPrimaryKey = String.format("ALTER TABLE %1$s.%2$s ADD PRIMARY KEY (\"%3$s\");",
-                targetSchema,
-                addDoubleQuotes(targetTable),
-                SYS_PRIMARY_COLUMN);
+        String ddlAddPrimaryKey = String.format(ALTER_TABLE_ADD_PRIMARY_KEY,
+                targetSchema, addDoubleQuotes(targetTable), SYS_PRIMARY_COLUMN);
         entityManager.createNativeQuery(ddlAddPrimaryKey).executeUpdate();
 
-        String ddlAlterColumn = String.format("ALTER TABLE %1$s.%2$s ALTER COLUMN \"%3$s\" SET DEFAULT nextval('%1$s.\"%4$s_%3$s_seq\"');",
-                targetSchema,
-                addDoubleQuotes(targetTable),
-                SYS_PRIMARY_COLUMN,
-                targetCode);
+        String ddlAlterColumn = String.format(APPLY_TABLE_SEQUENCE_FOR_PRIMARY_KEY,
+                targetSchema, addDoubleQuotes(targetTable), SYS_PRIMARY_COLUMN, targetTable);
         entityManager.createNativeQuery(ddlAlterColumn).executeUpdate();
     }
 
@@ -1025,36 +1017,41 @@ public class DataDaoImpl implements DataDao {
     @Transactional
     public void createTriggers(String storageCode, List<String> fieldNames) {
 
+        createHashTrigger(storageCode, fieldNames);
+        createFtsTrigger(storageCode, fieldNames);
+    }
+
+    protected void createHashTrigger(String storageCode, List<String> fieldNames) {
+
         String schemaName = StorageUtils.toSchemaName(storageCode);
         String tableName = StorageUtils.toTableName(storageCode);
 
         final String alias = TRIGGER_NEW_ALIAS + NAME_SEPARATOR;
         String tableFields = fieldNames.stream().map(this::getFieldClearName).collect(joining(", "));
 
-        String hashExpression = String.format(HASH_EXPRESSION,
+        String expression = String.format(HASH_EXPRESSION,
                 fieldNames.stream().map(field -> alias + field).collect(joining(", ")));
-        String hashTriggerBody = String.format(ASSIGN_FIELD, alias + addDoubleQuotes(SYS_HASH), hashExpression);
-        String createHashTrigger = String.format(CREATE_TRIGGER,
-                schemaName,
-                tableName,
-                HASH_FUNCTION_NAME,
-                HASH_TRIGGER_NAME,
-                tableFields,
-                hashTriggerBody + ";");
-        entityManager.createNativeQuery(createHashTrigger).executeUpdate();
+        String triggerBody = String.format(ASSIGN_FIELD, alias + addDoubleQuotes(SYS_HASH), expression);
+        String ddl = String.format(CREATE_TRIGGER, schemaName, tableName,
+                HASH_FUNCTION_NAME, HASH_TRIGGER_NAME, tableFields, triggerBody + ";");
+        entityManager.createNativeQuery(ddl).executeUpdate();
+    }
 
-        String ftsExpression = fieldNames.stream()
+    protected void createFtsTrigger(String storageCode, List<String> fieldNames) {
+
+        String schemaName = StorageUtils.toSchemaName(storageCode);
+        String tableName = StorageUtils.toTableName(storageCode);
+
+        final String alias = TRIGGER_NEW_ALIAS + NAME_SEPARATOR;
+        String tableFields = fieldNames.stream().map(this::getFieldClearName).collect(joining(", "));
+
+        String expression = fieldNames.stream()
                 .map(field -> "coalesce( to_tsvector('ru', " + alias + field + "\\:\\:text),'')")
                 .collect(joining(" || ' ' || "));
-        String ftsTriggerBody = String.format(ASSIGN_FIELD, alias + addDoubleQuotes(SYS_FTS), ftsExpression);
-        String createFtsTrigger = String.format(CREATE_TRIGGER,
-                schemaName,
-                tableName,
-                FTS_FUNCTION_NAME,
-                FTS_TRIGGER_NAME,
-                tableFields,
-                ftsTriggerBody + ";");
-        entityManager.createNativeQuery(createFtsTrigger).executeUpdate();
+        String triggerBody = String.format(ASSIGN_FIELD, alias + addDoubleQuotes(SYS_FTS), expression);
+        String ddl = String.format(CREATE_TRIGGER, schemaName, tableName,
+                FTS_FUNCTION_NAME, FTS_TRIGGER_NAME, tableFields, triggerBody + ";");
+        entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
     /** Получение наименования поля с кавычками из наименования, сформированного по getHashUsedFieldNames. */
@@ -1069,8 +1066,7 @@ public class DataDaoImpl implements DataDao {
     public void updateHashRows(String tableName) {
 
         List<String> fieldNames = getHashUsedFieldNames(tableName);
-        String expression = String.format(HASH_EXPRESSION,
-                String.join(", ", fieldNames));
+        String expression = String.format(HASH_EXPRESSION, String.join(", ", fieldNames));
         String ddlAssign = String.format(ASSIGN_FIELD, addDoubleQuotes(SYS_HASH), expression);
 
         String ddl = String.format(UPDATE_FIELD, DATA_SCHEMA_NAME, addDoubleQuotes(tableName), ddlAssign);
@@ -1151,6 +1147,8 @@ public class DataDaoImpl implements DataDao {
 
         String tableName = StorageUtils.toTableName(storageCode);
 
+        // Неуникальный индекс, т.к. используется только для создания хранилища версии.
+        // В версии могут быть идентичные строки с отличающимся периодом действия.
         String ddl = String.format(CREATE_TABLE_INDEX,
                 addDoubleQuotes(tableName + "_sys_hash_ix"),
                 StorageUtils.toSchemaName(storageCode),

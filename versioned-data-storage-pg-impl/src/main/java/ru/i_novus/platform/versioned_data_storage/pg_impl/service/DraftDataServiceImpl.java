@@ -276,13 +276,6 @@ public class DraftDataServiceImpl implements DraftDataService {
         return dataDao.isUnique(storageCode, fieldNames, null);
     }
 
-    private String getHashUsedFieldName(Field field) {
-        String name = addDoubleQuotes(field.getName());
-        if (REFERENCE_FIELD_SQL_TYPE.equals(field.getType()))
-            name += "->>'value'";
-        return name;
-    }
-
     private void createDraftTable(String draftCode, List<Field> fields) {
 
         //todo никак не учитывается Field.unique - уникальность в рамках черновика
@@ -310,6 +303,13 @@ public class DraftDataServiceImpl implements DraftDataService {
             }
         }
         dataDao.createFullTextSearchIndex(draftCode);
+    }
+
+    private String getHashUsedFieldName(Field field) {
+        String name = addDoubleQuotes(field.getName());
+        if (REFERENCE_FIELD_SQL_TYPE.equals(field.getType()))
+            name += "->>'value'";
+        return name;
     }
 
     private String createVersionTable(String draftCode) {
