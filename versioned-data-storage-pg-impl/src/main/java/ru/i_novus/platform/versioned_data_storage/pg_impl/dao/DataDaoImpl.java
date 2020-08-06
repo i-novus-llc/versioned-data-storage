@@ -307,7 +307,7 @@ public class DataDaoImpl implements DataDao {
 
     private QueryWithParams getWhereByFts(String search, String alias) {
 
-        search = search != null ? search.trim() : null;
+        search = search != null ? search.trim() : "";
         if (StringUtils.isNullOrEmpty(search))
             return null;
 
@@ -327,8 +327,8 @@ public class DataDaoImpl implements DataDao {
 
         } else {
             String formattedSearch = search.toLowerCase()
-                    .replaceAll(":", "\\\\:")
-                    .replaceAll("/", "\\\\/")
+                    .replace(":", "\\:")
+                    .replace("/", "\\/")
                     .replace(" ", "+");
             sql += " and (" + escapedFtsColumn + " @@ to_tsquery(:formattedSearch||':*') or " +
                     escapedFtsColumn + " @@ to_tsquery('ru', :formattedSearch||':*') or " +
@@ -803,13 +803,14 @@ public class DataDaoImpl implements DataDao {
         int i = 1;
         for (Object obj : rowValue.getFieldValues()) {
             FieldValue fieldValue = (FieldValue) obj;
-            if (fieldValue.getValue() != null)
+            if (fieldValue.getValue() != null) {
                 if (fieldValue instanceof ReferenceFieldValue) {
                     if (((ReferenceFieldValue) fieldValue).getValue().getValue() != null)
                         query.setParameter(i++, ((ReferenceFieldValue) fieldValue).getValue().getValue());
                 } else {
                     query.setParameter(i++, fieldValue.getValue());
                 }
+            }
         }
         query.setParameter(i, rowValue.getSystemId());
 
