@@ -194,8 +194,8 @@ public class DraftDataServiceImpl implements DraftDataService {
         dataDao.updateSequence(draftCode);
     }
 
-    @Transactional
     @Override
+    @Transactional
     public void addField(String draftCode, Field field) {
 
         if (systemFieldList().contains(field.getName()))
@@ -207,12 +207,14 @@ public class DraftDataServiceImpl implements DraftDataService {
         dataDao.dropTriggers(draftCode);
         String defaultValue = (field instanceof BooleanField) ? "false" : null;
         dataDao.addColumnToTable(draftCode, field.getName(), field.getType(), defaultValue);
-        dataDao.createTriggers(draftCode);
-        dataDao.updateHashRows(draftCode);
+
+        List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
+        dataDao.createTriggers(draftCode, fieldNames);
+        dataDao.updateHashRows(draftCode, fieldNames);
     }
 
-    @Transactional
     @Override
+    @Transactional
     public void deleteField(String draftCode, String fieldName) {
 
         List<String> draftFields = dataDao.getEscapedFieldNames(draftCode);
@@ -227,18 +229,19 @@ public class DraftDataServiceImpl implements DraftDataService {
         if (CollectionUtils.isNullOrEmpty(draftFields))
             return;
 
-        dataDao.createTriggers(draftCode);
+        List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
+        dataDao.createTriggers(draftCode, fieldNames);
         try {
-            dataDao.updateHashRows(draftCode);
+            dataDao.updateHashRows(draftCode, fieldNames);
 
         } catch (PersistenceException pe) {
             processNotUniqueRowException(pe);
         }
-        dataDao.updateFtsRows(draftCode);
+        dataDao.updateFtsRows(draftCode, fieldNames);
     }
 
-    @Transactional
     @Override
+    @Transactional
     public void updateField(String draftCode, Field field) {
 
         String oldType = dataDao.getFieldType(draftCode, field.getName());
@@ -249,7 +252,9 @@ public class DraftDataServiceImpl implements DraftDataService {
         try {
             dataDao.dropTriggers(draftCode);
             dataDao.alterDataType(draftCode, field.getName(), oldType, newType);
-            dataDao.createTriggers(draftCode);
+
+            List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
+            dataDao.createTriggers(draftCode, fieldNames);
 
         } catch (PersistenceException pe) {
             throw new CodifiedException(INCOMPATIBLE_NEW_DATA_TYPE_EXCEPTION_CODE, pe, field.getName());
@@ -317,7 +322,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         //todo никак не учитывается Field.unique - уникальность в рамках даты
         String versionName = UUID.randomUUID().toString();
         String versionCode = StorageUtils.toStorageCode(StorageUtils.toSchemaName(draftCode), versionName);
-        dataDao.copyTable(versionCode, draftCode);
+        dataDao.copyTable(draftCode, versionCode);
 
         dataDao.addColumnToTable(versionName, SYS_PUBLISHTIME, "timestamp without time zone", MIN_TIMESTAMP_VALUE);
         dataDao.addColumnToTable(versionName, SYS_CLOSETIME, "timestamp without time zone", MAX_TIMESTAMP_VALUE);

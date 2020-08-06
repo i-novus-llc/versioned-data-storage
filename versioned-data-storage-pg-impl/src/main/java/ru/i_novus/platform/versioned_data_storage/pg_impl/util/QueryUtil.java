@@ -191,14 +191,14 @@ public class QueryUtil {
         }
     }
 
-    public static String getSchemaName(String schemaName) {
+    public static String getSchemaNameOrDefault(String schemaName) {
 
         return isNullOrEmpty(schemaName) ? DATA_SCHEMA_NAME : schemaName;
     }
 
     public static String escapeTableName(String schemaName, String tableName) {
 
-        return getSchemaName(schemaName) + NAME_SEPARATOR + addDoubleQuotes(tableName);
+        return getSchemaNameOrDefault(schemaName) + NAME_SEPARATOR + addDoubleQuotes(tableName);
     }
 
     public static String escapeFieldName(String tableAlias, String fieldName) {
@@ -213,18 +213,18 @@ public class QueryUtil {
 
     public static String escapeSchemaSequenceName(String schemaName, String tableName) {
 
-        return getSchemaName(schemaName) + NAME_SEPARATOR + escapeSequenceName(tableName);
+        return getSchemaNameOrDefault(schemaName) + NAME_SEPARATOR + escapeSequenceName(tableName);
     }
 
     public static int getOffset(Criteria criteria) {
 
-        if (criteria != null) {
-            if (criteria.getPage() <= 0 || criteria.getSize() <= 0)
-                throw new IllegalStateException("Criteria page and size should be greater than zero");
+        if (criteria == null)
+            return 0;
 
-            return (criteria.getPage() - 1) * criteria.getSize();
-        }
-        return 0;
+        if (criteria.getPage() <= 0 || criteria.getSize() <= 0)
+            throw new IllegalStateException("Criteria page and size should be greater than zero");
+
+        return (criteria.getPage() - 1) * criteria.getSize();
     }
 
     @SuppressWarnings("all")

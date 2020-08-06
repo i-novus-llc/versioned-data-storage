@@ -33,7 +33,7 @@ import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.toStora
 import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addDoubleQuotes;
 import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addSingleQuotes;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.HASH_EXPRESSION;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.getSchemaName;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.getSchemaNameOrDefault;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {JpaTestConfig.class, VersionedDataStorageConfig.class})
@@ -129,7 +129,7 @@ public class DataDaoTest {
                 "  " + addDoubleQuotes(SYS_HASH) + " char(32)\n" +
                 ");";
 
-        String ddl = String.format(ddlFormat, getSchemaName(schemaName), addDoubleQuotes(tableName));
+        String ddl = String.format(ddlFormat, getSchemaNameOrDefault(schemaName), addDoubleQuotes(tableName));
         entityManager.createNativeQuery(ddl).executeUpdate();
         assertTrue(dataDao.storageExists(storageCode));
     }
@@ -175,7 +175,7 @@ public class DataDaoTest {
         columns += ", " + addDoubleQuotes(SYS_HASH);
 
         String sqlValuesFormat = "%1$s" + ", " + String.format(HASH_EXPRESSION, "%1$s");
-        String sqlInsert = String.format(INSERT_RECORD, getSchemaName(schemaName), escapedTableName, columns) +
+        String sqlInsert = String.format(INSERT_RECORD, getSchemaNameOrDefault(schemaName), escapedTableName, columns) +
                 String.format(INSERT_VALUES, sqlValuesFormat);
         insertValues(sqlInsert, nameValues);
         List<RowValue> dataValues = getData(schemaName, tableName, fields);

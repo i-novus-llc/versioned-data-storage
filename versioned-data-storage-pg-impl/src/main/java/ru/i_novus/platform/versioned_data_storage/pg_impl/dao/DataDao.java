@@ -34,7 +34,7 @@ public interface DataDao {
 
     void createDraftTable(String storageCode, List<Field> fields);
 
-    void copyTable(String targetCode, String sourceCode);
+    void copyTable(String sourceCode, String targetCode);
 
     void dropTable(String storageCode);
 
@@ -69,13 +69,11 @@ public interface DataDao {
 
     void updateSequence(String tableName);
 
-    void createTriggers(String storageCode);
-
     void createTriggers(String storageCode, List<String> fieldNames);
 
-    void updateHashRows(String tableName);
+    void updateHashRows(String tableName, List<String> fieldNames);
 
-    void updateFtsRows(String tableName);
+    void updateFtsRows(String tableName, List<String> fieldNames);
 
     void dropTriggers(String tableName);
 

@@ -11,7 +11,6 @@ import ru.i_novus.platform.datastorage.temporal.enums.ReferenceDisplayType;
 import ru.i_novus.platform.datastorage.temporal.model.*;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.*;
 import ru.i_novus.platform.datastorage.temporal.model.value.*;
-import ru.i_novus.platform.datastorage.temporal.util.StorageUtils;
 import ru.i_novus.platform.datastorage.temporal.util.StringUtils;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 
@@ -34,8 +33,7 @@ import static java.util.stream.Collectors.toList;
 import static org.springframework.util.CollectionUtils.isEmpty;
 import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
 import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
-import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.isDefaultSchema;
-import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.isValidSchemaName;
+import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.*;
 import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addDoubleQuotes;
 import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addSingleQuotes;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
@@ -69,7 +67,7 @@ public class DataDaoImpl implements DataDao {
         // Схемы предлагается именовать в виде "data_" + код локализации, чтобы исключить случайное совпадение с другими схемами.
         // Код локализации должен содержать только строчные латинские буквы a-z, цифры 0-9 и символ подчёркивания "_".
         // В postgres макс. длина имени = NAMEDATALEN - 1 = 64 - 1, поэтому длина кода локализации должна быть <= 64 - 1 - "data_".len() = 58.
-        final String schemaName = getSchemaName(criteria.getSchemaName());
+        final String schemaName = getTableSchemaName(criteria.getSchemaName(), criteria.getTableName());
 
         List<Field> fields = new ArrayList<>(criteria.getFields());
         fields.add(0, new IntegerField(SYS_PRIMARY_COLUMN));
@@ -103,7 +101,7 @@ public class DataDaoImpl implements DataDao {
     @Override
     public BigInteger getDataCount(DataCriteria criteria) {
 
-        final String schemaName = getSchemaName(criteria.getSchemaName());
+        final String schemaName = getTableSchemaName(criteria.getSchemaName(), criteria.getTableName());
 
         final String sqlFormat = "  FROM %s as %s\n";
         String sql = SELECT_COUNT_ONLY +
@@ -121,8 +119,8 @@ public class DataDaoImpl implements DataDao {
     @Override
     public RowValue getRowData(String storageCode, List<String> fieldNames, Object systemId) {
 
-        String schemaName = StorageUtils.toSchemaName(storageCode);
-        String tableName = StorageUtils.toTableName(storageCode);
+        String schemaName = getSchemaName(toSchemaName(storageCode));
+        String tableName = toTableName(storageCode);
 
         List<Field> fields = dataTypesToFields(getColumnDataTypes(storageCode), fieldNames);
 
@@ -150,8 +148,8 @@ public class DataDaoImpl implements DataDao {
     @Override
     public List<RowValue> getRowData(String storageCode, List<String> fieldNames, List<Object> systemIds) {
 
-        String schemaName = StorageUtils.toSchemaName(storageCode);
-        String tableName = StorageUtils.toTableName(storageCode);
+        String schemaName = getSchemaName(toSchemaName(storageCode));
+        String tableName = toTableName(storageCode);
 
         List<Field> fields = dataTypesToFields(getColumnDataTypes(storageCode), fieldNames);
 
@@ -233,8 +231,8 @@ public class DataDaoImpl implements DataDao {
 
         @SuppressWarnings("unchecked")
         List<Object[]> nameTypes = entityManager.createNativeQuery(SELECT_FIELD_NAMES_AND_TYPES)
-                .setParameter(BIND_INFO_SCHEMA_NAME, StorageUtils.toSchemaName(storageCode))
-                .setParameter(BIND_INFO_TABLE_NAME, StorageUtils.toTableName(storageCode))
+                .setParameter(BIND_INFO_SCHEMA_NAME, toSchemaName(storageCode))
+                .setParameter(BIND_INFO_TABLE_NAME, toTableName(storageCode))
                 .getResultList();
 
         Map<String, String> map = new HashMap<>();
@@ -250,7 +248,8 @@ public class DataDaoImpl implements DataDao {
 
         String orderBy = SELECT_ORDER;
         if (sorting != null && sorting.getField() != null) {
-            orderBy = orderBy + formatFieldForQuery(sorting.getField(), alias) + " " + sorting.getDirection().toString() + ", ";
+            orderBy = orderBy + formatFieldForQuery(sorting.getField(), alias) +
+                    " " + sorting.getDirection().toString() + ", ";
         }
 
         return orderBy + " " + formatFieldForQuery(SYS_PRIMARY_COLUMN, alias);
@@ -504,8 +503,8 @@ public class DataDaoImpl implements DataDao {
     @Transactional
     public void createDraftTable(String storageCode, List<Field> fields) {
 
-        String schemaName = StorageUtils.toSchemaName(storageCode);
-        String tableName = StorageUtils.toTableName(storageCode);
+        String schemaName = toSchemaName(storageCode);
+        String tableName = toTableName(storageCode);
         
         if (storageExists(storageCode))
             throw new IllegalArgumentException("table.already.exists");
@@ -525,15 +524,15 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @Transactional
-    public void copyTable(String targetCode, String sourceCode) {
+    public void copyTable(String sourceCode, String targetCode) {
 
-        String targetSchema = StorageUtils.toSchemaName(targetCode);
-        String targetTable = StorageUtils.toTableName(targetCode);
+        String targetSchema = toSchemaName(targetCode);
+        String targetTable = toTableName(targetCode);
         if (StringUtils.isNullOrEmpty(targetTable))
             throw new IllegalArgumentException("target.table.name.is.empty");
 
-        String sourceSchema = StorageUtils.toSchemaName(sourceCode);
-        String sourceTable = StorageUtils.toTableName(sourceCode);
+        String sourceSchema = toSchemaName(sourceCode);
+        String sourceTable = toTableName(sourceCode);
         if (StringUtils.isNullOrEmpty(sourceTable))
             throw new IllegalArgumentException("source.table.name.is.empty");
 
@@ -574,8 +573,8 @@ public class DataDaoImpl implements DataDao {
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void dropTable(String storageCode) {
 
-        String schemaName = StorageUtils.toSchemaName(storageCode);
-        String tableName = StorageUtils.toTableName(storageCode);
+        String schemaName = toSchemaName(storageCode);
+        String tableName = toTableName(storageCode);
 
         String ddl = String.format(DROP_TABLE, schemaName, addDoubleQuotes(tableName));
         entityManager.createNativeQuery(ddl).executeUpdate();
@@ -597,8 +596,8 @@ public class DataDaoImpl implements DataDao {
     public boolean storageExists(String storageCode) {
 
         Boolean result = (Boolean) entityManager.createNativeQuery(SELECT_TABLE_EXISTS)
-                .setParameter(BIND_INFO_SCHEMA_NAME, StorageUtils.toSchemaName(storageCode))
-                .setParameter(BIND_INFO_TABLE_NAME, StorageUtils.toTableName(storageCode))
+                .setParameter(BIND_INFO_SCHEMA_NAME, toSchemaName(storageCode))
+                .setParameter(BIND_INFO_TABLE_NAME, toTableName(storageCode))
                 .getSingleResult();
 
         return result != null && result;
@@ -631,8 +630,8 @@ public class DataDaoImpl implements DataDao {
     @Transactional
     public void insertData(String storageCode, List<RowValue> data) {
 
-        String schemaName = StorageUtils.toSchemaName(storageCode);
-        String tableName = StorageUtils.toTableName(storageCode);
+        String schemaName = toSchemaName(storageCode);
+        String tableName = toTableName(storageCode);
 
         if (isEmpty(data))
             return;
@@ -783,8 +782,8 @@ public class DataDaoImpl implements DataDao {
     @Transactional
     public void updateData(String storageCode, RowValue rowValue) {
 
-        String schemaName = StorageUtils.toSchemaName(storageCode);
-        String tableName = StorageUtils.toTableName(storageCode);
+        String schemaName = toSchemaName(storageCode);
+        String tableName = toTableName(storageCode);
 
         List<String> keyList = ((List<FieldValue>) rowValue.getFieldValues()).stream()
                 .map(fieldValue -> {
@@ -839,9 +838,9 @@ public class DataDaoImpl implements DataDao {
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void deleteData(String storageCode) {
 
-        String tableName = StorageUtils.toTableName(storageCode);
+        String tableName = toTableName(storageCode);
         String sql = String.format(DELETE_RECORD,
-                StorageUtils.toSchemaName(storageCode), addDoubleQuotes(tableName), WHERE_DEFAULT);
+                toSchemaName(storageCode), addDoubleQuotes(tableName), WHERE_DEFAULT);
 
         entityManager.createNativeQuery(sql).executeUpdate();
     }
@@ -850,8 +849,8 @@ public class DataDaoImpl implements DataDao {
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void deleteData(String storageCode, List<Object> systemIds) {
 
-        String schemaName = StorageUtils.toSchemaName(storageCode);
-        String tableName = StorageUtils.toTableName(storageCode);
+        String schemaName = toSchemaName(storageCode);
+        String tableName = toTableName(storageCode);
 
         String ids = systemIds.stream().map(id -> QUERY_VALUE_SUBST).collect(joining(","));
         String condition = String.format(CONDITION_IN, addDoubleQuotes(SYS_PRIMARY_COLUMN), ids);
@@ -873,8 +872,8 @@ public class DataDaoImpl implements DataDao {
         if (getReferenceDisplayType(fieldValue.getValue()) == null)
             return;
 
-        String schemaName = StorageUtils.toSchemaName(storageCode);
-        String tableName = StorageUtils.toTableName(storageCode);
+        String schemaName = toSchemaName(storageCode);
+        String tableName = toTableName(storageCode);
 
         String escapedFieldName = addDoubleQuotes(fieldValue.getField());
         String oldFieldExpression = sqlFieldExpression(fieldValue.getField(), REFERENCE_VALUATION_UPDATE_TABLE);
@@ -897,8 +896,8 @@ public class DataDaoImpl implements DataDao {
     @Override
     public BigInteger countReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue) {
 
-        String schemaName = StorageUtils.toSchemaName(storageCode);
-        String tableName = StorageUtils.toTableName(storageCode);
+        String schemaName = toSchemaName(storageCode);
+        String tableName = toTableName(storageCode);
 
         if (getReferenceDisplayType(fieldValue.getValue()) == null)
             return BigInteger.ZERO;
@@ -921,8 +920,8 @@ public class DataDaoImpl implements DataDao {
     @Transactional
     public void updateReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue, int offset, int limit) {
 
-        String schemaName = StorageUtils.toSchemaName(storageCode);
-        String tableName = StorageUtils.toTableName(storageCode);
+        String schemaName = toSchemaName(storageCode);
+        String tableName = toTableName(storageCode);
 
         String quotedFieldName = addDoubleQuotes(fieldValue.getField());
         String oldFieldExpression = escapeFieldName(REFERENCE_VALUATION_UPDATE_TABLE, fieldValue.getField());
@@ -970,8 +969,8 @@ public class DataDaoImpl implements DataDao {
     @Override
     public boolean isUnique(String storageCode, List<String> fieldNames, LocalDateTime publishTime) {
 
-        String schemaName = StorageUtils.toSchemaName(storageCode);
-        String tableName = StorageUtils.toTableName(storageCode);
+        String schemaName = toSchemaName(storageCode);
+        String tableName = toTableName(storageCode);
 
         String fields = fieldNames.stream()
                 .map(fieldName -> addDoubleQuotes(fieldName) + "\\:\\:text")
@@ -1008,12 +1007,6 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void createTriggers(String storageCode) {
-        createTriggers(storageCode, getHashUsedFieldNames(storageCode));
-    }
-
-    @Override
     @Transactional
     public void createTriggers(String storageCode, List<String> fieldNames) {
 
@@ -1023,8 +1016,8 @@ public class DataDaoImpl implements DataDao {
 
     protected void createHashTrigger(String storageCode, List<String> fieldNames) {
 
-        String schemaName = StorageUtils.toSchemaName(storageCode);
-        String tableName = StorageUtils.toTableName(storageCode);
+        String schemaName = toSchemaName(storageCode);
+        String tableName = toTableName(storageCode);
 
         final String alias = TRIGGER_NEW_ALIAS + NAME_SEPARATOR;
         String tableFields = fieldNames.stream().map(this::getFieldClearName).collect(joining(", "));
@@ -1039,8 +1032,8 @@ public class DataDaoImpl implements DataDao {
 
     protected void createFtsTrigger(String storageCode, List<String> fieldNames) {
 
-        String schemaName = StorageUtils.toSchemaName(storageCode);
-        String tableName = StorageUtils.toTableName(storageCode);
+        String schemaName = toSchemaName(storageCode);
+        String tableName = toTableName(storageCode);
 
         final String alias = TRIGGER_NEW_ALIAS + NAME_SEPARATOR;
         String tableFields = fieldNames.stream().map(this::getFieldClearName).collect(joining(", "));
@@ -1063,9 +1056,8 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @Transactional
-    public void updateHashRows(String tableName) {
+    public void updateHashRows(String tableName, List<String> fieldNames) {
 
-        List<String> fieldNames = getHashUsedFieldNames(tableName);
         String expression = String.format(HASH_EXPRESSION, String.join(", ", fieldNames));
         String ddlAssign = String.format(ASSIGN_FIELD, addDoubleQuotes(SYS_HASH), expression);
 
@@ -1075,9 +1067,8 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @Transactional
-    public void updateFtsRows(String tableName) {
+    public void updateFtsRows(String tableName, List<String> fieldNames) {
 
-        List<String> fieldNames = getHashUsedFieldNames(tableName);
         String expression = fieldNames.stream()
                 .map(field -> "coalesce( to_tsvector('ru', " + field + "\\:\\:text),'')")
                 .collect(joining(" || ' ' || "));
@@ -1107,8 +1098,8 @@ public class DataDaoImpl implements DataDao {
 
         String ddl = String.format(CREATE_TABLE_INDEX,
                 name,
-                StorageUtils.toSchemaName(storageCode),
-                addDoubleQuotes(StorageUtils.toTableName(storageCode)),
+                toSchemaName(storageCode),
+                addDoubleQuotes(toTableName(storageCode)),
                 fields.stream().map(StringUtils::addDoubleQuotes).collect(joining(",")));
         entityManager.createNativeQuery(ddl).executeUpdate();
     }
@@ -1117,11 +1108,11 @@ public class DataDaoImpl implements DataDao {
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void createFullTextSearchIndex(String storageCode) {
 
-        String tableName = StorageUtils.toTableName(storageCode);
+        String tableName = toTableName(storageCode);
 
         String ddl = String.format(CREATE_FTS_INDEX,
                 addDoubleQuotes(tableName + "_fts_idx"),
-                StorageUtils.toSchemaName(storageCode),
+                toSchemaName(storageCode),
                 addDoubleQuotes(tableName),
                 addDoubleQuotes(SYS_FTS));
         entityManager.createNativeQuery(ddl).executeUpdate();
@@ -1131,11 +1122,11 @@ public class DataDaoImpl implements DataDao {
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void createLtreeIndex(String storageCode, String field) {
 
-        String tableName = StorageUtils.toTableName(storageCode);
+        String tableName = toTableName(storageCode);
 
         String ddl = String.format(CREATE_LTREE_INDEX,
                 addDoubleQuotes(tableName + "_" + field.toLowerCase() + "_idx"),
-                StorageUtils.toSchemaName(storageCode),
+                toSchemaName(storageCode),
                 addDoubleQuotes(tableName),
                 addDoubleQuotes(field));
         entityManager.createNativeQuery(ddl).executeUpdate();
@@ -1145,13 +1136,13 @@ public class DataDaoImpl implements DataDao {
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void createHashIndex(String storageCode) {
 
-        String tableName = StorageUtils.toTableName(storageCode);
+        String tableName = toTableName(storageCode);
 
         // Неуникальный индекс, т.к. используется только для создания хранилища версии.
         // В версии могут быть идентичные строки с отличающимся периодом действия.
         String ddl = String.format(CREATE_TABLE_INDEX,
                 addDoubleQuotes(tableName + "_sys_hash_ix"),
-                StorageUtils.toSchemaName(storageCode),
+                toSchemaName(storageCode),
                 addDoubleQuotes(tableName),
                 addDoubleQuotes(SYS_HASH));
         entityManager.createNativeQuery(ddl).executeUpdate();
@@ -1161,8 +1152,8 @@ public class DataDaoImpl implements DataDao {
     public List<String> getFieldNames(String storageCode, String sqlSelect) {
 
         List<String> results = entityManager.createNativeQuery(sqlSelect)
-                .setParameter(BIND_INFO_SCHEMA_NAME, StorageUtils.toSchemaName(storageCode))
-                .setParameter(BIND_INFO_TABLE_NAME, StorageUtils.toTableName(storageCode))
+                .setParameter(BIND_INFO_SCHEMA_NAME, toSchemaName(storageCode))
+                .setParameter(BIND_INFO_TABLE_NAME, toTableName(storageCode))
                 .getResultList();
         Collections.sort(results);
 
@@ -1182,7 +1173,7 @@ public class DataDaoImpl implements DataDao {
     @Override
     public String getFieldType(String storageCode, String fieldName) {
 
-        return getFieldType(StorageUtils.toSchemaName(storageCode), StorageUtils.toTableName(storageCode), fieldName);
+        return getFieldType(toSchemaName(storageCode), toTableName(storageCode), fieldName);
     }
 
     private String getFieldType(String schemaName, String tableName, String columnName) {
@@ -1461,10 +1452,10 @@ public class DataDaoImpl implements DataDao {
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void deletePointRows(String targetCode) {
 
-        String tableName = StorageUtils.toTableName(targetCode);
+        String tableName = toTableName(targetCode);
 
         String sql = String.format(DELETE_RECORD,
-                StorageUtils.toSchemaName(targetCode), addDoubleQuotes(tableName), CONDITION_POINT_DATED);
+                toSchemaName(targetCode), addDoubleQuotes(tableName), CONDITION_POINT_DATED);
 
         if (logger.isDebugEnabled()) {
             logger.debug("deletePointRows method sql: {}", sql);
@@ -1488,13 +1479,13 @@ public class DataDaoImpl implements DataDao {
 
         String oldAlias = "t1";
         String oldStorageCode = criteria.getStorageCode();
-        String oldSchemaName = StorageUtils.toSchemaName(oldStorageCode);
-        String oldTableName = StorageUtils.toTableName(oldStorageCode);
+        String oldSchemaName = toSchemaName(oldStorageCode);
+        String oldTableName = toTableName(oldStorageCode);
 
         String newAlias = "t2";
         String newStorageCode = criteria.getNewStorageCode() != null ? criteria.getNewStorageCode() : oldStorageCode;
-        String newSchemaName = StorageUtils.toSchemaName(newStorageCode);
-        String newTableName = StorageUtils.toTableName(newStorageCode);
+        String newSchemaName = toSchemaName(newStorageCode);
+        String newTableName = toTableName(newStorageCode);
 
         String oldDataFields = getSelectFields(oldAlias, criteria.getFields(), false);
         String newDataFields = getSelectFields(newAlias, criteria.getFields(), false);
@@ -1613,6 +1604,18 @@ public class DataDaoImpl implements DataDao {
             case OLD: return "left";
             default: return "full";
         }
+    }
+
+    // Используются для возможности переопределения схемы.
+    protected String getSchemaName(String schemaName) {
+
+        return getSchemaNameOrDefault(schemaName);
+    }
+
+    // Используются для возможности переопределения схемы.
+    protected String getTableSchemaName(String schemaName, String tableName) {
+
+        return !StringUtils.isNullOrEmpty(tableName) ? getSchemaNameOrDefault(schemaName) : DATA_SCHEMA_NAME;
     }
 
     private List<DiffRowValue> toDiffRowValues(List<String> fields, Map<String, Field> fieldMap,
