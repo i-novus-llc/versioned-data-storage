@@ -363,10 +363,10 @@ public class QueryConstants {
             "    SELECT * from data.%2$s\n" +
             "     ORDER BY \"SYS_RECORDID\";\n" +
             "\n" +
-            "    MOVE FORWARD %3$s FROM tbl_cursor;\t\n" +
+            "    MOVE FORWARD %3$s FROM tbl_cursor;\n" +
             "    i \\:= 0;\n" +
             "    while i < %4$s loop \n" +
-            "      FETCH FROM tbl_cursor INTO row;\t\n" +
+            "      FETCH FROM tbl_cursor INTO row;\n" +
             "      EXIT WHEN NOT FOUND;\n" +
             "\n" +
             "      row.\"SYS_RECORDID\" \\:= nextval('data.%5$s');\n" +
@@ -400,7 +400,7 @@ public class QueryConstants {
             WHERE_EXISTS_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME +
             ORDER_DRAFT_BY_SYS_RECORDID + ";\n" +
             "\n" +
-            "    MOVE FORWARD ${offset} FROM tbl_cursor;\t\n" +
+            "    MOVE FORWARD ${offset} FROM tbl_cursor;\n" +
             "    i \\:= 0;\n" +
             "    while i < ${transactionSize} loop \n" +
             "      FETCH FROM tbl_cursor INTO row;\n" +
@@ -477,7 +477,7 @@ public class QueryConstants {
             "END$$;";
 
     //todo: get rid of infinity
-    public static final String COUNT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME = "SELECT count(*)\n" +
+    public static final String COUNT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME = SELECT_COUNT_ONLY +
             "FROM ${versionTable} v\n" +
             " WHERE (coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, '-infinity'),\n" +
             "        coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, 'infinity'))\n" +
@@ -493,7 +493,8 @@ public class QueryConstants {
             "\n" +
             "BEGIN \n" +
             "    OPEN tbl_cursor FOR \n" +
-            "    SELECT \"SYS_RECORDID\", ${columns}, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\" FROM ${versionTable} v \n" +
+            "    SELECT \"SYS_RECORDID\", ${columns}, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\" \n" +
+            "      FROM ${versionTable} v \n" +
             "     WHERE (coalesce(to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, '-infinity'),\n" +
             "            coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, 'infinity'))\n" +
             "           OVERLAPS\n" +
