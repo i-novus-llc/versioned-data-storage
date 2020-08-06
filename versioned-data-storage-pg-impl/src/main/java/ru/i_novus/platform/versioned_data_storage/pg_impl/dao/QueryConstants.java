@@ -16,7 +16,7 @@ import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addSingl
  */
 public class QueryConstants {
 
-    public static final int TRANSACTION_SIZE = 1000;
+    public static final int TRANSACTION_ROW_LIMIT = 1000;
 
     static final String DATE_FORMAT_FOR_INSERT_ROW = "yyyy-MM-dd";
     static final String DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
@@ -265,26 +265,27 @@ public class QueryConstants {
             ");";
 
     //todo: get rid of infinity
-    public static final String INSERT_FROM_DRAFT_WITH_CLOSE_TIME = "DO $$\n" +
+    public static final String INSERT_ALL_VAL_FROM_DRAFT = "DO $$\n" +
             "DECLARE tbl_cursor refcursor;\n" +
-            "  row data.%1$s%%rowtype;\n" +
+            "  row ${draftTable}%rowtype;\n" +
             "  i int;\n" +
             "\n" +
             "BEGIN \n" +
             "    OPEN tbl_cursor FOR \n" +
-            "  SELECT * FROM data.%1$s ORDER BY \"SYS_RECORDID\";\n" +
+            "    SELECT ${draftAlias}.* FROM ${draftTable} AS ${draftAlias} \n" +
+            "    ORDER BY ${draftAlias}.\"SYS_RECORDID\";\n" +
             "\n" +
-            "    MOVE FORWARD %2$s FROM tbl_cursor;\n" +
+            "    MOVE FORWARD ${offset} FROM tbl_cursor;\n" +
             "    i \\:= 0;\n" +
-            "    while i < %3$s loop \n" +
+            "    while i < ${limit} loop \n" +
             "       FETCH FROM tbl_cursor INTO row;\n" +
             "       EXIT WHEN NOT FOUND;\n" +
             "\n" +
-            "       row.\"SYS_RECORDID\" \\:= nextval('data.%7$s');\n" +
-            "       insert into data.%4$s(\"SYS_RECORDID\", %8$s, \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\")\n" +
-            "       values(row.\"SYS_RECORDID\", %9$s," +
-            " to_timestamp('%5$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone," +
-            " coalesce(to_timestamp('%6$s', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, 'infinity'));\n" +
+            "       row.\"SYS_RECORDID\" \\:= nextval('${targetSequence}');\n" +
+            "       INSERT INTO ${targetTable}(\"SYS_RECORDID\", ${columns}, \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\")\n" +
+            "       VALUES(row.\"SYS_RECORDID\", ${rowColumns}," +
+            " to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone," +
+            " coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, 'infinity'));\n" +
             "\n" +
             "       i \\:= i + 1;\n" +
             "    end loop;\n" +
@@ -402,12 +403,12 @@ public class QueryConstants {
             "\n" +
             "    MOVE FORWARD ${offset} FROM tbl_cursor;\n" +
             "    i \\:= 0;\n" +
-            "    while i < ${transactionSize} loop \n" +
+            "    while i < ${limit} loop \n" +
             "      FETCH FROM tbl_cursor INTO row;\n" +
             "      EXIT WHEN NOT FOUND;\n" +
             "\n" +
-            "      row.\"SYS_RECORDID\" \\:= nextval('${newTableSeqName}');\n" +
-            "      INSERT INTO ${tableToInsert} (\"SYS_RECORDID\", ${columns}, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\")\n" +
+            "      row.\"SYS_RECORDID\" \\:= nextval('${targetSequence}');\n" +
+            "      INSERT INTO ${targetTable} (\"SYS_RECORDID\", ${columns}, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\")\n" +
             "      SELECT \"SYS_RECORDID\", ${columns}, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\" " +
             "        FROM data.merged_actual_rows('${columns}'\\:\\:text, row.\"SYS_HASH\", '${versionTable}'\\:\\:text,\n" +
             "                  to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone,\n" +
@@ -461,12 +462,12 @@ public class QueryConstants {
             "\n" +
             "    MOVE FORWARD ${offset} FROM tbl_cursor;\n" +
             "    i \\:= 0;\n" +
-            "    while i < ${transactionSize} loop \n" +
+            "    while i < ${limit} loop \n" +
             "       FETCH FROM tbl_cursor INTO row;\n" +
             "       EXIT WHEN NOT FOUND;\n" +
             "\n" +
             "       row.\"SYS_RECORDID\" \\:= nextval('${sequenceName}');\n" +
-            "       INSERT INTO ${tableToInsert} (\"SYS_RECORDID\", ${fields}, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\")\n" +
+            "       INSERT INTO ${targetTable} (\"SYS_RECORDID\", ${fields}, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\")\n" +
             "       VALUES (row.\"SYS_RECORDID\", ${rowFields}, row.\"FTS\", row.\"SYS_HASH\"," +
             " to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone," +
             " case when '${closeTime}' = 'null' then null\\:\\:timestamp without time zone else to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone end);\n" +
@@ -504,11 +505,11 @@ public class QueryConstants {
             "\n" +
             "    MOVE FORWARD ${offset} FROM tbl_cursor;\n" +
             "    i \\:= 0;\n" +
-            "    while i < ${transactionSize} loop\n" +
+            "    while i < ${limit} loop\n" +
             "       FETCH FROM tbl_cursor INTO row;\n" +
             "       EXIT WHEN NOT FOUND;\n" +
             "\n" +
-            "       INSERT INTO ${tableToInsert}(\"SYS_RECORDID\", ${columns}, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\")\n" +
+            "       INSERT INTO ${targetTable}(\"SYS_RECORDID\", ${columns}, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\")\n" +
             "       SELECT \"SYS_RECORDID\", ${columns}, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\" \n" +
             "         FROM data.closed_now_records('\"SYS_RECORDID\", ${columns}, \"FTS\", \"SYS_HASH\",\n" +
             "                   \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\"'\\:\\:text, row.\"SYS_RECORDID\", '${versionTable}'\\:\\:text,\n" +

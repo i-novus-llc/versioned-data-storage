@@ -99,40 +99,40 @@ public interface DataDao {
 
     boolean isFieldContainEmptyValues(String tableName, String fieldName);
 
+    void insertAllDataFromDraft(String draftCode, String targetCode, List<String> columns,
+                                int offset, int limit,
+                                LocalDateTime publishTime, LocalDateTime closeTime);
+
     BigInteger countActualDataFromVersion(String versionTable, String draftTable,
                                           LocalDateTime publishTime, LocalDateTime closeTime);
 
-    void insertActualDataFromVersion(String tableToInsert, String versionTable,
+    void insertActualDataFromVersion(String targetTable, String versionTable,
                                      String draftTable, Map<String, String> columns,
-                                     int offset, int transactionSize,
+                                     int offset, int limit,
                                      LocalDateTime publishTime, LocalDateTime closeTime);
 
     BigInteger countOldDataFromVersion(String versionTable, String draftTable,
                                        LocalDateTime publishTime, LocalDateTime closeTime);
 
-    void insertOldDataFromVersion(String tableToInsert, String versionTable,
+    void insertOldDataFromVersion(String targetTable, String versionTable,
                                   String draftTable, List<String> columns,
-                                  int offset, int transactionSize,
+                                  int offset, int limit,
                                   LocalDateTime publishTime, LocalDateTime closeTime);
 
     BigInteger countClosedNowDataFromVersion(String versionTable, String draftTable,
                                              LocalDateTime publishTime, LocalDateTime closeTime);
 
-    void insertClosedNowDataFromVersion(String tableToInsert, String versionTable,
+    void insertClosedNowDataFromVersion(String targetTable, String versionTable,
                                         String draftTable, Map<String, String> columns,
-                                        int offset, int transactionSize,
+                                        int offset, int limit,
                                         LocalDateTime publishTime, LocalDateTime closeTime);
 
     BigInteger countNewValFromDraft(String draftTable, String versionTable,
                                     LocalDateTime publishTime, LocalDateTime closeTime);
 
-    void insertNewDataFromDraft(String tableToInsert, String versionTable, String draftTable,
-                                List<String> columns, int offset, int transactionSize,
+    void insertNewDataFromDraft(String targetTable, String versionTable, String draftTable,
+                                List<String> columns, int offset, int limit,
                                 LocalDateTime publishTime, LocalDateTime closeTime);
-
-    void insertDataFromDraft(String draftTable, String tableToInsert, List<String> columns,
-                             int offset, int transactionSize,
-                             LocalDateTime publishTime, LocalDateTime closeTime);
 
     void deletePointRows(String targetCode);
 

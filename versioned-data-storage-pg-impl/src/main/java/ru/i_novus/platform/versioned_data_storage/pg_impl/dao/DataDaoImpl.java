@@ -1241,6 +1241,36 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void insertAllDataFromDraft(String draftCode, String targetCode, List<String> columns,
+                                       int offset, int limit,
+                                       LocalDateTime publishTime, LocalDateTime closeTime) {
+        closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
+
+        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
+        String rowColumns = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
+
+        Map<String, String> map = new HashMap<>();
+        map.put("offset", "" + offset);
+        map.put("limit", "" + limit);
+        map.put("draftTable", escapeTableName(toSchemaName(draftCode), toTableName(draftCode)));
+        map.put("draftAlias", DEFAULT_TABLE_ALIAS);
+        map.put("targetTable", escapeTableName(toSchemaName(targetCode), toTableName(targetCode)));
+        map.put("targetSequence", escapeSchemaSequenceName(toSchemaName(targetCode), toTableName(targetCode)));
+        map.put("columns", columnsStr);
+        map.put("rowColumns", rowColumns);
+        map.put("publishTime", formatDateTime(publishTime));
+        map.put("closeTime", formatDateTime(closeTime));
+
+        String sql = substitute(INSERT_ALL_VAL_FROM_DRAFT, map);
+
+        if (logger.isDebugEnabled()) {
+            logger.debug("insertDataFromDraft with closeTime method sql: {}", sql);
+        }
+        entityManager.createNativeQuery(sql).executeUpdate();
+    }
+
+    @Override
     public BigInteger countActualDataFromVersion(String versionTable, String draftTable,
                                                  LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
@@ -1257,28 +1287,26 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
-    public void insertActualDataFromVersion(String tableToInsert, String versionTable,
+    public void insertActualDataFromVersion(String targetTable, String versionTable,
                                             String draftTable, Map<String, String> columns,
-                                            int offset, int transactionSize,
+                                            int offset, int limit,
                                             LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
         String columnsStr = columns.keySet().stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
         String columnsWithType = columns.keySet().stream().map(s -> s + " " + columns.get(s)).reduce((s1, s2) -> s1 + ", " + s2).orElse("");
-        String columnsWithPrefixValue = columns.keySet().stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
         String columnsWithPrefixD = columns.keySet().stream().map(s -> "d." + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
 
         Map<String, String> map = new HashMap<>();
         map.put("dColumns", columnsWithPrefixD);
-        map.put("vValues", columnsWithPrefixValue);
         map.put("draftTable", escapeTableName(DATA_SCHEMA_NAME, draftTable));
         map.put("versionTable", escapeTableName(DATA_SCHEMA_NAME, versionTable));
         map.put("publishTime", formatDateTime(publishTime));
         map.put("closeTime", formatDateTime(closeTime));
         map.put("offset", "" + offset);
-        map.put("transactionSize", "" + transactionSize);
-        map.put("newTableSeqName", escapeSchemaSequenceName(DATA_SCHEMA_NAME, tableToInsert));
-        map.put("tableToInsert", escapeTableName(DATA_SCHEMA_NAME, tableToInsert));
+        map.put("limit", "" + limit);
+        map.put("targetTable", escapeTableName(DATA_SCHEMA_NAME, targetTable));
+        map.put("targetSequence", escapeSchemaSequenceName(DATA_SCHEMA_NAME, targetTable));
         map.put("columns", columnsStr);
         map.put("columnsWithType", columnsWithType);
 
@@ -1305,24 +1333,24 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
-    public void insertOldDataFromVersion(String tableToInsert, String versionTable,
+    public void insertOldDataFromVersion(String targetTable, String versionTable,
                                          String draftTable, List<String> columns,
-                                         int offset, int transactionSize,
+                                         int offset, int limit,
                                          LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
         String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse(null);
-        String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse(null);
+        String rowColumns = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse(null);
 
         String sql = String.format(INSERT_OLD_VAL_FROM_VERSION_WITH_CLOSE_DATE,
-                addDoubleQuotes(tableToInsert),
+                addDoubleQuotes(targetTable),
                 addDoubleQuotes(versionTable),
                 addDoubleQuotes(draftTable),
                 offset,
-                transactionSize,
-                escapeSequenceName(tableToInsert),
+                limit,
+                escapeSequenceName(targetTable),
                 columnsStr,
-                columnsWithPrefix,
+                rowColumns,
                 formatDateTime(publishTime),
                 formatDateTime(closeTime));
 
@@ -1349,25 +1377,25 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
-    public void insertClosedNowDataFromVersion(String tableToInsert, String versionTable,
+    public void insertClosedNowDataFromVersion(String targetTable, String versionTable,
                                                String draftTable, Map<String, String> columns,
-                                               int offset, int transactionSize,
+                                               int offset, int limit,
                                                LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
         String columnsStr = columns.keySet().stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
         String columnsWithType = columns.keySet().stream().map(s -> s + " " + columns.get(s)).reduce((s1, s2) -> s1 + ", " + s2).orElse("");
 
         Map<String, String> map = new HashMap<>();
-        map.put("tableToInsert", escapeTableName(DATA_SCHEMA_NAME, tableToInsert));
+        map.put("targetTable", escapeTableName(DATA_SCHEMA_NAME, targetTable));
         map.put("draftTable", escapeTableName(DATA_SCHEMA_NAME, draftTable));
         map.put("versionTable", escapeTableName(DATA_SCHEMA_NAME, versionTable));
         map.put("publishTime", formatDateTime(publishTime));
         map.put("closeTime", formatDateTime(closeTime));
         map.put("columns", columnsStr);
         map.put("offset", "" + offset);
-        map.put("transactionSize", "" + transactionSize);
+        map.put("limit", "" + limit);
         map.put("columnsWithType", columnsWithType);
-        map.put("sequenceName", escapeSchemaSequenceName(DATA_SCHEMA_NAME, tableToInsert));
+        map.put("sequenceName", escapeSchemaSequenceName(DATA_SCHEMA_NAME, targetTable));
 
         String sql = substitute(INSERT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME, map);
 
@@ -1394,12 +1422,12 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
-    public void insertNewDataFromDraft(String tableToInsert, String versionTable, String draftTable,
-                                       List<String> columns, int offset, int transactionSize,
+    public void insertNewDataFromDraft(String targetTable, String versionTable, String draftTable,
+                                       List<String> columns, int offset, int limit,
                                        LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
         String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String rowColumns = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
 
         Map<String, String> map = new HashMap<>();
         map.put("fields", columnsStr);
@@ -1407,43 +1435,16 @@ public class DataDaoImpl implements DataDao {
         map.put("versionTable", escapeTableName(DATA_SCHEMA_NAME, versionTable));
         map.put("publishTime", formatDateTime(publishTime));
         map.put("closeTime", formatDateTime(closeTime));
-        map.put("transactionSize", "" + transactionSize);
+        map.put("limit", "" + limit);
         map.put("offset", "" + offset);
-        map.put("sequenceName", escapeSchemaSequenceName(DATA_SCHEMA_NAME, tableToInsert));
-        map.put("tableToInsert", escapeTableName(DATA_SCHEMA_NAME, tableToInsert));
-        map.put("rowFields", columnsWithPrefix);
+        map.put("sequenceName", escapeSchemaSequenceName(DATA_SCHEMA_NAME, targetTable));
+        map.put("targetTable", escapeTableName(DATA_SCHEMA_NAME, targetTable));
+        map.put("rowFields", rowColumns);
 
         String sql = substitute(INSERT_NEW_VAL_FROM_DRAFT_WITH_CLOSE_TIME, map);
 
         if (logger.isDebugEnabled()) {
             logger.debug("insertNewDataFromDraft with closeTime method sql: {}", sql);
-        }
-        entityManager.createNativeQuery(sql).executeUpdate();
-    }
-
-    @Override
-    @Transactional(Transactional.TxType.REQUIRES_NEW)
-    public void insertDataFromDraft(String draftTable, String tableToInsert, List<String> columns,
-                                    int offset, int transactionSize,
-                                    LocalDateTime publishTime, LocalDateTime closeTime) {
-        closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
-
-        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
-        String columnsWithPrefix = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
-
-        String sql = String.format(INSERT_FROM_DRAFT_WITH_CLOSE_TIME,
-                addDoubleQuotes(draftTable),
-                offset,
-                transactionSize,
-                addDoubleQuotes(tableToInsert),
-                formatDateTime(publishTime),
-                formatDateTime(closeTime),
-                escapeSequenceName(tableToInsert),
-                columnsStr,
-                columnsWithPrefix);
-
-        if (logger.isDebugEnabled()) {
-            logger.debug("insertDataFromDraft with closeTime method sql: {}", sql);
         }
         entityManager.createNativeQuery(sql).executeUpdate();
     }
