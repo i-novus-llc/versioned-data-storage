@@ -161,6 +161,16 @@ public interface DraftDataService {
     void loadData(String draftCode, String baseStorageCode, LocalDateTime fromDate, LocalDateTime toDate);
 
     /**
+     * Копирование всех записей из исходной таблицы в целевую, эквивалентную по структуре.
+     * <p>
+     * Проверка совпадения структур не выполняется.
+     *
+     * @param sourceCode код исходного хранилища данных
+     * @param targetCode код целевого хранилища данных
+     */
+    void copyAllData(String sourceCode, String targetCode);
+
+    /**
      * Добавление нового поля в таблицу.
      *
      * @param draftCode код черновика

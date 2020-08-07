@@ -193,6 +193,15 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     @Override
+    public void copyAllData(String sourceCode, String targetCode) {
+
+        BigInteger count = dataDao.countData(sourceCode);
+        for (int offset = 0; offset < count.intValue(); offset += TRANSACTION_ROW_LIMIT) {
+            dataDao.copyTableData(sourceCode, targetCode, offset, TRANSACTION_ROW_LIMIT);
+        }
+    }
+
+    @Override
     @Transactional
     public void addField(String draftCode, Field field) {
 
