@@ -103,7 +103,7 @@ public interface DataDao {
 
     void copyTableData(String sourceCode, String targetCode, int offset, int limit);
 
-    void insertAllDataFromDraft(String draftCode, String targetCode, List<String> columns,
+    void insertAllDataFromDraft(String draftCode, String targetCode, List<String> fieldNames,
                                 int offset, int limit,
                                 LocalDateTime publishTime, LocalDateTime closeTime);
 
@@ -111,7 +111,7 @@ public interface DataDao {
                                           LocalDateTime publishTime, LocalDateTime closeTime);
 
     void insertActualDataFromVersion(String targetTable, String versionTable,
-                                     String draftTable, Map<String, String> columns,
+                                     String draftTable, Map<String, String> fieldNames,
                                      int offset, int limit,
                                      LocalDateTime publishTime, LocalDateTime closeTime);
 
@@ -119,7 +119,7 @@ public interface DataDao {
                                        LocalDateTime publishTime, LocalDateTime closeTime);
 
     void insertOldDataFromVersion(String targetTable, String versionTable,
-                                  String draftTable, List<String> columns,
+                                  String draftTable, List<String> fieldNames,
                                   int offset, int limit,
                                   LocalDateTime publishTime, LocalDateTime closeTime);
 
@@ -127,15 +127,16 @@ public interface DataDao {
                                              LocalDateTime publishTime, LocalDateTime closeTime);
 
     void insertClosedNowDataFromVersion(String targetTable, String versionTable,
-                                        String draftTable, Map<String, String> columns,
+                                        String draftTable, Map<String, String> fieldNames,
                                         int offset, int limit,
                                         LocalDateTime publishTime, LocalDateTime closeTime);
 
     BigInteger countNewValFromDraft(String draftTable, String versionTable,
                                     LocalDateTime publishTime, LocalDateTime closeTime);
 
-    void insertNewDataFromDraft(String targetTable, String versionTable, String draftTable,
-                                List<String> columns, int offset, int limit,
+    void insertNewDataFromDraft(String targetTable, String versionTable,
+                                String draftTable,  List<String> fieldNames,
+                                int offset, int limit,
                                 LocalDateTime publishTime, LocalDateTime closeTime);
 
     void deletePointRows(String targetCode);

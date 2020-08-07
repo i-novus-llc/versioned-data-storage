@@ -200,7 +200,7 @@ public interface DraftDataService {
      *
      * @param storageCode код хранилища данных
      * @param fieldName   наименование поля
-     * @return возвращает true, если в столбце есть null-значения, иначе false.
+     * @return Возвращает true, если в столбце есть null-значения, иначе false.
      */
     boolean isFieldContainEmptyValues(String storageCode, String fieldName);
 
@@ -210,7 +210,7 @@ public interface DraftDataService {
      * @param storageCode код хранилища данных
      * @param fieldName   наименование поля
      * @param publishTime дата публикации версии
-     * @return возврщает true, если значения поля уникальны, иначе false. Null считается уникальным значением.
+     * @return Возвращает true, если значения поля уникальны, иначе false. Null считается уникальным значением.
      */
     boolean isFieldUnique(String storageCode, String fieldName, LocalDateTime publishTime);
 
@@ -219,7 +219,7 @@ public interface DraftDataService {
      *
      * @param storageCode код хранилища данных
      * @param fieldNames  список наименований полей
-     * @return возврщает true, если значения полей уникальны, иначе false. Null считается уникальным значением.
+     * @return Возвращает true, если значения полей уникальны, иначе false. Null считается уникальным значением.
      */
     boolean isUnique(String storageCode, List<String> fieldNames);
 }

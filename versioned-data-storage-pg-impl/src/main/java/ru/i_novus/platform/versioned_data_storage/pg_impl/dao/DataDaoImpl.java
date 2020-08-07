@@ -1311,13 +1311,13 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
-    public void insertAllDataFromDraft(String draftCode, String targetCode, List<String> columns,
+    public void insertAllDataFromDraft(String draftCode, String targetCode, List<String> fieldNames,
                                        int offset, int limit,
                                        LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
-        String strColumns = toStrColumns(columns);
-        String rowColumns = toRowColumns(columns);
+        String strColumns = toStrColumns(fieldNames);
+        String rowColumns = toRowColumns(fieldNames);
 
         Map<String, String> map = new HashMap<>();
         map.put("offset", "" + offset);
@@ -1359,14 +1359,14 @@ public class DataDaoImpl implements DataDao {
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void insertActualDataFromVersion(String targetTable, String versionTable,
-                                            String draftTable, Map<String, String> columns,
+                                            String draftTable, Map<String, String> fieldNames,
                                             int offset, int limit,
                                             LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
-        String strColumns = columns.keySet().stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
-        String typedColumns = columns.keySet().stream().map(s -> s + " " + columns.get(s)).reduce((s1, s2) -> s1 + ", " + s2).orElse("");
-        String draftColumns = columns.keySet().stream().map(s -> DRAFT_TABLE_ALIAS + "." + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
+        String strColumns = fieldNames.keySet().stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
+        String typedColumns = fieldNames.keySet().stream().map(s -> s + " " + fieldNames.get(s)).reduce((s1, s2) -> s1 + ", " + s2).orElse("");
+        String draftColumns = fieldNames.keySet().stream().map(s -> DRAFT_TABLE_ALIAS + "." + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
 
         Map<String, String> map = new HashMap<>();
         map.put("draftColumns", draftColumns);
@@ -1407,13 +1407,13 @@ public class DataDaoImpl implements DataDao {
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void insertOldDataFromVersion(String targetTable, String versionTable,
-                                         String draftTable, List<String> columns,
+                                         String draftTable, List<String> fieldNames,
                                          int offset, int limit,
                                          LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
-        String strColumns = toStrColumns(columns);
-        String rowColumns = toRowColumns(columns);
+        String strColumns = toStrColumns(fieldNames);
+        String rowColumns = toRowColumns(fieldNames);
 
         String sql = String.format(INSERT_OLD_VAL_FROM_VERSION_WITH_CLOSE_DATE,
                 addDoubleQuotes(targetTable),
@@ -1451,13 +1451,13 @@ public class DataDaoImpl implements DataDao {
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void insertClosedNowDataFromVersion(String targetTable, String versionTable,
-                                               String draftTable, Map<String, String> columns,
+                                               String draftTable, Map<String, String> fieldNames,
                                                int offset, int limit,
                                                LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
-        String strColumns = columns.keySet().stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
-        String typedColumns = columns.keySet().stream().map(s -> s + " " + columns.get(s)).reduce((s1, s2) -> s1 + ", " + s2).orElse("");
+        String strColumns = fieldNames.keySet().stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
+        String typedColumns = fieldNames.keySet().stream().map(s -> s + " " + fieldNames.get(s)).reduce((s1, s2) -> s1 + ", " + s2).orElse("");
 
         Map<String, String> map = new HashMap<>();
         map.put("targetTable", escapeTableName(DATA_SCHEMA_NAME, targetTable));
@@ -1496,13 +1496,14 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
-    public void insertNewDataFromDraft(String targetTable, String versionTable, String draftTable,
-                                       List<String> columns, int offset, int limit,
+    public void insertNewDataFromDraft(String targetTable, String versionTable,
+                                       String draftTable, List<String> fieldNames,
+                                       int offset, int limit,
                                        LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
-        String strColumns = toStrColumns(columns);
-        String rowColumns = toRowColumns(columns);
+        String strColumns = toStrColumns(fieldNames);
+        String rowColumns = toRowColumns(fieldNames);
 
         Map<String, String> map = new HashMap<>();
         map.put("fields", strColumns);
