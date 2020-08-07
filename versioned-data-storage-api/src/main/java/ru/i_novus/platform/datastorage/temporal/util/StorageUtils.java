@@ -25,7 +25,7 @@ public class StorageUtils {
     public static String toTableName(String storageCode) {
 
         if (isNullOrEmpty(storageCode))
-            return null;
+            return "";
 
         int separatorIndex = storageCode.indexOf(CODE_SEPARATOR);
         if (separatorIndex >= 0) {

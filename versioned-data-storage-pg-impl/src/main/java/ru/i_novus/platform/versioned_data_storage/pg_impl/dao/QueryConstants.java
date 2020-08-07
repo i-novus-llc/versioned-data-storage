@@ -111,6 +111,7 @@ public class QueryConstants {
             "SELECT * FROM %3$s.%4$s WITH NO DATA;";
 
     static final String CREATE_TABLE_SEQUENCE = "CREATE SEQUENCE %1$s.\"%2$s_%3$s_seq\" start 1";
+    static final String DROP_TABLE_SEQUENCE = "DROP SEQUENCE IF EXISTS %1$s.\"%2$s_%3$s_seq\" CASCADE";
 
     static final String CREATE_TRIGGER = "CREATE OR REPLACE FUNCTION %1$s.\"%2$s_%3$s\"()\n" +
             "  RETURNS trigger AS\n" +
@@ -136,16 +137,16 @@ public class QueryConstants {
     static final String FTS_FUNCTION_NAME = "fts_vector_tf";
     static final String FTS_TRIGGER_NAME = "fts_vector_tg";
 
-    static final String ALTER_TABLE_ADD_PRIMARY_KEY = "ALTER TABLE %1$s.%2$s ADD PRIMARY KEY (\"%3$s\");";
-    static final String APPLY_TABLE_SEQUENCE_FOR_PRIMARY_KEY = "ALTER TABLE %1$s.%2$s \n" +
+    static final String ALTER_ADD_PRIMARY_KEY = "ALTER TABLE %1$s.%2$s ADD PRIMARY KEY (\"%3$s\");";
+    static final String ALTER_SET_SEQUENCE_FOR_PRIMARY_KEY = "ALTER TABLE %1$s.%2$s \n" +
             "  ALTER COLUMN \"%3$s\" SET DEFAULT nextval('%1$s.\"%4$s_%3$s_seq\"');";
 
     static final String ASSIGN_FIELD = "%1$s = %2$s";
     static final String UPDATE_FIELD = "UPDATE %1$s.%2$s SET %3$s;";
 
-    static final String ADD_NEW_COLUMN = "ALTER TABLE %1$s.\"%2$s\" ADD COLUMN \"%3$s\" %4$s;";
-    static final String ADD_NEW_COLUMN_WITH_DEFAULT = "ALTER TABLE %1$s.\"%2$s\" ADD COLUMN \"%3$s\" %4$s DEFAULT %5$s;";
-    static final String DELETE_COLUMN = "ALTER TABLE %1$s.\"%2$s\" DROP COLUMN \"%3$s\" CASCADE;";
+    static final String ALTER_ADD_COLUMN = "ALTER TABLE %1$s.\"%2$s\" ADD COLUMN \"%3$s\" %4$s %5$s;";
+    static final String COLUMN_DEFAULT = "DEFAULT %s";
+    static final String ALTER_DELETE_COLUMN = "ALTER TABLE %1$s.\"%2$s\" DROP COLUMN \"%3$s\" CASCADE;";
     static final String ALTER_COLUMN_WITH_USING = "ALTER TABLE %1$s.%2$s ALTER COLUMN %3$s SET DATA TYPE %4$s USING %5$s";
 
     static final String INSERT_RECORD = "INSERT INTO %1$s.%2$s (%3$s)\n";
@@ -245,8 +246,9 @@ public class QueryConstants {
     public static final String SELECT_DDL_INDEXES = "SELECT indexdef \n" +
             "  FROM pg_indexes \n" +
             " WHERE schemaname = :schemaName \n" +
-            "   AND tablename = :tableName \n" +
-            "   AND NOT indexdef LIKE '%" + addDoubleQuotes(SYS_HASH)  + "%'";
+            "   AND tablename = :tableName \n";
+    public static final String AND_NOT_SYS_HASH_DDL_INDEX =
+            "   AND NOT indexdef LIKE '%" + addDoubleQuotes(SYS_HASH)  + "%'\n";
 
     static final String CREATE_TABLE_INDEX = "CREATE INDEX %1$s ON %2$s.%3$s(%4$s);";
     static final String DROP_TABLE_INDEX = "DROP INDEX IF EXISTS %1$s.%2$s;";

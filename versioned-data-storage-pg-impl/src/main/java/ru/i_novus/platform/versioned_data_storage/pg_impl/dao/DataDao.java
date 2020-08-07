@@ -34,17 +34,17 @@ public interface DataDao {
 
     void createDraftTable(String storageCode, List<Field> fields);
 
-    void copyTable(String sourceCode, String targetCode);
-
     void dropTable(String storageCode);
 
     boolean schemaExists(String schemaName);
 
     boolean storageExists(String storageCode);
 
-    void addColumnToTable(String tableName, String name, String type, String defaultValue);
+    void copyTable(String sourceCode, String targetCode);
 
-    void deleteColumnFromTable(String tableName, String field);
+    void addColumn(String storageCode, String name, String type, String defaultValue);
+
+    void deleteColumn(String storageCode, String field);
 
     void insertData(String storageCode, List<RowValue> data);
 

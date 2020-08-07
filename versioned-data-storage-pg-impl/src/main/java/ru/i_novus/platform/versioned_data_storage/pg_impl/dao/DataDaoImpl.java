@@ -516,53 +516,6 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @Transactional
-    public void copyTable(String sourceCode, String targetCode) {
-
-        String targetSchema = toSchemaName(targetCode);
-        String targetTable = toTableName(targetCode);
-        if (StringUtils.isNullOrEmpty(targetTable))
-            throw new IllegalArgumentException("target.table.name.is.empty");
-
-        String sourceSchema = toSchemaName(sourceCode);
-        String sourceTable = toTableName(sourceCode);
-        if (StringUtils.isNullOrEmpty(sourceTable))
-            throw new IllegalArgumentException("source.table.name.is.empty");
-
-        String ddlCopyTable = String.format(CREATE_TABLE_COPY,
-                targetSchema, addDoubleQuotes(targetTable),
-                sourceSchema, addDoubleQuotes(sourceTable));
-        entityManager.createNativeQuery(ddlCopyTable).executeUpdate();
-
-        String ddlCreateSequence = String.format(CREATE_TABLE_SEQUENCE,
-                targetSchema, targetTable, SYS_PRIMARY_COLUMN);
-        entityManager.createNativeQuery(ddlCreateSequence).executeUpdate();
-
-        List<String> ddlIndexes = entityManager.createNativeQuery(SELECT_DDL_INDEXES)
-                .setParameter(BIND_INFO_SCHEMA_NAME, sourceSchema)
-                .setParameter(BIND_INFO_TABLE_NAME, sourceTable)
-                .getResultList();
-
-        for (String ddlIndex : ddlIndexes) {
-            String ddl = ddlIndex.replace(
-                    escapeTableName(sourceSchema, sourceTable),
-                    escapeTableName(targetSchema, targetTable))
-                    .replace(sourceTable, targetTable);
-            entityManager.createNativeQuery(ddl).executeUpdate();
-        }
-
-        createHashIndex(targetCode);
-
-        String ddlAddPrimaryKey = String.format(ALTER_TABLE_ADD_PRIMARY_KEY,
-                targetSchema, addDoubleQuotes(targetTable), SYS_PRIMARY_COLUMN);
-        entityManager.createNativeQuery(ddlAddPrimaryKey).executeUpdate();
-
-        String ddlAlterColumn = String.format(APPLY_TABLE_SEQUENCE_FOR_PRIMARY_KEY,
-                targetSchema, addDoubleQuotes(targetTable), SYS_PRIMARY_COLUMN, targetTable);
-        entityManager.createNativeQuery(ddlAlterColumn).executeUpdate();
-    }
-
-    @Override
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void dropTable(String storageCode) {
 
@@ -570,6 +523,20 @@ public class DataDaoImpl implements DataDao {
         String tableName = toTableName(storageCode);
 
         String ddl = String.format(DROP_TABLE, schemaName, addDoubleQuotes(tableName));
+        entityManager.createNativeQuery(ddl).executeUpdate();
+    }
+
+    protected void createTableSequence(String storageCode) {
+
+        String ddl = String.format(CREATE_TABLE_SEQUENCE,
+                toSchemaName(storageCode), toTableName(storageCode), SYS_PRIMARY_COLUMN);
+        entityManager.createNativeQuery(ddl).executeUpdate();
+    }
+
+    protected void dropTableSequence(String storageCode) {
+
+        String ddl = String.format(DROP_TABLE_SEQUENCE,
+                toSchemaName(storageCode), toTableName(storageCode), SYS_PRIMARY_COLUMN);
         entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
@@ -598,24 +565,90 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @Transactional
-    public void addColumnToTable(String tableName, String name, String type, String defaultValue) {
+    public void copyTable(String sourceCode, String targetCode) {
 
-        String ddl;
-        if (defaultValue != null) {
-            ddl = String.format(ADD_NEW_COLUMN_WITH_DEFAULT, DATA_SCHEMA_NAME, tableName, name, type, defaultValue);
+        String sourceSchema = toSchemaName(sourceCode);
+        String sourceTable = toTableName(sourceCode);
+        if (StringUtils.isNullOrEmpty(sourceTable))
+            throw new IllegalArgumentException("source.table.name.is.empty");
 
-        } else {
-            ddl = String.format(ADD_NEW_COLUMN, DATA_SCHEMA_NAME, tableName, name, type);
+        String targetSchema = toSchemaName(targetCode);
+        String targetTable = toTableName(targetCode);
+        if (StringUtils.isNullOrEmpty(targetTable))
+            throw new IllegalArgumentException("target.table.name.is.empty");
+
+        String ddlCopyTable = String.format(CREATE_TABLE_COPY,
+                targetSchema, addDoubleQuotes(targetTable),
+                sourceSchema, addDoubleQuotes(sourceTable));
+        entityManager.createNativeQuery(ddlCopyTable).executeUpdate();
+
+        copyIndexes(sourceCode, targetCode);
+
+        createHashIndex(targetCode);
+
+        addPrimaryKey(targetCode);
+    }
+
+    /** Добавление SYS_PRIMARY_COLUMN. */
+    private void addPrimaryKey(String storageCode) {
+
+        createTableSequence(storageCode);
+
+        String schemaName = toSchemaName(storageCode);
+        String tableName = toTableName(storageCode);
+
+        String ddlAddPrimaryKey = String.format(ALTER_ADD_PRIMARY_KEY,
+                schemaName, addDoubleQuotes(tableName), SYS_PRIMARY_COLUMN);
+        entityManager.createNativeQuery(ddlAddPrimaryKey).executeUpdate();
+
+        String ddlAlterColumn = String.format(ALTER_SET_SEQUENCE_FOR_PRIMARY_KEY,
+                schemaName, addDoubleQuotes(tableName), SYS_PRIMARY_COLUMN, tableName);
+        entityManager.createNativeQuery(ddlAlterColumn).executeUpdate();
+    }
+
+    /** Копирование всех индексов (кроме индекса для SYS_HASH). */
+    private void copyIndexes(String sourceCode, String targetCode) {
+
+        String sourceSchema = toSchemaName(sourceCode);
+        String sourceTable = toTableName(sourceCode);
+
+        String sql = SELECT_DDL_INDEXES + AND_NOT_SYS_HASH_DDL_INDEX;
+        List<String> ddlIndexes = entityManager.createNativeQuery(sql)
+                .setParameter(BIND_INFO_SCHEMA_NAME, sourceSchema)
+                .setParameter(BIND_INFO_TABLE_NAME, sourceTable)
+                .getResultList();
+
+        String targetSchema = toSchemaName(targetCode);
+        String targetTable = toTableName(targetCode);
+
+        for (String ddlIndex : ddlIndexes) {
+            String ddl = ddlIndex.replace(
+                    escapeTableName(sourceSchema, sourceTable),
+                    escapeTableName(targetSchema, targetTable))
+                    .replace(sourceTable, targetTable);
+            entityManager.createNativeQuery(ddl).executeUpdate();
         }
+    }
+
+    @Override
+    @Transactional
+    public void addColumn(String storageCode, String name, String type, String defaultValue) {
+
+        String condition = (defaultValue != null) ? String.format(COLUMN_DEFAULT, defaultValue) : "";
+        String ddl = String.format(ALTER_ADD_COLUMN,
+                toSchemaName(storageCode), toTableName(storageCode), name, type, condition);
 
         entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
     @Override
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void deleteColumnFromTable(String tableName, String field) {
+    public void deleteColumn(String storageCode, String field) {
 
-        String ddl = String.format(DELETE_COLUMN, DATA_SCHEMA_NAME, tableName, field);
+        String schemaName = toSchemaName(storageCode);
+        String tableName = toTableName(storageCode);
+
+        String ddl = String.format(ALTER_DELETE_COLUMN, schemaName, tableName, field);
         entityManager.createNativeQuery(ddl).executeUpdate();
     }
 

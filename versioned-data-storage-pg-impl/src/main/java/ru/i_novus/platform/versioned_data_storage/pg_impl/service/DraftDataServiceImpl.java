@@ -204,7 +204,7 @@ public class DraftDataServiceImpl implements DraftDataService {
 
         dataDao.dropTriggers(draftCode);
         String defaultValue = (field instanceof BooleanField) ? "false" : null;
-        dataDao.addColumnToTable(draftCode, field.getName(), field.getType(), defaultValue);
+        dataDao.addColumn(draftCode, field.getName(), field.getType(), defaultValue);
 
         List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
         dataDao.createTriggers(draftCode, fieldNames);
@@ -220,7 +220,7 @@ public class DraftDataServiceImpl implements DraftDataService {
             throw new CodifiedException(COLUMN_NOT_EXISTS);
 
         dataDao.dropTriggers(draftCode);
-        dataDao.deleteColumnFromTable(draftCode, fieldName);
+        dataDao.deleteColumn(draftCode, fieldName);
         dataDao.deleteEmptyRows(draftCode);
 
         draftFields = dataDao.getEscapedFieldNames(draftCode);
@@ -322,8 +322,8 @@ public class DraftDataServiceImpl implements DraftDataService {
         String versionCode = StorageUtils.toStorageCode(toSchemaName(draftCode), versionName);
         dataDao.copyTable(draftCode, versionCode);
 
-        dataDao.addColumnToTable(versionName, SYS_PUBLISHTIME, "timestamp without time zone", MIN_TIMESTAMP_VALUE);
-        dataDao.addColumnToTable(versionName, SYS_CLOSETIME, "timestamp without time zone", MAX_TIMESTAMP_VALUE);
+        dataDao.addColumn(versionName, SYS_PUBLISHTIME, "timestamp without time zone", MIN_TIMESTAMP_VALUE);
+        dataDao.addColumn(versionName, SYS_CLOSETIME, "timestamp without time zone", MAX_TIMESTAMP_VALUE);
 
         dataDao.createIndex(versionCode,
                 addDoubleQuotes(versionName + "_SYSDATE_idx"),
