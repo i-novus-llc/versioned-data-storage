@@ -521,6 +521,8 @@ public class DataDaoImpl implements DataDao {
 
         String schemaName = toSchemaName(storageCode);
         String tableName = toTableName(storageCode);
+        if (StringUtils.isNullOrEmpty(tableName))
+            return;
 
         String ddl = String.format(DROP_TABLE, schemaName, addDoubleQuotes(tableName));
         entityManager.createNativeQuery(ddl).executeUpdate();
