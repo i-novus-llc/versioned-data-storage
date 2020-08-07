@@ -80,17 +80,17 @@ public class DraftDataServiceImpl implements DraftDataService {
             throw new IllegalArgumentException("draft.table.does.not.exist");
 
         String targetCode = createVersionTable(draftCode);
-        List<String> draftFields = dataDao.getEscapedFieldNames(draftCode);
+        List<String> fieldNames = dataDao.getEscapedFieldNames(draftCode);
 
         if (baseStorageCode != null && dataDao.tableStructureEquals(baseStorageCode, draftCode)) {
-            insertActualDataFromVersion(baseStorageCode, draftCode, targetCode, draftFields, publishTime, closeTime);
-            insertOldDataFromVersion(baseStorageCode, draftCode, targetCode, draftFields, publishTime, closeTime);
-            insertClosedNowDataFromVersion(baseStorageCode, draftCode, targetCode, draftFields, publishTime, closeTime);
-            insertNewDataFromDraft(baseStorageCode, draftCode, targetCode, draftFields, publishTime, closeTime);
+            insertActualDataFromVersion(baseStorageCode, draftCode, targetCode, fieldNames, publishTime, closeTime);
+            insertOldDataFromVersion(baseStorageCode, draftCode, targetCode, fieldNames, publishTime, closeTime);
+            insertClosedNowDataFromVersion(baseStorageCode, draftCode, targetCode, fieldNames, publishTime, closeTime);
+            insertNewDataFromDraft(baseStorageCode, draftCode, targetCode, fieldNames, publishTime, closeTime);
             dataDao.deletePointRows(targetCode);
 
         } else {
-            insertAllDataFromDraft(draftCode, targetCode, draftFields, publishTime, closeTime);
+            insertAllDataFromDraft(draftCode, targetCode, fieldNames, publishTime, closeTime);
         }
 
         return targetCode;
@@ -171,24 +171,24 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     @Override
-    public void loadData(String draftCode, String sourceStorageCode, LocalDateTime onDate) {
-        loadData(draftCode, sourceStorageCode, onDate, null);
+    public void loadData(String draftCode, String baseStorageCode, LocalDateTime onDate) {
+        loadData(draftCode, baseStorageCode, onDate, null);
     }
 
     @Override
-    public void loadData(String draftCode, String sourceStorageCode, LocalDateTime fromDate, LocalDateTime toDate) {
+    public void loadData(String draftCode, String baseStorageCode, LocalDateTime fromDate, LocalDateTime toDate) {
 
-        List<String> draftFields = dataDao.getEscapedFieldNames(draftCode);
-        List<String> sourceFields = dataDao.getEscapedFieldNames(sourceStorageCode);
-        if (!draftFields.equals(sourceFields)) {
+        List<String> draftFieldNames = dataDao.getEscapedFieldNames(draftCode);
+        List<String> baseFieldNames = dataDao.getEscapedFieldNames(baseStorageCode);
+        if (!draftFieldNames.equals(baseFieldNames)) {
             throw new CodifiedException(TABLES_NOT_EQUAL);
         }
 
-        draftFields.add(addDoubleQuotes(SYS_PRIMARY_COLUMN));
-        draftFields.add(addDoubleQuotes(SYS_FTS));
-        draftFields.add(addDoubleQuotes(SYS_HASH));
+        draftFieldNames.add(addDoubleQuotes(SYS_PRIMARY_COLUMN));
+        draftFieldNames.add(addDoubleQuotes(SYS_FTS));
+        draftFieldNames.add(addDoubleQuotes(SYS_HASH));
 
-        dataDao.loadData(draftCode, sourceStorageCode, draftFields, fromDate, toDate);
+        dataDao.loadData(draftCode, baseStorageCode, draftFieldNames, fromDate, toDate);
         dataDao.updateSequence(draftCode);
     }
 
@@ -199,14 +199,15 @@ public class DraftDataServiceImpl implements DraftDataService {
         if (systemFieldList().contains(field.getName()))
             throw new CodifiedException(SYS_FIELD_CONFLICT);
 
-        if (dataDao.getEscapedFieldNames(draftCode).contains(addDoubleQuotes(field.getName())))
+        List<String> fieldNames = dataDao.getEscapedFieldNames(draftCode);
+        if (fieldNames.contains(addDoubleQuotes(field.getName())))
             throw new CodifiedException(COLUMN_ALREADY_EXISTS);
 
         dataDao.dropTriggers(draftCode);
         String defaultValue = (field instanceof BooleanField) ? "false" : null;
         dataDao.addColumn(draftCode, field.getName(), field.getType(), defaultValue);
 
-        List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
+        fieldNames = dataDao.getHashUsedFieldNames(draftCode);
         dataDao.createTriggers(draftCode, fieldNames);
         dataDao.updateHashRows(draftCode, fieldNames);
     }
@@ -215,19 +216,18 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Transactional
     public void deleteField(String draftCode, String fieldName) {
 
-        List<String> draftFields = dataDao.getEscapedFieldNames(draftCode);
-        if (!draftFields.contains(addDoubleQuotes(fieldName)))
+        List<String> fieldNames = dataDao.getEscapedFieldNames(draftCode);
+        if (!fieldNames.contains(addDoubleQuotes(fieldName)))
             throw new CodifiedException(COLUMN_NOT_EXISTS);
 
         dataDao.dropTriggers(draftCode);
         dataDao.deleteColumn(draftCode, fieldName);
         dataDao.deleteEmptyRows(draftCode);
 
-        draftFields = dataDao.getEscapedFieldNames(draftCode);
-        if (CollectionUtils.isNullOrEmpty(draftFields))
+        fieldNames = dataDao.getHashUsedFieldNames(draftCode);
+        if (CollectionUtils.isNullOrEmpty(fieldNames))
             return;
 
-        List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
         dataDao.createTriggers(draftCode, fieldNames);
         try {
             dataDao.updateHashRows(draftCode, fieldNames);
