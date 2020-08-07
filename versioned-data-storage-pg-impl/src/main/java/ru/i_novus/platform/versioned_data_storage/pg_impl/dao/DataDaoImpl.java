@@ -20,7 +20,6 @@ import javax.persistence.Query;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -43,7 +42,6 @@ public class DataDaoImpl implements DataDao {
     private static final Logger logger = LoggerFactory.getLogger(DataDaoImpl.class);
 
     private static final LocalDateTime PG_MAX_TIMESTAMP = LocalDateTime.of(294276, 12, 31, 23, 59);
-    private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern(DATETIME_FORMAT);
 
     private static final Pattern DATE_PATTERN = Pattern.compile("([0-9]{2})\\.([0-9]{2})\\.([0-9]{4})");
 
@@ -51,10 +49,6 @@ public class DataDaoImpl implements DataDao {
 
     public DataDaoImpl(EntityManager entityManager) {
         this.entityManager = entityManager;
-    }
-
-    private String formatDateTime(LocalDateTime localDateTime) {
-        return (localDateTime != null) ? localDateTime.format(DATETIME_FORMATTER) : null;
     }
 
     @Override
@@ -757,12 +751,11 @@ public class DataDaoImpl implements DataDao {
 
         QueryWithParams whereByDate = getWhereByDates(refValue.getDate(), null, REFERENCE_VALUATION_SELECT_TABLE);
         String sqlDateValue = formatDateTime(refValue.getDate());
-        sqlDateValue = String.format(TO_TIMESTAMP, addSingleQuotes(sqlDateValue)) + TIMESTAMP_NO_TZ;
         String sqlByDate = (whereByDate == null || StringUtils.isNullOrEmpty(whereByDate.getSql()))
                 ? ""
                 : whereByDate.getSql()
-                .replace(":bdate", sqlDateValue)
-                .replace(":edate", "'-infinity'\\:\\:timestamp");
+                .replace(":bdate", toTimestampWithoutTimeZone(sqlDateValue))
+                .replace(":edate", toTimestampWithoutTimeZone(MIN_TIMESTAMP_VALUE));
 
         String sql = String.format(REFERENCE_VALUATION_SELECT_EXPRESSION,
                 schemaName,
@@ -904,6 +897,7 @@ public class DataDaoImpl implements DataDao {
 
         Map<String, String> map = new HashMap<>();
         map.put("versionTable", escapeTableName(schemaName, tableName));
+        map.put("versionAlias", VERSION_TABLE_ALIAS);
         map.put("refFieldName", addDoubleQuotes(fieldValue.getField()));
 
         String sql = substitute(COUNT_REFERENCE_IN_REF_ROWS, map);
@@ -930,6 +924,7 @@ public class DataDaoImpl implements DataDao {
 
         Map<String, String> map = new HashMap<>();
         map.put("versionTable", escapeTableName(schemaName, tableName));
+        map.put("versionAlias", VERSION_TABLE_ALIAS);
         map.put("refFieldName", addDoubleQuotes(fieldValue.getField()));
         map.put("limit", "" + limit);
         map.put("offset", "" + offset);
@@ -1240,6 +1235,11 @@ public class DataDaoImpl implements DataDao {
         return (boolean) entityManager.createNativeQuery(sql).getSingleResult();
     }
 
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void copyTableData(String sourceCode, String targetCode) {
+
+    }
+
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void insertAllDataFromDraft(String draftCode, String targetCode, List<String> columns,
@@ -1247,7 +1247,7 @@ public class DataDaoImpl implements DataDao {
                                        LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
-        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
+        String strColumns = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
         String rowColumns = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
 
         Map<String, String> map = new HashMap<>();
@@ -1257,7 +1257,7 @@ public class DataDaoImpl implements DataDao {
         map.put("draftAlias", DEFAULT_TABLE_ALIAS);
         map.put("targetTable", escapeTableName(toSchemaName(targetCode), toTableName(targetCode)));
         map.put("targetSequence", escapeSchemaSequenceName(toSchemaName(targetCode), toTableName(targetCode)));
-        map.put("columns", columnsStr);
+        map.put("strColumns", strColumns);
         map.put("rowColumns", rowColumns);
         map.put("publishTime", formatDateTime(publishTime));
         map.put("closeTime", formatDateTime(closeTime));
@@ -1277,7 +1277,9 @@ public class DataDaoImpl implements DataDao {
 
         Map<String, String> map = new HashMap<>();
         map.put("draftTable", escapeTableName(DATA_SCHEMA_NAME, draftTable));
+        map.put("draftAlias", DRAFT_TABLE_ALIAS);
         map.put("versionTable", escapeTableName(DATA_SCHEMA_NAME, versionTable));
+        map.put("versionAlias", VERSION_TABLE_ALIAS);
         map.put("publishTime", formatDateTime(publishTime));
         map.put("closeTime", formatDateTime(closeTime));
 
@@ -1293,22 +1295,24 @@ public class DataDaoImpl implements DataDao {
                                             LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
-        String columnsStr = columns.keySet().stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
-        String columnsWithType = columns.keySet().stream().map(s -> s + " " + columns.get(s)).reduce((s1, s2) -> s1 + ", " + s2).orElse("");
-        String columnsWithPrefixD = columns.keySet().stream().map(s -> "d." + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
+        String strColumns = columns.keySet().stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
+        String typedColumns = columns.keySet().stream().map(s -> s + " " + columns.get(s)).reduce((s1, s2) -> s1 + ", " + s2).orElse("");
+        String draftColumns = columns.keySet().stream().map(s -> DRAFT_TABLE_ALIAS + "." + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
 
         Map<String, String> map = new HashMap<>();
-        map.put("dColumns", columnsWithPrefixD);
+        map.put("draftColumns", draftColumns);
         map.put("draftTable", escapeTableName(DATA_SCHEMA_NAME, draftTable));
+        map.put("draftAlias", DRAFT_TABLE_ALIAS);
         map.put("versionTable", escapeTableName(DATA_SCHEMA_NAME, versionTable));
+        map.put("versionAlias", VERSION_TABLE_ALIAS);
         map.put("publishTime", formatDateTime(publishTime));
         map.put("closeTime", formatDateTime(closeTime));
         map.put("offset", "" + offset);
         map.put("limit", "" + limit);
         map.put("targetTable", escapeTableName(DATA_SCHEMA_NAME, targetTable));
         map.put("targetSequence", escapeSchemaSequenceName(DATA_SCHEMA_NAME, targetTable));
-        map.put("columns", columnsStr);
-        map.put("columnsWithType", columnsWithType);
+        map.put("strColumns", strColumns);
+        map.put("typedColumns", typedColumns);
 
         String sql = substitute(INSERT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME, map);
 
@@ -1339,7 +1343,7 @@ public class DataDaoImpl implements DataDao {
                                          LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
-        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse(null);
+        String strColumns = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse(null);
         String rowColumns = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse(null);
 
         String sql = String.format(INSERT_OLD_VAL_FROM_VERSION_WITH_CLOSE_DATE,
@@ -1349,7 +1353,7 @@ public class DataDaoImpl implements DataDao {
                 offset,
                 limit,
                 escapeSequenceName(targetTable),
-                columnsStr,
+                strColumns,
                 rowColumns,
                 formatDateTime(publishTime),
                 formatDateTime(closeTime));
@@ -1366,8 +1370,8 @@ public class DataDaoImpl implements DataDao {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
         Map<String, String> map = new HashMap<>();
-        map.put("versionTable", escapeTableName(DATA_SCHEMA_NAME, versionTable));
         map.put("draftTable", escapeTableName(DATA_SCHEMA_NAME, draftTable));
+        map.put("versionTable", escapeTableName(DATA_SCHEMA_NAME, versionTable));
         map.put("publishTime", formatDateTime(publishTime));
         map.put("closeTime", formatDateTime(closeTime));
 
@@ -1382,8 +1386,8 @@ public class DataDaoImpl implements DataDao {
                                                int offset, int limit,
                                                LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
-        String columnsStr = columns.keySet().stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
-        String columnsWithType = columns.keySet().stream().map(s -> s + " " + columns.get(s)).reduce((s1, s2) -> s1 + ", " + s2).orElse("");
+        String strColumns = columns.keySet().stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
+        String typedColumns = columns.keySet().stream().map(s -> s + " " + columns.get(s)).reduce((s1, s2) -> s1 + ", " + s2).orElse("");
 
         Map<String, String> map = new HashMap<>();
         map.put("targetTable", escapeTableName(DATA_SCHEMA_NAME, targetTable));
@@ -1391,10 +1395,10 @@ public class DataDaoImpl implements DataDao {
         map.put("versionTable", escapeTableName(DATA_SCHEMA_NAME, versionTable));
         map.put("publishTime", formatDateTime(publishTime));
         map.put("closeTime", formatDateTime(closeTime));
-        map.put("columns", columnsStr);
+        map.put("strColumns", strColumns);
         map.put("offset", "" + offset);
         map.put("limit", "" + limit);
-        map.put("columnsWithType", columnsWithType);
+        map.put("typedColumns", typedColumns);
         map.put("sequenceName", escapeSchemaSequenceName(DATA_SCHEMA_NAME, targetTable));
 
         String sql = substitute(INSERT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME, map);
@@ -1426,11 +1430,11 @@ public class DataDaoImpl implements DataDao {
                                        List<String> columns, int offset, int limit,
                                        LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
-        String columnsStr = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+        String strColumns = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
         String rowColumns = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
 
         Map<String, String> map = new HashMap<>();
-        map.put("fields", columnsStr);
+        map.put("fields", strColumns);
         map.put("draftTable", escapeTableName(DATA_SCHEMA_NAME, draftTable));
         map.put("versionTable", escapeTableName(DATA_SCHEMA_NAME, versionTable));
         map.put("publishTime", formatDateTime(publishTime));

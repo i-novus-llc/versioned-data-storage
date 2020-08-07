@@ -360,6 +360,27 @@ public class QueryUtil {
         return substitutor;
     }
 
+    public static String formatDateTime(LocalDateTime localDateTime) {
+        return (localDateTime != null) ? localDateTime.format(DATETIME_FORMATTER) : null;
+    }
+
+    public static String toTimestamp(String value) {
+
+        // Учесть другие константы: now, today etc.
+        switch(value) {
+            case MIN_TIMESTAMP_VALUE:
+            case MAX_TIMESTAMP_VALUE:
+                return value;
+
+            default:
+                return String.format(TO_TIMESTAMP, addSingleQuotes(value));
+        }
+    }
+
+    public static String toTimestampWithoutTimeZone(String value) {
+        return toTimestamp(value) + TIMESTAMP_WITHOUT_TIME_ZONE;
+    }
+
     public static Object truncateDateTo(LocalDateTime date, ChronoUnit unit, Object defaultValue) {
         return date != null ? date.truncatedTo(unit) : defaultValue;
     }
