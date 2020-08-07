@@ -179,7 +179,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     public void loadData(String draftCode, String sourceStorageCode, LocalDateTime fromDate, LocalDateTime toDate) {
 
         List<String> draftFields = dataDao.getEscapedFieldNames(draftCode);
-        List<String> sourceFields = dataDao.getEscapedFieldNames(draftCode);
+        List<String> sourceFields = dataDao.getEscapedFieldNames(sourceStorageCode);
         if (!draftFields.equals(sourceFields)) {
             throw new CodifiedException(TABLES_NOT_EQUAL);
         }
