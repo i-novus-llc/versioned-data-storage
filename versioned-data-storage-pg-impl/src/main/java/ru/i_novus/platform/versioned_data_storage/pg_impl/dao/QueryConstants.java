@@ -216,21 +216,20 @@ public class QueryConstants {
     private static final String AND_INFO_SCHEMA_NAME = "  AND table_schema = :schemaName \n";
     private static final String AND_INFO_TABLE_NAME = "  AND table_name = :tableName \n";
     private static final String AND_INFO_COLUMN_NAME = "  AND column_name = :columnName \n";
-    private static final String AND_INFO_SCHEMA_COLUMN_NOT_IN_SYS_COLUMNS = "  AND column_name NOT IN (" + SYS_RECORDS_TEXT + ")";
+    static final String AND_INFO_COLUMN_NOT_IN_SYS_COLUMNS = "  AND column_name NOT IN (" + SYS_RECORDS_TEXT + ")";
 
-    public static final String SELECT_ESCAPED_FIELD_NAMES = SELECT_ESCAPED_COLUMN_NAME +
+    static final String SELECT_ESCAPED_FIELD_NAMES = SELECT_ESCAPED_COLUMN_NAME +
             FROM_INFO_SCHEMA_COLUMNS +
             SELECT_WHERE +
             AND_INFO_SCHEMA_NAME +
-            AND_INFO_TABLE_NAME +
-            AND_INFO_SCHEMA_COLUMN_NOT_IN_SYS_COLUMNS;
-    public static final String SELECT_HASH_USED_FIELD_NAMES = SELECT_ESCAPED_COLUMN_NAME +
+            AND_INFO_TABLE_NAME;
+    static final String SELECT_HASH_USED_FIELD_NAMES = SELECT_ESCAPED_COLUMN_NAME +
             "       || (case when data_type = '" + REFERENCE_FIELD_SQL_TYPE + "' then '->>''value''' else '' end)\n" +
             FROM_INFO_SCHEMA_COLUMNS +
             SELECT_WHERE +
             AND_INFO_SCHEMA_NAME +
             AND_INFO_TABLE_NAME +
-            AND_INFO_SCHEMA_COLUMN_NOT_IN_SYS_COLUMNS;
+            AND_INFO_COLUMN_NOT_IN_SYS_COLUMNS;
     public static final String SELECT_FIELD_TYPE = "SELECT data_type \n" +
             FROM_INFO_SCHEMA_COLUMNS +
             SELECT_WHERE +
@@ -273,6 +272,8 @@ public class QueryConstants {
             "                i.relname\n" +
             ");";
 
+    static final String ROW_TYPE_VAR_NAME = "row";
+
     public static final String INSERT_DATA_BY_SELECT_FROM_TABLE = "DO $$\n" +
             "DECLARE tbl_cursor refcursor;\n" +
             "  row ${sourceTable}%rowtype;\n" +
@@ -280,7 +281,7 @@ public class QueryConstants {
             "\n" +
             "BEGIN \n" +
             "    OPEN tbl_cursor FOR \n" +
-            "    ${sourceSelect};\n" +
+            "    ${sqlSelect};\n" +
             "\n" +
             "    MOVE FORWARD ${offset} FROM tbl_cursor;\n" +
             "    i \\:= 0;\n" +
@@ -288,7 +289,7 @@ public class QueryConstants {
             "       FETCH FROM tbl_cursor INTO row;\n" +
             "       EXIT WHEN NOT FOUND;\n" +
             "\n" +
-            "       ${targetInsert}\n" +
+            "       ${sqlInsert}\n" +
             "\n" +
             "       i \\:= i + 1;\n" +
             "    end loop;\n" +

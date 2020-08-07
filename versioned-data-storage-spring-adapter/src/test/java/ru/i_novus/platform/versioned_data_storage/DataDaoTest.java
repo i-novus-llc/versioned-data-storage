@@ -232,38 +232,29 @@ public class DataDaoTest {
         //dataDao.updateData();
     }
 
-    private List<RowValue> toRowValues(List<Field> fields, List<String> nameValues) {
+    @Test
+    public void testCopyTableData() {
 
-        return IntStream.range(0, nameValues.size()).boxed()
-                .map(index -> toRowValue(index, nameValues.get(index), fields))
-                .collect(toList());
-    }
+        String sourceName = newTestTableName();
+        String sourceCode = toStorageCode(null, sourceName);
 
-    private RowValue toRowValue(int id, String name, List<Field> fields) {
+        List<Field> fields = newTestFields();
 
-        FieldValue idValue = findFieldOrThrow(FIELD_ID_CODE, fields).valueOf(BigInteger.valueOf(id));
-        FieldValue nameValue = findFieldOrThrow(FIELD_NAME_CODE, fields).valueOf(name);
-        FieldValue hashValue = hashField.valueOf(String.valueOf(id));
-        return new LongRowValue(idValue, nameValue, hashValue);
-    }
+        createDraftTable(null, sourceName, fields);
+        dataDao.insertData(sourceCode, toRowValues(fields, dataNames));
+        List<RowValue> dataValues = getData(null, sourceName, fields);
+        assertValues(dataValues, dataNames);
 
-    private void assertValues(List<RowValue> dataValues, List<String> nameValues) {
+        String targetName = newTestTableName();
+        String targetCode = toStorageCode(TEST_SCHEMA_NAME, targetName);
 
-        assertNotNull(dataValues);
-        assertEquals(nameValues.size(), dataValues.size());
+        dataDao.copyTable(sourceName, targetCode);
+        List<RowValue> emptyDataValues = getData(TEST_SCHEMA_NAME, targetName, fields);
+        assertEquals(0, emptyDataValues == null ? 0 : emptyDataValues.size());
 
-        IntStream.range(0, nameValues.size()).forEach(index -> {
-            StringFieldValue nameValue = dataValues.stream()
-                    .filter(rowValue -> {
-                        IntegerFieldValue idValue = (IntegerFieldValue) rowValue.getFieldValue(FIELD_ID_CODE);
-                        BigInteger value = idValue != null ? idValue.getValue() : null;
-                        return value != null && value.equals(BigInteger.valueOf(index));
-                    })
-                    .map(rowValue -> (StringFieldValue) rowValue.getFieldValue(FIELD_NAME_CODE))
-                    .findFirst().orElse(null);
-            assertNotNull(nameValue);
-            assertEquals(nameValues.get(index), nameValue.getValue());
-        });
+        dataDao.copyTableData(sourceCode, targetCode, 0, dataNames.size());
+        dataValues = getData(TEST_SCHEMA_NAME, targetName, fields);
+        assertValues(dataValues, dataNames);
     }
 
     private String newTestTableName() {
@@ -300,5 +291,39 @@ public class DataDaoTest {
         criteria.setSchemaName(schemaName);
 
         return dataDao.getData(criteria);
+    }
+
+    private List<RowValue> toRowValues(List<Field> fields, List<String> nameValues) {
+
+        return IntStream.range(0, nameValues.size()).boxed()
+                .map(index -> toRowValue(index, nameValues.get(index), fields))
+                .collect(toList());
+    }
+
+    private RowValue toRowValue(int id, String name, List<Field> fields) {
+
+        FieldValue idValue = findFieldOrThrow(FIELD_ID_CODE, fields).valueOf(BigInteger.valueOf(id));
+        FieldValue nameValue = findFieldOrThrow(FIELD_NAME_CODE, fields).valueOf(name);
+        FieldValue hashValue = hashField.valueOf(String.valueOf(id));
+        return new LongRowValue(idValue, nameValue, hashValue);
+    }
+
+    private void assertValues(List<RowValue> dataValues, List<String> nameValues) {
+
+        assertNotNull(dataValues);
+        assertEquals(nameValues.size(), dataValues.size());
+
+        IntStream.range(0, nameValues.size()).forEach(index -> {
+            StringFieldValue nameValue = dataValues.stream()
+                    .filter(rowValue -> {
+                        IntegerFieldValue idValue = (IntegerFieldValue) rowValue.getFieldValue(FIELD_ID_CODE);
+                        BigInteger value = idValue != null ? idValue.getValue() : null;
+                        return value != null && value.equals(BigInteger.valueOf(index));
+                    })
+                    .map(rowValue -> (StringFieldValue) rowValue.getFieldValue(FIELD_NAME_CODE))
+                    .findFirst().orElse(null);
+            assertNotNull(nameValue);
+            assertEquals(nameValues.get(index), nameValue.getValue());
+        });
     }
 }

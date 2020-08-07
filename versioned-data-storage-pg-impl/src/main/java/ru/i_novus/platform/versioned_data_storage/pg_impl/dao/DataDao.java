@@ -89,6 +89,8 @@ public interface DataDao {
 
     List<String> getEscapedFieldNames(String storageCode);
 
+    List<String> getAllEscapedFieldNames(String storageCode);
+
     List<String> getHashUsedFieldNames(String storageCode);
 
     String getFieldType(String storageCode, String fieldName);
@@ -98,6 +100,8 @@ public interface DataDao {
     boolean isFieldNotEmpty(String tableName, String fieldName);
 
     boolean isFieldContainEmptyValues(String tableName, String fieldName);
+
+    void copyTableData(String sourceCode, String targetCode, int offset, int limit);
 
     void insertAllDataFromDraft(String draftCode, String targetCode, List<String> columns,
                                 int offset, int limit,

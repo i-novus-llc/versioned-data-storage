@@ -1190,6 +1190,11 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     public List<String> getEscapedFieldNames(String storageCode) {
+        return getFieldNames(storageCode, SELECT_ESCAPED_FIELD_NAMES + AND_INFO_COLUMN_NOT_IN_SYS_COLUMNS);
+    }
+
+    @Override
+    public List<String> getAllEscapedFieldNames(String storageCode) {
         return getFieldNames(storageCode, SELECT_ESCAPED_FIELD_NAMES);
     }
 
@@ -1268,9 +1273,40 @@ public class DataDaoImpl implements DataDao {
         return (boolean) entityManager.createNativeQuery(sql).getSingleResult();
     }
 
+    @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
-    public void copyTableData(String sourceCode, String targetCode) {
+    public void copyTableData(String sourceCode, String targetCode, int offset, int limit) {
 
+        String sourceTable = escapeTableName(toSchemaName(sourceCode), toTableName(sourceCode));
+
+        Map<String, String> mapSelect = new HashMap<>();
+        mapSelect.put("sourceTable", sourceTable);
+        mapSelect.put("sourceAlias", DEFAULT_TABLE_ALIAS);
+
+        String sqlSelect = substitute(SELECT_ALL_DATA_BY_FROM_TABLE, mapSelect);
+
+        List<String> fieldNames = getAllEscapedFieldNames(sourceCode);
+
+        Map<String, String> mapInsert = new HashMap<>();
+        mapInsert.put("targetTable", escapeTableName(toSchemaName(targetCode), toTableName(targetCode)));
+        mapInsert.put("strColumns", toStrColumns(fieldNames));
+        mapInsert.put("rowColumns", toRowColumns(fieldNames));
+
+        String sqlInsert = substitute(INSERT_ALL_DATA_BY_FROM_TABLE, mapInsert);
+
+        Map<String, String> map = new HashMap<>();
+        map.put("offset", "" + offset);
+        map.put("limit", "" + limit);
+        map.put("sourceTable", sourceTable);
+        map.put("sqlSelect", sqlSelect);
+        map.put("sqlInsert", sqlInsert);
+
+        String sql = substitute(INSERT_DATA_BY_SELECT_FROM_TABLE, map);
+
+        if (logger.isDebugEnabled()) {
+            logger.debug("copyTableData with method sql: {}", sql);
+        }
+        entityManager.createNativeQuery(sql).executeUpdate();
     }
 
     @Override
@@ -1280,8 +1316,8 @@ public class DataDaoImpl implements DataDao {
                                        LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
-        String strColumns = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
-        String rowColumns = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
+        String strColumns = toStrColumns(columns);
+        String rowColumns = toRowColumns(columns);
 
         Map<String, String> map = new HashMap<>();
         map.put("offset", "" + offset);
@@ -1298,7 +1334,7 @@ public class DataDaoImpl implements DataDao {
         String sql = substitute(INSERT_ALL_VAL_FROM_DRAFT, map);
 
         if (logger.isDebugEnabled()) {
-            logger.debug("insertDataFromDraft with closeTime method sql: {}", sql);
+            logger.debug("insertDataFromDraft method sql: {}", sql);
         }
         entityManager.createNativeQuery(sql).executeUpdate();
     }
@@ -1350,7 +1386,7 @@ public class DataDaoImpl implements DataDao {
         String sql = substitute(INSERT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME, map);
 
         if (logger.isDebugEnabled()) {
-            logger.debug("insertActualDataFromVersion with closeTime method sql: {}", sql);
+            logger.debug("insertActualDataFromVersion with sql: {}", sql);
         }
         entityManager.createNativeQuery(sql).executeUpdate();
     }
@@ -1376,8 +1412,8 @@ public class DataDaoImpl implements DataDao {
                                          LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
-        String strColumns = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse(null);
-        String rowColumns = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse(null);
+        String strColumns = toStrColumns(columns);
+        String rowColumns = toRowColumns(columns);
 
         String sql = String.format(INSERT_OLD_VAL_FROM_VERSION_WITH_CLOSE_DATE,
                 addDoubleQuotes(targetTable),
@@ -1392,7 +1428,7 @@ public class DataDaoImpl implements DataDao {
                 formatDateTime(closeTime));
 
         if (logger.isDebugEnabled()) {
-            logger.debug("insertOldDataFromVersion with closeTime method sql: {}", sql);
+            logger.debug("insertOldDataFromVersion with sql: {}", sql);
         }
         entityManager.createNativeQuery(sql).executeUpdate();
     }
@@ -1419,6 +1455,7 @@ public class DataDaoImpl implements DataDao {
                                                int offset, int limit,
                                                LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
+
         String strColumns = columns.keySet().stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
         String typedColumns = columns.keySet().stream().map(s -> s + " " + columns.get(s)).reduce((s1, s2) -> s1 + ", " + s2).orElse("");
 
@@ -1437,7 +1474,7 @@ public class DataDaoImpl implements DataDao {
         String sql = substitute(INSERT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME, map);
 
         if (logger.isDebugEnabled()) {
-            logger.debug("insertClosedNowDataFromVersion with closeTime method sql: {}", sql);
+            logger.debug("insertClosedNowDataFromVersion with sql: {}", sql);
         }
         entityManager.createNativeQuery(sql).executeUpdate();
     }
@@ -1463,8 +1500,9 @@ public class DataDaoImpl implements DataDao {
                                        List<String> columns, int offset, int limit,
                                        LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
-        String strColumns = columns.stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
-        String rowColumns = columns.stream().map(s -> "row." + s + "").reduce((s1, s2) -> s1 + ", " + s2).get();
+
+        String strColumns = toStrColumns(columns);
+        String rowColumns = toRowColumns(columns);
 
         Map<String, String> map = new HashMap<>();
         map.put("fields", strColumns);
@@ -1481,9 +1519,21 @@ public class DataDaoImpl implements DataDao {
         String sql = substitute(INSERT_NEW_VAL_FROM_DRAFT_WITH_CLOSE_TIME, map);
 
         if (logger.isDebugEnabled()) {
-            logger.debug("insertNewDataFromDraft with closeTime method sql: {}", sql);
+            logger.debug("insertNewDataFromDraft with sql: {}", sql);
         }
         entityManager.createNativeQuery(sql).executeUpdate();
+    }
+
+    private String toStrColumns(List<String> columns) {
+
+        return columns.stream().map(s -> "" + s + "")
+                .reduce((s1, s2) -> s1 + ", " + s2).orElse("");
+    }
+
+    private String toRowColumns(List<String> columns) {
+
+        return columns.stream().map(s -> ROW_TYPE_VAR_NAME + "." + s + "")
+                .reduce((s1, s2) -> s1 + ", " + s2).orElse("");
     }
 
     @Override
