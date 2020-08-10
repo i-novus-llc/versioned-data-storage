@@ -22,6 +22,7 @@ import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -344,16 +345,15 @@ public class DataDaoImpl implements DataDao {
         Map<String, Object> params = new HashMap<>();
 
         fieldFilters = prepareFilters(fieldFilters);
-        final int[] i = {-1};
+        AtomicInteger index = new AtomicInteger(0);
         sql += fieldFilters.stream().map(list -> {
             if (isEmpty(list))
                 return null;
 
             List<String> filters = new ArrayList<>();
-            for (FieldSearchCriteria searchCriteria : list) {
-                i[0]++;
-                toWhereClauseByFilter(searchCriteria, i[0], alias, filters, params);
-            }
+            list.forEach(searchCriteria ->
+                toWhereClauseByFilter(searchCriteria, index.getAndIncrement(), alias, filters, params)
+            );
 
             if (filters.isEmpty())
                 return null;
