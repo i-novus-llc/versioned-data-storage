@@ -166,7 +166,7 @@ public class DataDaoTest {
     private void testGetData(String schemaName, String tableName,
                              List<Field> fields, List<String> nameValues) {
 
-        createDraftTable(schemaName, tableName, fields);
+        dataDao.createDraftTable(toStorageCode(schemaName, tableName), fields);
 
         String escapedTableName = addDoubleQuotes(tableName);
         String columns = fields.stream()
@@ -222,7 +222,7 @@ public class DataDaoTest {
     private void testProcessData(String schemaName, String tableName,
                                  List<Field> fields, List<String> nameValues) {
 
-        createDraftTable(schemaName, tableName, fields);
+        dataDao.createDraftTable(toStorageCode(schemaName, tableName), fields);
 
         // Вставка записей.
         dataDao.insertData(toStorageCode(schemaName, tableName), toRowValues(fields, nameValues));
@@ -240,7 +240,7 @@ public class DataDaoTest {
 
         List<Field> fields = newTestFields();
 
-        createDraftTable(null, sourceName, fields);
+        dataDao.createDraftTable(sourceCode, fields);
         dataDao.insertData(sourceCode, toRowValues(fields, dataNames));
         List<RowValue> dataValues = getData(null, sourceName, fields);
         assertValues(dataValues, dataNames);
@@ -248,7 +248,7 @@ public class DataDaoTest {
         String targetName = newTestTableName();
         String targetCode = toStorageCode(TEST_SCHEMA_NAME, targetName);
 
-        dataDao.copyTable(sourceName, targetCode);
+        dataDao.copyTable(sourceCode, targetCode);
         List<RowValue> emptyDataValues = getData(TEST_SCHEMA_NAME, targetName, fields);
         assertEquals(0, emptyDataValues == null ? 0 : emptyDataValues.size());
 
@@ -278,11 +278,6 @@ public class DataDaoTest {
                 .filter(field -> name.equals(field.getName()))
                 .findFirst().orElseThrow(() ->
                         new IllegalArgumentException("field '" + name + "' is not found"));
-    }
-
-    private void createDraftTable(String schemaName, String tableName, List<Field> fields) {
-
-        dataDao.createDraftTable(toStorageCode(schemaName, tableName), fields);
     }
 
     private List<RowValue> getData(String schemaName, String tableName, List<Field> fields) {
