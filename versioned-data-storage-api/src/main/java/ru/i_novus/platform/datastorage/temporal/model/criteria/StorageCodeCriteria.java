@@ -3,6 +3,7 @@ package ru.i_novus.platform.datastorage.temporal.model.criteria;
 import java.io.Serializable;
 import java.util.Objects;
 
+/** Критерий определения хранилища по коду. */
 public class StorageCodeCriteria implements Serializable {
 
     /** Исходный код хранилища. */
