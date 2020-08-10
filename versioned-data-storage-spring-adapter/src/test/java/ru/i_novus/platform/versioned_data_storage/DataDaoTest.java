@@ -259,7 +259,7 @@ public class DataDaoTest {
 
     private String newTestTableName() {
 
-        return "test_" + UUID.randomUUID().toString();
+        return "data_test_" + UUID.randomUUID().toString();
     }
 
     private List<Field> newTestFields() {
