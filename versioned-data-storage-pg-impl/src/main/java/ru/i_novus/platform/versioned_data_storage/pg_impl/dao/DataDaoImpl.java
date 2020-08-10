@@ -665,7 +665,7 @@ public class DataDaoImpl implements DataDao {
             return;
 
         List<FieldValue> fieldValues = data.get(0).getFieldValues();
-        List<String> keyList = fieldValues.stream()
+        List<String> insertKeyList = fieldValues.stream()
                 .map(fieldValue -> addDoubleQuotes(fieldValue.getField()))
                 .collect(toList());
 
@@ -680,37 +680,16 @@ public class DataDaoImpl implements DataDao {
                 .collect(toList());
 
         int batchSize = 500;
-        String keys = String.join(",", keyList);
+        String keys = String.join(",", insertKeyList);
 
-        int i = 1;
         for (int firstIndex = 0, nextIndex = batchSize;
              firstIndex < substList.size();
              firstIndex = nextIndex, nextIndex = firstIndex + batchSize) {
 
             int valueCount = Math.min(nextIndex, substList.size());
-            List<String> subValues = substList.subList(firstIndex, valueCount);
-
-            String sql = String.format(INSERT_RECORD,
-                    schemaName, addDoubleQuotes(tableName), keys) +
-                    String.format(INSERT_VALUES, String.join("),(", subValues));
-            Query query = entityManager.createNativeQuery(sql);
-
-            for (RowValue rowValue : data.subList(firstIndex, valueCount)) {
-                for (Object value : rowValue.getFieldValues()) {
-                    FieldValue fieldValue = (FieldValue) value;
-                    if (fieldValue.getValue() != null) {
-                        if (fieldValue instanceof ReferenceFieldValue) {
-                            Reference refValue = ((ReferenceFieldValue) fieldValue).getValue();
-                            if (refValue.getValue() != null)
-                                query.setParameter(i++, ((ReferenceFieldValue) fieldValue).getValue().getValue());
-
-                        } else
-                            query.setParameter(i++, fieldValue.getValue());
-                    }
-                }
-            }
-            query.executeUpdate();
-            i = 1;
+            insertData(schemaName, tableName, keys,
+                    substList.subList(firstIndex, valueCount),
+                    data.subList(firstIndex, valueCount));
         }
     }
 
@@ -730,6 +709,32 @@ public class DataDaoImpl implements DataDao {
         }
 
         return QUERY_VALUE_SUBST;
+    }
+
+    private void insertData(String schemaName, String tableName, String keys,
+                            List<String> subst, List<RowValue> data) {
+
+        String sql = String.format(INSERT_RECORD,
+                schemaName, addDoubleQuotes(tableName), keys) +
+                String.format(INSERT_VALUES, String.join("),(", subst));
+        Query query = entityManager.createNativeQuery(sql);
+
+        int i = 1;
+        for (RowValue rowValue : data) {
+            for (Object value : rowValue.getFieldValues()) {
+                FieldValue fieldValue = (FieldValue) value;
+                if (fieldValue.getValue() != null) {
+                    if (fieldValue instanceof ReferenceFieldValue) {
+                        Reference refValue = ((ReferenceFieldValue) fieldValue).getValue();
+                        if (refValue.getValue() != null)
+                            query.setParameter(i++, ((ReferenceFieldValue) fieldValue).getValue().getValue());
+
+                    } else
+                        query.setParameter(i++, fieldValue.getValue());
+                }
+            }
+        }
+        query.executeUpdate();
     }
 
     @Override
@@ -812,7 +817,7 @@ public class DataDaoImpl implements DataDao {
         String schemaName = toSchemaName(storageCode);
         String tableName = toTableName(storageCode);
 
-        List<String> keyList = ((List<FieldValue>) rowValue.getFieldValues()).stream()
+        List<String> updateKeyList = ((List<FieldValue>) rowValue.getFieldValues()).stream()
                 .map(fieldValue -> {
                     String quotedFieldName = addDoubleQuotes(fieldValue.getField());
                     String substValue = toUpdateValueSubst(schemaName, fieldValue);
@@ -821,7 +826,7 @@ public class DataDaoImpl implements DataDao {
                 .collect(toList());
 
         final String tableAlias = "b";
-        String keys = String.join(",", keyList);
+        String keys = String.join(",", updateKeyList);
         String condition = String.format(CONDITION_IN,
                 escapeFieldName(tableAlias, SYS_PRIMARY_COLUMN), QUERY_VALUE_SUBST);
         String sql = String.format(UPDATE_RECORD,
