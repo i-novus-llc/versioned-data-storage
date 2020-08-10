@@ -13,7 +13,7 @@ import java.util.List;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
-import static org.springframework.util.CollectionUtils.isEmpty;
+import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
 
 /**
  * @author lgalimova
@@ -33,6 +33,9 @@ public class SearchDataServiceImpl implements SearchDataService {
         if (criteria.getCount() == null) {
             BigInteger count = dataDao.getDataCount(criteria);
             criteria.setCount(count.intValue());
+
+            if (BigInteger.ZERO.equals(count))
+                return new CollectionPage<>(criteria.getCount(), emptyList(), criteria);
         }
 
         List<RowValue> data = dataDao.getData(criteria);
@@ -57,7 +60,7 @@ public class SearchDataServiceImpl implements SearchDataService {
         criteria.setSize(DataCriteria.MIN_SIZE);
 
         Collection<RowValue> rowValues = getPagedData(criteria).getCollection();
-        return rowValues != null && !isEmpty(rowValues);
+        return isNullOrEmpty(rowValues);
     }
 
     @Override
