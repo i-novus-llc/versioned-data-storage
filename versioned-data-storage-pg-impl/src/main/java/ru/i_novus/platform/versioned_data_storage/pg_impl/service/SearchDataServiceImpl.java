@@ -60,7 +60,7 @@ public class SearchDataServiceImpl implements SearchDataService {
         criteria.setSize(DataCriteria.MIN_SIZE);
 
         Collection<RowValue> rowValues = getPagedData(criteria).getCollection();
-        return isNullOrEmpty(rowValues);
+        return !isNullOrEmpty(rowValues);
     }
 
     @Override
