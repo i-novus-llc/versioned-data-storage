@@ -176,8 +176,8 @@ public class QueryConstants {
             ORDER_VERSION_BY_SYS_RECORDID +
             SELECT_LIMIT + SELECT_OFFSET;
 
-    static final String REFERENCE_VALUATION_UPDATE_TABLE = "b";
-    static final String REFERENCE_VALUATION_SELECT_TABLE = "d";
+    static final String REFERENCE_VALUATION_UPDATE_TABLE_ALIAS = "b";
+    static final String REFERENCE_VALUATION_SELECT_TABLE_ALIAS = "d";
     static final String REFERENCE_VALUATION_SELECT_SUBST = "select jsonb_build_object('value', ?)";
     static final String REFERENCE_VALUATION_SELECT_EXPRESSION = "select jsonb_build_object(" +
             addSingleQuotes(REFERENCE_VALUE_NAME) + ", %3$s.%4$s, " +

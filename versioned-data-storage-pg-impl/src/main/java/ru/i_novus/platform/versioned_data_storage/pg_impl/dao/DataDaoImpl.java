@@ -778,18 +778,18 @@ public class DataDaoImpl implements DataDao {
         String sqlExpression;
         switch (displayType) {
             case DISPLAY_EXPRESSION:
-                sqlExpression = sqlDisplayExpression(refValue.getDisplayExpression(), REFERENCE_VALUATION_SELECT_TABLE);
+                sqlExpression = sqlDisplayExpression(refValue.getDisplayExpression(), REFERENCE_VALUATION_SELECT_TABLE_ALIAS);
                 break;
 
             case DISPLAY_FIELD:
-                sqlExpression = sqlFieldExpression(refValue.getDisplayField(), REFERENCE_VALUATION_SELECT_TABLE);
+                sqlExpression = sqlFieldExpression(refValue.getDisplayField(), REFERENCE_VALUATION_SELECT_TABLE_ALIAS);
                 break;
 
             default:
                 throw new UnsupportedOperationException("unknown.reference.dipslay.type");
         }
 
-        QueryWithParams whereByDate = getWhereByDates(refValue.getDate(), null, REFERENCE_VALUATION_SELECT_TABLE);
+        QueryWithParams whereByDate = getWhereByDates(refValue.getDate(), null, REFERENCE_VALUATION_SELECT_TABLE_ALIAS);
         String sqlDateValue = formatDateTime(refValue.getDate());
         String sqlByDate = (whereByDate == null || StringUtils.isNullOrEmpty(whereByDate.getSql()))
                 ? ""
@@ -800,7 +800,7 @@ public class DataDaoImpl implements DataDao {
         String sql = String.format(REFERENCE_VALUATION_SELECT_EXPRESSION,
                 schemaName,
                 addDoubleQuotes(refValue.getStorageCode()),
-                REFERENCE_VALUATION_SELECT_TABLE,
+                REFERENCE_VALUATION_SELECT_TABLE_ALIAS,
                 addDoubleQuotes(refValue.getKeyField()),
                 sqlExpression,
                 valueSubst,
@@ -909,15 +909,15 @@ public class DataDaoImpl implements DataDao {
         String tableName = toTableName(storageCode);
 
         String escapedFieldName = addDoubleQuotes(fieldValue.getField());
-        String oldFieldExpression = sqlFieldExpression(fieldValue.getField(), REFERENCE_VALUATION_UPDATE_TABLE);
+        String oldFieldExpression = sqlFieldExpression(fieldValue.getField(), REFERENCE_VALUATION_UPDATE_TABLE_ALIAS);
         String oldFieldValue = String.format(REFERENCE_VALUATION_OLD_VALUE, oldFieldExpression);
         String key = String.format(UPDATE_VALUE,
                 escapedFieldName, getReferenceValuationSelect(schemaName, fieldValue, oldFieldValue));
 
         String condition = String.format(CONDITION_ANY_BIGINT,
-                escapeFieldName(REFERENCE_VALUATION_UPDATE_TABLE, SYS_PRIMARY_COLUMN), QUERY_VALUE_SUBST);
+                escapeFieldName(REFERENCE_VALUATION_UPDATE_TABLE_ALIAS, SYS_PRIMARY_COLUMN), QUERY_VALUE_SUBST);
         String sql = String.format(UPDATE_RECORD,
-                schemaName, addDoubleQuotes(tableName), REFERENCE_VALUATION_UPDATE_TABLE, key, condition);
+                schemaName, addDoubleQuotes(tableName), REFERENCE_VALUATION_UPDATE_TABLE_ALIAS, key, condition);
         Query query = entityManager.createNativeQuery(sql);
 
         String ids = systemIds.stream().map(String::valueOf).collect(joining(","));
@@ -957,10 +957,11 @@ public class DataDaoImpl implements DataDao {
         String schemaName = toSchemaName(storageCode);
         String tableName = toTableName(storageCode);
 
-        String quotedFieldName = addDoubleQuotes(fieldValue.getField());
-        String oldFieldExpression = escapeFieldName(REFERENCE_VALUATION_UPDATE_TABLE, fieldValue.getField());
+        String oldFieldExpression = escapeFieldName(REFERENCE_VALUATION_UPDATE_TABLE_ALIAS, fieldValue.getField());
         String oldFieldValue = String.format(REFERENCE_VALUATION_OLD_VALUE, oldFieldExpression);
-        String key = quotedFieldName + " = " + getReferenceValuationSelect(schemaName, fieldValue, oldFieldValue);
+        String updateKey = String.format(UPDATE_VALUE,
+                addDoubleQuotes(fieldValue.getField()),
+                getReferenceValuationSelect(schemaName, fieldValue, oldFieldValue));
 
         Map<String, String> map = new HashMap<>();
         map.put("versionTable", escapeTableName(schemaName, tableName));
@@ -971,9 +972,9 @@ public class DataDaoImpl implements DataDao {
 
         String select = substitute(SELECT_REFERENCE_IN_REF_ROWS, map);
         String condition = String.format(CONDITION_IN,
-                escapeFieldName(REFERENCE_VALUATION_UPDATE_TABLE, SYS_PRIMARY_COLUMN), select);
+                escapeFieldName(REFERENCE_VALUATION_UPDATE_TABLE_ALIAS, SYS_PRIMARY_COLUMN), select);
         String sql = String.format(UPDATE_RECORD,
-                schemaName, addDoubleQuotes(tableName), REFERENCE_VALUATION_UPDATE_TABLE, key, condition);
+                schemaName, addDoubleQuotes(tableName), REFERENCE_VALUATION_UPDATE_TABLE_ALIAS, updateKey, condition);
 
         if (logger.isDebugEnabled()) {
             logger.debug("updateReferenceInRefRows method sql: {}", sql);
