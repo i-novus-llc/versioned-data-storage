@@ -530,15 +530,13 @@ public class DataDaoImpl implements DataDao {
 
     protected void createTableSequence(String storageCode) {
 
-        String ddl = String.format(CREATE_TABLE_SEQUENCE,
-                toSchemaName(storageCode), toTableName(storageCode), SYS_PRIMARY_COLUMN);
+        String ddl = String.format(CREATE_TABLE_SEQUENCE, escapeStorageSequenceName(storageCode));
         entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
     protected void dropTableSequence(String storageCode) {
 
-        String ddl = String.format(DROP_TABLE_SEQUENCE,
-                toSchemaName(storageCode), toTableName(storageCode), SYS_PRIMARY_COLUMN);
+        String ddl = String.format(DROP_TABLE_SEQUENCE, escapeStorageSequenceName(storageCode));
         entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
@@ -604,7 +602,7 @@ public class DataDaoImpl implements DataDao {
         entityManager.createNativeQuery(ddlAddPrimaryKey).executeUpdate();
 
         String ddlAlterColumn = String.format(ALTER_SET_SEQUENCE_FOR_PRIMARY_KEY,
-                schemaName, addDoubleQuotes(tableName), SYS_PRIMARY_COLUMN, tableName);
+                schemaName, addDoubleQuotes(tableName), SYS_PRIMARY_COLUMN, escapeSequenceName(tableName));
         entityManager.createNativeQuery(ddlAlterColumn).executeUpdate();
     }
 
@@ -1285,7 +1283,7 @@ public class DataDaoImpl implements DataDao {
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void copyTableData(String sourceCode, String targetCode, int offset, int limit) {
 
-        String sourceTable = escapeTableName(toSchemaName(sourceCode), toTableName(sourceCode));
+        String sourceTable = escapeStorageTableName(sourceCode);
 
         Map<String, String> mapSelect = new HashMap<>();
         mapSelect.put("sourceTable", sourceTable);
@@ -1296,7 +1294,7 @@ public class DataDaoImpl implements DataDao {
         List<String> fieldNames = getAllEscapedFieldNames(sourceCode);
 
         Map<String, String> mapInsert = new HashMap<>();
-        mapInsert.put("targetTable", escapeTableName(toSchemaName(targetCode), toTableName(targetCode)));
+        mapInsert.put("targetTable", escapeStorageTableName(targetCode));
         mapInsert.put("strColumns", toStrColumns(fieldNames));
         mapInsert.put("rowColumns", toRowColumns(fieldNames));
 
@@ -1330,10 +1328,10 @@ public class DataDaoImpl implements DataDao {
         Map<String, String> map = new HashMap<>();
         map.put("offset", "" + offset);
         map.put("limit", "" + limit);
-        map.put("draftTable", escapeTableName(toSchemaName(draftCode), toTableName(draftCode)));
+        map.put("draftTable", escapeStorageTableName(draftCode));
         map.put("draftAlias", DEFAULT_TABLE_ALIAS);
-        map.put("targetTable", escapeTableName(toSchemaName(targetCode), toTableName(targetCode)));
-        map.put("targetSequence", escapeSchemaSequenceName(toSchemaName(targetCode), toTableName(targetCode)));
+        map.put("targetTable", escapeStorageTableName(targetCode));
+        map.put("targetSequence", escapeStorageSequenceName(targetCode));
         map.put("strColumns", strColumns);
         map.put("rowColumns", rowColumns);
         map.put("publishTime", formatDateTime(publishTime));

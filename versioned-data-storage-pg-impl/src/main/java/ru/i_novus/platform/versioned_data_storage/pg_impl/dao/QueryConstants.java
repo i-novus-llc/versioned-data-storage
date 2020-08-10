@@ -110,8 +110,9 @@ public class QueryConstants {
     static final String CREATE_TABLE_COPY = "CREATE TABLE %1$s.%2$s AS " +
             "SELECT * FROM %3$s.%4$s WITH NO DATA;";
 
-    static final String CREATE_TABLE_SEQUENCE = "CREATE SEQUENCE %1$s.\"%2$s_%3$s_seq\" start 1";
-    static final String DROP_TABLE_SEQUENCE = "DROP SEQUENCE IF EXISTS %1$s.\"%2$s_%3$s_seq\" CASCADE";
+    public static final String TABLE_SEQUENCE_SUFFIX = "_seq";
+    static final String CREATE_TABLE_SEQUENCE = "CREATE SEQUENCE %s start 1";
+    static final String DROP_TABLE_SEQUENCE = "DROP SEQUENCE IF EXISTS %s CASCADE";
 
     static final String CREATE_TRIGGER = "CREATE OR REPLACE FUNCTION %1$s.\"%2$s_%3$s\"()\n" +
             "  RETURNS trigger AS\n" +
@@ -139,7 +140,7 @@ public class QueryConstants {
 
     static final String ALTER_ADD_PRIMARY_KEY = "ALTER TABLE %1$s.%2$s ADD PRIMARY KEY (\"%3$s\");";
     static final String ALTER_SET_SEQUENCE_FOR_PRIMARY_KEY = "ALTER TABLE %1$s.%2$s \n" +
-            "  ALTER COLUMN \"%3$s\" SET DEFAULT nextval('%1$s.\"%4$s_%3$s_seq\"');";
+            "  ALTER COLUMN \"%3$s\" SET DEFAULT nextval('%1$s.%4$s');";
 
     static final String ASSIGN_FIELD = "%1$s = %2$s";
     static final String UPDATE_FIELD = "UPDATE %1$s.%2$s SET %3$s;";

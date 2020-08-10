@@ -13,6 +13,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
+import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.toSchemaName;
+import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.toTableName;
 import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
 
@@ -209,6 +211,11 @@ public class QueryUtil {
         return getSchemaNameOrDefault(schemaName) + NAME_SEPARATOR + addDoubleQuotes(tableName);
     }
 
+    public static String escapeStorageTableName(String storageCode) {
+
+        return escapeTableName(toSchemaName(storageCode), toTableName(storageCode));
+    }
+
     public static String escapeFieldName(String tableAlias, String fieldName) {
 
         String escapedFieldName = addDoubleQuotes(fieldName);
@@ -216,12 +223,17 @@ public class QueryUtil {
     }
 
     public static String escapeSequenceName(String tableName) {
-        return addDoubleQuotes(tableName + "_" + SYS_PRIMARY_COLUMN + "_seq");
+        return addDoubleQuotes(tableName + "_" + SYS_PRIMARY_COLUMN + TABLE_SEQUENCE_SUFFIX);
     }
 
     public static String escapeSchemaSequenceName(String schemaName, String tableName) {
 
         return getSchemaNameOrDefault(schemaName) + NAME_SEPARATOR + escapeSequenceName(tableName);
+    }
+
+    public static String escapeStorageSequenceName(String storageCode) {
+
+        return escapeSchemaSequenceName(toSchemaName(storageCode), toTableName(storageCode));
     }
 
     public static int getOffset(Criteria criteria) {
