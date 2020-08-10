@@ -157,6 +157,7 @@ public class QueryConstants {
     static final String UPDATE_VALUE = "%1$s = %2$s";
 
     static final String CONDITION_IN = "%1$s IN (%2$s)";
+    static final String CONDITION_EQUAL = "%1$s = %2$s";
     static final String CONDITION_ANY_BIGINT = "%1$s = ANY(%2$s\\:\\:bigint[])";
     static final String CONDITION_POINT_DATED = " \"SYS_PUBLISHTIME\" = \"SYS_CLOSETIME\" ";
 

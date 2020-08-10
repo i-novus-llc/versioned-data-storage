@@ -827,7 +827,7 @@ public class DataDaoImpl implements DataDao {
 
         final String tableAlias = "b";
         String keys = String.join(",", updateKeyList);
-        String condition = String.format(CONDITION_IN,
+        String condition = String.format(CONDITION_EQUAL,
                 escapeFieldName(tableAlias, SYS_PRIMARY_COLUMN), QUERY_VALUE_SUBST);
         String sql = String.format(UPDATE_RECORD,
                 schemaName, addDoubleQuotes(tableName), tableAlias, keys, condition);
