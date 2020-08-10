@@ -45,40 +45,44 @@ public class QueryUtil {
         List<RowValue> resultData = new ArrayList<>(data.size());
         for (Object objects : data) {
             LongRowValue rowValue = new LongRowValue();
-            Iterator<Field> fieldIterator = fields.iterator();
             if (objects instanceof Object[]) {
-                Object[] row = (Object[]) objects;
-
-                int i = 0;
-                while (i < row.length) {
-                    Field field = fieldIterator.next();
-                    Object value = row[i];
-
-                    if (i == 0) { // SYS_RECORD_ID
-                        rowValue.setSystemId(Long.parseLong(row[i].toString()));
-
-                    } else if (i == 1 && SYS_HASH.equals(field.getName())) { // SYS_HASH
-                        rowValue.setHash(row[i].toString());
-
-                    } else { // FIELD
-                        if (field instanceof ReferenceField
-                                && (i + 1 < row.length)) {
-                            value = new Reference(row[i] != null ? row[i].toString() : null,
-                                    row[i + 1] != null ? row[i + 1].toString() : null);
-                            i++;
-                        }
-
-                        rowValue.getFieldValues().add(getFieldValue(field, value));
-                    }
-
-                    i++;
-                }
+                addToRowValue((Object[]) objects, fields, rowValue);
             } else {
                 rowValue.getFieldValues().add(getFieldValue(fields.get(0), objects));
             }
             resultData.add(rowValue);
         }
         return resultData;
+    }
+
+    private static void addToRowValue(Object[] row, List<Field> fields, LongRowValue rowValue) {
+
+        Iterator<Field> fieldIterator = fields.iterator();
+
+        int i = 0;
+        while (i < row.length) {
+            Field field = fieldIterator.next();
+            Object value = row[i];
+
+            if (i == 0) { // SYS_RECORD_ID
+                rowValue.setSystemId(value != null ? Long.parseLong(value.toString()) : null);
+
+            } else if (i == 1 && SYS_HASH.equals(field.getName())) { // SYS_HASH
+                rowValue.setHash(value != null ? value.toString() : null);
+
+            } else { // FIELD
+                if (field instanceof ReferenceField && (i + 1 < row.length)) {
+                    Object displayValue = row[i + 1];
+                    value = new Reference(value != null ? value.toString() : null,
+                            displayValue != null ? displayValue.toString() : null);
+                    i++;
+                }
+
+                rowValue.getFieldValues().add(getFieldValue(field, value));
+            }
+
+            i++;
+        }
     }
 
     /**
