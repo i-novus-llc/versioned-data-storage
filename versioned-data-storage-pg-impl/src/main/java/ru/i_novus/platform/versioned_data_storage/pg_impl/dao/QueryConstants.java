@@ -29,6 +29,8 @@ public class QueryConstants {
     static final String QUERY_TIMESTAMP_FORMAT = "YYYY-MM-DD HH24:MI:SS";
 
     public static final String NAME_SEPARATOR = ".";
+    public static final String NAME_CONNECTOR = "_";
+
     public static final String ALIAS_OPERATOR = " as ";
     public static final String DEFAULT_TABLE_ALIAS = "d";
     static final String TRIGGER_NEW_ALIAS = "NEW";
@@ -251,10 +253,10 @@ public class QueryConstants {
     public static final String AND_NOT_SYS_HASH_DDL_INDEX =
             "   AND NOT indexdef LIKE '%" + addDoubleQuotes(SYS_HASH)  + "%'\n";
 
+    public static final String TABLE_INDEX_SUFFIX = "_idx";
+
     static final String CREATE_TABLE_INDEX = "CREATE INDEX %1$s ON %2$s.%3$s(%4$s);";
     static final String DROP_TABLE_INDEX = "DROP INDEX IF EXISTS %1$s.%2$s;";
-    static final String CREATE_FTS_INDEX = "CREATE INDEX %1$s ON %2$s.%3$s USING gin (%4$s);";
-    static final String CREATE_LTREE_INDEX = "CREATE INDEX %1$s ON %2$s.%3$s USING gist (%4$s);";
     static final String IF_TABLE_INDEX_EXISTS = "SELECT exists(SELECT * \n" +
             "              FROM \n" +
             "                pg_class t,\n" +
@@ -273,6 +275,14 @@ public class QueryConstants {
             "                t.relname,\n" +
             "                i.relname\n" +
             ");";
+
+    public static final String TABLE_INDEX_SYSDATE_NAME = "SYSDATE";
+    public static final String TABLE_INDEX_SYSHASH_NAME = "sys_hash_ix";
+
+    static final String TABLE_INDEX_FTS_NAME = "fts";
+    static final String CREATE_FTS_INDEX = "CREATE INDEX %1$s ON %2$s.%3$s USING gin (%4$s);";
+
+    static final String CREATE_LTREE_INDEX = "CREATE INDEX %1$s ON %2$s.%3$s USING gist (%4$s);";
 
     static final String ROW_TYPE_VAR_NAME = "row";
 

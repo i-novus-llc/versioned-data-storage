@@ -26,9 +26,11 @@ import java.util.stream.Collectors;
 import static java.util.Optional.of;
 import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
 import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.toSchemaName;
+import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.toTableName;
 import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addDoubleQuotes;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.ExceptionCodes.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.escapeTableIndexName;
 
 /**
  * @author lgalimova
@@ -304,13 +306,15 @@ public class DraftDataServiceImpl implements DraftDataService {
             dataDao.createTriggers(draftCode, fieldNames);
 
             for (Field field : fields) {
+                String fieldName = field.getName();
+
                 if (field instanceof TreeField)
-                    dataDao.createLtreeIndex(draftCode, field.getName());
+                    dataDao.createLtreeIndex(draftCode, fieldName);
 
                 else if (Boolean.TRUE.equals(field.getSearchEnabled())) {
                     dataDao.createIndex(draftCode,
-                            addDoubleQuotes(draftCode + "_" + field.getName().toLowerCase() + "_idx"),
-                            Collections.singletonList(field.getName()));
+                            escapeTableIndexName(toTableName(draftCode), fieldName.toLowerCase()),
+                            Collections.singletonList(fieldName));
                 }
             }
         }
@@ -335,7 +339,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         dataDao.addColumn(versionName, SYS_CLOSETIME, "timestamp without time zone", MAX_TIMESTAMP_VALUE);
 
         dataDao.createIndex(versionCode,
-                addDoubleQuotes(versionName + "_SYSDATE_idx"),
+                escapeTableIndexName(versionName, TABLE_INDEX_SYSDATE_NAME),
                 Arrays.asList(SYS_PUBLISHTIME, SYS_CLOSETIME));
 
         List<String> fieldNames = dataDao.getHashUsedFieldNames(versionName);

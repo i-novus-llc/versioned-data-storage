@@ -1145,7 +1145,7 @@ public class DataDaoImpl implements DataDao {
         String tableName = toTableName(storageCode);
 
         String ddl = String.format(CREATE_FTS_INDEX,
-                addDoubleQuotes(tableName + "_fts_idx"),
+                escapeTableIndexName(tableName, TABLE_INDEX_FTS_NAME),
                 toSchemaName(storageCode),
                 addDoubleQuotes(tableName),
                 addDoubleQuotes(SYS_FTS));
@@ -1159,7 +1159,7 @@ public class DataDaoImpl implements DataDao {
         String tableName = toTableName(storageCode);
 
         String ddl = String.format(CREATE_LTREE_INDEX,
-                addDoubleQuotes(tableName + "_" + field.toLowerCase() + "_idx"),
+                escapeTableIndexName(tableName, field.toLowerCase()),
                 toSchemaName(storageCode),
                 addDoubleQuotes(tableName),
                 addDoubleQuotes(field));
@@ -1175,7 +1175,7 @@ public class DataDaoImpl implements DataDao {
         // Неуникальный индекс, т.к. используется только для создания хранилища версии.
         // В версии могут быть идентичные строки с отличающимся периодом действия.
         String ddl = String.format(CREATE_TABLE_INDEX,
-                addDoubleQuotes(tableName + "_sys_hash_ix"),
+                addDoubleQuotes(tableName + NAME_CONNECTOR + TABLE_INDEX_SYSHASH_NAME),
                 toSchemaName(storageCode),
                 addDoubleQuotes(tableName),
                 addDoubleQuotes(SYS_HASH));

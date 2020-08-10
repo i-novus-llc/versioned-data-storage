@@ -223,7 +223,7 @@ public class QueryUtil {
     }
 
     public static String escapeSequenceName(String tableName) {
-        return addDoubleQuotes(tableName + "_" + SYS_PRIMARY_COLUMN + TABLE_SEQUENCE_SUFFIX);
+        return addDoubleQuotes(tableName + NAME_CONNECTOR + SYS_PRIMARY_COLUMN + TABLE_SEQUENCE_SUFFIX);
     }
 
     public static String escapeSchemaSequenceName(String schemaName, String tableName) {
@@ -234,6 +234,11 @@ public class QueryUtil {
     public static String escapeStorageSequenceName(String storageCode) {
 
         return escapeSchemaSequenceName(toSchemaName(storageCode), toTableName(storageCode));
+    }
+
+    public static String escapeTableIndexName(String tableName, String indexName) {
+
+        return addDoubleQuotes(tableName + NAME_CONNECTOR + indexName + TABLE_INDEX_SUFFIX);
     }
 
     public static int getOffset(Criteria criteria) {
