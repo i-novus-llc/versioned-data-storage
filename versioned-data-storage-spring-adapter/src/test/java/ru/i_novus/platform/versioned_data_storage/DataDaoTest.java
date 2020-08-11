@@ -53,13 +53,8 @@ public class DataDaoTest {
     private static final String FIELD_ID_CODE = "id";
     private static final String FIELD_NAME_CODE = "name";
 
-    private final String dataName1 = "первый";
-    private final String dataName2 = "второй";
-    private final List<String> dataNames = Arrays.asList(dataName1, dataName2);
-
-    private final String testName1 = "first";
-    private final String testName2 = "second";
-    private final List<String> testNames = Arrays.asList(testName1, testName2);
+    private final List<String> dataNames = Arrays.asList("первый", "второй");
+    private final List<String> testNames = Arrays.asList("first", "second");
 
     private Field hashField;
 
