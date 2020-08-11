@@ -32,11 +32,11 @@ import java.util.stream.IntStream;
 import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.*;
 import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
+import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.getSchemaNameOrDefault;
 import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.toStorageCode;
 import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addDoubleQuotes;
 import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addSingleQuotes;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.HASH_EXPRESSION;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.getSchemaNameOrDefault;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {JpaTestConfig.class, VersionedDataStorageConfig.class})

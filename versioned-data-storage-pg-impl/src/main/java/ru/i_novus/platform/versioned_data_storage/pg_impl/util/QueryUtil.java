@@ -13,8 +13,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
-import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.toSchemaName;
-import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.toTableName;
+import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.escapeFieldName;
 import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
 
@@ -201,46 +200,6 @@ public class QueryUtil {
         }
     }
 
-    public static String getSchemaNameOrDefault(String schemaName) {
-
-        return isNullOrEmpty(schemaName) ? DATA_SCHEMA_NAME : schemaName;
-    }
-
-    public static String escapeTableName(String schemaName, String tableName) {
-
-        return getSchemaNameOrDefault(schemaName) + NAME_SEPARATOR + addDoubleQuotes(tableName);
-    }
-
-    public static String escapeStorageTableName(String storageCode) {
-
-        return escapeTableName(toSchemaName(storageCode), toTableName(storageCode));
-    }
-
-    public static String escapeFieldName(String tableAlias, String fieldName) {
-
-        String escapedFieldName = addDoubleQuotes(fieldName);
-        return isNullOrEmpty(tableAlias) ? escapedFieldName : tableAlias + NAME_SEPARATOR + escapedFieldName;
-    }
-
-    public static String escapeSequenceName(String tableName) {
-        return addDoubleQuotes(tableName + NAME_CONNECTOR + SYS_PRIMARY_COLUMN + TABLE_SEQUENCE_SUFFIX);
-    }
-
-    public static String escapeSchemaSequenceName(String schemaName, String tableName) {
-
-        return getSchemaNameOrDefault(schemaName) + NAME_SEPARATOR + escapeSequenceName(tableName);
-    }
-
-    public static String escapeStorageSequenceName(String storageCode) {
-
-        return escapeSchemaSequenceName(toSchemaName(storageCode), toTableName(storageCode));
-    }
-
-    public static String escapeTableIndexName(String tableName, String indexName) {
-
-        return addDoubleQuotes(tableName + NAME_CONNECTOR + indexName + TABLE_INDEX_SUFFIX);
-    }
-
     public static int getOffset(Criteria criteria) {
 
         if (criteria == null)
@@ -315,7 +274,7 @@ public class QueryUtil {
      */
     public static String sqlFieldExpression(String displayField, String tableAlias) {
 
-        return tableAlias + NAME_SEPARATOR + addDoubleQuotes(displayField);
+        return escapeFieldName(tableAlias, displayField);
     }
 
     /**

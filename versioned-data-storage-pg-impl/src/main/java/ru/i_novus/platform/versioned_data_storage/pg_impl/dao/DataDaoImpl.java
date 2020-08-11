@@ -44,7 +44,7 @@ public class DataDaoImpl implements DataDao {
 
     private static final LocalDateTime PG_MAX_TIMESTAMP = LocalDateTime.of(294276, 12, 31, 23, 59);
 
-    private static final Pattern DATE_PATTERN = Pattern.compile("([0-9]{2})\\.([0-9]{2})\\.([0-9]{4})");
+    private static final Pattern SEARCH_DATE_PATTERN = Pattern.compile("([0-9]{2})\\.([0-9]{2})\\.([0-9]{4})");
 
     private EntityManager entityManager;
 
@@ -311,7 +311,7 @@ public class DataDaoImpl implements DataDao {
 
         // full text search
         String escapedFtsColumn = escapeFieldName(alias, SYS_FTS);
-        if (DATE_PATTERN.matcher(search).matches()) {
+        if (SEARCH_DATE_PATTERN.matcher(search).matches()) {
             sql += " and (" +
                     escapedFtsColumn + " @@ to_tsquery(:search) or " +
                     escapedFtsColumn + " @@ to_tsquery(:reverseSearch) ) ";

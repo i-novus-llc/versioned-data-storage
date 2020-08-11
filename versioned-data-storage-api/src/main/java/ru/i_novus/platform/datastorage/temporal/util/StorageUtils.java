@@ -1,6 +1,7 @@
 package ru.i_novus.platform.datastorage.temporal.util;
 
 import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
+import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addDoubleQuotes;
 import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.isNullOrEmpty;
 
 public class StorageUtils {
@@ -79,5 +80,45 @@ public class StorageUtils {
     public static boolean isValidSchemaName(String schemaName) {
 
         return SCHEMA_NAME_PATTERN.matcher(schemaName).matches();
+    }
+
+    public static String getSchemaNameOrDefault(String schemaName) {
+
+        return isNullOrEmpty(schemaName) ? DATA_SCHEMA_NAME : schemaName;
+    }
+
+    public static String escapeTableName(String schemaName, String tableName) {
+
+        return getSchemaNameOrDefault(schemaName) + NAME_SEPARATOR + addDoubleQuotes(tableName);
+    }
+
+    public static String escapeStorageTableName(String storageCode) {
+
+        return escapeTableName(toSchemaName(storageCode), toTableName(storageCode));
+    }
+
+    public static String escapeFieldName(String tableAlias, String fieldName) {
+
+        String escapedFieldName = addDoubleQuotes(fieldName);
+        return isNullOrEmpty(tableAlias) ? escapedFieldName : tableAlias + NAME_SEPARATOR + escapedFieldName;
+    }
+
+    public static String escapeSequenceName(String tableName) {
+        return addDoubleQuotes(tableName + NAME_CONNECTOR + SYS_PRIMARY_COLUMN + TABLE_SEQUENCE_SUFFIX);
+    }
+
+    public static String escapeSchemaSequenceName(String schemaName, String tableName) {
+
+        return getSchemaNameOrDefault(schemaName) + NAME_SEPARATOR + escapeSequenceName(tableName);
+    }
+
+    public static String escapeStorageSequenceName(String storageCode) {
+
+        return escapeSchemaSequenceName(toSchemaName(storageCode), toTableName(storageCode));
+    }
+
+    public static String escapeTableIndexName(String tableName, String indexName) {
+
+        return addDoubleQuotes(tableName + NAME_CONNECTOR + indexName + TABLE_INDEX_SUFFIX);
     }
 }

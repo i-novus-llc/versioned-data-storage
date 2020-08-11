@@ -28,9 +28,6 @@ public class QueryConstants {
     public static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern(DATETIME_FORMAT);
     static final String QUERY_TIMESTAMP_FORMAT = "YYYY-MM-DD HH24:MI:SS";
 
-    public static final String NAME_SEPARATOR = ".";
-    public static final String NAME_CONNECTOR = "_";
-
     public static final String ALIAS_OPERATOR = " as ";
     public static final String DEFAULT_TABLE_ALIAS = "d";
     static final String TRIGGER_NEW_ALIAS = "NEW";
@@ -112,7 +109,6 @@ public class QueryConstants {
     static final String CREATE_TABLE_COPY = "CREATE TABLE %1$s.%2$s AS " +
             "SELECT * FROM %3$s.%4$s WITH NO DATA;";
 
-    public static final String TABLE_SEQUENCE_SUFFIX = "_seq";
     static final String CREATE_TABLE_SEQUENCE = "CREATE SEQUENCE %s start 1";
     static final String DROP_TABLE_SEQUENCE = "DROP SEQUENCE IF EXISTS %s CASCADE";
 
@@ -252,8 +248,6 @@ public class QueryConstants {
             "   AND tablename = :tableName \n";
     public static final String AND_NOT_SYS_HASH_DDL_INDEX =
             "   AND NOT indexdef LIKE '%" + addDoubleQuotes(SYS_HASH)  + "%'\n";
-
-    public static final String TABLE_INDEX_SUFFIX = "_idx";
 
     static final String CREATE_TABLE_INDEX = "CREATE INDEX %1$s ON %2$s.%3$s(%4$s);";
     static final String DROP_TABLE_INDEX = "DROP INDEX IF EXISTS %1$s.%2$s;";

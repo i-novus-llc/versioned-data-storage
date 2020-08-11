@@ -10,7 +10,13 @@ public class StorageConstants {
 
     public static final String CODE_SEPARATOR = ".";
 
+    public static final String NAME_SEPARATOR = ".";
+    public static final String NAME_CONNECTOR = "_";
+
     public static final String DATA_SCHEMA_NAME = "data";
+
+    public static final String TABLE_SEQUENCE_SUFFIX = "_seq";
+    public static final String TABLE_INDEX_SUFFIX = "_idx";
 
     // Системные поля справочников.
     public static final String SYS_PRIMARY_COLUMN = "SYS_RECORDID";
