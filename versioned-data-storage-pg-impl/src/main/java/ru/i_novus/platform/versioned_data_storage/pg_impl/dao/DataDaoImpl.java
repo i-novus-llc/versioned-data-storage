@@ -56,11 +56,6 @@ public class DataDaoImpl implements DataDao {
     @SuppressWarnings("unchecked")
     public List<RowValue> getData(DataCriteria criteria) {
 
-        // В l10n перенести подмену схемы при отсутствии схемы/таблицы.
-        // Здесь оставить только использование схемы по умолчанию, если она не была задана.
-        // Схемы предлагается именовать в виде "data_" + код локализации, чтобы исключить случайное совпадение с другими схемами.
-        // Код локализации должен содержать только строчные латинские буквы a-z, цифры 0-9 и символ подчёркивания "_".
-        // В postgres макс. длина имени = NAMEDATALEN - 1 = 64 - 1, поэтому длина кода локализации должна быть <= 64 - 1 - "data_".len() = 58.
         final String schemaName = getTableSchemaName(criteria.getSchemaName(), criteria.getTableName());
 
         List<Field> fields = new ArrayList<>(criteria.getFields());
