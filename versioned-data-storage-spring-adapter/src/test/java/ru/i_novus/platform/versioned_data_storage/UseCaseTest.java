@@ -45,6 +45,10 @@ public class UseCaseTest {
 
     private static final ZoneId UNIVERSAL_TIMEZONE = ZoneId.of("UTC");
 
+    private static final String FIELD_ID_CODE = "ID";
+    private static final String FIELD_NAME_CODE = "NAME";
+    private static final String FIELD_CODE_CODE = "CODE";
+
     @Autowired
     private StorageCodeService storageCodeService;
 
@@ -82,8 +86,8 @@ public class UseCaseTest {
     public void testCreateReferenceStorage() throws Exception {
         logger.info("<<<<<<<<<<<<<<< 1 этап >>>>>>>>>>>>>>>>>>>>>");
         List<Field> d_a_fields = new ArrayList<>();
-        Field d_a_id = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field d_a_name = fieldFactory.createField("NAME", FieldType.STRING);
+        Field d_a_id = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field d_a_name = fieldFactory.createField(FIELD_NAME_CODE, FieldType.STRING);
         Field d_a_dateCol = fieldFactory.createField("DATE_COL", FieldType.DATE);
         Field d_a_boolCol = fieldFactory.createField("BOOL_COL", FieldType.BOOLEAN);
         Field d_a_floatCol = fieldFactory.createField("FLOAT_COL", FieldType.FLOAT);
@@ -125,8 +129,8 @@ public class UseCaseTest {
         logger.info("<<<<<<<<<<<<<<< 2 этап завершен >>>>>>>>>>>>>>>>>>>>>");
 
         logger.info("<<<<<<<<<<<<<<< 3 этап >>>>>>>>>>>>>>>>>>>>>");
-        Field d_b_id = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field d_b_name = fieldFactory.createField("NAME", FieldType.STRING);
+        Field d_b_id = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field d_b_name = fieldFactory.createField(FIELD_NAME_CODE, FieldType.STRING);
         Field d_b_ref = fieldFactory.createField("REF", FieldType.REFERENCE);
         List<Field> d_b_fields = asList(d_b_id, d_b_name, d_b_ref);
         String d_b_draftCode = draftDataService.createDraft(d_b_fields);
@@ -172,8 +176,8 @@ public class UseCaseTest {
     public void testUpdateDraft() {
         String existingStorageCode = createStorage();
         List<Field> fields = new ArrayList<>();
-        Field code = fieldFactory.createField("CODE", FieldType.STRING);
-        Field name = fieldFactory.createField("NAME", FieldType.STRING);
+        Field code = fieldFactory.createField(FIELD_CODE_CODE, FieldType.STRING);
+        Field name = fieldFactory.createField(FIELD_NAME_CODE, FieldType.STRING);
         Field ref = fieldFactory.createField("REF", FieldType.STRING);
         fields.add(code);
         fields.add(name);
@@ -190,7 +194,7 @@ public class UseCaseTest {
 
         // Добавление строк.
         List<RowValue> rows = new ArrayList<>();
-        ReferenceFieldValue oldRefValue = new ReferenceFieldValue(ref.getName(), new Reference(existingStorageCode, now(), "ID", "NAME", "1", "test"));
+        ReferenceFieldValue oldRefValue = new ReferenceFieldValue(ref.getName(), new Reference(existingStorageCode, now(), FIELD_ID_CODE, FIELD_NAME_CODE, "1", "test"));
         RowValue rowValue = new LongRowValue(
                 code.valueOf("001"),
                 name.valueOf("name"),
@@ -205,13 +209,13 @@ public class UseCaseTest {
         List<Object> updatedIds = asList(actualRows.get(0).getSystemId(), -1);
         String newDisplayValue = "test3";
         // - отображаемое значение ссылки не должно меняться, т.к. данные не менялись в existingStorageCode.
-        ReferenceFieldValue updatedRefValue = new ReferenceFieldValue(ref.getName(), new Reference(existingStorageCode, now(), "ID", "NAME", null, null));
+        ReferenceFieldValue updatedRefValue = new ReferenceFieldValue(ref.getName(), new Reference(existingStorageCode, now(), FIELD_ID_CODE, FIELD_NAME_CODE, null, null));
         draftDataService.updateReferenceInRows(draftCode, updatedRefValue, updatedIds);
         actualRows = searchDataService.getData(new DataCriteria(draftCode, null, null, fields, emptySet(), null));
         assertRows(rows, actualRows);
         // - меняются данные в existingStorageCode.
-        Field existingFieldId = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field existingFieldName = fieldFactory.createField("NAME", FieldType.STRING);
+        Field existingFieldId = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field existingFieldName = fieldFactory.createField(FIELD_NAME_CODE, FieldType.STRING);
         List<RowValue> existingRows = searchDataService.getData(new DataCriteria(existingStorageCode, null, null, singletonList(existingFieldId), emptySet(), null));
         assertTrue(existingRows.size() > 0);
         Object existingSystemId = existingRows.get(0).getSystemId();
@@ -275,8 +279,8 @@ public class UseCaseTest {
 
     private String createStorage() {
         List<Field> d_a_fields = new ArrayList<>();
-        Field d_a_id = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field d_a_name = fieldFactory.createField("NAME", FieldType.STRING);
+        Field d_a_id = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field d_a_name = fieldFactory.createField(FIELD_NAME_CODE, FieldType.STRING);
         Field d_a_dateCol = fieldFactory.createField("DATE_COL", FieldType.DATE);
         Field d_a_boolCol = fieldFactory.createField("BOOL_COL", FieldType.BOOLEAN);
         Field d_a_floatCol = fieldFactory.createField("FLOAT_COL", FieldType.FLOAT);
@@ -311,8 +315,8 @@ public class UseCaseTest {
     @Test
     public void testCreateUniqueHash() {
         List<Field> d_a_fields = new ArrayList<>();
-        Field d_a_id = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field d_a_name = fieldFactory.createField("NAME", FieldType.STRING);
+        Field d_a_id = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field d_a_name = fieldFactory.createField(FIELD_NAME_CODE, FieldType.STRING);
         d_a_fields.add(d_a_id);
         d_a_fields.add(d_a_name);
 
@@ -336,8 +340,8 @@ public class UseCaseTest {
     @Test
     public void testDeleteField() {
         List<Field> fields = new ArrayList<>();
-        Field id = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field name = fieldFactory.createField("NAME", FieldType.STRING);
+        Field id = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field name = fieldFactory.createField(FIELD_NAME_CODE, FieldType.STRING);
         Field date = fieldFactory.createField("DATE", FieldType.DATE);
         fields.add(id);
         fields.add(name);
@@ -354,7 +358,7 @@ public class UseCaseTest {
         DataCriteria criteria = new DataCriteria(storageCode, null, null, hashField, emptySet(), null);
 
         RowValue hashBeforeDelete = searchDataService.getData(criteria).get(0);
-        draftDataService.deleteField(storageCode, "NAME");
+        draftDataService.deleteField(storageCode, FIELD_NAME_CODE);
         RowValue dataAfterDelete = searchDataService.getData(criteria).get(0);
 
         Assert.assertNotEquals(hashBeforeDelete, dataAfterDelete);
@@ -375,8 +379,8 @@ public class UseCaseTest {
     @Test
     public void testAddField() {
         List<Field> fields = new ArrayList<>();
-        Field id = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field name = fieldFactory.createField("NAME", FieldType.STRING);
+        Field id = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field name = fieldFactory.createField(FIELD_NAME_CODE, FieldType.STRING);
         fields.add(id);
         fields.add(name);
 
@@ -405,9 +409,9 @@ public class UseCaseTest {
         Long time_sec_diff = 150000L;
 
         List<Field> fields = new ArrayList<>();
-        Field id = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field code = fieldFactory.createField("CODE", FieldType.STRING);
-        Field name = fieldFactory.createField("NAME", FieldType.STRING);
+        Field id = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field code = fieldFactory.createField(FIELD_CODE_CODE, FieldType.STRING);
+        Field name = fieldFactory.createField(FIELD_NAME_CODE, FieldType.STRING);
         fields.add(id);
         fields.add(code);
         fields.add(name);
@@ -512,8 +516,8 @@ public class UseCaseTest {
     @Test
     public void testGetDataDifferenceForTwoPublishedVersionsWithSameStorage() {
         List<Field> fields = new ArrayList<>();
-        Field id = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field code = fieldFactory.createField("CODE", FieldType.STRING);
+        Field id = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field code = fieldFactory.createField(FIELD_CODE_CODE, FieldType.STRING);
         fields.add(id);
         fields.add(code);
         List<RowValue> rows = new ArrayList<>();
@@ -553,7 +557,7 @@ public class UseCaseTest {
                 .collect(Collectors.toSet());
 
         // WARN: bug? : replace first publishDate2 with closeDate1
-        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, publishDate1, publishDate2, publishDate2, closeDate2, fields, singletonList("ID"), fieldValues);
+        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, publishDate1, publishDate2, publishDate2, closeDate2, fields, singletonList(FIELD_ID_CODE), fieldValues);
         DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
         List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
         expectedDiffRowValues.add(new DiffRowValue(
@@ -595,8 +599,8 @@ public class UseCaseTest {
     @Test
     public void testGetDataDifferenceForVersionsWithNullValues() {
         List<Field> fields = new ArrayList<>();
-        Field id = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field code = fieldFactory.createField("CODE", FieldType.STRING);
+        Field id = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field code = fieldFactory.createField(FIELD_CODE_CODE, FieldType.STRING);
         fields.add(id);
         fields.add(code);
         List<RowValue> rows = new ArrayList<>();
@@ -653,7 +657,7 @@ public class UseCaseTest {
                 .collect(Collectors.toSet());
 
         // WARN: bug? : replace first publishDate2 with closeDate1
-        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, publishDate1, publishDate2, publishDate2, closeDate2, fields, singletonList("ID"), fieldValues);
+        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, publishDate1, publishDate2, publishDate2, closeDate2, fields, singletonList(FIELD_ID_CODE), fieldValues);
         DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
         List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
         expectedDiffRowValues.add(new DiffRowValue(
@@ -702,9 +706,9 @@ public class UseCaseTest {
     @Test
     public void testGetDataDifferenceForTwoPublishedVersionsWithCompositePK() {
         List<Field> fields = new ArrayList<>();
-        Field id = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field code = fieldFactory.createField("CODE", FieldType.STRING);
-        Field name = fieldFactory.createField("NAME", FieldType.STRING);
+        Field id = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field code = fieldFactory.createField(FIELD_CODE_CODE, FieldType.STRING);
+        Field name = fieldFactory.createField(FIELD_NAME_CODE, FieldType.STRING);
         fields.add(id);
         fields.add(code);
         fields.add(name);
@@ -750,7 +754,7 @@ public class UseCaseTest {
                 .collect(Collectors.toSet());
 
         // WARN: bug? : replace first publishDate2 with closeDate1
-        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, publishDate1, publishDate2, publishDate2, closeDate2, fields, Arrays.asList("ID", "CODE"), fieldValues);
+        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, publishDate1, publishDate2, publishDate2, closeDate2, fields, Arrays.asList(FIELD_ID_CODE, FIELD_CODE_CODE), fieldValues);
         DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
         List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
         expectedDiffRowValues.add(new DiffRowValue(
@@ -778,8 +782,8 @@ public class UseCaseTest {
     @Test
     public void testGetDataDifferenceForTwoPublishedVersionsWithoutNonPrimaryFields() {
         List<Field> fields = new ArrayList<>();
-        Field id = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field code = fieldFactory.createField("CODE", FieldType.STRING);
+        Field id = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field code = fieldFactory.createField(FIELD_CODE_CODE, FieldType.STRING);
         fields.add(id);
         fields.add(code);
         List<RowValue> rows = new ArrayList<>();
@@ -819,7 +823,7 @@ public class UseCaseTest {
                 .collect(Collectors.toSet());
 
         // WARN: bug? : replace first publishDate2 with closeDate1
-        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, publishDate1, publishDate2, publishDate2, closeDate2, fields, Arrays.asList("ID", "CODE"), fieldValues);
+        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, publishDate1, publishDate2, publishDate2, closeDate2, fields, Arrays.asList(FIELD_ID_CODE, FIELD_CODE_CODE), fieldValues);
         DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
         List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
         expectedDiffRowValues.add(new DiffRowValue(
@@ -841,8 +845,8 @@ public class UseCaseTest {
     @Test
     public void testGetDataDifferenceForPublishedAndDraft() {
         List<Field> fields = new ArrayList<>();
-        Field id = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field code = fieldFactory.createField("CODE", FieldType.STRING);
+        Field id = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field code = fieldFactory.createField(FIELD_CODE_CODE, FieldType.STRING);
         fields.add(id);
         fields.add(code);
         List<RowValue> rows = new ArrayList<>();
@@ -878,7 +882,7 @@ public class UseCaseTest {
                 )
                 .collect(Collectors.toSet());
 
-        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode, draftCode, publishDate1, closeDate1, null, null, fields, singletonList("ID"), fieldValues);
+        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode, draftCode, publishDate1, closeDate1, null, null, fields, singletonList(FIELD_ID_CODE), fieldValues);
         DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
         List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
         expectedDiffRowValues.add(new DiffRowValue(
@@ -910,9 +914,9 @@ public class UseCaseTest {
         LocalDateTime publishDate2 = multiply(publishDate1, 3);
 
         List<Field> fields = new ArrayList<>();
-        Field id = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field code = fieldFactory.createField("CODE", FieldType.STRING);
-        Field name = fieldFactory.createField("NAME", FieldType.STRING);
+        Field id = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field code = fieldFactory.createField(FIELD_CODE_CODE, FieldType.STRING);
+        Field name = fieldFactory.createField(FIELD_NAME_CODE, FieldType.STRING);
         fields.add(id);
         fields.add(code);
 
@@ -948,7 +952,7 @@ public class UseCaseTest {
                 )
                 .collect(Collectors.toSet());
 
-        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode, storageCode2, publishDate1, closeDate1, publishDate2, null, Arrays.asList(fields.get(0), fields.get(1)), singletonList("ID"), fieldValues);
+        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode, storageCode2, publishDate1, closeDate1, publishDate2, null, Arrays.asList(fields.get(0), fields.get(1)), singletonList(FIELD_ID_CODE), fieldValues);
         DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
         assertDiffRowValues(new ArrayList<>(), (List<DiffRowValue>) actualDataDifference.getRows().getCollection());
     }
