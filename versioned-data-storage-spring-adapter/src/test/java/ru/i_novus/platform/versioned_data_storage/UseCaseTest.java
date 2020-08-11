@@ -1067,15 +1067,6 @@ public class UseCaseTest {
         assertRows(rowValues3, actualData.getCollection());
     }
 
-    /**
-     * первая публикация черновика
-     * @throws Exception
-     */
-    @Test
-    public void testFirstApply() throws Exception {
-
-    }
-
     @Test
     public void testGroupFilters() {
         String id = "id";
