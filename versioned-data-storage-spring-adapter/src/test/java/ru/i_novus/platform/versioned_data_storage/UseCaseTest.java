@@ -25,14 +25,17 @@ import java.time.*;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptySet;
-import static java.util.Collections.singletonList;
+import static java.util.Collections.*;
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.*;
 import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
+import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
+import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.toStorageCode;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.TRANSACTION_ROW_LIMIT;
 
 /**
  * Created by tnurdinov on 08.06.2018.
@@ -44,6 +47,8 @@ public class UseCaseTest {
     private static final Logger logger = LoggerFactory.getLogger(UseCaseTest.class);
 
     private static final ZoneId UNIVERSAL_TIMEZONE = ZoneId.of("UTC");
+
+    private static final String TEST_SCHEMA_NAME = "data_test";
 
     private static final String FIELD_ID_CODE = "ID";
     private static final String FIELD_NAME_CODE = "NAME";
@@ -306,6 +311,47 @@ public class UseCaseTest {
                 d_a_floatCol.valueOf(4f)));
         draftDataService.addRows(d_a_draftCode, d_a_rows);
         return draftDataService.applyDraft(null, d_a_draftCode, now());
+    }
+
+    @Test
+    public void testCopyAllData() {
+
+        List<Field> fields = new ArrayList<>();
+        Field idField = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field nameField = fieldFactory.createField(FIELD_NAME_CODE, FieldType.STRING);
+        fields.add(idField);
+        fields.add(nameField);
+
+        String sourceName = draftDataService.createDraft(fields);
+        String sourceCode = toStorageCode(null, sourceName);
+
+        List<RowValue> sourceRows = new ArrayList<>();
+        IntStream.range(0, TRANSACTION_ROW_LIMIT * 2).forEach(i -> {
+            sourceRows.add(new LongRowValue(
+                    idField.valueOf(BigInteger.valueOf(i)),
+                    nameField.valueOf("test_" + i)));
+        });
+        draftDataService.addRows(sourceCode, sourceRows);
+
+        String targetName = draftDataService.createDraft(TEST_SCHEMA_NAME, fields);
+        String targetCode = toStorageCode(TEST_SCHEMA_NAME, targetName);
+        draftDataService.copyAllData(sourceCode, targetCode);
+
+        DataCriteria criteria = new DataCriteria(targetCode, null, null,
+                singletonList(idField), emptySet(), null);
+        criteria.setPage(DataCriteria.MIN_PAGE);
+        criteria.setSize(DataCriteria.MIN_SIZE);
+
+        Collection<RowValue> targetRows = searchDataService.getPagedData(criteria).getCollection();
+        assertEquals(sourceRows.size(), criteria.getCount().intValue());
+        assertEquals(1, targetRows.size());
+
+        RowValue targetRow = targetRows.iterator().next();
+        assertTrue(sourceRows.stream()
+                .anyMatch(sourceRow ->
+                        sourceRow.getFieldValue(FIELD_ID_CODE).getValue()
+                                .equals(targetRow.getFieldValue(FIELD_ID_CODE).getValue()))
+        );
     }
 
     /**
