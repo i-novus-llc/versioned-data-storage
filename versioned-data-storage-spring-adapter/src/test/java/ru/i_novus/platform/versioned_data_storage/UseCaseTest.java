@@ -28,12 +28,13 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.*;
+import static java.util.Collections.emptySet;
+import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.*;
 import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
-import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
 import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.toStorageCode;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.TRANSACTION_ROW_LIMIT;
 
@@ -242,9 +243,9 @@ public class UseCaseTest {
         assertEquals("result size not equals", expectedRows.size(), actualRows.size());
         Assert.assertTrue(
                 "not equals actualRows: \n"
-                        + actualRows.stream().map(RowValue::toString).collect(Collectors.joining(", "))
+                        + actualRows.stream().map(RowValue::toString).collect(joining(", "))
                         + " \n and expected rows: \n"
-                        + expectedRows.stream().map(RowValue::toString).collect(Collectors.joining(", "))
+                        + expectedRows.stream().map(RowValue::toString).collect(joining(", "))
                 , actualRows.stream().anyMatch(actualRow ->
                         expectedRows.stream().anyMatch(expectedRow ->
                                 equalsFieldValues(expectedRow.getFieldValues(), actualRow.getFieldValues())
@@ -1019,16 +1020,16 @@ public class UseCaseTest {
     @Test
     public void testPublishAndSearchNullCloseDateData() {
         Field stringField = new StringField("string");
-        String draftStorageCode1 = draftDataService.createDraft(Collections.singletonList(stringField));
-        String draftStorageCode2 = draftDataService.createDraft(Collections.singletonList(stringField));
-        String draftStorageCode3 = draftDataService.createDraft(Collections.singletonList(stringField));
-        List<RowValue> rowValues1 = Collections.singletonList(
+        String draftStorageCode1 = draftDataService.createDraft(singletonList(stringField));
+        String draftStorageCode2 = draftDataService.createDraft(singletonList(stringField));
+        String draftStorageCode3 = draftDataService.createDraft(singletonList(stringField));
+        List<RowValue> rowValues1 = singletonList(
                 new LongRowValue(stringField.valueOf("string field value 1")));
         List<RowValue> rowValues2 = Arrays.asList(
                 new LongRowValue(stringField.valueOf("string field value 1")),
                 new LongRowValue(stringField.valueOf("string field value 2.1")),
                 new LongRowValue(stringField.valueOf("string field value 2.2")));
-        List<RowValue> rowValues3 = Collections.singletonList(
+        List<RowValue> rowValues3 = singletonList(
                 new LongRowValue(stringField.valueOf("string field value 3")));
         draftDataService.addRows(draftStorageCode1, rowValues1);
         draftDataService.addRows(draftStorageCode2, rowValues2);
@@ -1044,14 +1045,14 @@ public class UseCaseTest {
         String versionStorageCode2 = draftDataService.applyDraft(versionStorageCode1, draftStorageCode2, publishDate2, closeDate2);
 
         //Поиск когда closeTime поиска и данных closeTime одинаковый
-        DataCriteria dataCriteria = new DataCriteria(versionStorageCode2, publishDate2, closeDate2, Collections.singletonList(stringField), emptySet(), null);
+        DataCriteria dataCriteria = new DataCriteria(versionStorageCode2, publishDate2, closeDate2, singletonList(stringField), emptySet(), null);
         CollectionPage<RowValue> actualData = searchDataService.getPagedData(dataCriteria);
         assertEquals(3, actualData.getCount());
         assertRows(rowValues2, actualData.getCollection());
 
         //Поиск когда closeTime поиска null а у данных определен
         //Ожидается пустой ответ, т.к. данные не действуют на всем промежутке
-        dataCriteria = new DataCriteria(versionStorageCode2, publishDate2, null, Collections.singletonList(stringField), emptySet(), null);
+        dataCriteria = new DataCriteria(versionStorageCode2, publishDate2, null, singletonList(stringField), emptySet(), null);
         actualData = searchDataService.getPagedData(dataCriteria);
         assertEquals(0, actualData.getCount());
         assertTrue(actualData.getCollection().isEmpty());
@@ -1061,7 +1062,7 @@ public class UseCaseTest {
 
         //Поиск когда closeTime поиска определен а у данных нет
         //Ожидается одна строка (Последняя опубликованная)
-        dataCriteria = new DataCriteria(versionStorageCode3, publishDate3, null, Collections.singletonList(stringField), emptySet(), null);
+        dataCriteria = new DataCriteria(versionStorageCode3, publishDate3, null, singletonList(stringField), emptySet(), null);
         actualData = searchDataService.getPagedData(dataCriteria);
         assertEquals(1, actualData.getCount());
         assertRows(rowValues3, actualData.getCollection());
