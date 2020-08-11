@@ -46,6 +46,9 @@ public class UseCaseTest {
     private static final ZoneId UNIVERSAL_TIMEZONE = ZoneId.of("UTC");
 
     @Autowired
+    private StorageCodeService storageCodeService;
+
+    @Autowired
     private DraftDataService draftDataService;
 
     @Autowired

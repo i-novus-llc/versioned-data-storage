@@ -9,6 +9,7 @@ import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
+import ru.i_novus.platform.datastorage.temporal.service.StorageCodeService;
 import ru.i_novus.platform.datastorage.temporal.util.CollectionUtils;
 import ru.i_novus.platform.datastorage.temporal.util.StorageUtils;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
@@ -42,8 +43,12 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     private DataDao dataDao;
 
-    public DraftDataServiceImpl(DataDao dataDao) {
+    private StorageCodeService storageCodeService;
+
+    public DraftDataServiceImpl(DataDao dataDao, StorageCodeService storageCodeService) {
+
         this.dataDao = dataDao;
+        this.storageCodeService = storageCodeService;
     }
 
     @Override
@@ -61,7 +66,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Transactional
     public String createDraft(String schemaName, List<Field> fields) {
 
-        String draftCode = UUID.randomUUID().toString();
+        String draftCode = storageCodeService.generateStorageName();
         createDraftTable(StorageUtils.toStorageCode(schemaName, draftCode), fields);
         return draftCode;
     }
@@ -331,7 +336,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     private String createVersionTable(String draftCode) {
 
         //todo никак не учитывается Field.unique - уникальность в рамках даты
-        String versionName = UUID.randomUUID().toString();
+        String versionName = storageCodeService.generateStorageName();
         String versionCode = StorageUtils.toStorageCode(toSchemaName(draftCode), versionName);
         dataDao.copyTable(draftCode, versionCode);
 

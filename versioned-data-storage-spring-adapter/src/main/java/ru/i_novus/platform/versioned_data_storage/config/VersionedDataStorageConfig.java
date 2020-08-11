@@ -25,7 +25,7 @@ public class VersionedDataStorageConfig {
     }
 
     @Bean
-    public StorageCodeService storageCodeService() {
+    public StorageCodeService getStorageCodeService() {
         return new StorageCodeServiceImpl();
     }
 
@@ -36,7 +36,7 @@ public class VersionedDataStorageConfig {
 
     @Bean
     public DraftDataService getDraftDataService() {
-        return new DraftDataServiceImpl(dataDao());
+        return new DraftDataServiceImpl(dataDao(), getStorageCodeService());
     }
 
     @Bean
@@ -53,5 +53,4 @@ public class VersionedDataStorageConfig {
     public FieldFactory getFieldFactory(){
         return new FieldFactoryImpl();
     }
-
 }

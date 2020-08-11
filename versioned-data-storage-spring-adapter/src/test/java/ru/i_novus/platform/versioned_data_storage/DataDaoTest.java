@@ -16,6 +16,7 @@ import ru.i_novus.platform.datastorage.temporal.model.value.IntegerFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.StringFieldValue;
 import ru.i_novus.platform.datastorage.temporal.service.FieldFactory;
+import ru.i_novus.platform.datastorage.temporal.service.StorageCodeService;
 import ru.i_novus.platform.versioned_data_storage.config.VersionedDataStorageConfig;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 
@@ -23,7 +24,9 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceException;
 import java.math.BigInteger;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.stream.IntStream;
 
 import static java.util.stream.Collectors.toList;
@@ -65,6 +68,9 @@ public class DataDaoTest {
 
     @Autowired
     private DataDao dataDao;
+
+    @Autowired
+    private StorageCodeService storageCodeService;
 
     @Autowired
     private FieldFactory fieldFactory;
@@ -259,7 +265,7 @@ public class DataDaoTest {
 
     private String newTestTableName() {
 
-        return "data_test_" + UUID.randomUUID().toString();
+        return "data_test_" + storageCodeService.generateStorageName();
     }
 
     private List<Field> newTestFields() {

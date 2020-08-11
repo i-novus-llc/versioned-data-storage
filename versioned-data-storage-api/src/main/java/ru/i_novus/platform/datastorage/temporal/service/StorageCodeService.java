@@ -20,4 +20,11 @@ public interface StorageCodeService {
      * @return Наименование схемы
      */
     String getSchemaName(StorageCodeCriteria criteria);
+
+    /**
+     * Генерация наименования хранилища.
+     *
+     * @return Наименование хранилища
+     */
+    String generateStorageName();
 }

@@ -31,7 +31,7 @@ public class ServiceFactory implements Serializable {
 
     @Produces
     public DraftDataService getDraftDataService() {
-        return new DraftDataServiceImpl(dataDao);
+        return new DraftDataServiceImpl(dataDao, getStorageCodeService());
     }
 
     @Produces
