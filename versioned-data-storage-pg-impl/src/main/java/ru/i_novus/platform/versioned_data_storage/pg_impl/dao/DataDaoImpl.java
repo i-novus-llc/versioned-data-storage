@@ -172,7 +172,8 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    public List<String> getNotExists(String tableName, LocalDateTime bdate, LocalDateTime edate, List<String> hashList) {
+    public List<String> findNonExistentHashes(String tableName, LocalDateTime bdate, LocalDateTime edate,
+                                              List<String> hashList) {
 
         Map<String, Object> params = new HashMap<>();
         String sqlHashArray = "array[" + hashList.stream().map(hash -> {
