@@ -21,6 +21,11 @@ public class DataCriteria extends Criteria {
         super(criteria);
     }
 
+    public boolean hasPageAndSize() {
+
+        return getPage() >= MIN_PAGE && getSize() >= MIN_SIZE;
+    }
+
     public int getOffset() {
 
         if (getPage() < MIN_PAGE || getSize() < MIN_SIZE)

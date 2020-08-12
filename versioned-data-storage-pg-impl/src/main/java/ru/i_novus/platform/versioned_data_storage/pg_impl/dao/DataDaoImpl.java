@@ -78,8 +78,7 @@ public class DataDaoImpl implements DataDao {
         queryWithParams.concat(new QueryWithParams(orderBy, null));
 
         Query query = queryWithParams.createQuery(entityManager);
-        if (criteria.getPage() >= DataCriteria.MIN_PAGE
-                && criteria.getSize() >= DataCriteria.MIN_SIZE) {
+        if (criteria.hasPageAndSize()) {
             query.setFirstResult(criteria.getOffset()).setMaxResults(criteria.getSize());
         }
 
