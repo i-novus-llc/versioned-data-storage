@@ -69,12 +69,11 @@ public class DataDaoImpl implements DataDao {
                 escapeTableName(schemaName, criteria.getTableName()),
                 DEFAULT_TABLE_ALIAS);
 
-        QueryWithParams queryWithParams = new QueryWithParams(sql, null);
+        QueryWithParams queryWithParams = new QueryWithParams(sql);
         queryWithParams.concat(getCriteriaWhereClause(criteria, DEFAULT_TABLE_ALIAS));
 
         Sorting sorting = !isNullOrEmpty(criteria.getSortings()) ? criteria.getSortings().get(0) : null;
-        String orderBy = sortingToOrderBy(sorting, DEFAULT_TABLE_ALIAS);
-        queryWithParams.concat(new QueryWithParams(orderBy, null));
+        queryWithParams.concat(sortingToOrderBy(sorting, DEFAULT_TABLE_ALIAS));
 
         Query query = queryWithParams.createQuery(entityManager);
         if (criteria.hasPageAndSize()) {
@@ -96,7 +95,7 @@ public class DataDaoImpl implements DataDao {
                         escapeTableName(schemaName, criteria.getTableName()),
                         DEFAULT_TABLE_ALIAS);
 
-        QueryWithParams queryWithParams = new QueryWithParams(sql, null);
+        QueryWithParams queryWithParams = new QueryWithParams(sql);
         queryWithParams.concat(getCriteriaWhereClause(criteria, DEFAULT_TABLE_ALIAS));
 
         return (BigInteger) queryWithParams.createQuery(entityManager).getSingleResult();
@@ -199,7 +198,7 @@ public class DataDaoImpl implements DataDao {
         QueryWithParams queryWithParams = new QueryWithParams(sql, params);
 
         if (whereByDates != null) {
-            queryWithParams.concat(whereByDates.params);
+            queryWithParams.concat(whereByDates.getParams());
         }
 
         return queryWithParams.createQuery(entityManager).getResultList();
@@ -260,7 +259,7 @@ public class DataDaoImpl implements DataDao {
 
     private QueryWithParams getWhereClause(StorageDataCriteria criteria, String alias) {
 
-        QueryWithParams query = new QueryWithParams(SELECT_WHERE, null);
+        QueryWithParams query = new QueryWithParams(SELECT_WHERE);
         query.concat(getWhereByDates(criteria.getBdate(), criteria.getEdate(), alias));
         query.concat(getWhereByFts(criteria.getCommonFilter(), alias));
         query.concat(getWhereByFilters(criteria.getFieldFilters(), alias));
@@ -744,7 +743,7 @@ public class DataDaoImpl implements DataDao {
         String sql = String.format(INSERT_RECORD, DATA_SCHEMA_NAME, addDoubleQuotes(draftTable), keys) +
                 String.format(INSERT_SELECT, DATA_SCHEMA_NAME, addDoubleQuotes(sourceTable), DEFAULT_TABLE_ALIAS, values);
 
-        QueryWithParams queryWithParams = new QueryWithParams(sql, null);
+        QueryWithParams queryWithParams = new QueryWithParams(sql);
         queryWithParams.concat(getWhereByDates(fromDate, toDate, DEFAULT_TABLE_ALIAS));
 
         queryWithParams.createQuery(entityManager).executeUpdate();
@@ -1594,8 +1593,8 @@ public class DataDaoImpl implements DataDao {
                 .collect(joining(" and ")) + "\n";
 
         Map<String, Object> params = new HashMap<>();
-        String oldPrimaryValuesFilter = getFieldValuesFilter(oldAlias, params, criteria.getPrimaryFieldsFilters());
-        String newPrimaryValuesFilter = getFieldValuesFilter(newAlias, params, criteria.getPrimaryFieldsFilters());
+        String oldPrimaryValuesFilter = makeFieldValuesFilter(oldAlias, params, criteria.getPrimaryFieldsFilters());
+        String newPrimaryValuesFilter = makeFieldValuesFilter(newAlias, params, criteria.getPrimaryFieldsFilters());
 
         String nonPrimaryFieldsInequality = isEmpty(nonPrimaryFields)
                 ? " and false "
@@ -1781,8 +1780,8 @@ public class DataDaoImpl implements DataDao {
         return defaultValue;
     }
 
-    private String getFieldValuesFilter(String alias, Map<String, Object> params,
-                                        Set<List<FieldSearchCriteria>> fieldFilters) {
+    private String makeFieldValuesFilter(String alias, Map<String, Object> params,
+                                         Set<List<FieldSearchCriteria>> fieldFilters) {
 
         QueryWithParams query = getWhereByFilters(fieldFilters, alias);
         if (query == null || StringUtils.isNullOrEmpty(query.getSql()))
@@ -1793,89 +1792,5 @@ public class DataDaoImpl implements DataDao {
         }
 
         return query.getSql();
-    }
-
-    private static class QueryWithParams {
-
-        private String sql;
-
-        private Map<String, Object> params;
-
-        public QueryWithParams() {
-            this("", new HashMap<>());
-        }
-
-        public QueryWithParams(String sql, Map<String, Object> params) {
-            this.sql = sql;
-            this.params = params;
-        }
-
-        public void concat(String sql) {
-
-            if (StringUtils.isNullOrEmpty(sql))
-                return;
-
-            this.sql = this.sql + " " + sql;
-        }
-
-        public void concat(Map<String, Object> params) {
-
-            if (isNullOrEmpty(params))
-                return;
-
-            if (this.params == null) {
-                this.params = new HashMap<>(params);
-
-            } else {
-                this.params.putAll(params);
-            }
-        }
-
-        public void concat(String sql, Map<String, Object> params) {
-
-            concat(sql);
-            concat(params);
-        }
-
-        public void concat(QueryWithParams queryWithParams) {
-
-            if (queryWithParams == null)
-                return;
-
-            concat(queryWithParams.getSql(), queryWithParams.getParams());
-        }
-
-        public Query createQuery(EntityManager entityManager) {
-
-            Query query = entityManager.createNativeQuery(getSql());
-            fillQueryParameters(query);
-
-            return query;
-        }
-
-        public String getSql() {
-            return sql;
-        }
-
-        public void setSql(String sql) {
-            this.sql = sql;
-        }
-
-        public Map<String, Object> getParams() {
-            return params;
-        }
-
-        public void setParams(Map<String, Object> params) {
-            this.params = params;
-        }
-
-        public void fillQueryParameters(Query query) {
-            if (getParams() == null)
-                return;
-
-            for (Map.Entry<String, Object> entry : getParams().entrySet()) {
-                query = query.setParameter(entry.getKey(), entry.getValue());
-            }
-        }
     }
 }
