@@ -516,8 +516,11 @@ public class DataDaoImpl implements DataDao {
 
         String schemaName = toSchemaName(storageCode);
         String tableName = toTableName(storageCode);
-        if (StringUtils.isNullOrEmpty(tableName))
-            return; // table.name.is.empty
+
+        if (StringUtils.isNullOrEmpty(tableName)) {
+            logger.error("Dropping table name is empty");
+            return;
+        }
 
         String ddl = String.format(DROP_TABLE, schemaName, addDoubleQuotes(tableName));
         entityManager.createNativeQuery(ddl).executeUpdate();
@@ -1191,7 +1194,7 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     public List<String> getEscapedFieldNames(String storageCode) {
-        return getFieldNames(storageCode, SELECT_ESCAPED_FIELD_NAMES + AND_INFO_COLUMN_NOT_IN_SYS_COLUMNS);
+        return getFieldNames(storageCode, SELECT_ESCAPED_FIELD_NAMES + AND_INFO_SCHEMA_COLUMN_NOT_IN_SYS);
     }
 
     @Override
