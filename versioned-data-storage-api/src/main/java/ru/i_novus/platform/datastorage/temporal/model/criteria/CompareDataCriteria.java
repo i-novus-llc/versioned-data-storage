@@ -1,6 +1,5 @@
 package ru.i_novus.platform.datastorage.temporal.model.criteria;
 
-import net.n2oapp.criteria.api.Criteria;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffReturnTypeEnum;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
@@ -9,16 +8,20 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
-public class CompareDataCriteria extends Criteria {
+/** Критерий сравнения данных в хранилищах. */
+public class CompareDataCriteria extends DataCriteria {
+
     private String storageCode;
     private String draftCode;
     private String newStorageCode;
+
     private LocalDateTime baseDataDate;
     private LocalDateTime targetDataDate;
     private LocalDateTime oldPublishDate;
     private LocalDateTime oldCloseDate;
     private LocalDateTime newPublishDate;
     private LocalDateTime newCloseDate;
+
     private List<Field> fields;
     private List<String> primaryFields;
     private DiffStatusEnum status;
@@ -29,7 +32,11 @@ public class CompareDataCriteria extends Criteria {
     public CompareDataCriteria() {
     }
 
-    public CompareDataCriteria(String storageCode, String newStorageCode, LocalDateTime oldPublishDate, LocalDateTime oldCloseDate, LocalDateTime newPublishDate, LocalDateTime newCloseDate, List<Field> fields, List<String> primaryFields, Set<List<FieldSearchCriteria>> primaryFieldsFilters) {
+    public CompareDataCriteria(String storageCode, String newStorageCode,
+                               LocalDateTime oldPublishDate, LocalDateTime oldCloseDate,
+                               LocalDateTime newPublishDate, LocalDateTime newCloseDate,
+                               List<Field> fields, List<String> primaryFields,
+                               Set<List<FieldSearchCriteria>> primaryFieldsFilters) {
         this.storageCode = storageCode;
         this.newStorageCode = newStorageCode;
         this.oldPublishDate = oldPublishDate;

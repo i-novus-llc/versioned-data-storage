@@ -3,7 +3,7 @@ package ru.i_novus.platform.versioned_data_storage.pg_impl.dao;
 import ru.i_novus.platform.datastorage.temporal.model.DataDifference;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.CompareDataCriteria;
-import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageDataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 
@@ -14,9 +14,9 @@ import java.util.Map;
 
 public interface DataDao {
 
-    List<RowValue> getData(DataCriteria criteria);
+    List<RowValue> getData(StorageDataCriteria criteria);
 
-    BigInteger getDataCount(DataCriteria criteria);
+    BigInteger getDataCount(StorageDataCriteria criteria);
 
     RowValue getRowData(String storageCode, List<String> fieldNames, Object systemId);
 

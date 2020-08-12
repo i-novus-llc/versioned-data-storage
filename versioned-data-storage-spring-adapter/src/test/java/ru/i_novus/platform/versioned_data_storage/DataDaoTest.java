@@ -11,7 +11,7 @@ import ru.i_novus.platform.datastorage.temporal.enums.FieldType;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.LongRowValue;
-import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageDataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.value.IntegerFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.StringFieldValue;
@@ -283,7 +283,7 @@ public class DataDaoTest {
 
     private List<RowValue> getData(String schemaName, String tableName, List<Field> fields) {
 
-        DataCriteria criteria = new DataCriteria(tableName, null, null, fields);
+        StorageDataCriteria criteria = new StorageDataCriteria(tableName, null, null, fields);
         criteria.setSchemaName(schemaName);
 
         return dataDao.getData(criteria);

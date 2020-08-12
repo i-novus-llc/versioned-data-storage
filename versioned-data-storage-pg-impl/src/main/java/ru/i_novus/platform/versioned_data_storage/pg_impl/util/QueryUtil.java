@@ -200,17 +200,6 @@ public class QueryUtil {
         }
     }
 
-    public static int getOffset(Criteria criteria) {
-
-        if (criteria == null)
-            return 0;
-
-        if (criteria.getPage() <= 0 || criteria.getSize() <= 0)
-            throw new IllegalStateException("Criteria page and size should be greater than zero");
-
-        return (criteria.getPage() - 1) * criteria.getSize();
-    }
-
     @SuppressWarnings("all")
     public static boolean isVarcharType(String type) {
         return StringField.TYPE.equals(type) || IntegerStringField.TYPE.equals(type);

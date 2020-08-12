@@ -54,7 +54,7 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @SuppressWarnings("unchecked")
-    public List<RowValue> getData(DataCriteria criteria) {
+    public List<RowValue> getData(StorageDataCriteria criteria) {
 
         final String schemaName = getTableSchemaName(criteria.getSchemaName(), criteria.getTableName());
 
@@ -80,7 +80,7 @@ public class DataDaoImpl implements DataDao {
         Query query = queryWithParams.createQuery(entityManager);
         if (criteria.getPage() >= DataCriteria.MIN_PAGE
                 && criteria.getSize() >= DataCriteria.MIN_SIZE) {
-            query.setFirstResult(getOffset(criteria)).setMaxResults(criteria.getSize());
+            query.setFirstResult(criteria.getOffset()).setMaxResults(criteria.getSize());
         }
 
         List<Object[]> resultList = query.getResultList();
@@ -88,7 +88,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    public BigInteger getDataCount(DataCriteria criteria) {
+    public BigInteger getDataCount(StorageDataCriteria criteria) {
 
         final String schemaName = getTableSchemaName(criteria.getSchemaName(), criteria.getTableName());
 
@@ -244,9 +244,9 @@ public class DataDaoImpl implements DataDao {
         return orderBy + " " + formatFieldForQuery(SYS_PRIMARY_COLUMN, alias);
     }
 
-    private QueryWithParams getCriteriaWhereClause(DataCriteria criteria, String alias) {
+    private QueryWithParams getCriteriaWhereClause(StorageDataCriteria criteria, String alias) {
 
-        DataCriteria whereCriteria = new DataCriteria(criteria);
+        StorageDataCriteria whereCriteria = new StorageDataCriteria(criteria);
         if (!isEmpty(criteria.getHashList())) {
             // Поиск только по списку hash:
             Set<List<FieldSearchCriteria>> filters = singleton(singletonList(
@@ -260,7 +260,7 @@ public class DataDaoImpl implements DataDao {
         return getWhereClause(whereCriteria, alias);
     }
 
-    private QueryWithParams getWhereClause(DataCriteria criteria, String alias) {
+    private QueryWithParams getWhereClause(StorageDataCriteria criteria, String alias) {
 
         QueryWithParams query = new QueryWithParams(SELECT_WHERE, null);
         query.concat(getWhereByDates(criteria.getBdate(), criteria.getEdate(), alias));
@@ -1680,7 +1680,7 @@ public class DataDaoImpl implements DataDao {
 
         QueryWithParams dataQueryWithParams = new QueryWithParams(dataSelect + sql + orderBy, params);
         Query dataQuery = dataQueryWithParams.createQuery(entityManager)
-                .setFirstResult(getOffset(criteria))
+                .setFirstResult(criteria.getOffset())
                 .setMaxResults(criteria.getSize());
         List<Object[]> resultList = dataQuery.getResultList();
 

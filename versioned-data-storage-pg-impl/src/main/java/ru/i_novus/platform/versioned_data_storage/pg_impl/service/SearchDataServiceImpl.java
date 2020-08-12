@@ -2,6 +2,7 @@ package ru.i_novus.platform.versioned_data_storage.pg_impl.service;
 
 import net.n2oapp.criteria.api.CollectionPage;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageDataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.SearchDataService;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
@@ -28,7 +29,7 @@ public class SearchDataServiceImpl implements SearchDataService {
     }
 
     @Override
-    public CollectionPage<RowValue> getPagedData(DataCriteria criteria) {
+    public CollectionPage<RowValue> getPagedData(StorageDataCriteria criteria) {
 
         if (criteria.getCount() == null) {
             BigInteger count = dataDao.getDataCount(criteria);
@@ -43,7 +44,7 @@ public class SearchDataServiceImpl implements SearchDataService {
     }
 
     @Override
-    public List<RowValue> getData(DataCriteria criteria) {
+    public List<RowValue> getData(StorageDataCriteria criteria) {
 
         criteria.setPage(DataCriteria.NO_PAGINATION_PAGE);
         criteria.setSize(DataCriteria.NO_PAGINATION_SIZE);
@@ -53,7 +54,7 @@ public class SearchDataServiceImpl implements SearchDataService {
     @Override
     public boolean hasData(String storageCode) {
 
-        DataCriteria criteria = new DataCriteria(storageCode, null, null,
+        StorageDataCriteria criteria = new StorageDataCriteria(storageCode, null, null,
                 emptyList(), emptySet(), null);
         criteria.setCount(1);
         criteria.setPage(DataCriteria.MIN_PAGE);
