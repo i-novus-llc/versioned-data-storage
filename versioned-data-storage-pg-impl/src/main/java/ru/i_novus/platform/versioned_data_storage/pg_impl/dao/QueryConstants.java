@@ -213,34 +213,38 @@ public class QueryConstants {
     private static final String SELECT_ESCAPED_COLUMN_NAME = "SELECT '\"' || column_name || '\"' \n";
     private static final String FROM_INFO_SCHEMA_COLUMNS = "  FROM \"information_schema\".\"columns\" \n";
 
-    private static final String AND_INFO_SCHEMA_NAME = "  AND table_schema = :schemaName \n";
-    private static final String AND_INFO_TABLE_NAME = "  AND table_name = :tableName \n";
-    private static final String AND_INFO_COLUMN_NAME = "  AND column_name = :columnName \n";
-    static final String AND_INFO_COLUMN_NOT_IN_SYS_COLUMNS = "  AND column_name NOT IN (" + SYS_RECORDS_TEXT + ")";
+    private static final String AND_INFO_SCHEMA_SCHEMA_NAME = "  AND table_schema = :schemaName \n";
+    private static final String AND_INFO_SCHEMA_TABLE_NAME = "  AND table_name = :tableName \n";
+    private static final String AND_INFO_SCHEMA_COLUMN_NAME = "  AND column_name = :columnName \n";
+    static final String AND_INFO_SCHEMA_COLUMN_NOT_IN_SYS = "  AND column_name NOT IN (" + SYS_RECORDS_TEXT + ")";
 
     static final String SELECT_ESCAPED_FIELD_NAMES = SELECT_ESCAPED_COLUMN_NAME +
             FROM_INFO_SCHEMA_COLUMNS +
             SELECT_WHERE +
-            AND_INFO_SCHEMA_NAME +
-            AND_INFO_TABLE_NAME;
+            AND_INFO_SCHEMA_SCHEMA_NAME +
+            AND_INFO_SCHEMA_TABLE_NAME;
+
     static final String SELECT_HASH_USED_FIELD_NAMES = SELECT_ESCAPED_COLUMN_NAME +
             "       || (case when data_type = '" + REFERENCE_FIELD_SQL_TYPE + "' then '->>''value''' else '' end)\n" +
             FROM_INFO_SCHEMA_COLUMNS +
             SELECT_WHERE +
-            AND_INFO_SCHEMA_NAME +
-            AND_INFO_TABLE_NAME +
-            AND_INFO_COLUMN_NOT_IN_SYS_COLUMNS;
+            AND_INFO_SCHEMA_SCHEMA_NAME +
+            AND_INFO_SCHEMA_TABLE_NAME +
+            AND_INFO_SCHEMA_COLUMN_NOT_IN_SYS;
+
     public static final String SELECT_FIELD_TYPE = "SELECT data_type \n" +
             FROM_INFO_SCHEMA_COLUMNS +
             SELECT_WHERE +
-            AND_INFO_SCHEMA_NAME +
-            AND_INFO_TABLE_NAME +
-            AND_INFO_COLUMN_NAME;
-    public static final String SELECT_FIELD_NAMES_AND_TYPES = "SELECT column_name, data_type \n" +
+            AND_INFO_SCHEMA_SCHEMA_NAME +
+            AND_INFO_SCHEMA_TABLE_NAME +
+            AND_INFO_SCHEMA_COLUMN_NAME;
+
+    private static final String SELECT_COLUMN_NAME_AND_TYPE = "SELECT column_name, data_type \n";
+    public static final String SELECT_FIELD_NAMES_AND_TYPES = SELECT_COLUMN_NAME_AND_TYPE +
             FROM_INFO_SCHEMA_COLUMNS +
             SELECT_WHERE +
-            AND_INFO_SCHEMA_NAME +
-            AND_INFO_TABLE_NAME;
+            AND_INFO_SCHEMA_SCHEMA_NAME +
+            AND_INFO_SCHEMA_TABLE_NAME;
 
     public static final String SELECT_DDL_INDEXES = "SELECT indexdef \n" +
             "  FROM pg_indexes \n" +
