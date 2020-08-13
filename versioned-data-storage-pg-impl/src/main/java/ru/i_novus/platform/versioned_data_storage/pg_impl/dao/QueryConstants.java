@@ -39,6 +39,7 @@ public class QueryConstants {
     static final String CONDITION_EXISTS = "EXISTS (\n%s)";
     static final String CONDITION_IN = "%1$s IN (%2$s)";
     static final String CONDITION_EQUAL = "%1$s = %2$s";
+    static final String LIKE_ESCAPE_CHAR = "%";
     static final String TO_ANY_BIGINT = "ANY(%s\\:\\:bigint[])";
     static final String TO_ANY_TEXT = "ANY(%s\\:\\:text[])";
 
@@ -75,7 +76,8 @@ public class QueryConstants {
     private static final String FROM_INFO_TABLES = "  FROM \"information_schema\".\"tables\" \n";
     private static final String FROM_INFO_COLUMNS = "  FROM \"information_schema\".\"columns\" \n";
 
-    private static final String AND_INFO_SCHEMA_NAME = "  AND schema_name = :schemaName \n";
+    private static final String AND_INFO_SCHEMA_NAME_EQ = "  AND schema_name = ";
+    private static final String AND_INFO_SCHEMA_NAME = AND_INFO_SCHEMA_NAME_EQ + ":schemaName \n";
     private static final String AND_INFO_TABLE_SCHEMA_NAME = "  AND table_schema = :schemaName \n";
     private static final String AND_INFO_TABLE_NAME = "  AND table_name = :tableName \n";
     private static final String AND_INFO_COLUMN_NAME = "  AND column_name = :columnName \n";
@@ -90,7 +92,8 @@ public class QueryConstants {
 
     public static final String SELECT_EXISTENT_SCHEMA_NAME_LIST = "SELECT schema_name \n" +
             FROM_INFO_SCHEMAS +
-            SELECT_WHERE + " schema_name = ";
+            SELECT_WHERE_DEFAULT +
+            AND_INFO_SCHEMA_NAME_EQ;
 
     public static final String SELECT_TABLE_EXISTS = SELECT_EXISTS_START +
             SELECT_ONE +
@@ -140,7 +143,7 @@ public class QueryConstants {
             " WHERE schemaname = :schemaName \n" +
             "   AND tablename = :tableName \n";
     public static final String AND_DDL_INDEX_NOT_LIKE =
-            "   AND NOT indexdef LIKE '%%%s%%'\n";
+            "   AND NOT indexdef LIKE :notLikeIndexes \n";
 
     static final String DATE_BEGIN = "DATEBEG";
     static final String DATE_END = "DATEEND";

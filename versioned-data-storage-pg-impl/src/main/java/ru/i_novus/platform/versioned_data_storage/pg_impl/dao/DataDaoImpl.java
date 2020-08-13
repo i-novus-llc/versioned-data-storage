@@ -148,8 +148,10 @@ public class DataDaoImpl implements DataDao {
                 QUERY_VALUE_SUBST);
         Query query = entityManager.createNativeQuery(sql);
 
-        String ids = systemIds.stream().map(String::valueOf).collect(joining(","));
-        query.setParameter(1, "{" + ids + "}");
+        String idsArray = systemIds.stream()
+                .map(String::valueOf)
+                .collect(joining(",", "{", "}"));
+        query.setParameter(1, idsArray);
 
         @SuppressWarnings("unchecked")
         List<Object[]> list = query.getResultList();
@@ -391,10 +393,10 @@ public class DataDaoImpl implements DataDao {
         } else if (field instanceof TreeField) {
             if (SearchTypeEnum.LESS.equals(searchCriteria.getType())) {
                 filters.add(" and " + escapedFieldName + "@> (cast(:" + indexedFieldName + " AS ltree[]))");
-                String v = searchCriteria.getValues().stream()
+                String valuesArray = searchCriteria.getValues().stream()
                         .map(Object::toString)
                         .collect(joining(",", "{", "}"));
-                params.put(indexedFieldName, v);
+                params.put(indexedFieldName, valuesArray);
             }
         } else if (field instanceof BooleanField) {
             if (searchCriteria.getValues().size() == 1) {
@@ -405,7 +407,8 @@ public class DataDaoImpl implements DataDao {
         } else if (field instanceof StringField) {
             if (SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && searchCriteria.getValues().size() == 1) {
                 filters.add(" and lower(" + escapedFieldName + ") like :" + indexedFieldName + "");
-                params.put(indexedFieldName, "%" + searchCriteria.getValues().get(0).toString().trim().toLowerCase() + "%");
+                String value = searchCriteria.getValues().get(0).toString().trim().toLowerCase();
+                params.put(indexedFieldName, LIKE_ESCAPE_CHAR + value + LIKE_ESCAPE_CHAR);
             } else {
                 filters.add(" and " + escapedFieldName + " in (:" + indexedFieldName + ")");
                 params.put(indexedFieldName, searchCriteria.getValues());
@@ -556,15 +559,21 @@ public class DataDaoImpl implements DataDao {
         if (isNullOrEmpty(schemaNames))
             return emptyList();
 
-        String condition = String.format(TO_ANY_TEXT, QUERY_VALUE_SUBST);
+        String condition = String.format(TO_ANY_TEXT, ":" + BIND_INFO_SCHEMA_NAME);
         String sql = SELECT_EXISTENT_SCHEMA_NAME_LIST + condition;
 
         Query query = entityManager.createNativeQuery(sql);
-        query.setParameter(1, "{" + String.join(",", schemaNames) + "}");
+        query.setParameter(BIND_INFO_SCHEMA_NAME, valuesToDbArray(schemaNames));
 
         @SuppressWarnings("unchecked")
         List<String> list = query.getResultList();
         return !isNullOrEmpty(list) ? list : emptyList();
+    }
+
+    /** Преобразование списка строковых значений в БД-строку-массив. */
+    private String valuesToDbArray(List<String> values) {
+
+        return "{" + String.join(",", values) + "}";
     }
 
     @Override
@@ -628,11 +637,12 @@ public class DataDaoImpl implements DataDao {
         String sourceSchema = toSchemaName(sourceCode);
         String sourceTable = toTableName(sourceCode);
 
-        String sql = SELECT_DDL_INDEXES +
-                String.format(AND_DDL_INDEX_NOT_LIKE, addDoubleQuotes(SYS_HASH));
+        final String notLikeIndexes = LIKE_ESCAPE_CHAR + addDoubleQuotes(SYS_HASH) + LIKE_ESCAPE_CHAR;
+        String sql = SELECT_DDL_INDEXES + AND_DDL_INDEX_NOT_LIKE;
         List<String> ddlIndexes = entityManager.createNativeQuery(sql)
                 .setParameter(BIND_INFO_SCHEMA_NAME, sourceSchema)
                 .setParameter(BIND_INFO_TABLE_NAME, sourceTable)
+                .setParameter("notLikeIndexes", notLikeIndexes)
                 .getResultList();
 
         String targetSchema = toSchemaName(targetCode);
