@@ -18,6 +18,11 @@ public class QueryConstants {
     public static final String DEFAULT_TABLE_ALIAS = "d";
     static final String TRIGGER_NEW_ALIAS = "NEW";
 
+    // Специальные выражения в запросах.
+    static final String QUERY_NEW_LINE = " \n";
+    static final String QUERY_BIND_CHAR = ":";
+    static final String QUERY_NULL_VALUE = "null";
+
     static final String SELECT_ONE = "SELECT 1 \n";
     static final String SELECT_COUNT_ONLY = "SELECT count(*) \n";
     static final String SELECT_EXISTS_START = "SELECT EXISTS(\n";
@@ -28,7 +33,7 @@ public class QueryConstants {
     static final String SELECT_WHERE = " WHERE ";
     static final String SELECT_ORDER = " ORDER BY ";
 
-    static final String SELECT_WHERE_DEFAULT = SELECT_WHERE + WHERE_DEFAULT + " \n";
+    static final String SELECT_WHERE_DEFAULT = SELECT_WHERE + WHERE_DEFAULT + QUERY_NEW_LINE;
     private static final String ORDER_BY_ONE_FIELD = SELECT_ORDER + " %1$s.\"%2$s\" \n";
     private static final String SELECT_LIMIT = " LIMIT ${limit}";
     private static final String SELECT_OFFSET = " OFFSET ${offset}";
@@ -39,15 +44,14 @@ public class QueryConstants {
     static final String CONDITION_EXISTS = "EXISTS (\n%s)";
     static final String CONDITION_IN = "%1$s IN (%2$s)";
     static final String CONDITION_EQUAL = "%1$s = %2$s";
-    static final String LIKE_ESCAPE_CHAR = "%";
+    static final String LIKE_ESCAPE_MANY_CHAR = "%";
     static final String TO_ANY_BIGINT = "ANY(%s\\:\\:bigint[])";
     static final String TO_ANY_TEXT = "ANY(%s\\:\\:text[])";
 
     private static final String SUBQUERY_INDENT = "       ";
     private static final String ROUTINE_INDENT = "    ";
 
-    // Специальные выражения в запросах.
-    static final String QUERY_NULL_VALUE = "null";
+    // Подстановки в запросах.
     static final String QUERY_VALUE_SUBST = "?";
     static final String QUERY_LTREE_SUBST = QUERY_VALUE_SUBST + "\\:\\:ltree";
 
@@ -76,11 +80,9 @@ public class QueryConstants {
     private static final String FROM_INFO_TABLES = "  FROM \"information_schema\".\"tables\" \n";
     private static final String FROM_INFO_COLUMNS = "  FROM \"information_schema\".\"columns\" \n";
 
-    private static final String AND_INFO_SCHEMA_NAME_EQ = "  AND schema_name = ";
-    private static final String AND_INFO_SCHEMA_NAME = AND_INFO_SCHEMA_NAME_EQ + ":schemaName \n";
+    private static final String AND_INFO_SCHEMA_NAME = "  AND schema_name = :schemaName \n";
     private static final String AND_INFO_TABLE_NAME = "  AND table_name = :tableName \n";
-    private static final String AND_INFO_TABLE_SCHEMA_NAME_EQ = "  AND table_schema = ";
-    private static final String AND_INFO_TABLE_SCHEMA_NAME = AND_INFO_TABLE_SCHEMA_NAME_EQ + ":schemaName \n";
+    private static final String AND_INFO_TABLE_SCHEMA_NAME = "  AND table_schema = :schemaName \n";
     private static final String AND_INFO_COLUMN_NAME = "  AND column_name = :columnName \n";
     static final String AND_INFO_COLUMN_NOT_IN_SYS_LIST = "  AND column_name NOT IN (" + SYS_RECORDS_TEXT + ")";
 
@@ -94,7 +96,7 @@ public class QueryConstants {
     public static final String SELECT_EXISTENT_SCHEMA_NAME_LIST = "SELECT schema_name \n" +
             FROM_INFO_SCHEMAS +
             SELECT_WHERE_DEFAULT +
-            AND_INFO_SCHEMA_NAME_EQ;
+            "  AND schema_name = ";
 
     public static final String SELECT_TABLE_EXISTS = SELECT_EXISTS_START +
             SELECT_ONE +
@@ -108,7 +110,7 @@ public class QueryConstants {
             FROM_INFO_TABLES +
             SELECT_WHERE_DEFAULT +
             AND_INFO_TABLE_NAME +
-            AND_INFO_TABLE_SCHEMA_NAME_EQ;
+            "  AND table_schema = ";
 
     private static final String SELECT_ESCAPED_COLUMN_NAME = "SELECT '\"' || column_name || '\"' \n";
     private static final String SELECT_COLUMN_NAME_AND_TYPE = "SELECT column_name, data_type \n";

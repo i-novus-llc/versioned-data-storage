@@ -183,7 +183,7 @@ public class DataDaoImpl implements DataDao {
         String sqlHashArray = "array[" + hashList.stream().map(hash -> {
             String hashPlaceHolder = "hash" + params.size();
             params.put(hashPlaceHolder, hash);
-            return ":" + hashPlaceHolder;
+            return QUERY_BIND_CHAR + hashPlaceHolder;
         }).collect(joining(",")) + "]";
 
         QueryWithParams whereByDates = getWhereByDates(bdate, edate, DEFAULT_TABLE_ALIAS);
@@ -194,9 +194,9 @@ public class DataDaoImpl implements DataDao {
                 "    SELECT unnest(" + sqlHashArray + ") hash \n" +
                 "  ) hashes \n" +
                 " WHERE hash NOT IN ( \n" +
-                "   SELECT " + addDoubleQuotes(SYS_HASH) + " \n" +
+                "   SELECT " + addDoubleQuotes(SYS_HASH) + QUERY_NEW_LINE +
                 "     FROM " + escapeTableName(DATA_SCHEMA_NAME, tableName) +
-                ALIAS_OPERATOR + DEFAULT_TABLE_ALIAS + " \n" +
+                ALIAS_OPERATOR + DEFAULT_TABLE_ALIAS + QUERY_NEW_LINE +
                 "    WHERE " + WHERE_DEFAULT +
                 "   " + sqlByDate +
                 " )";
@@ -408,7 +408,7 @@ public class DataDaoImpl implements DataDao {
             if (SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && searchCriteria.getValues().size() == 1) {
                 filters.add(" and lower(" + escapedFieldName + ") like :" + indexedFieldName + "");
                 String value = searchCriteria.getValues().get(0).toString().trim().toLowerCase();
-                params.put(indexedFieldName, LIKE_ESCAPE_CHAR + value + LIKE_ESCAPE_CHAR);
+                params.put(indexedFieldName, LIKE_ESCAPE_MANY_CHAR + value + LIKE_ESCAPE_MANY_CHAR);
             } else {
                 filters.add(" and " + escapedFieldName + " in (:" + indexedFieldName + ")");
                 params.put(indexedFieldName, searchCriteria.getValues());
@@ -559,7 +559,7 @@ public class DataDaoImpl implements DataDao {
         if (isNullOrEmpty(schemaNames))
             return emptyList();
 
-        String condition = String.format(TO_ANY_TEXT, ":" + BIND_INFO_SCHEMA_NAME);
+        String condition = String.format(TO_ANY_TEXT, QUERY_BIND_CHAR + BIND_INFO_SCHEMA_NAME);
         String sql = SELECT_EXISTENT_SCHEMA_NAME_LIST + condition;
 
         Query query = entityManager.createNativeQuery(sql);
@@ -577,7 +577,7 @@ public class DataDaoImpl implements DataDao {
         if (isNullOrEmpty(schemaNames))
             return emptyList();
 
-        String condition = String.format(TO_ANY_TEXT, ":" + BIND_INFO_SCHEMA_NAME);
+        String condition = String.format(TO_ANY_TEXT, QUERY_BIND_CHAR + BIND_INFO_SCHEMA_NAME);
         String sql = SELECT_EXISTENT_TABLE_SCHEMA_NAME_LIST + condition;
 
         Query query = entityManager.createNativeQuery(sql);
@@ -656,7 +656,7 @@ public class DataDaoImpl implements DataDao {
         String sourceSchema = toSchemaName(sourceCode);
         String sourceTable = toTableName(sourceCode);
 
-        final String notLikeIndexes = LIKE_ESCAPE_CHAR + addDoubleQuotes(SYS_HASH) + LIKE_ESCAPE_CHAR;
+        final String notLikeIndexes = LIKE_ESCAPE_MANY_CHAR + addDoubleQuotes(SYS_HASH) + LIKE_ESCAPE_MANY_CHAR;
         String sql = SELECT_DDL_INDEXES + AND_DDL_INDEX_NOT_LIKE;
         List<String> ddlIndexes = entityManager.createNativeQuery(sql)
                 .setParameter(BIND_INFO_SCHEMA_NAME, sourceSchema)
