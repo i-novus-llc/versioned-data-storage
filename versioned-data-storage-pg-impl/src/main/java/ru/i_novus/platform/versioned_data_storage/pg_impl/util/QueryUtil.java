@@ -1,6 +1,5 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.util;
 
-import net.n2oapp.criteria.api.Criteria;
 import org.apache.commons.text.StringSubstitutor;
 import ru.i_novus.platform.datastorage.temporal.enums.ReferenceDisplayType;
 import ru.i_novus.platform.datastorage.temporal.model.*;
@@ -186,11 +185,12 @@ public class QueryUtil {
             alias = alias + NAME_SEPARATOR;
         }
 
+        // Изменить на поиск конца наименования поля.
         if (field.contains(REFERENCE_FIELD_VALUE_OPERATOR)) {
-            String[] queryParts = field.split(REFERENCE_FIELD_VALUE_OPERATOR);
+            String[] fieldParts = field.split(REFERENCE_FIELD_VALUE_OPERATOR);
 
-            return alias + addDoubleQuotes(queryParts[0]) +
-                    REFERENCE_FIELD_VALUE_OPERATOR + queryParts[1];
+            return alias + addDoubleQuotes(fieldParts[0]) +
+                    REFERENCE_FIELD_VALUE_OPERATOR + fieldParts[1];
         } else {
             return alias + addDoubleQuotes(field);
         }

@@ -45,7 +45,7 @@ public interface DataDao {
 
     void addColumn(String storageCode, String name, String type, String defaultValue);
 
-    void deleteColumn(String storageCode, String field);
+    void deleteColumn(String storageCode, String name);
 
     void insertData(String storageCode, List<RowValue> data);
 
@@ -140,6 +140,7 @@ public interface DataDao {
                                 int offset, int limit,
                                 LocalDateTime publishTime, LocalDateTime closeTime);
 
+    /** Удаление записей с совпадающими датами */
     void deletePointRows(String targetCode);
 
     DataDifference getDataDifference(CompareDataCriteria criteria);

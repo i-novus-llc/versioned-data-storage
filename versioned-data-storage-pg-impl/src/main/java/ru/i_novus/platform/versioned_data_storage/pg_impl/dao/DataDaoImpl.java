@@ -175,6 +175,8 @@ public class DataDaoImpl implements DataDao {
     public List<String> findNonExistentHashes(String tableName, LocalDateTime bdate, LocalDateTime edate,
                                               List<String> hashList) {
 
+        // Переделать на = ANY() для ускорения.
+        // Получить те хеши, которые есть, и исключить их из всего списка.
         Map<String, Object> params = new HashMap<>();
         String sqlHashArray = "array[" + hashList.stream().map(hash -> {
             String hashPlaceHolder = "hash" + params.size();
@@ -608,7 +610,8 @@ public class DataDaoImpl implements DataDao {
         String sourceSchema = toSchemaName(sourceCode);
         String sourceTable = toTableName(sourceCode);
 
-        String sql = SELECT_DDL_INDEXES + AND_NOT_SYS_HASH_DDL_INDEX;
+        String sql = SELECT_DDL_INDEXES +
+                String.format(AND_DDL_INDEX_NOT_LIKE, addDoubleQuotes(SYS_HASH));
         List<String> ddlIndexes = entityManager.createNativeQuery(sql)
                 .setParameter(BIND_INFO_SCHEMA_NAME, sourceSchema)
                 .setParameter(BIND_INFO_TABLE_NAME, sourceTable)
@@ -632,19 +635,21 @@ public class DataDaoImpl implements DataDao {
 
         String condition = (defaultValue != null) ? String.format(COLUMN_DEFAULT, defaultValue) : "";
         String ddl = String.format(ALTER_ADD_COLUMN,
-                toSchemaName(storageCode), toTableName(storageCode), name, type, condition);
+                toSchemaName(storageCode), addDoubleQuotes(toTableName(storageCode)),
+                addDoubleQuotes(name), type, condition);
 
         entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
     @Override
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void deleteColumn(String storageCode, String field) {
+    public void deleteColumn(String storageCode, String name) {
 
         String schemaName = toSchemaName(storageCode);
         String tableName = toTableName(storageCode);
 
-        String ddl = String.format(ALTER_DELETE_COLUMN, schemaName, tableName, field);
+        String ddl = String.format(ALTER_DELETE_COLUMN,
+                schemaName, addDoubleQuotes(tableName), addDoubleQuotes(name));
         entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
@@ -652,11 +657,11 @@ public class DataDaoImpl implements DataDao {
     @Transactional
     public void insertData(String storageCode, List<RowValue> data) {
 
-        String schemaName = toSchemaName(storageCode);
-        String tableName = toTableName(storageCode);
-
         if (isEmpty(data))
             return;
+
+        String schemaName = toSchemaName(storageCode);
+        String tableName = toTableName(storageCode);
 
         List<FieldValue> fieldValues = data.get(0).getFieldValues();
         List<String> insertKeyList = fieldValues.stream()
@@ -1192,7 +1197,7 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     public List<String> getEscapedFieldNames(String storageCode) {
-        return getFieldNames(storageCode, SELECT_ESCAPED_FIELD_NAMES + AND_INFO_SCHEMA_COLUMN_NOT_IN_SYS);
+        return getFieldNames(storageCode, SELECT_ESCAPED_FIELD_NAMES + AND_INFO_COLUMN_NOT_IN_SYS_LIST);
     }
 
     @Override
@@ -1545,8 +1550,10 @@ public class DataDaoImpl implements DataDao {
 
         String tableName = toTableName(targetCode);
 
+        String condition = String.format(CONDITION_EQUAL,
+                addDoubleQuotes(SYS_PUBLISHTIME), addDoubleQuotes(SYS_CLOSETIME));
         String sql = String.format(DELETE_RECORD,
-                toSchemaName(targetCode), addDoubleQuotes(tableName), CONDITION_POINT_DATED);
+                toSchemaName(targetCode), addDoubleQuotes(tableName), condition);
 
         if (logger.isDebugEnabled()) {
             logger.debug("deletePointRows method sql: {}", sql);

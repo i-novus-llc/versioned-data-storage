@@ -1,11 +1,6 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.dao;
 
-import ru.i_novus.platform.datastorage.temporal.util.StringUtils;
-
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
 import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addDoubleQuotes;
@@ -19,6 +14,38 @@ public class QueryConstants {
 
     public static final int TRANSACTION_ROW_LIMIT = 1000;
 
+    public static final String ALIAS_OPERATOR = " as ";
+    public static final String DEFAULT_TABLE_ALIAS = "d";
+    static final String TRIGGER_NEW_ALIAS = "NEW";
+
+    static final String SELECT_ONE = "SELECT 1 \n";
+    static final String SELECT_COUNT_ONLY = "SELECT count(*) \n";
+    static final String SELECT_EXISTS_START = "SELECT EXISTS(\n";
+    static final String SELECT_EXISTS_END = ")";
+
+    static final String WHERE_DEFAULT = " true"; // 1 = 1
+    static final String SELECT_FROM = "  FROM ";
+    static final String SELECT_WHERE = " WHERE " + WHERE_DEFAULT + " \n";
+    static final String SELECT_ORDER = " ORDER BY ";
+
+    private static final String ORDER_BY_ONE_FIELD = SELECT_ORDER + " %1$s.\"%2$s\" \n";
+    private static final String SELECT_LIMIT = " LIMIT ${limit}";
+    private static final String SELECT_OFFSET = " OFFSET ${offset}";
+
+    static final String CONDITION_EXISTS = "EXISTS (\n%s)";
+    static final String CONDITION_IN = "%1$s IN (%2$s)";
+    static final String CONDITION_EQUAL = "%1$s = %2$s";
+    static final String CONDITION_ANY_BIGINT = "%1$s = ANY(%2$s\\:\\:bigint[])";
+    static final String CONDITION_ANY_TEXT = "%1$s = ANY(%2$s\\:\\:text[])";
+
+    private static final String SUBQUERY_INDENT = "       ";
+    private static final String ROUTINE_INDENT = "    ";
+
+    // Специальные выражения в запросах.
+    static final String QUERY_NULL_VALUE = "null";
+    static final String QUERY_VALUE_SUBST = "?";
+    static final String QUERY_LTREE_SUBST = QUERY_VALUE_SUBST + "\\:\\:ltree";
+
     // Формат даты для использования в запросах.
     static final String DATE_FORMAT_FOR_INSERT_ROW = "yyyy-MM-dd";
     static final String QUERY_DATE_FORMAT = "DD.MM.YYYY";
@@ -28,26 +55,6 @@ public class QueryConstants {
     public static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern(DATETIME_FORMAT);
     static final String QUERY_TIMESTAMP_FORMAT = "YYYY-MM-DD HH24:MI:SS";
 
-    public static final String ALIAS_OPERATOR = " as ";
-    public static final String DEFAULT_TABLE_ALIAS = "d";
-    static final String TRIGGER_NEW_ALIAS = "NEW";
-
-    private static final List<String> SYS_RECORD_LIST = Arrays.asList(SYS_PRIMARY_COLUMN,
-            SYS_PUBLISHTIME, SYS_CLOSETIME,
-            SYS_HASH, SYS_PATH, SYS_FTS
-    );
-    private static final String SYS_RECORDS_TEXT = SYS_RECORD_LIST.stream()
-            .map(StringUtils::addSingleQuotes)
-            .collect(Collectors.joining(", "));
-
-    static final String DATE_BEGIN = "DATEBEG";
-    static final String DATE_END = "DATEEND";
-    static final String HAS_CHILD_BRANCH = "SYS_HAS_CHILD_BRANCH";
-
-    static final String QUERY_NULL_VALUE = "null";
-    static final String QUERY_VALUE_SUBST = "?";
-    static final String QUERY_LTREE_SUBST = QUERY_VALUE_SUBST + "\\:\\:ltree";
-
     public static final String MIN_TIMESTAMP_VALUE = "'-infinity'";
     public static final String MAX_TIMESTAMP_VALUE = "'infinity'";
     public static final String TO_TIMESTAMP = "to_timestamp(%s, '" + QUERY_TIMESTAMP_FORMAT + "')";
@@ -56,16 +63,80 @@ public class QueryConstants {
     public static final String REFERENCE_FIELD_SQL_TYPE = "jsonb";
     public static final String REFERENCE_FIELD_VALUE_OPERATOR = "->>";
 
-    static final String SELECT_COUNT_ONLY = "SELECT count(*)\n";
-    static final String WHERE_DEFAULT = " true"; // 1 = 1
-    static final String SELECT_FROM = "  FROM ";
-    static final String SELECT_WHERE = " WHERE" + WHERE_DEFAULT + "\n";
-    static final String SELECT_ORDER = " ORDER BY ";
-    private static final String ORDER_BY_ONE_FIELD = SELECT_ORDER + " %1$s.\"%2$s\"\n";
-    private static final String SELECT_LIMIT = " LIMIT ${limit}";
-    private static final String SELECT_OFFSET = " OFFSET ${offset}";
-    private static final String SUBQUERY_INDENT = "       ";
-    private static final String ROUTINE_INDENT = "    ";
+    static final String BIND_INFO_SCHEMA_NAME = "schemaName";
+    static final String BIND_INFO_TABLE_NAME = "tableName";
+    static final String BIND_INFO_COLUMN_NAME = "columnName";
+
+    private static final String FROM_INFO_SCHEMAS = "  FROM \"information_schema\".\"schemata\" \n";
+    private static final String FROM_INFO_TABLES = "  FROM \"information_schema\".\"tables\" \n";
+    private static final String FROM_INFO_COLUMNS = "  FROM \"information_schema\".\"columns\" \n";
+
+    private static final String AND_INFO_SCHEMA_NAME = "  AND schema_name = :schemaName \n";
+    private static final String AND_INFO_TABLE_SCHEMA_NAME = "  AND table_schema = :schemaName \n";
+    private static final String AND_INFO_TABLE_NAME = "  AND table_name = :tableName \n";
+    private static final String AND_INFO_COLUMN_NAME = "  AND column_name = :columnName \n";
+    static final String AND_INFO_COLUMN_NOT_IN_SYS_LIST = "  AND column_name NOT IN (" + SYS_RECORDS_TEXT + ")";
+
+    public static final String SELECT_SCHEMA_EXISTS = SELECT_EXISTS_START +
+            SELECT_ONE +
+            FROM_INFO_SCHEMAS +
+            SELECT_WHERE +
+            AND_INFO_SCHEMA_NAME +
+            SELECT_EXISTS_END;
+
+    public static final String SELECT_TABLE_EXISTS = SELECT_EXISTS_START +
+            SELECT_ONE +
+            FROM_INFO_TABLES +
+            SELECT_WHERE +
+            AND_INFO_TABLE_SCHEMA_NAME +
+            AND_INFO_TABLE_NAME +
+            SELECT_EXISTS_END;
+
+    private static final String SELECT_ESCAPED_COLUMN_NAME = "SELECT '\"' || column_name || '\"' \n";
+    private static final String SELECT_COLUMN_NAME_AND_TYPE = "SELECT column_name, data_type \n";
+    // Часть для получения значения поля специального типа.
+    private static final String INFO_COLUMN_VALUE_SUFFIX = "(case " +
+            " when data_type = " + addSingleQuotes(REFERENCE_FIELD_SQL_TYPE) +
+            " then " + addSingleQuotes(REFERENCE_FIELD_VALUE_OPERATOR +
+            addSingleQuotes(addSingleQuotes(REFERENCE_VALUE_NAME))) +
+            " else '' end)";
+
+    static final String SELECT_ESCAPED_FIELD_NAMES = SELECT_ESCAPED_COLUMN_NAME +
+            FROM_INFO_COLUMNS +
+            SELECT_WHERE +
+            AND_INFO_TABLE_SCHEMA_NAME +
+            AND_INFO_TABLE_NAME;
+
+    static final String SELECT_HASH_USED_FIELD_NAMES = SELECT_ESCAPED_COLUMN_NAME + " || " + INFO_COLUMN_VALUE_SUFFIX +
+            FROM_INFO_COLUMNS +
+            SELECT_WHERE +
+            AND_INFO_TABLE_SCHEMA_NAME +
+            AND_INFO_TABLE_NAME +
+            AND_INFO_COLUMN_NOT_IN_SYS_LIST;
+
+    public static final String SELECT_FIELD_TYPE = "SELECT data_type \n" +
+            FROM_INFO_COLUMNS +
+            SELECT_WHERE +
+            AND_INFO_TABLE_SCHEMA_NAME +
+            AND_INFO_TABLE_NAME +
+            AND_INFO_COLUMN_NAME;
+
+    public static final String SELECT_FIELD_NAMES_AND_TYPES = SELECT_COLUMN_NAME_AND_TYPE +
+            FROM_INFO_COLUMNS +
+            SELECT_WHERE +
+            AND_INFO_TABLE_SCHEMA_NAME +
+            AND_INFO_TABLE_NAME;
+
+    public static final String SELECT_DDL_INDEXES = "SELECT indexdef \n" +
+            "  FROM pg_indexes \n" +
+            " WHERE schemaname = :schemaName \n" +
+            "   AND tablename = :tableName \n";
+    public static final String AND_DDL_INDEX_NOT_LIKE =
+            "   AND NOT indexdef LIKE '%%%s%%'\n";
+
+    static final String DATE_BEGIN = "DATEBEG";
+    static final String DATE_END = "DATEEND";
+    static final String HAS_CHILD_BRANCH = "SYS_HAS_CHILD_BRANCH";
 
     private static final String COALESCE_PUBLISH_TIME_FIELD = "coalesce(%s.\"%s\", '-infinity')";
     private static final String COALESCE_CLOSE_TIME_FIELD = "coalesce(%s.\"%s\", 'infinity')";
@@ -143,9 +214,9 @@ public class QueryConstants {
     static final String ASSIGN_FIELD = "%1$s = %2$s";
     static final String UPDATE_FIELD = "UPDATE %1$s.%2$s SET %3$s;";
 
-    static final String ALTER_ADD_COLUMN = "ALTER TABLE %1$s.\"%2$s\" ADD COLUMN \"%3$s\" %4$s %5$s;";
+    static final String ALTER_ADD_COLUMN = "ALTER TABLE %1$s.%2$s ADD COLUMN %3$s %4$s %5$s;";
     static final String COLUMN_DEFAULT = "DEFAULT %s";
-    static final String ALTER_DELETE_COLUMN = "ALTER TABLE %1$s.\"%2$s\" DROP COLUMN \"%3$s\" CASCADE;";
+    static final String ALTER_DELETE_COLUMN = "ALTER TABLE %1$s.%2$s DROP COLUMN %3$s CASCADE;";
     static final String ALTER_COLUMN_WITH_USING = "ALTER TABLE %1$s.%2$s ALTER COLUMN %3$s SET DATA TYPE %4$s USING %5$s";
 
     static final String INSERT_RECORD = "INSERT INTO %1$s.%2$s (%3$s)\n";
@@ -154,11 +225,6 @@ public class QueryConstants {
     static final String DELETE_RECORD = "DELETE FROM %1$s.%2$s WHERE %3$s";
     static final String UPDATE_RECORD = "UPDATE %1$s.%2$s as %3$s SET %4$s WHERE %5$s";
     static final String UPDATE_VALUE = "%1$s = %2$s";
-
-    static final String CONDITION_IN = "%1$s IN (%2$s)";
-    static final String CONDITION_EQUAL = "%1$s = %2$s";
-    static final String CONDITION_ANY_BIGINT = "%1$s = ANY(%2$s\\:\\:bigint[])";
-    static final String CONDITION_POINT_DATED = " \"SYS_PUBLISHTIME\" = \"SYS_CLOSETIME\" ";
 
     private static final String AND_EXISTS_VERSION_REF_VALUE = "   AND ${versionAlias}.${refFieldName} is not null \n" +
             "   AND (${versionAlias}.${refFieldName} -> 'value') is not null \n";
@@ -192,66 +258,6 @@ public class QueryConstants {
     public static final String IS_FIELD_NOT_EMPTY = "SELECT exists(SELECT * FROM data.%s WHERE %s.%s IS NOT NULL);";
     public static final String IS_FIELD_CONTAIN_EMPTY_VALUES = "SELECT exists(SELECT * FROM data.%s WHERE %s.%s IS NULL);";
     public static final String IS_RELATED_VALUE_EXIST = "SELECT exists(SELECT * FROM data.%s where %s.%s = %s)";
-
-    static final String BIND_INFO_SCHEMA_NAME = "schemaName";
-    static final String BIND_INFO_TABLE_NAME = "tableName";
-    static final String BIND_INFO_COLUMN_NAME = "columnName";
-
-    public static final String SELECT_SCHEMA_EXISTS = "SELECT EXISTS(\n" +
-            "  SELECT 1 \n" +
-            "    FROM \"information_schema\".\"schemata\" \n" +
-            "   WHERE schema_name = :schemaName \n" +
-            ")";
-
-    public static final String SELECT_TABLE_EXISTS = "SELECT EXISTS(\n" +
-            "  SELECT 1 \n" +
-            "    FROM \"information_schema\".\"tables\" \n" +
-            "   WHERE table_schema = :schemaName \n" +
-            "     AND table_name = :tableName \n" +
-            ")";
-
-    private static final String SELECT_ESCAPED_COLUMN_NAME = "SELECT '\"' || column_name || '\"' \n";
-    private static final String FROM_INFO_SCHEMA_COLUMNS = "  FROM \"information_schema\".\"columns\" \n";
-
-    private static final String AND_INFO_SCHEMA_SCHEMA_NAME = "  AND table_schema = :schemaName \n";
-    private static final String AND_INFO_SCHEMA_TABLE_NAME = "  AND table_name = :tableName \n";
-    private static final String AND_INFO_SCHEMA_COLUMN_NAME = "  AND column_name = :columnName \n";
-    static final String AND_INFO_SCHEMA_COLUMN_NOT_IN_SYS = "  AND column_name NOT IN (" + SYS_RECORDS_TEXT + ")";
-
-    static final String SELECT_ESCAPED_FIELD_NAMES = SELECT_ESCAPED_COLUMN_NAME +
-            FROM_INFO_SCHEMA_COLUMNS +
-            SELECT_WHERE +
-            AND_INFO_SCHEMA_SCHEMA_NAME +
-            AND_INFO_SCHEMA_TABLE_NAME;
-
-    static final String SELECT_HASH_USED_FIELD_NAMES = SELECT_ESCAPED_COLUMN_NAME +
-            "       || (case when data_type = '" + REFERENCE_FIELD_SQL_TYPE + "' then '->>''value''' else '' end)\n" +
-            FROM_INFO_SCHEMA_COLUMNS +
-            SELECT_WHERE +
-            AND_INFO_SCHEMA_SCHEMA_NAME +
-            AND_INFO_SCHEMA_TABLE_NAME +
-            AND_INFO_SCHEMA_COLUMN_NOT_IN_SYS;
-
-    public static final String SELECT_FIELD_TYPE = "SELECT data_type \n" +
-            FROM_INFO_SCHEMA_COLUMNS +
-            SELECT_WHERE +
-            AND_INFO_SCHEMA_SCHEMA_NAME +
-            AND_INFO_SCHEMA_TABLE_NAME +
-            AND_INFO_SCHEMA_COLUMN_NAME;
-
-    private static final String SELECT_COLUMN_NAME_AND_TYPE = "SELECT column_name, data_type \n";
-    public static final String SELECT_FIELD_NAMES_AND_TYPES = SELECT_COLUMN_NAME_AND_TYPE +
-            FROM_INFO_SCHEMA_COLUMNS +
-            SELECT_WHERE +
-            AND_INFO_SCHEMA_SCHEMA_NAME +
-            AND_INFO_SCHEMA_TABLE_NAME;
-
-    public static final String SELECT_DDL_INDEXES = "SELECT indexdef \n" +
-            "  FROM pg_indexes \n" +
-            " WHERE schemaname = :schemaName \n" +
-            "   AND tablename = :tableName \n";
-    public static final String AND_NOT_SYS_HASH_DDL_INDEX =
-            "   AND NOT indexdef LIKE '%" + addDoubleQuotes(SYS_HASH)  + "%'\n";
 
     static final String CREATE_TABLE_INDEX = "CREATE INDEX %1$s ON %2$s.%3$s(%4$s);";
     static final String DROP_TABLE_INDEX = "DROP INDEX IF EXISTS %1$s.%2$s;";
@@ -576,10 +582,5 @@ public class QueryConstants {
     public static final String INSERT_FROM_SELECT_ACTUAL_DATA = "INSERT INTO data.%1$s(%2$s) SELECT %2$s FROM data.%3$s WHERE \"SYS_CLOSETIME\" IS NULL;";
 
     private QueryConstants() {
-    }
-
-    // NB: Workaround to sonar issue "squid-S2386".
-    public static List<String> systemFieldList() {
-        return SYS_RECORD_LIST;
     }
 }
