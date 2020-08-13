@@ -40,7 +40,9 @@ import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addSingl
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.HASH_EXPRESSION;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = {JpaTestConfig.class, VersionedDataStorageConfig.class})
+@ContextConfiguration(classes = {
+        JpaTestConfig.class, VersionedDataStorageConfig.class
+})
 public class DataDaoTest {
 
     private static final String TEST_SCHEMA_NAME = "data_test";
