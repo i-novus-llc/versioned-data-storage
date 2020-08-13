@@ -31,16 +31,28 @@ public interface DataDao {
 
     BigInteger countData(String tableName);
 
+    /** Создание схемы. */
     void createSchema(String schemaName);
 
+    /** Создание черновика с заданными полями. */
     void createDraftTable(String storageCode, List<Field> fields);
 
+    /** Удаление таблицы. */
     void dropTable(String storageCode);
 
+    /** Проверка схемы на существование. */
     boolean schemaExists(String schemaName);
 
     boolean storageExists(String storageCode);
 
+    /**
+     * Копирование таблицы.
+     * <p>
+     * Копируется только структура без данных.
+     * Копируются все индексы (кроме индекса для SYS_HASH).
+     * Создаётся неуникальный индекс для SYS_HASH.
+     * Преобразуется SYS_PRIMARY_COLUMN в первичный ключ.
+     */
     void copyTable(String sourceCode, String targetCode);
 
     void addColumn(String storageCode, String name, String type, String defaultValue);
@@ -140,7 +152,10 @@ public interface DataDao {
                                 int offset, int limit,
                                 LocalDateTime publishTime, LocalDateTime closeTime);
 
-    /** Удаление записей с совпадающими датами */
+    /**
+     * Удаление точечных записей -
+     * записей с совпадающими датами публикации и прекращения действия.
+     */
     void deletePointRows(String targetCode);
 
     DataDifference getDataDifference(CompareDataCriteria criteria);
