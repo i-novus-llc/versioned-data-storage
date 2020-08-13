@@ -78,8 +78,9 @@ public class QueryConstants {
 
     private static final String AND_INFO_SCHEMA_NAME_EQ = "  AND schema_name = ";
     private static final String AND_INFO_SCHEMA_NAME = AND_INFO_SCHEMA_NAME_EQ + ":schemaName \n";
-    private static final String AND_INFO_TABLE_SCHEMA_NAME = "  AND table_schema = :schemaName \n";
     private static final String AND_INFO_TABLE_NAME = "  AND table_name = :tableName \n";
+    private static final String AND_INFO_TABLE_SCHEMA_NAME_EQ = "  AND table_schema = ";
+    private static final String AND_INFO_TABLE_SCHEMA_NAME = AND_INFO_TABLE_SCHEMA_NAME_EQ + ":schemaName \n";
     private static final String AND_INFO_COLUMN_NAME = "  AND column_name = :columnName \n";
     static final String AND_INFO_COLUMN_NOT_IN_SYS_LIST = "  AND column_name NOT IN (" + SYS_RECORDS_TEXT + ")";
 
@@ -102,6 +103,12 @@ public class QueryConstants {
             AND_INFO_TABLE_SCHEMA_NAME +
             AND_INFO_TABLE_NAME +
             SELECT_EXISTS_END;
+
+    public static final String SELECT_EXISTENT_TABLE_SCHEMA_NAME_LIST = "SELECT table_schema \n" +
+            FROM_INFO_TABLES +
+            SELECT_WHERE_DEFAULT +
+            AND_INFO_TABLE_NAME +
+            AND_INFO_TABLE_SCHEMA_NAME_EQ;
 
     private static final String SELECT_ESCAPED_COLUMN_NAME = "SELECT '\"' || column_name || '\"' \n";
     private static final String SELECT_COLUMN_NAME_AND_TYPE = "SELECT column_name, data_type \n";

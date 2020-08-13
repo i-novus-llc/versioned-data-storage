@@ -570,6 +570,25 @@ public class DataDaoImpl implements DataDao {
         return !isNullOrEmpty(list) ? list : emptyList();
     }
 
+    @Override
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    public List<String> findExistentTableSchemas(List<String> schemaNames, String tableName) {
+
+        if (isNullOrEmpty(schemaNames))
+            return emptyList();
+
+        String condition = String.format(TO_ANY_TEXT, ":" + BIND_INFO_SCHEMA_NAME);
+        String sql = SELECT_EXISTENT_TABLE_SCHEMA_NAME_LIST + condition;
+
+        Query query = entityManager.createNativeQuery(sql);
+        query.setParameter(BIND_INFO_TABLE_NAME, tableName);
+        query.setParameter(BIND_INFO_SCHEMA_NAME, valuesToDbArray(schemaNames));
+
+        @SuppressWarnings("unchecked")
+        List<String> list = query.getResultList();
+        return !isNullOrEmpty(list) ? list : emptyList();
+    }
+
     /** Преобразование списка строковых значений в БД-строку-массив. */
     private String valuesToDbArray(List<String> values) {
 

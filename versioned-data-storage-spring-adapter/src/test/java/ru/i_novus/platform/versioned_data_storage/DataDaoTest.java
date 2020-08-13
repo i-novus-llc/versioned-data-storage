@@ -24,12 +24,11 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceException;
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.IntStream;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.*;
 import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
@@ -123,10 +122,23 @@ public class DataDaoTest {
     }
 
     @Test
+    public void testFindExistentTableSchemas() {
+
+        List<String> schemaNames = asList(DATA_SCHEMA_NAME, TEST_SCHEMA_NAME, NULL_SCHEMA_NAME);
+
+        final String tableName = "test_find_existent_table_schemas";
+        dataDao.createDraftTable(tableName, newTestFields());
+
+        List<String> expected = singletonList(DATA_SCHEMA_NAME);
+        List<String> actual = dataDao.findExistentTableSchemas(schemaNames, tableName);
+        assertEquals(expected, actual);
+    }
+
+    @Test
     @Transactional
     public void testStorageExists() {
 
-        String tableName = "test_table_exists";
+        String tableName = "test_storage_exists";
         testStorageExists(null, tableName);
         testStorageExists(TEST_SCHEMA_NAME, tableName);
     }

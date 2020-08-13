@@ -46,6 +46,9 @@ public interface DataDao {
     /** Поиск существующих схем. */
     List<String> findExistentSchemas(List<String> schemaNames);
 
+    /** Поиск существующих схем с существующей таблицей. */
+    List<String> findExistentTableSchemas(List<String> schemaNames, String tableName);
+
     /** Проверка таблицы на существование. */
     boolean storageExists(String storageCode);
 
