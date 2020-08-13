@@ -553,6 +553,9 @@ public class DataDaoImpl implements DataDao {
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public List<String> findExistentSchemas(List<String> schemaNames) {
 
+        if (isNullOrEmpty(schemaNames))
+            return emptyList();
+
         String condition = String.format(TO_ANY_TEXT, QUERY_VALUE_SUBST);
         String sql = SELECT_EXISTENT_SCHEMA_NAME_LIST + condition;
 
