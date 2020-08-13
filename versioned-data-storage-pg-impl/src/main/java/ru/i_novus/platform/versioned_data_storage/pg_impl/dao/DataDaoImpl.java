@@ -52,7 +52,6 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public List<RowValue> getData(StorageDataCriteria criteria) {
 
         final String schemaName = getTableSchemaName(criteria.getSchemaName(), criteria.getTableName());
@@ -80,8 +79,9 @@ public class DataDaoImpl implements DataDao {
             query.setFirstResult(criteria.getOffset()).setMaxResults(criteria.getSize());
         }
 
-        List<Object[]> resultList = query.getResultList();
-        return toRowValues(fields, resultList);
+        @SuppressWarnings("unchecked")
+        List<Object[]> list = query.getResultList();
+        return !isNullOrEmpty(list) ? toRowValues(fields, list) : emptyList();
     }
 
     @Override
@@ -122,7 +122,7 @@ public class DataDaoImpl implements DataDao {
         List<Object[]> list = entityManager.createNativeQuery(sql)
                 .setParameter(1, systemId)
                 .getResultList();
-        if (list.isEmpty())
+        if (isNullOrEmpty(list))
             return null;
 
         RowValue row = toRowValues(fields, list).get(0);
@@ -153,7 +153,7 @@ public class DataDaoImpl implements DataDao {
 
         @SuppressWarnings("unchecked")
         List<Object[]> list = query.getResultList();
-        return !list.isEmpty() ? toRowValues(fields, list) : emptyList();
+        return !isNullOrEmpty(list) ? toRowValues(fields, list) : emptyList();
     }
 
     private List<Field> dataTypesToFields(Map<String, String> dataTypes, List<String> fieldNames) {
@@ -262,7 +262,7 @@ public class DataDaoImpl implements DataDao {
 
     private QueryWithParams getWhereClause(StorageDataCriteria criteria, String alias) {
 
-        QueryWithParams query = new QueryWithParams(SELECT_WHERE);
+        QueryWithParams query = new QueryWithParams(SELECT_WHERE_DEFAULT);
         query.concat(getWhereByDates(criteria.getBdate(), criteria.getEdate(), alias));
         query.concat(getWhereByFts(criteria.getCommonFilter(), alias));
         query.concat(getWhereByFilters(criteria.getFieldFilters(), alias));
@@ -547,6 +547,21 @@ public class DataDaoImpl implements DataDao {
                 .getSingleResult();
 
         return result != null && result;
+    }
+
+    @Override
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    public List<String> findExistentSchemas(List<String> schemaNames) {
+
+        String condition = String.format(TO_ANY_TEXT, QUERY_VALUE_SUBST);
+        String sql = SELECT_EXISTENT_SCHEMA_NAME_LIST + condition;
+
+        Query query = entityManager.createNativeQuery(sql);
+        query.setParameter(1, "{" + String.join(",", schemaNames) + "}");
+
+        @SuppressWarnings("unchecked")
+        List<String> list = query.getResultList();
+        return !isNullOrEmpty(list) ? list : emptyList();
     }
 
     @Override
@@ -913,8 +928,10 @@ public class DataDaoImpl implements DataDao {
         String key = String.format(UPDATE_VALUE,
                 escapedFieldName, getReferenceValuationSelect(schemaName, fieldValue, oldFieldValue));
 
-        String condition = String.format(CONDITION_ANY_BIGINT,
-                escapeFieldName(REFERENCE_VALUATION_UPDATE_TABLE_ALIAS, SYS_PRIMARY_COLUMN), QUERY_VALUE_SUBST);
+        String condition = String.format(CONDITION_EQUAL,
+                escapeFieldName(REFERENCE_VALUATION_UPDATE_TABLE_ALIAS, SYS_PRIMARY_COLUMN),
+                String.format(TO_ANY_BIGINT, QUERY_VALUE_SUBST)
+        );
         String sql = String.format(UPDATE_RECORD,
                 schemaName, addDoubleQuotes(tableName), REFERENCE_VALUATION_UPDATE_TABLE_ALIAS, key, condition);
         Query query = entityManager.createNativeQuery(sql);

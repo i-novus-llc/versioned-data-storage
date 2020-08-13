@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.IntStream;
 
+import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.*;
 import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
@@ -53,8 +54,8 @@ public class DataDaoTest {
     private static final String FIELD_ID_CODE = "id";
     private static final String FIELD_NAME_CODE = "name";
 
-    private final List<String> dataNames = Arrays.asList("первый", "второй");
-    private final List<String> testNames = Arrays.asList("first", "second");
+    private final List<String> dataNames = asList("первый", "второй");
+    private final List<String> testNames = asList("first", "second");
 
     private Field hashField;
 
@@ -107,6 +108,16 @@ public class DataDaoTest {
         assertTrue(dataDao.schemaExists(DATA_SCHEMA_NAME));
         assertTrue(dataDao.schemaExists(TEST_SCHEMA_NAME));
         assertFalse(dataDao.schemaExists(NULL_SCHEMA_NAME));
+    }
+
+    @Test
+    public void testFindExistentSchemas() {
+
+        List<String> schemaNames = asList(DATA_SCHEMA_NAME, TEST_SCHEMA_NAME, NULL_SCHEMA_NAME);
+
+        List<String> expected = asList(DATA_SCHEMA_NAME, TEST_SCHEMA_NAME);
+        List<String> actual = dataDao.findExistentSchemas(schemaNames);
+        assertEquals(expected, actual);
     }
 
     @Test

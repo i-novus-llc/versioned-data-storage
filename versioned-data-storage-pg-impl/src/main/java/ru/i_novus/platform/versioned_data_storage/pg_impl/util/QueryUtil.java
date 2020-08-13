@@ -38,7 +38,7 @@ public class QueryUtil {
      */
     public static List<RowValue> toRowValues(List<Field> fields, List<Object[]> data) {
 
-        List<RowValue> resultData = new ArrayList<>(data.size());
+        List<RowValue> result = new ArrayList<>(data.size());
         for (Object objects : data) {
             LongRowValue rowValue = new LongRowValue();
             if (objects instanceof Object[]) {
@@ -46,9 +46,9 @@ public class QueryUtil {
             } else {
                 rowValue.getFieldValues().add(getFieldValue(fields.get(0), objects));
             }
-            resultData.add(rowValue);
+            result.add(rowValue);
         }
-        return resultData;
+        return result;
     }
 
     private static void addToRowValue(Object[] row, List<Field> fields, LongRowValue rowValue) {

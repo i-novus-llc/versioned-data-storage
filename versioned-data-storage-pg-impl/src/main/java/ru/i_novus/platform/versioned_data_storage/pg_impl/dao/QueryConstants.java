@@ -25,18 +25,22 @@ public class QueryConstants {
 
     static final String WHERE_DEFAULT = " true"; // 1 = 1
     static final String SELECT_FROM = "  FROM ";
-    static final String SELECT_WHERE = " WHERE " + WHERE_DEFAULT + " \n";
+    static final String SELECT_WHERE = " WHERE ";
     static final String SELECT_ORDER = " ORDER BY ";
 
+    static final String SELECT_WHERE_DEFAULT = SELECT_WHERE + WHERE_DEFAULT + " \n";
     private static final String ORDER_BY_ONE_FIELD = SELECT_ORDER + " %1$s.\"%2$s\" \n";
     private static final String SELECT_LIMIT = " LIMIT ${limit}";
     private static final String SELECT_OFFSET = " OFFSET ${offset}";
 
+    static final String CONDITION_NOT = " NOT ";
+    static final String CONDITION_AND = " AND ";
+    static final String CONDITION_OR = " OR ";
     static final String CONDITION_EXISTS = "EXISTS (\n%s)";
     static final String CONDITION_IN = "%1$s IN (%2$s)";
     static final String CONDITION_EQUAL = "%1$s = %2$s";
-    static final String CONDITION_ANY_BIGINT = "%1$s = ANY(%2$s\\:\\:bigint[])";
-    static final String CONDITION_ANY_TEXT = "%1$s = ANY(%2$s\\:\\:text[])";
+    static final String TO_ANY_BIGINT = "ANY(%s\\:\\:bigint[])";
+    static final String TO_ANY_TEXT = "ANY(%s\\:\\:text[])";
 
     private static final String SUBQUERY_INDENT = "       ";
     private static final String ROUTINE_INDENT = "    ";
@@ -80,14 +84,18 @@ public class QueryConstants {
     public static final String SELECT_SCHEMA_EXISTS = SELECT_EXISTS_START +
             SELECT_ONE +
             FROM_INFO_SCHEMAS +
-            SELECT_WHERE +
+            SELECT_WHERE_DEFAULT +
             AND_INFO_SCHEMA_NAME +
             SELECT_EXISTS_END;
+
+    public static final String SELECT_EXISTENT_SCHEMA_NAME_LIST = "SELECT schema_name \n" +
+            FROM_INFO_SCHEMAS +
+            SELECT_WHERE + " schema_name = ";
 
     public static final String SELECT_TABLE_EXISTS = SELECT_EXISTS_START +
             SELECT_ONE +
             FROM_INFO_TABLES +
-            SELECT_WHERE +
+            SELECT_WHERE_DEFAULT +
             AND_INFO_TABLE_SCHEMA_NAME +
             AND_INFO_TABLE_NAME +
             SELECT_EXISTS_END;
@@ -103,27 +111,27 @@ public class QueryConstants {
 
     static final String SELECT_ESCAPED_FIELD_NAMES = SELECT_ESCAPED_COLUMN_NAME +
             FROM_INFO_COLUMNS +
-            SELECT_WHERE +
+            SELECT_WHERE_DEFAULT +
             AND_INFO_TABLE_SCHEMA_NAME +
             AND_INFO_TABLE_NAME;
 
     static final String SELECT_HASH_USED_FIELD_NAMES = SELECT_ESCAPED_COLUMN_NAME + " || " + INFO_COLUMN_VALUE_SUFFIX +
             FROM_INFO_COLUMNS +
-            SELECT_WHERE +
+            SELECT_WHERE_DEFAULT +
             AND_INFO_TABLE_SCHEMA_NAME +
             AND_INFO_TABLE_NAME +
             AND_INFO_COLUMN_NOT_IN_SYS_LIST;
 
     public static final String SELECT_FIELD_TYPE = "SELECT data_type \n" +
             FROM_INFO_COLUMNS +
-            SELECT_WHERE +
+            SELECT_WHERE_DEFAULT +
             AND_INFO_TABLE_SCHEMA_NAME +
             AND_INFO_TABLE_NAME +
             AND_INFO_COLUMN_NAME;
 
     public static final String SELECT_FIELD_NAMES_AND_TYPES = SELECT_COLUMN_NAME_AND_TYPE +
             FROM_INFO_COLUMNS +
-            SELECT_WHERE +
+            SELECT_WHERE_DEFAULT +
             AND_INFO_TABLE_SCHEMA_NAME +
             AND_INFO_TABLE_NAME;
 
@@ -221,7 +229,7 @@ public class QueryConstants {
 
     static final String INSERT_RECORD = "INSERT INTO %1$s.%2$s (%3$s)\n";
     static final String INSERT_VALUES = "VALUES(%s)\n";
-    static final String INSERT_SELECT = "SELECT %4$s \n" + "  FROM %1$s.%2$s as %3$s \n" + SELECT_WHERE;
+    static final String INSERT_SELECT = "SELECT %4$s \n" + "  FROM %1$s.%2$s as %3$s \n" + SELECT_WHERE_DEFAULT;
     static final String DELETE_RECORD = "DELETE FROM %1$s.%2$s WHERE %3$s";
     static final String UPDATE_RECORD = "UPDATE %1$s.%2$s as %3$s SET %4$s WHERE %5$s";
     static final String UPDATE_VALUE = "%1$s = %2$s";
@@ -231,12 +239,12 @@ public class QueryConstants {
 
     static final String COUNT_REFERENCE_IN_REF_ROWS = SELECT_COUNT_ONLY +
             FROM_VERSION_TABLE +
-            SELECT_WHERE +
+            SELECT_WHERE_DEFAULT +
             AND_EXISTS_VERSION_REF_VALUE;
 
     static final String SELECT_REFERENCE_IN_REF_ROWS = "\nSELECT ${versionAlias}.\"SYS_RECORDID\" \n" +
             FROM_VERSION_TABLE +
-            SELECT_WHERE +
+            SELECT_WHERE_DEFAULT +
             AND_EXISTS_VERSION_REF_VALUE +
             ORDER_VERSION_BY_SYS_RECORDID +
             SELECT_LIMIT + SELECT_OFFSET;
