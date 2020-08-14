@@ -16,8 +16,7 @@ import java.util.stream.IntStream;
 
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.toStorageCode;
 
 public class DataTestUtils {
@@ -85,6 +84,11 @@ public class DataTestUtils {
     public static void assertValues(List<RowValue> dataValues, List<String> nameValues) {
 
         assertNotNull(dataValues);
+        if (nameValues.isEmpty()) {
+            assertTrue(dataValues.isEmpty());
+            return;
+        }
+
         assertEquals(nameValues.size(), dataValues.size());
 
         IntStream.range(0, nameValues.size()).forEach(index -> {
