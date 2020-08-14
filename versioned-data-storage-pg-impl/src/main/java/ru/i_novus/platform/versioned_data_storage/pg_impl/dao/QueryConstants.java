@@ -270,7 +270,8 @@ public class QueryConstants {
             addSingleQuotes(REFERENCE_HASH_NAME) + ", %3$s." + addDoubleQuotes(SYS_HASH) +
             ") " +
             "  from %1$s.%2$s as %3$s " +
-            " where %3$s.%4$s=%6$s\\:\\:%7$s %8$s";
+            " where %3$s.%4$s = %6$s\\:\\:%7$s " +
+            " %8$s";
     static final String REFERENCE_VALUATION_OLD_VALUE =
             "(case when %1$s is null then null else %1$s->>'value' end)";
 

@@ -123,16 +123,6 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     @Override
-    public void deleteRows(String draftCode, List<Object> systemIds) {
-        dataDao.deleteData(draftCode, systemIds);
-    }
-
-    @Override
-    public void deleteAllRows(String draftCode) {
-        dataDao.deleteData(draftCode);
-    }
-
-    @Override
     public void updateRows(String draftCode, List<RowValue> rowValues) {
 
         List<CodifiedException> exceptions = new ArrayList<>();
@@ -148,17 +138,13 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     @Override
-    public void updateReferenceInRows(String storageCode, ReferenceFieldValue fieldValue, List<Object> systemIds) {
-        dataDao.updateReferenceInRows(storageCode, fieldValue, systemIds);
+    public void deleteRows(String draftCode, List<Object> systemIds) {
+        dataDao.deleteData(draftCode, systemIds);
     }
 
     @Override
-    public void updateReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue,
-                                         LocalDateTime publishTime, LocalDateTime closeTime) {
-        BigInteger count = dataDao.countReferenceInRefRows(storageCode, fieldValue);
-        for (int i = 0; i < count.intValue(); i += TRANSACTION_ROW_LIMIT) {
-            dataDao.updateReferenceInRefRows(storageCode, fieldValue, i, TRANSACTION_ROW_LIMIT);
-        }
+    public void deleteAllRows(String draftCode) {
+        dataDao.deleteData(draftCode);
     }
 
     @Override
@@ -193,6 +179,20 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     @Override
+    public void updateReferenceInRows(String storageCode, ReferenceFieldValue fieldValue, List<Object> systemIds) {
+        dataDao.updateReferenceInRows(storageCode, fieldValue, systemIds);
+    }
+
+    @Override
+    public void updateReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue,
+                                         LocalDateTime publishTime, LocalDateTime closeTime) {
+        BigInteger count = dataDao.countReferenceInRefRows(storageCode, fieldValue);
+        for (int i = 0; i < count.intValue(); i += TRANSACTION_ROW_LIMIT) {
+            dataDao.updateReferenceInRefRows(storageCode, fieldValue, i, TRANSACTION_ROW_LIMIT);
+        }
+    }
+
+    @Override
     @Transactional
     public void addField(String draftCode, Field field) {
 
@@ -210,6 +210,27 @@ public class DraftDataServiceImpl implements DraftDataService {
         fieldNames = dataDao.getHashUsedFieldNames(draftCode);
         dataDao.createTriggers(draftCode, fieldNames);
         dataDao.updateHashRows(draftCode, fieldNames);
+    }
+
+    @Override
+    @Transactional
+    public void updateField(String draftCode, Field field) {
+
+        String oldType = dataDao.getFieldType(draftCode, field.getName());
+        String newType = field.getType();
+        if (oldType.equals(newType))
+            return;
+
+        try {
+            dataDao.dropTriggers(draftCode);
+            dataDao.alterDataType(draftCode, field.getName(), oldType, newType);
+
+            List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
+            dataDao.createTriggers(draftCode, fieldNames);
+
+        } catch (PersistenceException pe) {
+            throw new CodifiedException(INCOMPATIBLE_NEW_DATA_TYPE_EXCEPTION_CODE, pe, field.getName());
+        }
     }
 
     @Override
@@ -236,27 +257,6 @@ public class DraftDataServiceImpl implements DraftDataService {
             processNotUniqueRowException(pe);
         }
         dataDao.updateFtsRows(draftCode, fieldNames);
-    }
-
-    @Override
-    @Transactional
-    public void updateField(String draftCode, Field field) {
-
-        String oldType = dataDao.getFieldType(draftCode, field.getName());
-        String newType = field.getType();
-        if (oldType.equals(newType))
-            return;
-
-        try {
-            dataDao.dropTriggers(draftCode);
-            dataDao.alterDataType(draftCode, field.getName(), oldType, newType);
-
-            List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
-            dataDao.createTriggers(draftCode, fieldNames);
-
-        } catch (PersistenceException pe) {
-            throw new CodifiedException(INCOMPATIBLE_NEW_DATA_TYPE_EXCEPTION_CODE, pe, field.getName());
-        }
     }
 
     @Override

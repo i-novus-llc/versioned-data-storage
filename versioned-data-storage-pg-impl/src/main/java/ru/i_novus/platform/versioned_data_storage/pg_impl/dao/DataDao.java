@@ -68,22 +68,22 @@ public interface DataDao {
 
     void insertData(String storageCode, List<RowValue> data);
 
-    void loadData(String draftTable, String sourceTable, List<String> fields,
-                  LocalDateTime fromDate, LocalDateTime toDate);
-
     void updateData(String storageCode, RowValue rowValue);
 
     void deleteData(String storageCode);
 
     void deleteData(String storageCode, List<Object> systemIds);
 
+    void loadData(String draftTable, String sourceTable, List<String> fields,
+                  LocalDateTime fromDate, LocalDateTime toDate);
+
     void updateReferenceInRows(String storageCode, ReferenceFieldValue fieldValue, List<Object> systemIds);
+
+    void deleteEmptyRows(String draftCode);
 
     BigInteger countReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue);
 
     void updateReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue, int offset, int limit);
-
-    void deleteEmptyRows(String draftCode);
 
     boolean isUnique(String storageCode, List<String> fieldNames, LocalDateTime publishTime);
 

@@ -783,25 +783,6 @@ public class DataDaoImpl implements DataDao {
         query.executeUpdate();
     }
 
-    @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void loadData(String draftTable, String sourceTable, List<String> fields,
-                         LocalDateTime fromDate, LocalDateTime toDate) {
-
-        String keys = String.join(",", fields);
-        String values = fields.stream()
-                .map(f -> DEFAULT_TABLE_ALIAS + NAME_SEPARATOR + f)
-                .collect(joining(","));
-
-        String sql = String.format(INSERT_RECORD, DATA_SCHEMA_NAME, addDoubleQuotes(draftTable), keys) +
-                String.format(INSERT_SELECT, DATA_SCHEMA_NAME, addDoubleQuotes(sourceTable), DEFAULT_TABLE_ALIAS, values);
-
-        QueryWithParams queryWithParams = new QueryWithParams(sql);
-        queryWithParams.concat(getWhereByDates(fromDate, toDate, DEFAULT_TABLE_ALIAS));
-
-        queryWithParams.createQuery(entityManager).executeUpdate();
-    }
-
     /**
      * Формирование текста запроса для получения значения ссылочного поля.
      *
@@ -843,6 +824,7 @@ public class DataDaoImpl implements DataDao {
                 .replace(":bdate", toTimestampWithoutTimeZone(sqlDateValue))
                 .replace(":edate", toTimestampWithoutTimeZone(MIN_TIMESTAMP_VALUE));
 
+        final String refStorageCode = toStorageCode(schemaName, refValue.getStorageCode());
         String sql = String.format(REFERENCE_VALUATION_SELECT_EXPRESSION,
                 schemaName,
                 addDoubleQuotes(refValue.getStorageCode()),
@@ -850,7 +832,7 @@ public class DataDaoImpl implements DataDao {
                 addDoubleQuotes(refValue.getKeyField()),
                 sqlExpression,
                 valueSubst,
-                getFieldType(schemaName, refValue.getStorageCode(), refValue.getKeyField()),
+                getFieldType(refStorageCode, refValue.getKeyField()),
                 sqlByDate);
 
         return "(" + sql + ")";
@@ -945,6 +927,44 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    public void loadData(String draftTable, String sourceTable, List<String> fields,
+                         LocalDateTime fromDate, LocalDateTime toDate) {
+
+        String keys = String.join(",", fields);
+        String values = fields.stream()
+                .map(f -> DEFAULT_TABLE_ALIAS + NAME_SEPARATOR + f)
+                .collect(joining(","));
+
+        String sql = String.format(INSERT_RECORD, DATA_SCHEMA_NAME, addDoubleQuotes(draftTable), keys) +
+                String.format(INSERT_SELECT, DATA_SCHEMA_NAME, addDoubleQuotes(sourceTable), DEFAULT_TABLE_ALIAS, values);
+
+        QueryWithParams queryWithParams = new QueryWithParams(sql);
+        queryWithParams.concat(getWhereByDates(fromDate, toDate, DEFAULT_TABLE_ALIAS));
+
+        queryWithParams.createQuery(entityManager).executeUpdate();
+    }
+
+    @Override
+    @Transactional
+    public void deleteEmptyRows(String draftCode) {
+
+        List<String> fieldNames = getEscapedFieldNames(draftCode);
+        if (isEmpty(fieldNames)) {
+            deleteData(draftCode);
+
+            return;
+        }
+
+        String condition = fieldNames.stream()
+                .map(s -> s + " IS NULL")
+                .collect(joining(" AND "));
+
+        String sql = String.format(DELETE_RECORD, DATA_SCHEMA_NAME, addDoubleQuotes(draftCode), condition);
+        entityManager.createNativeQuery(sql).executeUpdate();
+    }
+
+    @Override
     @Transactional
     public void updateReferenceInRows(String storageCode, ReferenceFieldValue fieldValue, List<Object> systemIds) {
 
@@ -1028,25 +1048,6 @@ public class DataDaoImpl implements DataDao {
             logger.debug("updateReferenceInRefRows method sql: {}", sql);
         }
 
-        entityManager.createNativeQuery(sql).executeUpdate();
-    }
-
-    @Override
-    @Transactional
-    public void deleteEmptyRows(String draftCode) {
-
-        List<String> fieldNames = getEscapedFieldNames(draftCode);
-        if (isEmpty(fieldNames)) {
-            deleteData(draftCode);
-
-            return;
-        }
-
-        String condition = fieldNames.stream()
-                .map(s -> s + " IS NULL")
-                .collect(joining(" AND "));
-
-        String sql = String.format(DELETE_RECORD, DATA_SCHEMA_NAME, addDoubleQuotes(draftCode), condition);
         entityManager.createNativeQuery(sql).executeUpdate();
     }
 
@@ -1262,15 +1263,10 @@ public class DataDaoImpl implements DataDao {
     @Override
     public String getFieldType(String storageCode, String fieldName) {
 
-        return getFieldType(toSchemaName(storageCode), toTableName(storageCode), fieldName);
-    }
-
-    private String getFieldType(String schemaName, String tableName, String columnName) {
-
         return entityManager.createNativeQuery(SELECT_FIELD_TYPE)
-                .setParameter(BIND_INFO_SCHEMA_NAME, schemaName)
-                .setParameter(BIND_INFO_TABLE_NAME, tableName)
-                .setParameter(BIND_INFO_COLUMN_NAME, columnName)
+                .setParameter(BIND_INFO_SCHEMA_NAME, toSchemaName(storageCode))
+                .setParameter(BIND_INFO_TABLE_NAME, toTableName(storageCode))
+                .setParameter(BIND_INFO_COLUMN_NAME, fieldName)
                 .getSingleResult().toString();
     }
 

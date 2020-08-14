@@ -91,6 +91,14 @@ public interface DraftDataService {
     void addRows(String draftCode, List<RowValue> rowValues);
 
     /**
+     * Изменение записей таблицы.
+     *
+     * @param draftCode код черновика
+     * @param rowValues новые данные записей
+     */
+    void updateRows(String draftCode, List<RowValue> rowValues);
+
+    /**
      * Удаление записей из таблицы.
      *
      * @param draftCode код черновика
@@ -104,34 +112,6 @@ public interface DraftDataService {
      * @param draftCode код черновика
      */
     void deleteAllRows(String draftCode);
-
-    /**
-     * Изменение записей таблицы.
-     *
-     * @param draftCode код черновика
-     * @param rowValues новые данные записей
-     */
-    void updateRows(String draftCode, List<RowValue> rowValues);
-
-    /**
-     * Обновление отображаемого значения ссылки в записях таблицы.
-     *
-     * @param storageCode код хранилища данных
-     * @param fieldValue  данные поля
-     * @param systemIds   системные идентификаторы записей
-     */
-    void updateReferenceInRows(String storageCode, ReferenceFieldValue fieldValue, List<Object> systemIds);
-
-    /**
-     * Обновление отображаемого значения ссылки во всех записях таблицы с заполненным значением ссылки.
-     *
-     * @param storageCode код хранилища данных
-     * @param fieldValue  данные поля
-     * @param publishTime дата и время публикации черновика
-     * @param closeTime   дата и время завершения действия версии
-     */
-    void updateReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue,
-                                  LocalDateTime publishTime, LocalDateTime closeTime);
 
     /**
      * Загрузка данных на указанную дату из хранилища в черновик.
@@ -163,12 +143,40 @@ public interface DraftDataService {
     void copyAllData(String sourceCode, String targetCode);
 
     /**
+     * Обновление отображаемого значения ссылки в записях таблицы.
+     *
+     * @param storageCode код хранилища данных
+     * @param fieldValue  данные поля
+     * @param systemIds   системные идентификаторы записей
+     */
+    void updateReferenceInRows(String storageCode, ReferenceFieldValue fieldValue, List<Object> systemIds);
+
+    /**
+     * Обновление отображаемого значения ссылки во всех записях таблицы с заполненным значением ссылки.
+     *
+     * @param storageCode код хранилища данных
+     * @param fieldValue  данные поля
+     * @param publishTime дата и время публикации черновика
+     * @param closeTime   дата и время завершения действия версии
+     */
+    void updateReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue,
+                                  LocalDateTime publishTime, LocalDateTime closeTime);
+
+    /**
      * Добавление нового поля в таблицу.
      *
      * @param draftCode код черновика
      * @param field     данные поля
      */
     void addField(String draftCode, Field field);
+
+    /**
+     * Изменение типа поля в таблице.
+     *
+     * @param draftCode код черновика
+     * @param field     данные поля
+     */
+    void updateField(String draftCode, Field field);
 
     /**
      * Удаления поля из таблицы.
@@ -178,14 +186,6 @@ public interface DraftDataService {
      * @throws NotUniqueException
      */
     void deleteField(String draftCode, String fieldName);
-
-    /**
-     * Изменение типа поля в таблице.
-     *
-     * @param draftCode код черновика
-     * @param field     данные поля
-     */
-    void updateField(String draftCode, Field field);
 
     /**
      * Проверка наличия данных в поле хранилища.
