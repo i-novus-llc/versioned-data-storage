@@ -105,7 +105,7 @@
                 <version>${commons.text.version}</version>
             </dependency>
 
-            <!-- deprecated -->
+            <!-- deprecated / -->
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
@@ -131,6 +131,7 @@
                 <version>${jackson.version}</version>
                 <scope>provided</scope>
             </dependency>
+
         </dependencies>
     </dependencyManagement>
 
