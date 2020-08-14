@@ -219,7 +219,7 @@ public class DataDaoTest {
     private void insertValues(String sqlInsert, List<String> nameValues) {
 
         IntStream.range(0, nameValues.size()).forEach(index -> {
-            String sql = String.format(sqlInsert, index + ", " + addSingleQuotes(nameValues.get(index)));
+            String sql = String.format(sqlInsert, indexToId(index) + ", " + addSingleQuotes(nameValues.get(index)));
             entityManager.createNativeQuery(sql).executeUpdate();
         });
     }
@@ -294,11 +294,11 @@ public class DataDaoTest {
         return toRowValues(nameValues.size(), index -> toRowValue(index, nameValues.get(index), fields));
     }
 
-    private RowValue toRowValue(int id, String name, List<Field> fields) {
+    private RowValue toRowValue(int index, String name, List<Field> fields) {
 
-        RowValue result = toIdNameRowValue(id, name, fields);
+        RowValue result = toIdNameRowValue(index, name, fields);
 
-        FieldValue hashValue = hashField.valueOf(String.valueOf(id));
+        FieldValue hashValue = hashField.valueOf(String.valueOf(index));
         result.getFieldValues().add(hashValue);
 
         return result;

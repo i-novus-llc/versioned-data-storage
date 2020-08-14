@@ -29,8 +29,8 @@ public class DataTestUtils {
     public static final String FIELD_NAME_CODE = "name";
     public static final String FIELD_CODE_CODE = "CODE";
 
-    public static final List<String> dataNames = asList("первый", "второй");
-    public static final List<String> testNames = asList("first", "second");
+    public static final List<String> dataNames = asList("первый", "второй", "третий", "четвёртый");
+    public static final List<String> testNames = asList("first", "second", "third", "fourth");
 
     private DataTestUtils() {
         // Nothing to do.
@@ -57,16 +57,16 @@ public class DataTestUtils {
     }
 
     /** Преобразование основных полей проверяемых данных для выполнения операции. */
-    public static RowValue toIdNameRowValue(int id, String name, List<Field> fields) {
+    public static RowValue toIdNameRowValue(int index, String name, List<Field> fields) {
 
-        FieldValue idValue = findFieldOrThrow(FIELD_ID_CODE, fields).valueOf(BigInteger.valueOf(id));
+        FieldValue idValue = findFieldOrThrow(FIELD_ID_CODE, fields).valueOf(indexToId(index));
         FieldValue nameValue = findFieldOrThrow(FIELD_NAME_CODE, fields).valueOf(name);
 
         List<FieldValue> fieldValues = new ArrayList<>(2);
         fieldValues.add(idValue);
         fieldValues.add(nameValue);
 
-        return new LongRowValue(null, fieldValues);
+        return new LongRowValue(indexToSystemId(index), fieldValues);
     }
 
     /** Преобразование параметров в критерий поиска данных. */
@@ -92,12 +92,20 @@ public class DataTestUtils {
                     .filter(rowValue -> {
                         IntegerFieldValue idValue = (IntegerFieldValue) rowValue.getFieldValue(FIELD_ID_CODE);
                         BigInteger value = idValue != null ? idValue.getValue() : null;
-                        return value != null && value.equals(BigInteger.valueOf(index));
+                        return value != null && value.equals(indexToId(index));
                     })
                     .map(rowValue -> (StringFieldValue) rowValue.getFieldValue(FIELD_NAME_CODE))
                     .findFirst().orElse(null);
             assertNotNull(nameValue);
             assertEquals(nameValues.get(index), nameValue.getValue());
         });
+    }
+
+    public static Long indexToSystemId(int index) {
+        return (long) index;
+    }
+
+    public static BigInteger indexToId(int index) {
+        return BigInteger.valueOf(index * 10);
     }
 }
