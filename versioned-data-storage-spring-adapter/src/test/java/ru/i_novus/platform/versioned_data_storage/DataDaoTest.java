@@ -10,11 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.i_novus.platform.datastorage.temporal.enums.FieldType;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
-import ru.i_novus.platform.datastorage.temporal.model.LongRowValue;
-import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageDataCriteria;
-import ru.i_novus.platform.datastorage.temporal.model.value.IntegerFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
-import ru.i_novus.platform.datastorage.temporal.model.value.StringFieldValue;
 import ru.i_novus.platform.datastorage.temporal.service.FieldFactory;
 import ru.i_novus.platform.datastorage.temporal.service.StorageCodeService;
 import ru.i_novus.platform.versioned_data_storage.config.VersionedDataStorageConfig;
@@ -23,19 +19,19 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceException;
-import java.math.BigInteger;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.IntStream;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.*;
 import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
 import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.getSchemaNameOrDefault;
 import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.toStorageCode;
 import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addDoubleQuotes;
 import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addSingleQuotes;
+import static ru.i_novus.platform.versioned_data_storage.DataTestUtils.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.HASH_EXPRESSION;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -44,19 +40,11 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConsta
 })
 public class DataDaoTest {
 
-    private static final String TEST_SCHEMA_NAME = "data_test";
-    private static final String NULL_SCHEMA_NAME = "data_null";
     private static final String NEW_GOOD_SCHEMA_NAME = "data_good";
     private static final String NEW_BAD_SCHEMA_NAME = "data\"bad";
 
     private static final String INSERT_RECORD = "INSERT INTO %1$s.%2$s (%3$s)\n";
     private static final String INSERT_VALUES = "VALUES(%s)\n";
-
-    private static final String FIELD_ID_CODE = "id";
-    private static final String FIELD_NAME_CODE = "name";
-
-    private final List<String> dataNames = asList("первый", "второй");
-    private final List<String> testNames = asList("first", "second");
 
     private Field hashField;
 
@@ -67,10 +55,10 @@ public class DataDaoTest {
     private DataDao dataDao;
 
     @Autowired
-    private StorageCodeService storageCodeService;
+    private FieldFactory fieldFactory;
 
     @Autowired
-    private FieldFactory fieldFactory;
+    private StorageCodeService storageCodeService;
 
     @Before
     public void setUp() {
@@ -125,11 +113,12 @@ public class DataDaoTest {
     public void testFindExistentTableSchemas() {
 
         List<String> schemaNames = asList(DATA_SCHEMA_NAME, TEST_SCHEMA_NAME, NULL_SCHEMA_NAME);
+        List<String> expected = singletonList(DATA_SCHEMA_NAME);
 
         final String tableName = "test_find_existent_table_schemas";
-        dataDao.createDraftTable(tableName, newTestFields());
+        List<Field> fields = newTestFields();
 
-        List<String> expected = singletonList(DATA_SCHEMA_NAME);
+        dataDao.createDraftTable(tableName, fields);
         List<String> actual = dataDao.findExistentTableSchemas(schemaNames, tableName);
         assertEquals(expected, actual);
     }
@@ -192,7 +181,8 @@ public class DataDaoTest {
     private void testGetData(String schemaName, String tableName,
                              List<Field> fields, List<String> nameValues) {
 
-        dataDao.createDraftTable(toStorageCode(schemaName, tableName), fields);
+        String storageCode = toStorageCode(schemaName, tableName);
+        dataDao.createDraftTable(storageCode, fields);
 
         String escapedTableName = addDoubleQuotes(tableName);
         String columns = fields.stream()
@@ -204,17 +194,18 @@ public class DataDaoTest {
         String sqlInsert = String.format(INSERT_RECORD, getSchemaNameOrDefault(schemaName), escapedTableName, columns) +
                 String.format(INSERT_VALUES, sqlValuesFormat);
         insertValues(sqlInsert, nameValues);
-        List<RowValue> dataValues = getData(schemaName, tableName, fields);
+        List<RowValue> dataValues = dataDao.getData(toCriteria(storageCode, fields));
         assertValues(dataValues, nameValues);
     }
 
     @Test
+    @SuppressWarnings("java:S5778")
     public void testNullGetData() {
 
         String tableName = newTestTableName();
         List<Field> fields = newTestFields();
         try {
-            getData(NULL_SCHEMA_NAME, tableName, fields);
+            dataDao.getData(toCriteria(NULL_SCHEMA_NAME, tableName, fields));
             fail();
 
         } catch (PersistenceException e) {
@@ -238,7 +229,6 @@ public class DataDaoTest {
     public void testProcessData() {
 
         String tableName = newTestTableName();
-
         List<Field> fields = newTestFields();
 
         testProcessData(null, tableName, fields, dataNames);
@@ -248,11 +238,12 @@ public class DataDaoTest {
     private void testProcessData(String schemaName, String tableName,
                                  List<Field> fields, List<String> nameValues) {
 
-        dataDao.createDraftTable(toStorageCode(schemaName, tableName), fields);
+        String storageCode = toStorageCode(schemaName, tableName);
+        dataDao.createDraftTable(storageCode, fields);
 
         // Вставка записей.
-        dataDao.insertData(toStorageCode(schemaName, tableName), toRowValues(fields, nameValues));
-        List<RowValue> dataValues = getData(schemaName, tableName, fields);
+        dataDao.insertData(storageCode, nameValuesToRowValues(fields, nameValues));
+        List<RowValue> dataValues = dataDao.getData(toCriteria(storageCode, fields));
         assertValues(dataValues, nameValues);
 
         //dataDao.updateData();
@@ -263,23 +254,22 @@ public class DataDaoTest {
 
         String sourceName = newTestTableName();
         String sourceCode = toStorageCode(null, sourceName);
-
         List<Field> fields = newTestFields();
 
         dataDao.createDraftTable(sourceCode, fields);
-        dataDao.insertData(sourceCode, toRowValues(fields, dataNames));
-        List<RowValue> dataValues = getData(null, sourceName, fields);
+        dataDao.insertData(sourceCode, nameValuesToRowValues(fields, dataNames));
+        List<RowValue> dataValues = dataDao.getData(toCriteria(sourceCode, fields));
         assertValues(dataValues, dataNames);
 
         String targetName = newTestTableName();
         String targetCode = toStorageCode(TEST_SCHEMA_NAME, targetName);
 
         dataDao.copyTable(sourceCode, targetCode);
-        List<RowValue> emptyDataValues = getData(TEST_SCHEMA_NAME, targetName, fields);
+        List<RowValue> emptyDataValues = dataDao.getData(toCriteria(targetCode, fields));
         assertEquals(0, emptyDataValues == null ? 0 : emptyDataValues.size());
 
         dataDao.copyTableData(sourceCode, targetCode, 0, dataNames.size());
-        dataValues = getData(TEST_SCHEMA_NAME, targetName, fields);
+        dataValues = dataDao.getData(toCriteria(targetCode, fields));
         assertValues(dataValues, dataNames);
     }
 
@@ -299,52 +289,18 @@ public class DataDaoTest {
         return fields;
     }
 
-    private Field findFieldOrThrow(String name, List<Field> fields) {
-        return fields.stream()
-                .filter(field -> name.equals(field.getName()))
-                .findFirst().orElseThrow(() ->
-                        new IllegalArgumentException("field '" + name + "' is not found"));
-    }
+    private List<RowValue> nameValuesToRowValues(List<Field> fields, List<String> nameValues) {
 
-    private List<RowValue> getData(String schemaName, String tableName, List<Field> fields) {
-
-        StorageDataCriteria criteria = new StorageDataCriteria(tableName, null, null, fields);
-        criteria.setSchemaName(schemaName);
-
-        return dataDao.getData(criteria);
-    }
-
-    private List<RowValue> toRowValues(List<Field> fields, List<String> nameValues) {
-
-        return IntStream.range(0, nameValues.size()).boxed()
-                .map(index -> toRowValue(index, nameValues.get(index), fields))
-                .collect(toList());
+        return toRowValues(nameValues.size(), index -> toRowValue(index, nameValues.get(index), fields));
     }
 
     private RowValue toRowValue(int id, String name, List<Field> fields) {
 
-        FieldValue idValue = findFieldOrThrow(FIELD_ID_CODE, fields).valueOf(BigInteger.valueOf(id));
-        FieldValue nameValue = findFieldOrThrow(FIELD_NAME_CODE, fields).valueOf(name);
+        RowValue result = toIdNameRowValue(id, name, fields);
+
         FieldValue hashValue = hashField.valueOf(String.valueOf(id));
-        return new LongRowValue(idValue, nameValue, hashValue);
-    }
+        result.getFieldValues().add(hashValue);
 
-    private void assertValues(List<RowValue> dataValues, List<String> nameValues) {
-
-        assertNotNull(dataValues);
-        assertEquals(nameValues.size(), dataValues.size());
-
-        IntStream.range(0, nameValues.size()).forEach(index -> {
-            StringFieldValue nameValue = dataValues.stream()
-                    .filter(rowValue -> {
-                        IntegerFieldValue idValue = (IntegerFieldValue) rowValue.getFieldValue(FIELD_ID_CODE);
-                        BigInteger value = idValue != null ? idValue.getValue() : null;
-                        return value != null && value.equals(BigInteger.valueOf(index));
-                    })
-                    .map(rowValue -> (StringFieldValue) rowValue.getFieldValue(FIELD_NAME_CODE))
-                    .findFirst().orElse(null);
-            assertNotNull(nameValue);
-            assertEquals(nameValues.get(index), nameValue.getValue());
-        });
+        return result;
     }
 }

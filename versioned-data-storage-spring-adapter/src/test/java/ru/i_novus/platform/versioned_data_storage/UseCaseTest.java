@@ -36,6 +36,7 @@ import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.*;
 import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
 import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.toStorageCode;
+import static ru.i_novus.platform.versioned_data_storage.DataTestUtils.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.TRANSACTION_ROW_LIMIT;
 
 /**
@@ -49,11 +50,8 @@ public class UseCaseTest {
 
     private static final ZoneId UNIVERSAL_TIMEZONE = ZoneId.of("UTC");
 
-    private static final String TEST_SCHEMA_NAME = "data_test";
-
-    private static final String FIELD_ID_CODE = "ID";
-    private static final String FIELD_NAME_CODE = "NAME";
-    private static final String FIELD_CODE_CODE = "CODE";
+    @Autowired
+    private FieldFactory fieldFactory;
 
     @Autowired
     private StorageCodeService storageCodeService;
@@ -66,9 +64,6 @@ public class UseCaseTest {
 
     @Autowired
     private CompareDataService compareDataService;
-
-    @Autowired
-    private FieldFactory fieldFactory;
 
     private LocalDateTime now() {
         return LocalDateTime.now(UNIVERSAL_TIMEZONE);
