@@ -26,13 +26,6 @@
 
         <!-- Test -->
         <dependency>
-        	<groupId>ch.qos.logback</groupId>
-        	<artifactId>logback-classic</artifactId>
-        	<version>1.2.3</version>
-            <scope>test</scope>
-        </dependency>
-        
-        <dependency>
             <groupId>ru.i-novus.components</groupId>
             <artifactId>otj-pg-embedded-rus</artifactId>
             <version>0.13.2-alpha.1</version>
@@ -128,4 +121,19 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>test-logging</id>
+
+            <dependencies>
+                <dependency>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                    <version>1.2.3</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
 </project>
