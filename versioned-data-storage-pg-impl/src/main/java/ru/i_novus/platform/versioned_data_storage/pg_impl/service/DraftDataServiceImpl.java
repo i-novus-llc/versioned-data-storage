@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static java.util.Collections.singletonList;
 import static java.util.Optional.of;
 import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
 import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.*;
@@ -129,21 +130,6 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Override
     public void deleteAllRows(String draftCode) {
         dataDao.deleteData(draftCode);
-    }
-
-    @Override
-    public void updateRow(String draftCode, RowValue rowValue) {
-
-        List<CodifiedException> exceptions = new ArrayList<>();
-        // NB: Валидация validateRow закомментирована
-        if (rowValue.getSystemId() == null)
-            exceptions.add(new CodifiedException(FIELD_IS_REQUIRED_EXCEPTION_CODE, SYS_PRIMARY_COLUMN));
-
-        if (!exceptions.isEmpty()) {
-            throw new ListCodifiedException(exceptions);
-        }
-
-        dataDao.updateData(draftCode, rowValue);
     }
 
     @Override
@@ -285,7 +271,7 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     @Override
     public boolean isFieldUnique(String storageCode, String fieldName, LocalDateTime publishTime) {
-        return dataDao.isUnique(storageCode, Collections.singletonList(fieldName), publishTime);
+        return dataDao.isUnique(storageCode, singletonList(fieldName), publishTime);
     }
 
     @Override
@@ -317,7 +303,7 @@ public class DraftDataServiceImpl implements DraftDataService {
                 else if (Boolean.TRUE.equals(field.getSearchEnabled())) {
                     dataDao.createIndex(draftCode,
                             escapeTableIndexName(toTableName(draftCode), fieldName.toLowerCase()),
-                            Collections.singletonList(fieldName));
+                            singletonList(fieldName));
                 }
             }
         }

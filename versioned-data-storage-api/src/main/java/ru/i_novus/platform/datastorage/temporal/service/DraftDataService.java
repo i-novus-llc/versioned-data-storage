@@ -106,14 +106,6 @@ public interface DraftDataService {
     void deleteAllRows(String draftCode);
 
     /**
-     * Изменение записи таблицы.
-     *
-     * @param draftCode код черновика
-     * @param rowValue  новые данные записи
-     */
-    void updateRow(String draftCode, RowValue rowValue);
-
-    /**
      * Изменение записей таблицы.
      *
      * @param draftCode код черновика

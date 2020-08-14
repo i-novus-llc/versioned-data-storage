@@ -156,7 +156,7 @@ public class UseCaseTest {
                 d_b_ref.valueOf(new Reference(s_a_storageCode, s_a_publishTime, d_a_id.getName(), d_a_name.getName(), "2"))
         );
         d_b_rowValue.setSystemId(systemId);
-        draftDataService.updateRow(d_b_draftCode, d_b_rowValue);
+        draftDataService.updateRows(d_b_draftCode, singletonList(d_b_rowValue));
 
         criteria = new StorageDataCriteria(d_b_draftCode, null, null, d_b_fields, emptySet(), "name");
         d_b_actualRows = searchDataService.getData(criteria);
@@ -239,7 +239,8 @@ public class UseCaseTest {
 
         Object existingSystemId = existingRows.get(0).getSystemId();
         FieldValue existingFieldValue = new StringFieldValue(existingFieldName.getName(), newDisplayValue);
-        draftDataService.updateRow(existingStorageCode, new LongRowValue((Long)existingSystemId, singletonList(existingFieldValue)));
+        RowValue updateRowValue = new LongRowValue((Long)existingSystemId, singletonList(existingFieldValue));
+        draftDataService.updateRows(existingStorageCode, singletonList(updateRowValue));
         // - отображаемое значение ссылки должно измениться, т.к. изменились данные в existingStorageCode.
         draftDataService.updateReferenceInRows(draftCode, updatedRefValue, updatedIds);
 
