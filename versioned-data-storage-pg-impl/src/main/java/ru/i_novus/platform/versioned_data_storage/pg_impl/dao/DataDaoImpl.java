@@ -12,6 +12,7 @@ import ru.i_novus.platform.datastorage.temporal.model.criteria.*;
 import ru.i_novus.platform.datastorage.temporal.model.value.*;
 import ru.i_novus.platform.datastorage.temporal.util.StringUtils;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
 
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
@@ -1105,7 +1106,7 @@ public class DataDaoImpl implements DataDao {
         String tableName = toTableName(storageCode);
 
         final String alias = TRIGGER_NEW_ALIAS + NAME_SEPARATOR;
-        String tableFields = fieldNames.stream().map(this::getFieldClearName).collect(joining(", "));
+        String tableFields = fieldNames.stream().map(QueryUtil::getFieldClearName).collect(joining(", "));
 
         String expression = String.format(HASH_EXPRESSION,
                 fieldNames.stream().map(field -> alias + field).collect(joining(", ")));
@@ -1121,7 +1122,7 @@ public class DataDaoImpl implements DataDao {
         String tableName = toTableName(storageCode);
 
         final String alias = TRIGGER_NEW_ALIAS + NAME_SEPARATOR;
-        String tableFields = fieldNames.stream().map(this::getFieldClearName).collect(joining(", "));
+        String tableFields = fieldNames.stream().map(QueryUtil::getFieldClearName).collect(joining(", "));
 
         String expression = fieldNames.stream()
                 .map(field -> "coalesce( to_tsvector('ru', " + alias + field + "\\:\\:text),'')")
@@ -1132,11 +1133,20 @@ public class DataDaoImpl implements DataDao {
         entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
-    /** Получение наименования поля с кавычками из наименования, сформированного по getHashUsedFieldNames. */
-    private String getFieldClearName(String fieldName) {
+    @Override
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    public void dropTriggers(String storageCode) {
 
-        int closeQuoteIndex = fieldName.indexOf('"', 1);
-        return fieldName.substring(0, closeQuoteIndex + 1);
+        String schemaName = toSchemaName(storageCode);
+        String tableName = toTableName(storageCode);
+
+        String escapedTableName = addDoubleQuotes(tableName);
+
+        String dropHashTrigger = String.format(DROP_TRIGGER, HASH_TRIGGER_NAME, schemaName, escapedTableName);
+        entityManager.createNativeQuery(dropHashTrigger).executeUpdate();
+
+        String dropFtsTrigger = String.format(DROP_TRIGGER, FTS_TRIGGER_NAME, schemaName, escapedTableName);
+        entityManager.createNativeQuery(dropFtsTrigger).executeUpdate();
     }
 
     @Override
@@ -1161,19 +1171,6 @@ public class DataDaoImpl implements DataDao {
 
         String ddl = String.format(UPDATE_FIELD, DATA_SCHEMA_NAME, addDoubleQuotes(tableName), ddlAssign);
         entityManager.createNativeQuery(ddl).executeUpdate();
-    }
-
-    @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void dropTriggers(String tableName) {
-
-        String escapedTableName = addDoubleQuotes(tableName);
-
-        String dropHashTrigger = String.format(DROP_TRIGGER, HASH_TRIGGER_NAME, DATA_SCHEMA_NAME, escapedTableName);
-        entityManager.createNativeQuery(dropHashTrigger).executeUpdate();
-
-        String dropFtsTrigger = String.format(DROP_TRIGGER, FTS_TRIGGER_NAME, DATA_SCHEMA_NAME, escapedTableName);
-        entityManager.createNativeQuery(dropFtsTrigger).executeUpdate();
     }
 
     @Override

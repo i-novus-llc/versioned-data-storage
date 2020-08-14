@@ -91,11 +91,11 @@ public interface DataDao {
 
     void createTriggers(String storageCode, List<String> fieldNames);
 
+    void dropTriggers(String storageCode);
+
     void updateHashRows(String tableName, List<String> fieldNames);
 
     void updateFtsRows(String tableName, List<String> fieldNames);
-
-    void dropTriggers(String tableName);
 
     void createIndex(String storageCode, String name, List<String> fields);
 

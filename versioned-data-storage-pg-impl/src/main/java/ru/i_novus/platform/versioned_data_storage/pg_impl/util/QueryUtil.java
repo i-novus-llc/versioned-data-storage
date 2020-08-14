@@ -81,6 +81,13 @@ public class QueryUtil {
         }
     }
 
+    /** Получение наименования поля с кавычками из наименования, сформированного по getHashUsedFieldNames. */
+    public static String getFieldClearName(String fieldName) {
+
+        int closeQuoteIndex = fieldName.indexOf('"', 1);
+        return fieldName.substring(0, closeQuoteIndex + 1);
+    }
+
     /**
      * Получение значения поля в виде объекта соответствующего класса
      *
@@ -216,17 +223,23 @@ public class QueryUtil {
     }
 
     public static Field getField(String name, String type) {
+
         switch (type) {
             case BooleanField.TYPE:
                 return new BooleanField(name);
+
             case DateField.TYPE:
                 return new DateField(name);
+
             case FloatField.TYPE:
                 return new FloatField(name);
+
             case IntegerField.TYPE:
                 return new IntegerField(name);
+
             case ReferenceField.TYPE:
                 return new ReferenceField(name);
+
             default:
                 return new StringField(name);
         }
