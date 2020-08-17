@@ -356,10 +356,10 @@ public class DataDaoImpl implements DataDao {
             if (filters.isEmpty())
                 return null;
 
-            return WHERE_DEFAULT + String.join("\n", filters);
+            return WHERE_DEFAULT + String.join(QUERY_NEW_LINE, filters);
         })
                 .filter(Objects::nonNull)
-                .collect(joining(" or "));
+                .collect(joining(CONDITION_OR));
 
         if (!"".equals(sql))
             sql = " and (" + sql + ")";
@@ -377,23 +377,23 @@ public class DataDaoImpl implements DataDao {
         String escapedFieldName = escapeFieldName(alias, fieldName);
 
         if (searchCriteria.getValues() == null || searchCriteria.getValues().get(0) == null) {
-            filters.add(" and " + escapedFieldName + " is null");
+            filters.add(CONDITION_AND + escapedFieldName + IS_NULL);
             return;
         }
 
         String indexedFieldName = fieldName + index;
 
         if (field instanceof IntegerField || field instanceof FloatField || field instanceof DateField) {
-            filters.add(" and " + escapedFieldName + " in (:" + indexedFieldName + ")");
+            filters.add(CONDITION_AND + escapedFieldName + " IN (:" + indexedFieldName + ")");
             params.put(indexedFieldName, searchCriteria.getValues());
 
         } else if (field instanceof ReferenceField) {
-            filters.add(" and " + escapedFieldName + "->> 'value' in (:" + indexedFieldName + ")");
+            filters.add(CONDITION_AND + escapedFieldName + "->> 'value' IN (:" + indexedFieldName + ")");
             params.put(indexedFieldName, searchCriteria.getValues().stream().map(Object::toString).collect(toList()));
 
         } else if (field instanceof TreeField) {
             if (SearchTypeEnum.LESS.equals(searchCriteria.getType())) {
-                filters.add(" and " + escapedFieldName + "@> (cast(:" + indexedFieldName + " AS ltree[]))");
+                filters.add(CONDITION_AND + escapedFieldName + "@> (CAST(:" + indexedFieldName + " AS ltree[]))");
                 String valuesArray = searchCriteria.getValues().stream()
                         .map(Object::toString)
                         .collect(joining(",", "{", "}"));
@@ -401,17 +401,17 @@ public class DataDaoImpl implements DataDao {
             }
         } else if (field instanceof BooleanField) {
             if (searchCriteria.getValues().size() == 1) {
-                filters.add(" and " + escapedFieldName +
+                filters.add(CONDITION_AND + escapedFieldName +
                         (Boolean.TRUE.equals(searchCriteria.getValues().get(0)) ? " IS TRUE " : " IS NOT TRUE")
                 );
             }
         } else if (field instanceof StringField) {
             if (SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && searchCriteria.getValues().size() == 1) {
-                filters.add(" and lower(" + escapedFieldName + ") like :" + indexedFieldName + "");
+                filters.add(CONDITION_AND + "lower(" + escapedFieldName + ") LIKE :" + indexedFieldName + "");
                 String value = searchCriteria.getValues().get(0).toString().trim().toLowerCase();
                 params.put(indexedFieldName, LIKE_ESCAPE_MANY_CHAR + value + LIKE_ESCAPE_MANY_CHAR);
             } else {
-                filters.add(" and " + escapedFieldName + " in (:" + indexedFieldName + ")");
+                filters.add(CONDITION_AND + escapedFieldName + " IN (:" + indexedFieldName + ")");
                 params.put(indexedFieldName, searchCriteria.getValues());
             }
         } else {
@@ -967,15 +967,12 @@ public class DataDaoImpl implements DataDao {
         List<String> fieldNames = getEscapedFieldNames(draftCode);
         if (isEmpty(fieldNames)) {
             deleteData(draftCode);
-
             return;
         }
 
-        String condition = fieldNames.stream()
-                .map(s -> s + " IS NULL")
-                .collect(joining(" AND "));
-
-        String sql = String.format(DELETE_RECORD, DATA_SCHEMA_NAME, addDoubleQuotes(draftCode), condition);
+        String condition = fieldNames.stream().map(s -> s + IS_NULL).collect(joining(CONDITION_AND));
+        String sql = String.format(DELETE_RECORD,
+                toSchemaName(draftCode), addDoubleQuotes(toTableName(draftCode)), condition);
         entityManager.createNativeQuery(sql).executeUpdate();
     }
 
@@ -1082,11 +1079,11 @@ public class DataDaoImpl implements DataDao {
         QueryWithParams whereByDate = getWhereByDates(publishTime, null, DEFAULT_TABLE_ALIAS);
         String sqlByDate = (whereByDate == null || StringUtils.isNullOrEmpty(whereByDate.getSql())) ? "" : whereByDate.getSql();
 
-        String sql = "SELECT " + fields + ", COUNT(*)" + "\n" +
+        String sql = "SELECT " + fields + ", COUNT(*)" + QUERY_NEW_LINE +
                 "  FROM " + escapeTableName(schemaName, tableName) +
-                " as " + DEFAULT_TABLE_ALIAS + "\n" +
+                " as " + DEFAULT_TABLE_ALIAS + QUERY_NEW_LINE +
                 " WHERE " + WHERE_DEFAULT + sqlByDate +
-                " GROUP BY " + groupBy + "\n" +
+                " GROUP BY " + groupBy + QUERY_NEW_LINE +
                 "HAVING COUNT(*) > 1";
         Query query = entityManager.createNativeQuery(sql);
 
@@ -1620,7 +1617,7 @@ public class DataDaoImpl implements DataDao {
         String primaryEquality = criteria.getPrimaryFields().stream()
                 .map(field -> escapeFieldName(oldAlias, field ) +
                         " = " + escapeFieldName(newAlias, field))
-                .collect(joining(" and ")) + "\n";
+                .collect(joining(CONDITION_AND)) + QUERY_NEW_LINE;
 
         Map<String, Object> params = new HashMap<>();
         String oldPrimaryValuesFilter = makeFieldValuesFilter(oldAlias, params, criteria.getPrimaryFieldsFilters());
@@ -1631,15 +1628,15 @@ public class DataDaoImpl implements DataDao {
                 : " and (" + nonPrimaryFields.stream()
                 .map(field -> escapeFieldName(oldAlias, field) +
                         " is distinct from " + escapeFieldName(newAlias, field))
-                .collect(joining(" or ")) +
+                .collect(joining(CONDITION_OR)) +
                 ") ";
 
         String oldPrimaryIsNull = criteria.getPrimaryFields().stream()
                 .map(field -> escapeFieldName(oldAlias, field) + " is null ")
-                .collect(joining(" and "));
+                .collect(joining(CONDITION_AND));
         String newPrimaryIsNull = criteria.getPrimaryFields().stream()
                 .map(field -> escapeFieldName(newAlias, field ) + " is null ")
-                .collect(joining(" and "));
+                .collect(joining(CONDITION_AND));
 
         final String datesFilterFormat =
                 " and date_trunc('second', %1$s) <= :%2$s\\:\\:timestamp without time zone \n" +
@@ -1677,12 +1674,12 @@ public class DataDaoImpl implements DataDao {
                 newVersionDateFilter +
                 " where ";
 
-        if (criteria.getStatus() == null)
+        if (criteria.getStatus() == null) {
             sql += oldPrimaryIsNull + newVersionDateFilter +
-                    " or " + newPrimaryIsNull + oldVersionDateFilter +
-                    " or (" + primaryEquality + nonPrimaryFieldsInequality + ") ";
+                    CONDITION_OR + newPrimaryIsNull + oldVersionDateFilter +
+                    CONDITION_OR + "(" + primaryEquality + nonPrimaryFieldsInequality + ") ";
 
-        else if (DiffStatusEnum.UPDATED.equals(criteria.getStatus())) {
+        } else if (DiffStatusEnum.UPDATED.equals(criteria.getStatus())) {
             sql += primaryEquality + nonPrimaryFieldsInequality;
 
         } else if (DiffStatusEnum.INSERTED.equals(criteria.getStatus())) {

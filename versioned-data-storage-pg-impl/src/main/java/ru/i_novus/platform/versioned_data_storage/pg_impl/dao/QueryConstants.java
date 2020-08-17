@@ -45,6 +45,7 @@ public class QueryConstants {
     static final String CONDITION_IN = "%1$s IN (%2$s)";
     static final String CONDITION_EQUAL = "%1$s = %2$s";
     static final String LIKE_ESCAPE_MANY_CHAR = "%";
+    static final String IS_NULL = " IS NULL";
     static final String TO_ANY_BIGINT = "ANY(%s\\:\\:bigint[])";
     static final String TO_ANY_TEXT = "ANY(%s\\:\\:text[])";
 
@@ -282,7 +283,7 @@ public class QueryConstants {
 
     static final String CREATE_TABLE_INDEX = "CREATE INDEX %1$s ON %2$s.%3$s %4$s(%5$s);";
     static final String DROP_TABLE_INDEX = "DROP INDEX IF EXISTS %1$s.%2$s;";
-    static final String IF_TABLE_INDEX_EXISTS = "SELECT exists(SELECT * \n" +
+    static final String IF_TABLE_INDEX_EXISTS = "SELECT EXISTS(SELECT * \n" +
             "              FROM \n" +
             "                pg_class t,\n" +
             "                pg_class i,\n" +
