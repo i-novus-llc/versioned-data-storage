@@ -146,40 +146,49 @@ public class QueryUtil {
         if (isNullOrEmpty(alias))
             alias = "";
 
-        List<String> queryFields = new ArrayList<>();
+        List<String> selectedFields = new ArrayList<>();
         for (Field<?> field : fields) {
-            String query = escapeFieldName(alias, field.getName());
-
-            if (field instanceof ReferenceField) {
-                String queryValue = query +
-                        REFERENCE_FIELD_VALUE_OPERATOR + addSingleQuotes(REFERENCE_VALUE_NAME) +
-                        ALIAS_OPERATOR + sqlFieldAlias(field, alias, REFERENCE_VALUE_NAME);
-                queryFields.add(queryValue);
-
-                if (detailed) {
-                    String queryDisplayValue = query +
-                            REFERENCE_FIELD_VALUE_OPERATOR + addSingleQuotes(REFERENCE_DISPLAY_VALUE_NAME) +
-                            ALIAS_OPERATOR + sqlFieldAlias(field, alias, REFERENCE_DISPLAY_VALUE_NAME);
-                    queryFields.add(queryDisplayValue);
-                }
-            } else {
-                if (field instanceof TreeField) {
-                    query += "\\:\\:text";
-                }
-
-                query += ALIAS_OPERATOR + sqlFieldAlias(field, alias, fields.indexOf(field));
-                queryFields.add(query);
-            }
+            toSelectedField(alias, field, fields.indexOf(field), detailed, selectedFields);
         }
-        return String.join(", ", queryFields);
+
+        return String.join(", ", selectedFields);
     }
 
-    private static String sqlFieldAlias(Field<?> field, String prefix, String suffix) {
-        return addDoubleQuotes(prefix + field.getName() + "." + suffix);
+    private static void toSelectedField(String alias, Field<?> field, int index,
+                                        boolean detailed, List<String> selectedFields) {
+
+        String selectedField = escapeFieldName(alias, field.getName());
+
+        if (field instanceof ReferenceField) {
+            String queryValue = selectedField +
+                    REFERENCE_FIELD_VALUE_OPERATOR + addSingleQuotes(REFERENCE_VALUE_NAME) +
+                    ALIAS_OPERATOR + sqlFieldAlias(field, index, alias, REFERENCE_VALUE_NAME);
+            selectedFields.add(queryValue);
+
+            if (detailed) {
+                String queryDisplayValue = selectedField +
+                        REFERENCE_FIELD_VALUE_OPERATOR + addSingleQuotes(REFERENCE_DISPLAY_VALUE_NAME) +
+                        ALIAS_OPERATOR + sqlFieldAlias(field, index, alias, REFERENCE_DISPLAY_VALUE_NAME);
+                selectedFields.add(queryDisplayValue);
+            }
+        } else {
+            if (field instanceof TreeField) {
+                selectedField += "\\:\\:text";
+            }
+
+            selectedField += ALIAS_OPERATOR + sqlFieldAlias(field, index, alias);
+            selectedFields.add(selectedField);
+        }
     }
 
-    private static String sqlFieldAlias(Field<?> field, String prefix, int index) {
+    private static String sqlFieldAlias(Field<?> field, int index, String prefix) {
+
         return addDoubleQuotes(prefix + field.getName() + index);
+    }
+
+    private static String sqlFieldAlias(Field<?> field, int index, String prefix, String suffix) {
+
+        return addDoubleQuotes(prefix + field.getName() + index + "." + suffix);
     }
 
     @SuppressWarnings("all")
