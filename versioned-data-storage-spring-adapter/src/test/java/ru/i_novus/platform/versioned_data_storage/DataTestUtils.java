@@ -7,6 +7,8 @@ import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageDataCriter
 import ru.i_novus.platform.datastorage.temporal.model.value.IntegerFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.StringFieldValue;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.model.IntegerField;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.model.StringField;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -33,6 +35,19 @@ public class DataTestUtils {
 
     private DataTestUtils() {
         // Nothing to do.
+    }
+
+    public static List<Field> newIdNameFields() {
+
+        List<Field> fields = new ArrayList<>();
+
+        Field idField = new IntegerField(FIELD_ID_CODE);
+        fields.add(idField);
+
+        Field nameField = new StringField(FIELD_NAME_CODE);
+        fields.add(nameField);
+
+        return fields;
     }
 
     /** Поиск поля по наименованию. */
@@ -78,6 +93,12 @@ public class DataTestUtils {
     public static StorageDataCriteria toCriteria(String schemaName, String tableName, List<Field> fields) {
 
         return toCriteria(toStorageCode(schemaName, tableName), fields);
+    }
+
+    /** Получение значения поля ID из результата поиска. */
+    public static BigInteger getRowIdFieldValue(RowValue rowValue) {
+
+        return (BigInteger) rowValue.getFieldValue(FIELD_ID_CODE).getValue();
     }
 
     /** Сравнение результата поиска данных с проверяемыми данными. */

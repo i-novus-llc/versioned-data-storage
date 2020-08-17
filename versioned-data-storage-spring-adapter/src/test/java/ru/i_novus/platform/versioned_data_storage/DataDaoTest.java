@@ -19,7 +19,6 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
 
@@ -280,13 +279,7 @@ public class DataDaoTest {
 
     private List<Field> newTestFields() {
 
-        List<Field> fields = new ArrayList<>();
-        Field idField = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
-        Field nameField = fieldFactory.createField(FIELD_NAME_CODE, FieldType.STRING);
-        fields.add(idField);
-        fields.add(nameField);
-
-        return fields;
+        return newIdNameFields();
     }
 
     private List<RowValue> nameValuesToRowValues(List<Field> fields, List<String> nameValues) {
