@@ -77,7 +77,7 @@ public interface DataDao {
 
     void deleteData(String storageCode, List<Object> systemIds);
 
-    void loadData(String draftTable, String sourceTable, List<String> fields,
+    void loadData(String draftCode, String sourceCode, List<String> fields,
                   LocalDateTime fromDate, LocalDateTime toDate);
 
     void updateReferenceInRows(String storageCode, ReferenceFieldValue fieldValue, List<Object> systemIds);
@@ -88,7 +88,7 @@ public interface DataDao {
 
     void updateReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue, int offset, int limit);
 
-    void updateSequence(String tableName);
+    void updateSequence(String storageCode);
 
     void createTriggers(String storageCode, List<String> fieldNames);
 

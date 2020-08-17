@@ -148,16 +148,16 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     @Override
-    public void loadData(String draftCode, String baseStorageCode, LocalDateTime onDate) {
-        loadData(draftCode, baseStorageCode, onDate, null);
+    public void loadData(String draftCode, String sourceCode, LocalDateTime onDate) {
+        loadData(draftCode, sourceCode, onDate, null);
     }
 
     @Override
-    public void loadData(String draftCode, String baseStorageCode, LocalDateTime fromDate, LocalDateTime toDate) {
+    public void loadData(String draftCode, String sourceCode, LocalDateTime fromDate, LocalDateTime toDate) {
 
         List<String> draftFieldNames = dataDao.getEscapedFieldNames(draftCode);
-        List<String> baseFieldNames = dataDao.getEscapedFieldNames(baseStorageCode);
-        if (!draftFieldNames.equals(baseFieldNames)) {
+        List<String> sourceFieldNames = dataDao.getEscapedFieldNames(sourceCode);
+        if (!draftFieldNames.equals(sourceFieldNames)) {
             throw new CodifiedException(TABLES_NOT_EQUAL);
         }
 
@@ -165,7 +165,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         draftFieldNames.add(addDoubleQuotes(SYS_FTS));
         draftFieldNames.add(addDoubleQuotes(SYS_HASH));
 
-        dataDao.loadData(draftCode, baseStorageCode, draftFieldNames, fromDate, toDate);
+        dataDao.loadData(draftCode, sourceCode, draftFieldNames, fromDate, toDate);
         dataDao.updateSequence(draftCode);
     }
 

@@ -943,18 +943,19 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void loadData(String draftTable, String sourceTable, List<String> fields,
+    public void loadData(String draftCode, String sourceCode, List<String> fields,
                          LocalDateTime fromDate, LocalDateTime toDate) {
 
+        final String alias = DEFAULT_TABLE_ALIAS + NAME_SEPARATOR;
         String keys = String.join(",", fields);
-        String values = fields.stream()
-                .map(f -> DEFAULT_TABLE_ALIAS + NAME_SEPARATOR + f)
-                .collect(joining(","));
+        String strFields = fields.stream().map(field -> alias + field).collect(joining(", "));
 
-        String sql = String.format(INSERT_RECORD, DATA_SCHEMA_NAME, addDoubleQuotes(draftTable), keys) +
-                String.format(INSERT_SELECT, DATA_SCHEMA_NAME, addDoubleQuotes(sourceTable), DEFAULT_TABLE_ALIAS, values);
+        String sqlInsert = String.format(INSERT_RECORD,
+                toSchemaName(draftCode), addDoubleQuotes(toTableName(draftCode)), keys);
+        String sqlSelect = String.format(INSERT_SELECT,
+                toSchemaName(sourceCode), addDoubleQuotes(toTableName(sourceCode)), DEFAULT_TABLE_ALIAS, strFields);
 
-        QueryWithParams queryWithParams = new QueryWithParams(sql);
+        QueryWithParams queryWithParams = new QueryWithParams(sqlInsert + sqlSelect);
         queryWithParams.concat(getWhereByDates(fromDate, toDate, DEFAULT_TABLE_ALIAS));
 
         queryWithParams.createQuery(entityManager).executeUpdate();
@@ -1064,42 +1065,14 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    public boolean isUnique(String storageCode, List<String> fieldNames, LocalDateTime publishTime) {
-
-        String schemaName = toSchemaName(storageCode);
-        String tableName = toTableName(storageCode);
-
-        String fields = fieldNames.stream()
-                .map(fieldName -> addDoubleQuotes(fieldName) + "\\:\\:text")
-                .collect(joining(","));
-        String groupBy = IntStream.rangeClosed(1, fieldNames.size())
-                .mapToObj(String::valueOf)
-                .collect(joining(","));
-
-        QueryWithParams whereByDate = getWhereByDates(publishTime, null, DEFAULT_TABLE_ALIAS);
-        String sqlByDate = (whereByDate == null || StringUtils.isNullOrEmpty(whereByDate.getSql())) ? "" : whereByDate.getSql();
-
-        String sql = "SELECT " + fields + ", " + COUNT_ONLY + QUERY_NEW_LINE +
-                "  FROM " + escapeTableName(schemaName, tableName) +
-                ALIAS_OPERATOR + DEFAULT_TABLE_ALIAS + QUERY_NEW_LINE +
-                SELECT_WHERE_DEFAULT + sqlByDate +
-                SELECT_GROUP + groupBy + QUERY_NEW_LINE +
-                "HAVING " + COUNT_ONLY + " > 1";
-        Query query = entityManager.createNativeQuery(sql);
-
-        if (whereByDate != null)
-            whereByDate.fillQueryParameters(query);
-
-        return query.getResultList().isEmpty();
-    }
-
-
-    @Override
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void updateSequence(String tableName) {
+    public void updateSequence(String storageCode) {
 
-        String sql = String.format("SELECT setval('%1$s.%2$s', (SELECT max(\"SYS_RECORDID\") FROM %1$s.%3$s))",
-                DATA_SCHEMA_NAME, escapeSequenceName(tableName), addDoubleQuotes(tableName));
+        String sqlSelect = String.format(SELECT_PRIMARY_MAX,
+                toSchemaName(storageCode),
+                addDoubleQuotes(toTableName(storageCode)),
+                addDoubleQuotes(SYS_PRIMARY_COLUMN));
+        String sql = String.format(UPDATE_TABLE_SEQUENCE, escapeStorageSequenceName(storageCode), sqlSelect);
         entityManager.createNativeQuery(sql).getSingleResult();
     }
 
@@ -1303,6 +1276,36 @@ public class DataDaoImpl implements DataDao {
                 addDoubleQuotes(toTableName(storageCode)),
                 addDoubleQuotes(fieldName));
         return (boolean) entityManager.createNativeQuery(sql).getSingleResult();
+    }
+
+    @Override
+    public boolean isUnique(String storageCode, List<String> fieldNames, LocalDateTime publishTime) {
+
+        String schemaName = toSchemaName(storageCode);
+        String tableName = toTableName(storageCode);
+
+        String fields = fieldNames.stream()
+                .map(fieldName -> addDoubleQuotes(fieldName) + "\\:\\:text")
+                .collect(joining(", "));
+        String groupBy = IntStream.rangeClosed(1, fieldNames.size())
+                .mapToObj(String::valueOf)
+                .collect(joining(", "));
+
+        QueryWithParams whereByDate = getWhereByDates(publishTime, null, DEFAULT_TABLE_ALIAS);
+        String sqlByDate = (whereByDate == null || StringUtils.isNullOrEmpty(whereByDate.getSql())) ? "" : whereByDate.getSql();
+
+        String sql = "SELECT " + fields + ", " + COUNT_ONLY + QUERY_NEW_LINE +
+                "  FROM " + escapeTableName(schemaName, tableName) +
+                ALIAS_OPERATOR + DEFAULT_TABLE_ALIAS + QUERY_NEW_LINE +
+                SELECT_WHERE_DEFAULT + sqlByDate +
+                SELECT_GROUP + groupBy + QUERY_NEW_LINE +
+                "HAVING " + COUNT_ONLY + " > 1";
+        Query query = entityManager.createNativeQuery(sql);
+
+        if (whereByDate != null)
+            whereByDate.fillQueryParameters(query);
+
+        return query.getResultList().isEmpty();
     }
 
     @Override
@@ -1560,14 +1563,13 @@ public class DataDaoImpl implements DataDao {
 
     private String toStrColumns(List<String> columns) {
 
-        return columns.stream().map(s -> "" + s + "")
-                .reduce((s1, s2) -> s1 + ", " + s2).orElse("");
+        return columns.stream().filter(Objects::nonNull).collect(joining(", "));
     }
 
     private String toRowColumns(List<String> columns) {
 
-        return columns.stream().map(s -> ROW_TYPE_VAR_NAME + "." + s + "")
-                .reduce((s1, s2) -> s1 + ", " + s2).orElse("");
+        final String alias = ROW_TYPE_VAR_NAME + NAME_SEPARATOR;
+        return columns.stream().filter(Objects::nonNull).map(s -> alias + s).collect(joining(", "));
     }
 
     @Override

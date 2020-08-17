@@ -116,21 +116,21 @@ public interface DraftDataService {
     /**
      * Загрузка данных на указанную дату из хранилища в черновик.
      *
-     * @param draftCode       код черновика
-     * @param baseStorageCode код хранилища данных, откуда будут загружены данные
-     * @param onDate          дата публикации версии
+     * @param draftCode  код черновика
+     * @param sourceCode код хранилища, откуда будут загружены данные
+     * @param onDate     дата публикации версии
      */
-    void loadData(String draftCode, String baseStorageCode, LocalDateTime onDate);
+    void loadData(String draftCode, String sourceCode, LocalDateTime onDate);
 
     /**
      * Загрузка данных на указанном интервале из хранилища в черновик.
      *
-     * @param draftCode       код черновика
-     * @param baseStorageCode код хранилища данных, откуда будут загружены данные
-     * @param fromDate        дата начала действия версии
-     * @param toDate          дата окончания действия версии
+     * @param draftCode  код черновика
+     * @param sourceCode код хранилища, откуда будут загружены данные
+     * @param fromDate   дата начала действия версии
+     * @param toDate     дата окончания действия версии
      */
-    void loadData(String draftCode, String baseStorageCode, LocalDateTime fromDate, LocalDateTime toDate);
+    void loadData(String draftCode, String sourceCode, LocalDateTime fromDate, LocalDateTime toDate);
 
     /**
      * Копирование всех записей из исходной таблицы в целевую, эквивалентную по структуре.
