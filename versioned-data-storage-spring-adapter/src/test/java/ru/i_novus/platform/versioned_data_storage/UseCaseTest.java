@@ -34,6 +34,7 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.*;
+import static ru.i_novus.platform.datastorage.temporal.model.DisplayExpression.toPlaceholder;
 import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
 import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.toStorageCode;
 import static ru.i_novus.platform.versioned_data_storage.DataTestUtils.*;
@@ -179,7 +180,7 @@ public class UseCaseTest {
 
         ReferenceFieldValue referenceFieldValue = (ReferenceFieldValue)d_b_ref.valueOf(
                 new Reference(s_a_storageCode, s_a_publishTime, d_a_id.getName(),
-                        new DisplayExpression("${" + d_a_name.getName() + "}"), null, null)
+                        new DisplayExpression(toPlaceholder(d_a_name.getName())), null, null)
         );
     }
 

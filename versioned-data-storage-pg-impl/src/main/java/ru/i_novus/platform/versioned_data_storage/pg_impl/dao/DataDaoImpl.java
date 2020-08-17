@@ -707,6 +707,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void alterDataType(String storageCode, String fieldName, String oldType, String newType) {
 
         String schemaName = toSchemaName(storageCode);
