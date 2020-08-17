@@ -43,6 +43,7 @@ public class QueryUtil {
             LongRowValue rowValue = new LongRowValue();
             if (objects instanceof Object[]) {
                 addToRowValue((Object[]) objects, fields, rowValue);
+
             } else {
                 rowValue.getFieldValues().add(getFieldValue(fields.get(0), objects));
             }
@@ -89,7 +90,7 @@ public class QueryUtil {
     }
 
     /**
-     * Получение значения поля в виде объекта соответствующего класса
+     * Получение значения поля в виде объекта соответствующего класса.
      *
      * @param field поле
      * @param value значение
@@ -101,21 +102,23 @@ public class QueryUtil {
 
         if (field instanceof BooleanField) {
             return new BooleanFieldValue(name, (Boolean) value);
+        }
 
-        } else if (field instanceof DateField) {
-            return new DateFieldValue(name,
-                    value != null ? ((java.sql.Date) value).toLocalDate() : null);
+        if (field instanceof DateField) {
+            return new DateFieldValue(name, value != null ? ((java.sql.Date) value).toLocalDate() : null);
+        }
 
-        } else if (field instanceof FloatField) {
+        if (field instanceof FloatField) {
             return new FloatFieldValue(name, (Number) value);
+        }
 
-        } else if (field instanceof IntegerField) {
+        if (field instanceof IntegerField) {
             return new IntegerFieldValue(name,
                     value != null ? new BigInteger(value.toString()) : null);
+        }
 
-        } else if (field instanceof ReferenceField) {
+        if (field instanceof ReferenceField) {
             return new ReferenceFieldValue(name, (Reference) value);
-
         }
 
         return new StringFieldValue(name, value != null ? value.toString() : null);
@@ -148,27 +151,23 @@ public class QueryUtil {
             String query = escapeFieldName(alias, field.getName());
 
             if (field instanceof ReferenceField) {
-                final String jsonOperator = "->>";
-
-                String queryValue = query + jsonOperator +
-                        addSingleQuotes(REFERENCE_VALUE_NAME) +
-                        ALIAS_OPERATOR +
-                        sqlFieldAlias(field, alias, REFERENCE_VALUE_NAME);
+                String queryValue = query +
+                        REFERENCE_FIELD_VALUE_OPERATOR + addSingleQuotes(REFERENCE_VALUE_NAME) +
+                        ALIAS_OPERATOR + sqlFieldAlias(field, alias, REFERENCE_VALUE_NAME);
                 queryFields.add(queryValue);
 
                 if (detailed) {
-                    String queryDisplayValue = query + jsonOperator +
-                            addSingleQuotes(REFERENCE_DISPLAY_VALUE_NAME) +
-                            ALIAS_OPERATOR +
-                            sqlFieldAlias(field, alias, REFERENCE_DISPLAY_VALUE_NAME);
+                    String queryDisplayValue = query +
+                            REFERENCE_FIELD_VALUE_OPERATOR + addSingleQuotes(REFERENCE_DISPLAY_VALUE_NAME) +
+                            ALIAS_OPERATOR + sqlFieldAlias(field, alias, REFERENCE_DISPLAY_VALUE_NAME);
                     queryFields.add(queryDisplayValue);
                 }
             } else {
                 if (field instanceof TreeField) {
                     query += "\\:\\:text";
                 }
-                query += ALIAS_OPERATOR +
-                        sqlFieldAlias(field, alias, fields.indexOf(field));
+
+                query += ALIAS_OPERATOR + sqlFieldAlias(field, alias, fields.indexOf(field));
                 queryFields.add(query);
             }
         }
@@ -188,6 +187,13 @@ public class QueryUtil {
         return StringField.TYPE.equals(type) || IntegerStringField.TYPE.equals(type);
     }
 
+    /**
+     * Создание поля по наименованию и типу.
+     *
+     * @param name наименование
+     * @param type тип
+     * @return Поле
+     */
     public static Field getField(String name, String type) {
 
         switch (type) {
@@ -212,6 +218,42 @@ public class QueryUtil {
     }
 
     /**
+     * Получение наименования поля с учётом преобразования типов для использования в запросах.
+     *
+     * @param fieldName поле
+     * @param oldType   старый тип
+     * @param newType   новый тип
+     * @return Наименование поля с учётом преобразования
+     */
+    public static String getFieldNameByType(String fieldName, String oldType, String newType) {
+
+        if (DateField.TYPE.equals(oldType) && isVarcharType(newType)) {
+            return "to_char(" + fieldName + ", '" + QUERY_DATE_FORMAT + "')";
+        }
+
+        if (DateField.TYPE.equals(newType) && StringField.TYPE.equals(oldType)) {
+            return "to_date(" + fieldName + ", '" + QUERY_DATE_FORMAT + "')";
+        }
+
+        if (ReferenceField.TYPE.equals(oldType)) {
+            return "(" + fieldName +
+                    REFERENCE_FIELD_VALUE_OPERATOR + addSingleQuotes(REFERENCE_VALUE_NAME) +
+                    ")" + "\\:\\:varchar\\:\\:" + newType;
+        }
+
+        if (ReferenceField.TYPE.equals(newType)) {
+            return String.format("nullif(jsonb_build_object(%1$s, %2$s), jsonb_build_object(%1$s, null))",
+                    addSingleQuotes(REFERENCE_VALUE_NAME), fieldName);
+        }
+
+        if (isVarcharType(oldType) || isVarcharType(newType)) {
+            return fieldName + "\\:\\:" + newType;
+        }
+
+        return fieldName + "\\:\\:varchar\\:\\:" + newType;
+    }
+
+    /**
      * Получение типа отображения ссылки.
      *
      * @param reference ссылка
@@ -220,11 +262,13 @@ public class QueryUtil {
     public static ReferenceDisplayType getReferenceDisplayType(Reference reference) {
 
         DisplayExpression displayExpression = reference.getDisplayExpression();
-        if (displayExpression != null && displayExpression.getValue() != null)
+        if (displayExpression != null && displayExpression.getValue() != null) {
             return ReferenceDisplayType.DISPLAY_EXPRESSION;
+        }
 
-        if (reference.getDisplayField() != null)
+        if (reference.getDisplayField() != null) {
             return ReferenceDisplayType.DISPLAY_FIELD;
+        }
 
         return null;
     }

@@ -64,6 +64,9 @@ public interface DataDao {
 
     void addColumn(String storageCode, String name, String type, String defaultValue);
 
+    /** Изменение типа данных колонки. */
+    void alterDataType(String storageCode, String fieldName, String oldType, String newType);
+
     void deleteColumn(String storageCode, String name);
 
     void insertData(String storageCode, List<RowValue> data);
@@ -114,8 +117,6 @@ public interface DataDao {
     List<String> getHashUsedFieldNames(String storageCode);
 
     String getFieldType(String storageCode, String fieldName);
-
-    void alterDataType(String tableName, String field, String oldType, String newType);
 
     boolean isFieldNotEmpty(String tableName, String fieldName);
 

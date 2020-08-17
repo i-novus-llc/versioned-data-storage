@@ -34,7 +34,8 @@ import static org.springframework.util.CollectionUtils.isEmpty;
 import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
 import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
 import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.*;
-import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.*;
+import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addDoubleQuotes;
+import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.substitute;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.*;
 
@@ -689,6 +690,20 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
+    public void alterDataType(String storageCode, String fieldName, String oldType, String newType) {
+
+        String schemaName = toSchemaName(storageCode);
+        String tableName = toTableName(storageCode);
+
+        String escapedFieldName = addDoubleQuotes(fieldName);
+        String using = getFieldNameByType(escapedFieldName, oldType, newType);
+
+        String ddl = String.format(ALTER_COLUMN_WITH_USING,
+                schemaName, addDoubleQuotes(tableName), escapedFieldName, newType, using);
+        entityManager.createNativeQuery(ddl).executeUpdate();
+    }
+
+    @Override
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void deleteColumn(String storageCode, String name) {
 
@@ -1264,41 +1279,6 @@ public class DataDaoImpl implements DataDao {
                 .setParameter(BIND_INFO_TABLE_NAME, toTableName(storageCode))
                 .setParameter(BIND_INFO_COLUMN_NAME, fieldName)
                 .getSingleResult().toString();
-    }
-
-    @Override
-    public void alterDataType(String tableName, String field, String oldType, String newType) {
-
-        String escapedField = addDoubleQuotes(field);
-        String using = "";
-        if (DateField.TYPE.equals(oldType) && isVarcharType(newType)) {
-            using = "to_char(" + escapedField + ", '" + QUERY_DATE_FORMAT + "')";
-
-        } else if (DateField.TYPE.equals(newType) && StringField.TYPE.equals(oldType)) {
-            using = "to_date(" + escapedField + ", '" + QUERY_DATE_FORMAT + "')";
-
-        } else if (ReferenceField.TYPE.equals(oldType)) {
-            using = "(" + escapedField +
-                    REFERENCE_FIELD_VALUE_OPERATOR + addSingleQuotes(REFERENCE_VALUE_NAME) +
-                    ")" + "\\:\\:varchar\\:\\:" + newType;
-
-        } else if (ReferenceField.TYPE.equals(newType)) {
-            using = String.format("nullif(jsonb_build_object(%1$s, %2$s), jsonb_build_object(%1$s, null))",
-                    addSingleQuotes(REFERENCE_VALUE_NAME),
-                    escapedField);
-
-        } else if (isVarcharType(oldType) || isVarcharType(newType)) {
-            using = escapedField + "\\:\\:" + newType;
-
-        } else {
-            using = escapedField + "\\:\\:varchar\\:\\:" + newType;
-        }
-
-        String ddl = String.format(ALTER_COLUMN_WITH_USING,
-                DATA_SCHEMA_NAME,
-                addDoubleQuotes(tableName),
-                escapedField, newType, using);
-        entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
     @Override

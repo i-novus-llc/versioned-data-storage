@@ -57,7 +57,7 @@ public class QueryConstants {
 
     // Формат даты для использования в запросах.
     static final String DATE_FORMAT_FOR_INSERT_ROW = "yyyy-MM-dd";
-    static final String QUERY_DATE_FORMAT = "DD.MM.YYYY";
+    public static final String QUERY_DATE_FORMAT = "DD.MM.YYYY";
 
     // Формат даты-времени для использования в запросах.
     static final String DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
@@ -118,7 +118,7 @@ public class QueryConstants {
     private static final String INFO_COLUMN_VALUE_SUFFIX = "(case " +
             " when data_type = " + addSingleQuotes(REFERENCE_FIELD_SQL_TYPE) +
             " then " + addSingleQuotes(REFERENCE_FIELD_VALUE_OPERATOR +
-            addSingleQuotes(addSingleQuotes(REFERENCE_VALUE_NAME))) +
+            addSingleQuotes(addSingleQuotes(REFERENCE_VALUE_NAME))) + // Двойное закавычивание для двух запросов!
             " else '' end)";
 
     static final String SELECT_ESCAPED_FIELD_NAMES = SELECT_ESCAPED_COLUMN_NAME +
