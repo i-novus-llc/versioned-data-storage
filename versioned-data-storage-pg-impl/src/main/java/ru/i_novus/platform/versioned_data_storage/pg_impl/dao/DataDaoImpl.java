@@ -62,9 +62,8 @@ public class DataDaoImpl implements DataDao {
         if (fields.stream().noneMatch(field -> SYS_HASH.equals(field.getName())))
             fields.add(1, new StringField(SYS_HASH));
 
-        String sqlFields = getSelectFields(DEFAULT_TABLE_ALIAS, fields, true);
-
         final String sqlFormat = "SELECT %1$s \n  FROM %2$s as %3$s ";
+        String sqlFields = getSelectFields(DEFAULT_TABLE_ALIAS, fields, true);
         String sql = String.format(sqlFormat, sqlFields,
                 escapeTableName(schemaName, criteria.getTableName()),
                 DEFAULT_TABLE_ALIAS);
@@ -240,11 +239,11 @@ public class DataDaoImpl implements DataDao {
 
         String orderBy = SELECT_ORDER;
         if (sorting != null && sorting.getField() != null) {
-            orderBy = orderBy + formatFieldForQuery(sorting.getField(), alias) +
+            orderBy = orderBy + escapeFieldName(alias, sorting.getField()) +
                     " " + sorting.getDirection().toString() + ", ";
         }
 
-        return orderBy + " " + formatFieldForQuery(SYS_PRIMARY_COLUMN, alias);
+        return orderBy + " " + escapeFieldName(alias, SYS_PRIMARY_COLUMN);
     }
 
     private QueryWithParams getCriteriaWhereClause(StorageDataCriteria criteria, String alias) {
@@ -1632,8 +1631,8 @@ public class DataDaoImpl implements DataDao {
                 StringUtils.isNullOrEmpty(newDataFields) ? "" : ", " + newDataFields);
 
         String primaryEquality = criteria.getPrimaryFields().stream()
-                .map(f -> formatFieldForQuery(f, oldAlias) +
-                        " = " + formatFieldForQuery(f, newAlias))
+                .map(field -> escapeFieldName(oldAlias, field ) +
+                        " = " + escapeFieldName(newAlias, field))
                 .collect(joining(" and ")) + "\n";
 
         Map<String, Object> params = new HashMap<>();
@@ -1643,16 +1642,16 @@ public class DataDaoImpl implements DataDao {
         String nonPrimaryFieldsInequality = isEmpty(nonPrimaryFields)
                 ? " and false "
                 : " and (" + nonPrimaryFields.stream()
-                .map(f -> formatFieldForQuery(f, oldAlias) +
-                        " is distinct from " + formatFieldForQuery(f, newAlias))
+                .map(field -> escapeFieldName(oldAlias, field) +
+                        " is distinct from " + escapeFieldName(newAlias, field))
                 .collect(joining(" or ")) +
                 ") ";
 
         String oldPrimaryIsNull = criteria.getPrimaryFields().stream()
-                .map(f -> formatFieldForQuery(f, oldAlias) + " is null ")
+                .map(field -> escapeFieldName(oldAlias, field) + " is null ")
                 .collect(joining(" and "));
         String newPrimaryIsNull = criteria.getPrimaryFields().stream()
-                .map(f -> formatFieldForQuery(f, newAlias) + " is null ")
+                .map(field -> escapeFieldName(newAlias, field ) + " is null ")
                 .collect(joining(" and "));
 
         final String datesFilterFormat =
@@ -1716,10 +1715,10 @@ public class DataDaoImpl implements DataDao {
 
         String orderBy = SELECT_ORDER +
                 criteria.getPrimaryFields().stream()
-                        .map(f -> formatFieldForQuery(f, newAlias))
+                        .map(field -> escapeFieldName(newAlias, field))
                         .collect(joining(",")) + "," +
                 criteria.getPrimaryFields().stream()
-                        .map(f -> formatFieldForQuery(f, oldAlias))
+                        .map(field -> escapeFieldName(oldAlias, field))
                         .collect(joining(","));
 
         QueryWithParams dataQueryWithParams = new QueryWithParams(dataSelect + sql + orderBy, params);

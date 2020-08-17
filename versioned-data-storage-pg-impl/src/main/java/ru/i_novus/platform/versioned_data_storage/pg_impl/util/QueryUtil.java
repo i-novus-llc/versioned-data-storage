@@ -145,7 +145,7 @@ public class QueryUtil {
 
         List<String> queryFields = new ArrayList<>();
         for (Field<?> field : fields) {
-            String query = formatFieldForQuery(field.getName(), alias);
+            String query = escapeFieldName(alias, field.getName());
 
             if (field instanceof ReferenceField) {
                 final String jsonOperator = "->>";
@@ -183,43 +183,9 @@ public class QueryUtil {
         return addDoubleQuotes(prefix + field.getName() + index);
     }
 
-    public static String formatFieldForQuery(String field, String alias) {
-
-        if (alias == null) {
-            alias = "";
-
-        } else if (!alias.isEmpty()) {
-            alias = alias + NAME_SEPARATOR;
-        }
-
-        // Изменить на поиск конца наименования поля.
-        if (field.contains(REFERENCE_FIELD_VALUE_OPERATOR)) {
-            String[] fieldParts = field.split(REFERENCE_FIELD_VALUE_OPERATOR);
-
-            return alias + addDoubleQuotes(fieldParts[0]) +
-                    REFERENCE_FIELD_VALUE_OPERATOR + fieldParts[1];
-        } else {
-            return alias + addDoubleQuotes(field);
-        }
-    }
-
     @SuppressWarnings("all")
     public static boolean isVarcharType(String type) {
         return StringField.TYPE.equals(type) || IntegerStringField.TYPE.equals(type);
-    }
-
-    public static boolean isCompatibleTypes(String oldDataType, String newDataType) {
-//        if (ReferenceField.TYPE.equals(newDataType) || ListField.TYPE.equals(newDataType) || ReferenceField.TYPE.equals(oldDataType) || ListField.TYPE.equals(oldDataType)) {
-//            return false;
-//        }
-        if (oldDataType.equals(newDataType) || StringField.TYPE.equals(newDataType)) {
-            return true;
-        }
-        if ((isVarcharType(oldDataType))
-                && (IntegerField.TYPE.equals(newDataType)) || IntegerStringField.TYPE.equals(newDataType)) {
-            return true;
-        }
-        return false;
     }
 
     public static Field getField(String name, String type) {
