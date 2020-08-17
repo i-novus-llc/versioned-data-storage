@@ -76,9 +76,9 @@ public class QueryConstants {
     static final String BIND_INFO_TABLE_NAME = "tableName";
     static final String BIND_INFO_COLUMN_NAME = "columnName";
 
-    private static final String FROM_INFO_SCHEMAS = "  FROM \"information_schema\".\"schemata\" \n";
-    private static final String FROM_INFO_TABLES = "  FROM \"information_schema\".\"tables\" \n";
-    private static final String FROM_INFO_COLUMNS = "  FROM \"information_schema\".\"columns\" \n";
+    private static final String FROM_INFO_SCHEMAS = "  FROM information_schema.schemata \n";
+    private static final String FROM_INFO_TABLES = "  FROM information_schema.tables \n";
+    private static final String FROM_INFO_COLUMNS = "  FROM information_schema.columns \n";
 
     private static final String AND_INFO_SCHEMA_NAME = "  AND schema_name = :schemaName \n";
     private static final String AND_INFO_TABLE_NAME = "  AND table_name = :tableName \n";

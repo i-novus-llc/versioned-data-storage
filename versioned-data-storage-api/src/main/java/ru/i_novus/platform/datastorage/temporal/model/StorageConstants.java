@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 public class StorageConstants {
 
+    // Наименование схемы для хранилищ может быть только в нижнем регистре.
     // В postgres максимальная длина имени = NAMEDATALEN - 1 = 64 - 1 .
     private static final String SCHEMA_NAME_REGEX = "[a-z][a-z\\d_]{0,62}";
     public static final Pattern SCHEMA_NAME_PATTERN = Pattern.compile(SCHEMA_NAME_REGEX);
