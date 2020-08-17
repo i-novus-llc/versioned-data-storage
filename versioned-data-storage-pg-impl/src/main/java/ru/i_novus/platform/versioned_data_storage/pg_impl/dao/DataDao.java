@@ -64,7 +64,7 @@ public interface DataDao {
 
     void addColumn(String storageCode, String name, String type, String defaultValue);
 
-    /** Изменение типа данных колонки. */
+    /** Изменение типа данных поля. */
     void alterDataType(String storageCode, String fieldName, String oldType, String newType);
 
     void deleteColumn(String storageCode, String name);
@@ -88,8 +88,6 @@ public interface DataDao {
 
     void updateReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue, int offset, int limit);
 
-    boolean isUnique(String storageCode, List<String> fieldNames, LocalDateTime publishTime);
-
     void updateSequence(String tableName);
 
     void createTriggers(String storageCode, List<String> fieldNames);
@@ -110,17 +108,66 @@ public interface DataDao {
 
     List<String> getFieldNames(String storageCode, String sqlSelect);
 
+    /**
+     * Получение закавыченных наименований полей хранилища (исключая системные поля).
+     *
+     * @param storageCode код хранилища
+     * @return Список наименований полей
+     */
     List<String> getEscapedFieldNames(String storageCode);
 
+    /**
+     * Получение всех закавыченных наименований полей хранилища.
+     *
+     * @param storageCode код хранилища
+     * @return Список наименований полей
+     */
     List<String> getAllEscapedFieldNames(String storageCode);
 
+    /**
+     * Получение всех закавыченных наименований полей хранилища для вычисления hash и fts.
+     *
+     * @param storageCode код хранилища
+     * @return Список наименований полей
+     */
     List<String> getHashUsedFieldNames(String storageCode);
 
+    /**
+     * Получение типа поля хранилища.
+     *
+     * @param storageCode код хранилища
+     * @param fieldName   наименование поля
+     * @return Тип колонки
+     */
     String getFieldType(String storageCode, String fieldName);
 
-    boolean isFieldNotEmpty(String tableName, String fieldName);
+    /**
+     * Проверка хранилища на наличие записей с не-null значением поля.
+     *
+     * @param storageCode код хранилища
+     * @param fieldName   наименование поля
+     * @return Результат проверки
+     */
+    boolean isFieldNotNull(String storageCode, String fieldName);
 
-    boolean isFieldContainEmptyValues(String tableName, String fieldName);
+    /**
+     * Проверка хранилища на наличие записей с null значением поля.
+     *
+     * @param storageCode код хранилища
+     * @param fieldName   наименование поля
+     * @return Результат проверки
+     */
+    boolean isFieldContainNullValues(String storageCode, String fieldName);
+
+    /**
+     * Проверка хранилища на уникальность записей по полям.
+     *
+     * @param storageCode код хранилища
+     * @param fieldNames  наименования полей
+     * @param publishTime дата публикации записи
+     * @return Результат проверки
+     */
+    boolean isUnique(String storageCode, List<String> fieldNames, LocalDateTime publishTime);
 
     void copyTableData(String sourceCode, String targetCode, int offset, int limit);
 

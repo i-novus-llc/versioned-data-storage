@@ -24,17 +24,20 @@ public class QueryConstants {
     static final String QUERY_NULL_VALUE = "null";
 
     static final String SELECT_ONE = "SELECT 1 \n";
-    static final String SELECT_COUNT_ONLY = "SELECT count(*) \n";
+    static final String COUNT_ONLY = "count(*)";
+    static final String SELECT_COUNT_ONLY = "SELECT " + COUNT_ONLY + QUERY_NEW_LINE;
     static final String SELECT_EXISTS_START = "SELECT EXISTS(\n";
     static final String SELECT_EXISTS_END = ")";
 
-    static final String WHERE_DEFAULT = " true"; // 1 = 1
     static final String SELECT_FROM = "  FROM ";
     static final String SELECT_WHERE = " WHERE ";
     static final String SELECT_ORDER = " ORDER BY ";
+    static final String SELECT_GROUP = " GROUP BY ";
 
+    static final String WHERE_DEFAULT = " true"; // 1 = 1
     static final String SELECT_WHERE_DEFAULT = SELECT_WHERE + WHERE_DEFAULT + QUERY_NEW_LINE;
     private static final String ORDER_BY_ONE_FIELD = SELECT_ORDER + " %1$s.\"%2$s\" \n";
+
     private static final String SELECT_LIMIT = " LIMIT ${limit}";
     private static final String SELECT_OFFSET = " OFFSET ${offset}";
 
@@ -276,10 +279,10 @@ public class QueryConstants {
     static final String REFERENCE_VALUATION_OLD_VALUE =
             "(case when %1$s is null then null else %1$s->>'value' end)";
 
-    public static final String IS_VERSION_NOT_EMPTY = "SELECT exists(SELECT * FROM data.%s);";
-    public static final String IS_FIELD_NOT_EMPTY = "SELECT exists(SELECT * FROM data.%s WHERE %s.%s IS NOT NULL);";
-    public static final String IS_FIELD_CONTAIN_EMPTY_VALUES = "SELECT exists(SELECT * FROM data.%s WHERE %s.%s IS NULL);";
-    public static final String IS_RELATED_VALUE_EXIST = "SELECT exists(SELECT * FROM data.%s where %s.%s = %s)";
+    public static final String IS_VERSION_NOT_EMPTY = "SELECT EXISTS(SELECT * FROM data.%s);";
+    public static final String IS_FIELD_NOT_NULL = "SELECT EXISTS(SELECT * FROM %1$s.%2$s AS d WHERE d.%3$s IS NOT NULL);";
+    public static final String IS_FIELD_CONTAIN_NULL_VALUES = "SELECT EXISTS(SELECT * FROM %1$s.%2$s AS d WHERE d.%3$s IS NULL);";
+    public static final String IS_RELATED_VALUE_EXIST = "SELECT EXISTS(SELECT * FROM data.%s where %s.%s = %s)";
 
     static final String CREATE_TABLE_INDEX = "CREATE INDEX %1$s ON %2$s.%3$s %4$s(%5$s);";
     static final String DROP_TABLE_INDEX = "DROP INDEX IF EXISTS %1$s.%2$s;";

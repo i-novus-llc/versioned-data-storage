@@ -25,7 +25,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
+import java.util.stream.IntStream;
 
 import static java.util.Collections.*;
 import static java.util.stream.Collectors.joining;
@@ -1072,19 +1072,19 @@ public class DataDaoImpl implements DataDao {
         String fields = fieldNames.stream()
                 .map(fieldName -> addDoubleQuotes(fieldName) + "\\:\\:text")
                 .collect(joining(","));
-        String groupBy = Stream.iterate(1, n -> n + 1).limit(fieldNames.size())
-                .map(String::valueOf)
+        String groupBy = IntStream.rangeClosed(1, fieldNames.size())
+                .mapToObj(String::valueOf)
                 .collect(joining(","));
 
         QueryWithParams whereByDate = getWhereByDates(publishTime, null, DEFAULT_TABLE_ALIAS);
         String sqlByDate = (whereByDate == null || StringUtils.isNullOrEmpty(whereByDate.getSql())) ? "" : whereByDate.getSql();
 
-        String sql = "SELECT " + fields + ", COUNT(*)" + QUERY_NEW_LINE +
+        String sql = "SELECT " + fields + ", " + COUNT_ONLY + QUERY_NEW_LINE +
                 "  FROM " + escapeTableName(schemaName, tableName) +
-                " as " + DEFAULT_TABLE_ALIAS + QUERY_NEW_LINE +
-                " WHERE " + WHERE_DEFAULT + sqlByDate +
-                " GROUP BY " + groupBy + QUERY_NEW_LINE +
-                "HAVING COUNT(*) > 1";
+                ALIAS_OPERATOR + DEFAULT_TABLE_ALIAS + QUERY_NEW_LINE +
+                SELECT_WHERE_DEFAULT + sqlByDate +
+                SELECT_GROUP + groupBy + QUERY_NEW_LINE +
+                "HAVING " + COUNT_ONLY + " > 1";
         Query query = entityManager.createNativeQuery(sql);
 
         if (whereByDate != null)
@@ -1286,21 +1286,21 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    public boolean isFieldNotEmpty(String tableName, String fieldName) {
+    public boolean isFieldNotNull(String storageCode, String fieldName) {
 
-        String sql = String.format(IS_FIELD_NOT_EMPTY,
-                addDoubleQuotes(tableName),
-                addDoubleQuotes(tableName),
+        String sql = String.format(IS_FIELD_NOT_NULL,
+                toSchemaName(storageCode),
+                addDoubleQuotes(toTableName(storageCode)),
                 addDoubleQuotes(fieldName));
         return (boolean) entityManager.createNativeQuery(sql).getSingleResult();
     }
 
     @Override
-    public boolean isFieldContainEmptyValues(String tableName, String fieldName) {
+    public boolean isFieldContainNullValues(String storageCode, String fieldName) {
 
-        String sql = String.format(IS_FIELD_CONTAIN_EMPTY_VALUES,
-                addDoubleQuotes(tableName),
-                addDoubleQuotes(tableName),
+        String sql = String.format(IS_FIELD_CONTAIN_NULL_VALUES,
+                toSchemaName(storageCode),
+                addDoubleQuotes(toTableName(storageCode)),
                 addDoubleQuotes(fieldName));
         return (boolean) entityManager.createNativeQuery(sql).getSingleResult();
     }
@@ -1310,6 +1310,7 @@ public class DataDaoImpl implements DataDao {
     public void copyTableData(String sourceCode, String targetCode, int offset, int limit) {
 
         String sourceTable = escapeStorageTableName(sourceCode);
+        String targetTable = escapeStorageTableName(targetCode);
 
         Map<String, String> mapSelect = new HashMap<>();
         mapSelect.put("sourceTable", sourceTable);
@@ -1320,7 +1321,7 @@ public class DataDaoImpl implements DataDao {
         List<String> fieldNames = getAllEscapedFieldNames(sourceCode);
 
         Map<String, String> mapInsert = new HashMap<>();
-        mapInsert.put("targetTable", escapeStorageTableName(targetCode));
+        mapInsert.put("targetTable", targetTable);
         mapInsert.put("strColumns", toStrColumns(fieldNames));
         mapInsert.put("rowColumns", toRowColumns(fieldNames));
 

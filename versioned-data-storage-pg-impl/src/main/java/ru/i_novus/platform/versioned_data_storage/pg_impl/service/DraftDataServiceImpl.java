@@ -261,12 +261,12 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     @Override
     public boolean isFieldNotEmpty(String storageCode, String fieldName) {
-        return dataDao.isFieldNotEmpty(storageCode, fieldName);
+        return dataDao.isFieldNotNull(storageCode, fieldName);
     }
 
     @Override
     public boolean isFieldContainEmptyValues(String storageCode, String fieldName) {
-        return dataDao.isFieldContainEmptyValues(storageCode, fieldName);
+        return dataDao.isFieldContainNullValues(storageCode, fieldName);
     }
 
     @Override
