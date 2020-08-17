@@ -109,7 +109,7 @@ public class DataDaoImpl implements DataDao {
         String schemaName = getSchemaName(toSchemaName(storageCode));
         String tableName = toTableName(storageCode);
 
-        List<Field> fields = dataTypesToFields(getColumnDataTypes(storageCode), fieldNames);
+        List<Field> fields = columnDataTypesToFields(getColumnDataTypes(storageCode), fieldNames);
 
         String sqlFields = getSelectFields(null, fields, true);
         String sql = String.format(SELECT_ROWS_FROM_DATA_BY_FIELD_ONE,
@@ -138,7 +138,7 @@ public class DataDaoImpl implements DataDao {
         String schemaName = getSchemaName(toSchemaName(storageCode));
         String tableName = toTableName(storageCode);
 
-        List<Field> fields = dataTypesToFields(getColumnDataTypes(storageCode), fieldNames);
+        List<Field> fields = columnDataTypesToFields(getColumnDataTypes(storageCode), fieldNames);
 
         String sqlFields = getSelectFields(null, fields, true);
         String sql = String.format(SELECT_ROWS_FROM_DATA_BY_FIELD_ANY,
@@ -159,7 +159,7 @@ public class DataDaoImpl implements DataDao {
         return !isNullOrEmpty(list) ? toRowValues(fields, list) : emptyList();
     }
 
-    private List<Field> dataTypesToFields(Map<String, String> dataTypes, List<String> fieldNames) {
+    private List<Field> columnDataTypesToFields(Map<String, String> dataTypes, List<String> fieldNames) {
 
         List<Field> fields = new ArrayList<>(fieldNames.size());
         fields.add(new IntegerField(SYS_PRIMARY_COLUMN));
