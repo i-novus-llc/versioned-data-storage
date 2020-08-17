@@ -96,15 +96,15 @@ public interface DataDao {
 
     void dropTriggers(String storageCode);
 
-    void updateHashRows(String tableName, List<String> fieldNames);
+    void updateHashRows(String storageCode, List<String> fieldNames);
 
-    void updateFtsRows(String tableName, List<String> fieldNames);
+    void updateFtsRows(String storageCode, List<String> fieldNames);
 
-    void createIndex(String storageCode, String name, List<String> fields);
+    void createIndex(String storageCode, String name, List<String> fieldNames);
 
     void createFullTextSearchIndex(String storageCode);
 
-    void createLtreeIndex(String storageCode, String field);
+    void createLtreeIndex(String storageCode, String fieldName);
 
     void createHashIndex(String storageCode);
 

@@ -1165,38 +1165,42 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @Transactional
-    public void updateHashRows(String tableName, List<String> fieldNames) {
+    public void updateHashRows(String storageCode, List<String> fieldNames) {
 
         String expression = String.format(HASH_EXPRESSION, String.join(", ", fieldNames));
         String ddlAssign = String.format(ASSIGN_FIELD, addDoubleQuotes(SYS_HASH), expression);
 
-        String ddl = String.format(UPDATE_FIELD, DATA_SCHEMA_NAME, addDoubleQuotes(tableName), ddlAssign);
+        String ddl = String.format(UPDATE_FIELD,
+                toSchemaName(storageCode), addDoubleQuotes(toTableName(storageCode)), ddlAssign);
         entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
     @Override
     @Transactional
-    public void updateFtsRows(String tableName, List<String> fieldNames) {
+    public void updateFtsRows(String storageCode, List<String> fieldNames) {
 
         String expression = fieldNames.stream()
                 .map(field -> "coalesce( to_tsvector('ru', " + field + "\\:\\:text),'')")
                 .collect(joining(" || ' ' || "));
         String ddlAssign = String.format(ASSIGN_FIELD, addDoubleQuotes(SYS_FTS), expression);
 
-        String ddl = String.format(UPDATE_FIELD, DATA_SCHEMA_NAME, addDoubleQuotes(tableName), ddlAssign);
+        String ddl = String.format(UPDATE_FIELD,
+                toSchemaName(storageCode), addDoubleQuotes(toTableName(storageCode)), ddlAssign);
         entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
     @Override
     @Transactional
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void createIndex(String storageCode, String name, List<String> fields) {
+    public void createIndex(String storageCode, String name, List<String> fieldNames) {
 
+        String expression = fieldNames.stream().map(StringUtils::addDoubleQuotes).collect(joining(","));
         String ddl = String.format(CREATE_TABLE_INDEX,
                 name,
                 toSchemaName(storageCode),
                 addDoubleQuotes(toTableName(storageCode)),
-                fields.stream().map(StringUtils::addDoubleQuotes).collect(joining(",")));
+                TABLE_INDEX_SIMPLE_USING,
+                expression);
         entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
@@ -1206,25 +1210,27 @@ public class DataDaoImpl implements DataDao {
 
         String tableName = toTableName(storageCode);
 
-        String ddl = String.format(CREATE_FTS_INDEX,
+        String ddl = String.format(CREATE_TABLE_INDEX,
                 escapeTableIndexName(tableName, TABLE_INDEX_FTS_NAME),
                 toSchemaName(storageCode),
                 addDoubleQuotes(tableName),
+                TABLE_INDEX_FTS_USING,
                 addDoubleQuotes(SYS_FTS));
         entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
     @Override
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void createLtreeIndex(String storageCode, String field) {
+    public void createLtreeIndex(String storageCode, String fieldName) {
 
         String tableName = toTableName(storageCode);
 
-        String ddl = String.format(CREATE_LTREE_INDEX,
-                escapeTableIndexName(tableName, field.toLowerCase()),
+        String ddl = String.format(CREATE_TABLE_INDEX,
+                escapeTableIndexName(tableName, fieldName.toLowerCase()),
                 toSchemaName(storageCode),
                 addDoubleQuotes(tableName),
-                addDoubleQuotes(field));
+                TABLE_INDEX_LTREE_USING,
+                addDoubleQuotes(fieldName));
         entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
@@ -1240,6 +1246,7 @@ public class DataDaoImpl implements DataDao {
                 addDoubleQuotes(tableName + NAME_CONNECTOR + TABLE_INDEX_SYSHASH_NAME),
                 toSchemaName(storageCode),
                 addDoubleQuotes(tableName),
+                TABLE_INDEX_SIMPLE_USING,
                 addDoubleQuotes(SYS_HASH));
         entityManager.createNativeQuery(ddl).executeUpdate();
     }

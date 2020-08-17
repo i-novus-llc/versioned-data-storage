@@ -280,7 +280,7 @@ public class QueryConstants {
     public static final String IS_FIELD_CONTAIN_EMPTY_VALUES = "SELECT exists(SELECT * FROM data.%s WHERE %s.%s IS NULL);";
     public static final String IS_RELATED_VALUE_EXIST = "SELECT exists(SELECT * FROM data.%s where %s.%s = %s)";
 
-    static final String CREATE_TABLE_INDEX = "CREATE INDEX %1$s ON %2$s.%3$s(%4$s);";
+    static final String CREATE_TABLE_INDEX = "CREATE INDEX %1$s ON %2$s.%3$s %4$s(%5$s);";
     static final String DROP_TABLE_INDEX = "DROP INDEX IF EXISTS %1$s.%2$s;";
     static final String IF_TABLE_INDEX_EXISTS = "SELECT exists(SELECT * \n" +
             "              FROM \n" +
@@ -300,17 +300,18 @@ public class QueryConstants {
             "                t.relname,\n" +
             "                i.relname\n" +
             ");";
+    static final String TABLE_INDEX_SIMPLE_USING = "";
 
     public static final String TABLE_INDEX_SYSDATE_NAME = "SYSDATE";
     public static final String TABLE_INDEX_SYSHASH_NAME = "sys_hash_ix";
 
     static final String TABLE_INDEX_FTS_NAME = "fts";
-    static final String CREATE_FTS_INDEX = "CREATE INDEX %1$s ON %2$s.%3$s USING gin (%4$s);";
-
-    static final String CREATE_LTREE_INDEX = "CREATE INDEX %1$s ON %2$s.%3$s USING gist (%4$s);";
+    static final String TABLE_INDEX_FTS_USING = "USING gin";
+    static final String TABLE_INDEX_LTREE_USING = "USING gist";
 
     static final String ROW_TYPE_VAR_NAME = "row";
 
+    // to-do: Переделать остальные DO-DECLARE-BEGIN_END под такую конструкцию.
     public static final String INSERT_DATA_BY_SELECT_FROM_TABLE = "DO $$\n" +
             "DECLARE tbl_cursor refcursor;\n" +
             "  row ${sourceTable}%rowtype;\n" +
