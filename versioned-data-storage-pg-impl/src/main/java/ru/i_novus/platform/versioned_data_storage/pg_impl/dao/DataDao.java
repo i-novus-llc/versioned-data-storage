@@ -52,6 +52,9 @@ public interface DataDao {
     /** Проверка таблицы на существование. */
     boolean storageExists(String storageCode);
 
+    /** Проверка поля хранилища на существование. */
+    boolean storageFieldExists(String storageCode, String columnName);
+
     /**
      * Копирование таблицы.
      * <p>

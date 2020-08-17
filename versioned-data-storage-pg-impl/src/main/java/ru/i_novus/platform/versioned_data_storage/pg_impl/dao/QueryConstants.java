@@ -116,6 +116,15 @@ public class QueryConstants {
             AND_INFO_TABLE_NAME +
             "  AND table_schema = ";
 
+    public static final String SELECT_COLUMN_EXISTS = SELECT_EXISTS_START +
+            SELECT_ONE +
+            FROM_INFO_COLUMNS +
+            SELECT_WHERE_DEFAULT +
+            AND_INFO_TABLE_SCHEMA_NAME +
+            AND_INFO_TABLE_NAME +
+            AND_INFO_COLUMN_NAME +
+            SELECT_EXISTS_END;
+
     private static final String SELECT_ESCAPED_COLUMN_NAME = "SELECT '\"' || column_name || '\"' \n";
     private static final String SELECT_COLUMN_NAME_AND_TYPE = "SELECT column_name, data_type \n";
     // Часть для получения значения поля специального типа.

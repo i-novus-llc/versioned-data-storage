@@ -146,6 +146,9 @@ public class DataDaoTest {
         String ddl = String.format(ddlFormat, getSchemaNameOrDefault(schemaName), addDoubleQuotes(tableName));
         entityManager.createNativeQuery(ddl).executeUpdate();
         assertTrue(dataDao.storageExists(storageCode));
+        assertTrue(dataDao.storageFieldExists(storageCode, FIELD_ID_CODE));
+        assertTrue(dataDao.storageFieldExists(storageCode, FIELD_NAME_CODE));
+        assertTrue(dataDao.storageFieldExists(storageCode, SYS_HASH));
     }
 
     @Test

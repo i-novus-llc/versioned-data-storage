@@ -609,6 +609,19 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    public boolean storageFieldExists(String storageCode, String fieldName) {
+
+        Boolean result = (Boolean) entityManager.createNativeQuery(SELECT_COLUMN_EXISTS)
+                .setParameter(BIND_INFO_SCHEMA_NAME, toSchemaName(storageCode))
+                .setParameter(BIND_INFO_TABLE_NAME, toTableName(storageCode))
+                .setParameter(BIND_INFO_COLUMN_NAME, fieldName)
+                .getSingleResult();
+
+        return result != null && result;
+    }
+
+    @Override
     @Transactional
     public void copyTable(String sourceCode, String targetCode) {
 
