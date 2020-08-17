@@ -1606,16 +1606,10 @@ public class DataDaoImpl implements DataDao {
     @Override
     public DataDifference getDataDifference(CompareDataCriteria criteria) {
 
-        List<String> fields = new ArrayList<>();
-        Map<String, Field> fieldMap = new HashMap<>();
-        List<String> nonPrimaryFields = new ArrayList<>();
-        criteria.getFields().forEach(field -> {
-            fields.add(field.getName());
-            fieldMap.put(field.getName(), field);
-
-            if (!criteria.getPrimaryFields().contains(field.getName()))
-                nonPrimaryFields.add(field.getName());
-        });
+        List<String> nonPrimaryFields = criteria.getFields().stream()
+                .map(Field::getName)
+                .filter(name -> !criteria.getPrimaryFields().contains(name))
+                .collect(toList());
 
         String oldAlias = "t1";
         String oldStorageCode = criteria.getStorageCode();
@@ -1734,7 +1728,7 @@ public class DataDaoImpl implements DataDao {
                 .setMaxResults(criteria.getSize());
         List<Object[]> resultList = dataQuery.getResultList();
 
-        List<DiffRowValue> diffRowValues = toDiffRowValues(fields, fieldMap, resultList, criteria);
+        List<DiffRowValue> diffRowValues = toDiffRowValues(criteria.getFields(), resultList, criteria);
         return new DataDifference(new CollectionPage<>(count.intValue(), diffRowValues, criteria));
     }
 
@@ -1758,8 +1752,8 @@ public class DataDaoImpl implements DataDao {
         return !StringUtils.isNullOrEmpty(tableName) ? getSchemaNameOrDefault(schemaName) : DATA_SCHEMA_NAME;
     }
 
-    private List<DiffRowValue> toDiffRowValues(List<String> fields, Map<String, Field> fieldMap,
-                                               List<Object[]> dataList, CompareDataCriteria criteria) {
+    private List<DiffRowValue> toDiffRowValues(List<Field> fields, List<Object[]> dataList,
+                                               CompareDataCriteria criteria) {
         List<DiffRowValue> result = new ArrayList<>();
         if (dataList.isEmpty()) {
             return result;
@@ -1770,15 +1764,17 @@ public class DataDaoImpl implements DataDao {
             int i = 1; // get old/new versions data exclude sys_recordid
             List<String> primaryFields = criteria.getPrimaryFields();
             DiffStatusEnum rowStatus = null;
-            for (String field : fields) {
+            for (Field field : fields) {
+
                 DiffFieldValue fieldValue = new DiffFieldValue();
-                fieldValue.setField(fieldMap.get(field));
+                fieldValue.setField(field);
+
                 Object oldValue = row[i];
                 Object newValue = row[row.length / 2 + i];
                 fieldValue.setOldValue(oldValue);
                 fieldValue.setNewValue(newValue);
 
-                if (primaryFields.contains(field)) {
+                if (primaryFields.contains(field.getName())) {
                     rowStatus = diffFieldValueToStatusEnum(fieldValue, rowStatus);
                 }
 
@@ -1787,6 +1783,7 @@ public class DataDaoImpl implements DataDao {
             }
 
             for (DiffFieldValue fieldValue : fieldValues) {
+
                 if (DiffStatusEnum.INSERTED.equals(rowStatus))
                     fieldValue.setStatus(DiffStatusEnum.INSERTED);
 
