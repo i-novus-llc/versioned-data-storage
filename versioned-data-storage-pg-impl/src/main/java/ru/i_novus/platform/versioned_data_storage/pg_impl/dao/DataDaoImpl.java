@@ -159,6 +159,7 @@ public class DataDaoImpl implements DataDao {
         return !isNullOrEmpty(list) ? toRowValues(fields, list) : emptyList();
     }
 
+    /** Преобразование набора наименований полей с типами в список полей. */
     private List<Field> columnDataTypesToFields(Map<String, String> dataTypes, List<String> fieldNames) {
 
         List<Field> fields = new ArrayList<>(fieldNames.size());
@@ -188,7 +189,10 @@ public class DataDaoImpl implements DataDao {
         }).collect(joining(",")) + "]";
 
         QueryWithParams whereByDates = getWhereByDates(bdate, edate, DEFAULT_TABLE_ALIAS);
-        String sqlByDate = (whereByDates == null || StringUtils.isNullOrEmpty(whereByDates.getSql())) ? "" : whereByDates.getSql();
+        String sqlByDate = "";
+        if (whereByDates != null && !StringUtils.isNullOrEmpty(whereByDates.getSql())) {
+            sqlByDate = whereByDates.getSql();
+        }
 
         String sql = "SELECT hash \n" +
                 "  FROM (\n" +

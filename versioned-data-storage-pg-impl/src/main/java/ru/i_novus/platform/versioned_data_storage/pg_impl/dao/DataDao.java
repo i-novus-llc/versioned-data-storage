@@ -27,6 +27,12 @@ public interface DataDao {
 
     boolean tableStructureEquals(String tableName1, String tableName2);
 
+    /**
+     * Получение наименования и типа полей хранилища
+     *
+     * @param storageCode код хранилища
+     * @return Набор наименований полей с типами
+     */
     Map<String, String> getColumnDataTypes(String storageCode);
 
     BigInteger countData(String tableName);
