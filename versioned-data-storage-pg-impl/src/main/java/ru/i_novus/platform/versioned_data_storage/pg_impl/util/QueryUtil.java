@@ -6,6 +6,7 @@ import ru.i_novus.platform.datastorage.temporal.model.*;
 import ru.i_novus.platform.datastorage.temporal.model.value.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -122,6 +123,25 @@ public class QueryUtil {
         }
 
         return new StringFieldValue(name, value != null ? value.toString() : null);
+    }
+
+    /**
+     * Преобразование значения поля в параметр запроса.
+     *
+     * @param fieldValue значение поля
+     * @return Параметр запроса
+     */
+    public static Serializable toQueryParameter(FieldValue fieldValue) {
+
+        if (fieldValue.getValue() == null)
+            return null;
+
+        if (fieldValue instanceof ReferenceFieldValue) {
+            Reference refValue = ((ReferenceFieldValue) fieldValue).getValue();
+            return refValue.getValue();
+        }
+
+        return fieldValue.getValue();
     }
 
     /**

@@ -757,18 +757,16 @@ public class DataDaoImpl implements DataDao {
         String tableName = toTableName(storageCode);
 
         List<FieldValue> fieldValues = data.get(0).getFieldValues();
-        List<String> insertKeyList = fieldValues.stream()
+        String insertKeys = fieldValues.stream()
                 .map(fieldValue -> addDoubleQuotes(fieldValue.getField()))
-                .collect(toList());
+                .collect(joining(","));
 
         List<String> substList = data.stream()
-                .map(rowValue -> {
-                    List<String> substValues =
-                            ((List<FieldValue>) rowValue.getFieldValues()).stream()
-                                    .map(fieldValue -> toInsertValueSubst(schemaName, fieldValue))
-                                    .collect(toList());
-                    return String.join(",", substValues);
-                })
+                .map(rowValue ->
+                        ((List<FieldValue>) rowValue.getFieldValues()).stream()
+                                .map(fieldValue -> toInsertValueSubst(schemaName, fieldValue))
+                                .collect(joining(","))
+                )
                 .collect(toList());
 
         int batchSize = 500;
@@ -777,7 +775,7 @@ public class DataDaoImpl implements DataDao {
              firstIndex = nextIndex, nextIndex = firstIndex + batchSize) {
 
             int valueCount = Math.min(nextIndex, substList.size());
-            insertData(schemaName, tableName, keys,
+            insertData(schemaName, tableName, insertKeys,
                     substList.subList(firstIndex, valueCount),
                     data.subList(firstIndex, valueCount));
         }
@@ -811,16 +809,10 @@ public class DataDaoImpl implements DataDao {
 
         int i = 1;
         for (RowValue rowValue : data) {
-            for (Object value : rowValue.getFieldValues()) {
-                FieldValue fieldValue = (FieldValue) value;
-                if (fieldValue.getValue() != null) {
-                    if (fieldValue instanceof ReferenceFieldValue) {
-                        Reference refValue = ((ReferenceFieldValue) fieldValue).getValue();
-                        if (refValue.getValue() != null)
-                            query.setParameter(i++, ((ReferenceFieldValue) fieldValue).getValue().getValue());
-
-                    } else
-                        query.setParameter(i++, fieldValue.getValue());
+            for (FieldValue fieldValue : (List<FieldValue>) rowValue.getFieldValues()) {
+                Serializable parameter = toQueryParameter(fieldValue);
+                if (parameter != null) {
+                    query.setParameter(i++, parameter);
                 }
             }
         }
@@ -889,32 +881,26 @@ public class DataDaoImpl implements DataDao {
         String schemaName = toSchemaName(storageCode);
         String tableName = toTableName(storageCode);
 
-        List<String> updateKeyList = ((List<FieldValue>) rowValue.getFieldValues()).stream()
+        String updateKeys = ((List<FieldValue>) rowValue.getFieldValues()).stream()
                 .map(fieldValue -> {
                     String quotedFieldName = addDoubleQuotes(fieldValue.getField());
                     String substValue = toUpdateValueSubst(schemaName, fieldValue);
                     return String.format(UPDATE_VALUE, quotedFieldName, substValue);
                 })
-                .collect(toList());
+                .collect(joining(","));
 
         final String tableAlias = "b";
-        String keys = String.join(",", updateKeyList);
         String condition = String.format(CONDITION_EQUAL,
                 escapeFieldName(tableAlias, SYS_PRIMARY_COLUMN), QUERY_VALUE_SUBST);
         String sql = String.format(UPDATE_RECORD,
-                schemaName, addDoubleQuotes(tableName), tableAlias, keys, condition);
+                schemaName, addDoubleQuotes(tableName), tableAlias, updateKeys, condition);
         Query query = entityManager.createNativeQuery(sql);
 
         int i = 1;
-        for (Object obj : rowValue.getFieldValues()) {
-            FieldValue fieldValue = (FieldValue) obj;
-            if (fieldValue.getValue() != null) {
-                if (fieldValue instanceof ReferenceFieldValue) {
-                    if (((ReferenceFieldValue) fieldValue).getValue().getValue() != null)
-                        query.setParameter(i++, ((ReferenceFieldValue) fieldValue).getValue().getValue());
-                } else {
-                    query.setParameter(i++, fieldValue.getValue());
-                }
+        for (FieldValue fieldValue : (List<FieldValue>) rowValue.getFieldValues()) {
+            Serializable parameter = toQueryParameter(fieldValue);
+            if (parameter != null) {
+                query.setParameter(i++, parameter);
             }
         }
         query.setParameter(i, rowValue.getSystemId());
