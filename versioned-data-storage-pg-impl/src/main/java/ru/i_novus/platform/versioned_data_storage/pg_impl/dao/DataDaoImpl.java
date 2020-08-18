@@ -38,6 +38,7 @@ import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.*;
 import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addDoubleQuotes;
 import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.substitute;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.CompareUtil.toDiffRowValues;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.*;
 
 public class DataDaoImpl implements DataDao {
@@ -114,11 +115,8 @@ public class DataDaoImpl implements DataDao {
 
         String sqlFields = getSelectFields(null, fields, true);
         String sql = String.format(SELECT_ROWS_FROM_DATA_BY_FIELD_ONE,
-                sqlFields,
-                schemaName,
-                addDoubleQuotes(tableName),
-                addDoubleQuotes(SYS_PRIMARY_COLUMN),
-                QUERY_VALUE_SUBST);
+                sqlFields, schemaName, addDoubleQuotes(tableName),
+                addDoubleQuotes(SYS_PRIMARY_COLUMN), QUERY_VALUE_SUBST);
 
         @SuppressWarnings("unchecked")
         List<Object[]> list = entityManager.createNativeQuery(sql)
@@ -143,11 +141,8 @@ public class DataDaoImpl implements DataDao {
 
         String sqlFields = getSelectFields(null, fields, true);
         String sql = String.format(SELECT_ROWS_FROM_DATA_BY_FIELD_ANY,
-                sqlFields,
-                schemaName,
-                addDoubleQuotes(tableName),
-                addDoubleQuotes(SYS_PRIMARY_COLUMN),
-                QUERY_VALUE_SUBST);
+                sqlFields, schemaName, addDoubleQuotes(tableName),
+                addDoubleQuotes(SYS_PRIMARY_COLUMN), QUERY_VALUE_SUBST);
         Query query = entityManager.createNativeQuery(sql);
 
         String idsArray = systemIds.stream()
@@ -1729,93 +1724,6 @@ public class DataDaoImpl implements DataDao {
         }
     }
 
-    // Используются для возможности переопределения схемы.
-    protected String getSchemaName(String schemaName) {
-
-        return getSchemaNameOrDefault(schemaName);
-    }
-
-    // Используются для возможности переопределения схемы.
-    protected String getTableSchemaName(String schemaName, String tableName) {
-
-        return !StringUtils.isNullOrEmpty(tableName) ? getSchemaNameOrDefault(schemaName) : DATA_SCHEMA_NAME;
-    }
-
-    private List<DiffRowValue> toDiffRowValues(List<Field> fields, List<Object[]> dataList,
-                                               CompareDataCriteria criteria) {
-        List<DiffRowValue> result = new ArrayList<>();
-        if (dataList.isEmpty()) {
-            return result;
-        }
-
-        for (Object[] row : dataList) {
-            List<DiffFieldValue> fieldValues = new ArrayList<>();
-            int i = 1; // get old/new versions data exclude sys_recordid
-            List<String> primaryFields = criteria.getPrimaryFields();
-            DiffStatusEnum rowStatus = null;
-            for (Field field : fields) {
-
-                DiffFieldValue fieldValue = new DiffFieldValue();
-                fieldValue.setField(field);
-
-                Object oldValue = row[i];
-                Object newValue = row[row.length / 2 + i];
-                fieldValue.setOldValue(oldValue);
-                fieldValue.setNewValue(newValue);
-
-                if (primaryFields.contains(field.getName())) {
-                    rowStatus = diffFieldValueToStatusEnum(fieldValue, rowStatus);
-                }
-
-                fieldValues.add(fieldValue);
-                i++;
-            }
-
-            for (DiffFieldValue fieldValue : fieldValues) {
-
-                if (DiffStatusEnum.INSERTED.equals(rowStatus))
-                    fieldValue.setStatus(DiffStatusEnum.INSERTED);
-
-                else if (DiffStatusEnum.DELETED.equals(rowStatus))
-                    fieldValue.setStatus(DiffStatusEnum.DELETED);
-
-                else {
-                    Object oldValue = fieldValue.getOldValue();
-                    Object newValue = fieldValue.getNewValue();
-                    if (oldValue == null && newValue == null)
-                        continue;
-
-                    if (!Objects.equals(oldValue, newValue)) {
-                        fieldValue.setStatus(DiffStatusEnum.UPDATED);
-                    } else {
-                        //if value is not changed store only new value
-                        fieldValue.setOldValue(null);
-                    }
-                }
-            }
-
-            result.add(new DiffRowValue(fieldValues, rowStatus));
-        }
-        return result;
-    }
-
-    private DiffStatusEnum diffFieldValueToStatusEnum(DiffFieldValue value, DiffStatusEnum defaultValue) {
-
-        if (value.getOldValue() == null) {
-            return DiffStatusEnum.INSERTED;
-        }
-
-        if (value.getNewValue() == null) {
-            return DiffStatusEnum.DELETED;
-        }
-
-        if (value.getOldValue().equals(value.getNewValue())) {
-            return DiffStatusEnum.UPDATED;
-        }
-
-        return defaultValue;
-    }
-
     private String makeFieldValuesFilter(String alias, Map<String, Object> params,
                                          Set<List<FieldSearchCriteria>> fieldFilters) {
 
@@ -1828,5 +1736,17 @@ public class DataDaoImpl implements DataDao {
         }
 
         return query.getSql();
+    }
+
+    // Используются для возможности переопределения схемы.
+    protected String getSchemaName(String schemaName) {
+
+        return getSchemaNameOrDefault(schemaName);
+    }
+
+    // Используются для возможности переопределения схемы.
+    protected String getTableSchemaName(String schemaName, String tableName) {
+
+        return !StringUtils.isNullOrEmpty(tableName) ? getSchemaNameOrDefault(schemaName) : DATA_SCHEMA_NAME;
     }
 }
