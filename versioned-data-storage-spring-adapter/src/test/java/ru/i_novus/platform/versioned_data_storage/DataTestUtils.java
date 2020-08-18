@@ -26,8 +26,8 @@ public class DataTestUtils {
     public static final String TEST_SCHEMA_NAME = "data_test";
     public static final String NULL_SCHEMA_NAME = "data_null";
 
-    public static final String FIELD_ID_CODE = "id";
-    public static final String FIELD_NAME_CODE = "name";
+    public static final String FIELD_ID_CODE = "ID";
+    public static final String FIELD_NAME_CODE = "NAME";
     public static final String FIELD_CODE_CODE = "CODE";
 
     public static final List<String> dataNames = asList("первый", "второй", "третий", "четвёртый");
