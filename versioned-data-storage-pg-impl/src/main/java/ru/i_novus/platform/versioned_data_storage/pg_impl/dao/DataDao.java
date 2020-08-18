@@ -46,6 +46,9 @@ public interface DataDao {
     /** Удаление таблицы. */
     void dropTable(String storageCode);
 
+    /** Обновление последовательности для таблицы. */
+    void updateTableSequence(String storageCode);
+
     /** Проверка схемы на существование. */
     boolean schemaExists(String schemaName);
 
@@ -96,8 +99,6 @@ public interface DataDao {
     BigInteger countReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue);
 
     void updateReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue, int offset, int limit);
-
-    void updateSequence(String storageCode);
 
     void createTriggers(String storageCode, List<String> fieldNames);
 

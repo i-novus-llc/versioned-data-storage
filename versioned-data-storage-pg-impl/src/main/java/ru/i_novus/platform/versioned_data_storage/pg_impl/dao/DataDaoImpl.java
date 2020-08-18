@@ -19,6 +19,7 @@ import javax.ejb.TransactionAttributeType;
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 import javax.transaction.Transactional;
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -540,6 +541,18 @@ public class DataDaoImpl implements DataDao {
         entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
+    @Override
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    public void updateTableSequence(String storageCode) {
+
+        String sqlSelect = String.format(SELECT_PRIMARY_MAX,
+                toSchemaName(storageCode),
+                addDoubleQuotes(toTableName(storageCode)),
+                addDoubleQuotes(SYS_PRIMARY_COLUMN));
+        String sql = String.format(UPDATE_TABLE_SEQUENCE, escapeStorageSequenceName(storageCode), sqlSelect);
+        entityManager.createNativeQuery(sql).getSingleResult();
+    }
+
     protected void dropTableSequence(String storageCode) {
 
         String ddl = String.format(DROP_TABLE_SEQUENCE, escapeStorageSequenceName(storageCode));
@@ -759,8 +772,6 @@ public class DataDaoImpl implements DataDao {
                 .collect(toList());
 
         int batchSize = 500;
-        String keys = String.join(",", insertKeyList);
-
         for (int firstIndex = 0, nextIndex = batchSize;
              firstIndex < substList.size();
              firstIndex = nextIndex, nextIndex = firstIndex + batchSize) {
@@ -1080,18 +1091,6 @@ public class DataDaoImpl implements DataDao {
         }
 
         entityManager.createNativeQuery(sql).executeUpdate();
-    }
-
-    @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void updateSequence(String storageCode) {
-
-        String sqlSelect = String.format(SELECT_PRIMARY_MAX,
-                toSchemaName(storageCode),
-                addDoubleQuotes(toTableName(storageCode)),
-                addDoubleQuotes(SYS_PRIMARY_COLUMN));
-        String sql = String.format(UPDATE_TABLE_SEQUENCE, escapeStorageSequenceName(storageCode), sqlSelect);
-        entityManager.createNativeQuery(sql).getSingleResult();
     }
 
     @Override

@@ -149,6 +149,7 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     @Override
     public void loadData(String draftCode, String sourceCode, LocalDateTime onDate) {
+
         loadData(draftCode, sourceCode, onDate, null);
     }
 
@@ -166,7 +167,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         draftFieldNames.add(addDoubleQuotes(SYS_HASH));
 
         dataDao.loadData(draftCode, sourceCode, draftFieldNames, fromDate, toDate);
-        dataDao.updateSequence(draftCode);
+        dataDao.updateTableSequence(draftCode);
     }
 
     @Override

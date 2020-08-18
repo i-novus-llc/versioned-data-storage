@@ -214,9 +214,9 @@ public class QueryConstants {
             "SELECT * FROM %3$s.%4$s WITH NO DATA;";
 
     static final String CREATE_TABLE_SEQUENCE = "CREATE SEQUENCE %s start 1";
-    static final String DROP_TABLE_SEQUENCE = "DROP SEQUENCE IF EXISTS %s CASCADE";
     static final String SELECT_PRIMARY_MAX = "SELECT max(%3$s) FROM %1$s.%2$s";
     static final String UPDATE_TABLE_SEQUENCE = "SELECT setval('%1$s', (%2$s))";
+    static final String DROP_TABLE_SEQUENCE = "DROP SEQUENCE IF EXISTS %s CASCADE";
 
     static final String CREATE_TRIGGER = "CREATE OR REPLACE FUNCTION %1$s.\"%2$s_%3$s\"()\n" +
             "  RETURNS trigger AS\n" +
