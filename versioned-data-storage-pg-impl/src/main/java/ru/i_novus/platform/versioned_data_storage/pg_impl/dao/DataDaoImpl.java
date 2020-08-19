@@ -743,10 +743,10 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @Transactional
-    public void insertData(String storageCode, List<RowValue> data) {
+    public List<String> insertData(String storageCode, List<RowValue> data) {
 
         if (isEmpty(data))
-            return;
+            return emptyList();
 
         String schemaName = toSchemaName(storageCode);
         String tableName = toTableName(storageCode);
@@ -764,16 +764,20 @@ public class DataDaoImpl implements DataDao {
                 )
                 .collect(toList());
 
+        List<String> hashes = new ArrayList<>(substList.size());
+
         int batchSize = 500;
         for (int firstIndex = 0, nextIndex = batchSize;
              firstIndex < substList.size();
              firstIndex = nextIndex, nextIndex = firstIndex + batchSize) {
 
             int valueCount = Math.min(nextIndex, substList.size());
-            insertData(schemaName, tableName, insertKeys,
-                    substList.subList(firstIndex, valueCount),
-                    data.subList(firstIndex, valueCount));
+            List<String> batchHashes = insertData(schemaName, tableName, insertKeys,
+                    substList.subList(firstIndex, valueCount), data.subList(firstIndex, valueCount));
+            hashes.addAll(batchHashes);
         }
+
+        return hashes;
     }
 
     private String toInsertValueSubst(String schemaName, FieldValue fieldValue) {
@@ -794,12 +798,14 @@ public class DataDaoImpl implements DataDao {
         return QUERY_VALUE_SUBST;
     }
 
-    private void insertData(String schemaName, String tableName, String keys,
-                            List<String> subst, List<RowValue> data) {
+    private List<String> insertData(String schemaName, String tableName, String insertKeys,
+                                    List<String> subst, List<RowValue> data) {
 
+        String insertSubsts = subst.stream().collect(joining("),(", "(", ")"));
         String sql = String.format(INSERT_RECORD,
-                schemaName, addDoubleQuotes(tableName), keys) +
-                String.format(INSERT_VALUES, String.join("),(", subst));
+                schemaName, addDoubleQuotes(tableName), insertKeys) +
+                String.format(INSERT_VALUES, insertSubsts) +
+                RETURNG + addDoubleQuotes(SYS_HASH);
         Query query = entityManager.createNativeQuery(sql);
 
         int i = 1;
@@ -811,7 +817,8 @@ public class DataDaoImpl implements DataDao {
                 }
             }
         }
-        query.executeUpdate();
+
+        return query.getResultList();
     }
 
     /**
@@ -871,7 +878,7 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @Transactional
-    public void updateData(String storageCode, RowValue rowValue) {
+    public String updateData(String storageCode, RowValue rowValue) {
 
         String schemaName = toSchemaName(storageCode);
         String tableName = toTableName(storageCode);
@@ -888,7 +895,8 @@ public class DataDaoImpl implements DataDao {
         String condition = String.format(CONDITION_EQUAL,
                 escapeFieldName(tableAlias, SYS_PRIMARY_COLUMN), QUERY_VALUE_SUBST);
         String sql = String.format(UPDATE_RECORD,
-                schemaName, addDoubleQuotes(tableName), tableAlias, updateKeys, condition);
+                schemaName, addDoubleQuotes(tableName), tableAlias, updateKeys, condition) +
+                RETURNG + addDoubleQuotes(SYS_HASH);
         Query query = entityManager.createNativeQuery(sql);
 
         int i = 1;
@@ -900,7 +908,7 @@ public class DataDaoImpl implements DataDao {
         }
         query.setParameter(i, rowValue.getSystemId());
 
-        query.executeUpdate();
+        return (String) query.getSingleResult();
     }
 
     private String toUpdateValueSubst(String schemaName, FieldValue fieldValue) {
@@ -933,7 +941,7 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void deleteData(String storageCode, List<Object> systemIds) {
+    public List<String> deleteData(String storageCode, List<Object> systemIds) {
 
         String schemaName = toSchemaName(storageCode);
         String tableName = toTableName(storageCode);
@@ -941,14 +949,17 @@ public class DataDaoImpl implements DataDao {
         String ids = systemIds.stream().map(id -> QUERY_VALUE_SUBST).collect(joining(","));
         String condition = String.format(CONDITION_IN, addDoubleQuotes(SYS_PRIMARY_COLUMN), ids);
 
-        String sql = String.format(DELETE_RECORD, schemaName, addDoubleQuotes(tableName), condition);
+        String sql = String.format(DELETE_RECORD,
+                schemaName, addDoubleQuotes(tableName), condition) +
+                RETURNG + addDoubleQuotes(SYS_HASH);
         Query query = entityManager.createNativeQuery(sql);
 
         int i = 1;
         for (Object systemId : systemIds) {
             query.setParameter(i++, systemId);
         }
-        query.executeUpdate();
+
+        return query.getResultList();
     }
 
     @Override
@@ -1574,12 +1585,10 @@ public class DataDaoImpl implements DataDao {
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void deletePointRows(String targetCode) {
 
-        String tableName = toTableName(targetCode);
-
         String condition = String.format(CONDITION_EQUAL,
                 addDoubleQuotes(SYS_PUBLISHTIME), addDoubleQuotes(SYS_CLOSETIME));
         String sql = String.format(DELETE_RECORD,
-                toSchemaName(targetCode), addDoubleQuotes(tableName), condition);
+                toSchemaName(targetCode), addDoubleQuotes(toTableName(targetCode)), condition);
 
         if (logger.isDebugEnabled()) {
             logger.debug("deletePointRows method sql: {}", sql);

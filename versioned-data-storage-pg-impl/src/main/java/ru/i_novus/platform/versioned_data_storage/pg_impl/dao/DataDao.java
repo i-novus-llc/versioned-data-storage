@@ -81,13 +81,13 @@ public interface DataDao {
 
     void deleteColumn(String storageCode, String name);
 
-    void insertData(String storageCode, List<RowValue> data);
+    List<String> insertData(String storageCode, List<RowValue> data);
 
-    void updateData(String storageCode, RowValue rowValue);
+    String updateData(String storageCode, RowValue rowValue);
 
     void deleteData(String storageCode);
 
-    void deleteData(String storageCode, List<Object> systemIds);
+    List<String> deleteData(String storageCode, List<Object> systemIds);
 
     void loadData(String draftCode, String sourceCode, List<String> fields,
                   LocalDateTime fromDate, LocalDateTime toDate);

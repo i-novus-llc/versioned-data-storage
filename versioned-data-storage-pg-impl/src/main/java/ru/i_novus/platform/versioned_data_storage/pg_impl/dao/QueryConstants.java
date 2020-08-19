@@ -254,11 +254,12 @@ public class QueryConstants {
     static final String ALTER_DELETE_COLUMN = "ALTER TABLE %1$s.%2$s DROP COLUMN %3$s CASCADE;";
     static final String ALTER_COLUMN_WITH_USING = "ALTER TABLE %1$s.%2$s ALTER COLUMN %3$s SET DATA TYPE %4$s USING %5$s";
 
-    static final String INSERT_RECORD = "INSERT INTO %1$s.%2$s (%3$s)\n";
-    static final String INSERT_VALUES = "VALUES(%s)\n";
+    static final String RETURNG = "RETURNING ";
+    static final String INSERT_RECORD = "INSERT INTO %1$s.%2$s (%3$s) \n";
+    static final String INSERT_VALUES = "VALUES %s \n";
     static final String INSERT_SELECT = "SELECT %4$s \n" + "  FROM %1$s.%2$s as %3$s \n" + SELECT_WHERE_DEFAULT;
-    static final String DELETE_RECORD = "DELETE FROM %1$s.%2$s WHERE %3$s";
-    static final String UPDATE_RECORD = "UPDATE %1$s.%2$s as %3$s SET %4$s WHERE %5$s";
+    static final String DELETE_RECORD = "DELETE FROM %1$s.%2$s WHERE %3$s \n";
+    static final String UPDATE_RECORD = "UPDATE %1$s.%2$s as %3$s SET %4$s WHERE %5$s \n";
     static final String UPDATE_VALUE = "%1$s = %2$s";
 
     private static final String AND_EXISTS_VERSION_REF_VALUE = "   AND ${versionAlias}.${refFieldName} is not null \n" +
@@ -295,7 +296,7 @@ public class QueryConstants {
     public static final String IS_FIELD_CONTAIN_NULL_VALUES = "SELECT EXISTS(SELECT * FROM %1$s.%2$s AS d WHERE d.%3$s IS NULL);";
     public static final String IS_RELATED_VALUE_EXIST = "SELECT EXISTS(SELECT * FROM data.%s where %s.%s = %s)";
 
-    static final String CREATE_TABLE_INDEX = "CREATE INDEX %1$s ON %2$s.%3$s %4$s(%5$s);";
+    static final String CREATE_TABLE_INDEX = "CREATE INDEX IF NOT EXISTS %1$s ON %2$s.%3$s %4$s(%5$s);";
     static final String DROP_TABLE_INDEX = "DROP INDEX IF EXISTS %1$s.%2$s;";
     static final String IF_TABLE_INDEX_EXISTS = "SELECT EXISTS(SELECT * \n" +
             "              FROM \n" +
