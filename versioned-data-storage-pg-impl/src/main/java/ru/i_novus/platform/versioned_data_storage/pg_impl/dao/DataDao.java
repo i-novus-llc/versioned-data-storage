@@ -3,6 +3,7 @@ package ru.i_novus.platform.versioned_data_storage.pg_impl.dao;
 import ru.i_novus.platform.datastorage.temporal.model.DataDifference;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.CompareDataCriteria;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageCopyCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageDataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
@@ -179,7 +180,12 @@ public interface DataDao {
      */
     boolean isUnique(String storageCode, List<String> fieldNames, LocalDateTime publishTime);
 
-    void copyTableData(String sourceCode, String targetCode, int offset, int limit);
+    /**
+     * Копирование данных хранилища по критерию.
+     *
+     * @param criteria критерий копирования
+     */
+    void copyTableData(StorageCopyCriteria criteria);
 
     void insertAllDataFromDraft(String draftCode, String targetCode, List<String> fieldNames,
                                 int offset, int limit,

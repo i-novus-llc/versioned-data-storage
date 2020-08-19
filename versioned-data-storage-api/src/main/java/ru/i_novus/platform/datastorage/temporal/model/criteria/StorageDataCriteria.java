@@ -10,6 +10,9 @@ import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.*;
 /** Критерий поиска данных в хранилище. */
 public class StorageDataCriteria extends DataCriteria {
 
+    /** Наименование схемы. */
+    private final String schemaName;
+
     /** Наименование таблицы. */
     private final String tableName;
 
@@ -22,9 +25,6 @@ public class StorageDataCriteria extends DataCriteria {
     /** Список требуемых полей в результате. */
     private final List<Field> fields;
 
-    /** Наименование схемы. */
-    private String schemaName;
-
     /** Множество фильтров по отдельным полям. */
     private Set<List<FieldSearchCriteria>> fieldFilters;
 
@@ -33,13 +33,14 @@ public class StorageDataCriteria extends DataCriteria {
 
     /** Список хешей записей. */
     private List<String> hashList;
+
     /** Список системных идентификаторов записей. */
     private List<Long> systemIds;
 
     public StorageDataCriteria(String storageCode, LocalDateTime bdate, LocalDateTime edate, List<Field> fields) {
 
-        this.tableName = toTableName(storageCode);
         this.schemaName = toSchemaName(storageCode);
+        this.tableName = toTableName(storageCode);
         this.bdate = bdate;
         this.edate = edate;
         this.fields = fields;
@@ -66,17 +67,20 @@ public class StorageDataCriteria extends DataCriteria {
 
         super(criteria);
 
-        this.tableName = criteria.tableName;
         this.schemaName = criteria.schemaName;
+        this.tableName = criteria.tableName;
         this.bdate = criteria.bdate;
         this.edate = criteria.edate;
         this.fields = criteria.fields;
 
         this.fieldFilters = criteria.fieldFilters;
         this.commonFilter = criteria.commonFilter;
-
         this.hashList = criteria.hashList;
         this.systemIds = criteria.systemIds;
+    }
+
+    public String getSchemaName() {
+        return schemaName;
     }
 
     public String getTableName() {
@@ -93,14 +97,6 @@ public class StorageDataCriteria extends DataCriteria {
 
     public List<Field> getFields() {
         return fields;
-    }
-
-    public String getSchemaName() {
-        return schemaName;
-    }
-
-    public void setSchemaName(String schemaName) {
-        this.schemaName = schemaName;
     }
 
     public Set<List<FieldSearchCriteria>> getFieldFilters() {
@@ -145,12 +141,12 @@ public class StorageDataCriteria extends DataCriteria {
         if (o == null || getClass() != o.getClass()) return false;
 
         StorageDataCriteria that = (StorageDataCriteria) o;
-        return Objects.equals(tableName, that.tableName) &&
+        return Objects.equals(schemaName, that.schemaName) &&
+                Objects.equals(tableName, that.tableName) &&
                 Objects.equals(bdate, that.bdate) &&
                 Objects.equals(edate, that.edate) &&
                 Objects.equals(fields, that.fields) &&
 
-                Objects.equals(schemaName, that.schemaName) &&
                 Objects.equals(fieldFilters, that.fieldFilters) &&
                 Objects.equals(commonFilter, that.commonFilter) &&
                 Objects.equals(hashList, that.hashList) &&
@@ -159,7 +155,7 @@ public class StorageDataCriteria extends DataCriteria {
 
     @Override
     public int hashCode() {
-        return Objects.hash(tableName, bdate, edate, fields,
-                schemaName, fieldFilters, commonFilter, hashList, systemIds);
+        return Objects.hash(schemaName, tableName, bdate, edate, fields,
+                fieldFilters, commonFilter, hashList, systemIds);
     }
 }

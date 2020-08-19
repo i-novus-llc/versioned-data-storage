@@ -10,6 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.i_novus.platform.datastorage.temporal.enums.FieldType;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageCopyCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.FieldFactory;
 import ru.i_novus.platform.datastorage.temporal.service.StorageCodeService;
@@ -271,7 +273,11 @@ public class DataDaoTest {
         List<RowValue> emptyDataValues = dataDao.getData(toCriteria(targetCode, fields));
         assertEquals(0, emptyDataValues == null ? 0 : emptyDataValues.size());
 
-        dataDao.copyTableData(sourceCode, targetCode, 0, dataNames.size());
+        StorageCopyCriteria criteria = new StorageCopyCriteria(sourceCode, targetCode, null, null, null);
+        criteria.setPage(DataCriteria.MIN_PAGE);
+        criteria.setSize(dataNames.size());
+
+        dataDao.copyTableData(criteria);
         dataValues = dataDao.getData(toCriteria(targetCode, fields));
         assertValues(dataValues, dataNames);
     }

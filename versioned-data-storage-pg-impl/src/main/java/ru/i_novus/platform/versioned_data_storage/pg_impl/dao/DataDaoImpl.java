@@ -1330,10 +1330,10 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
-    public void copyTableData(String sourceCode, String targetCode, int offset, int limit) {
+    public void copyTableData(StorageCopyCriteria criteria) {
 
-        String sourceTable = escapeStorageTableName(sourceCode);
-        String targetTable = escapeStorageTableName(targetCode);
+        String sourceTable = escapeStorageTableName(criteria.getStorageCode());
+        String targetTable = escapeStorageTableName(criteria.getPurposeCode());
 
         Map<String, String> mapSelect = new HashMap<>();
         mapSelect.put("sourceTable", sourceTable);
@@ -1341,7 +1341,7 @@ public class DataDaoImpl implements DataDao {
 
         String sqlSelect = substitute(SELECT_ALL_DATA_BY_FROM_TABLE, mapSelect);
 
-        List<String> fieldNames = getAllEscapedFieldNames(sourceCode);
+        List<String> fieldNames = getAllEscapedFieldNames(criteria.getStorageCode());
 
         Map<String, String> mapInsert = new HashMap<>();
         mapInsert.put("targetTable", targetTable);
@@ -1351,8 +1351,8 @@ public class DataDaoImpl implements DataDao {
         String sqlInsert = substitute(INSERT_ALL_DATA_BY_FROM_TABLE, mapInsert);
 
         Map<String, String> map = new HashMap<>();
-        map.put("offset", "" + offset);
-        map.put("limit", "" + limit);
+        map.put("offset", "" + criteria.getOffset());
+        map.put("limit", "" + criteria.getSize());
         map.put("sourceTable", sourceTable);
         map.put("sqlSelect", sqlSelect);
         map.put("sqlInsert", sqlInsert);

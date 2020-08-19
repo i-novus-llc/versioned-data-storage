@@ -348,7 +348,7 @@ public class UseCaseTest {
         String sourceCode = toStorageCode(null, sourceName);
 
         List<RowValue> sourceRows = new ArrayList<>();
-        IntStream.range(0, TRANSACTION_ROW_LIMIT * 2).forEach(i -> {
+        IntStream.range(0, TRANSACTION_ROW_LIMIT * 2 - 3).forEach(i -> {
             sourceRows.add(new LongRowValue(
                     idField.valueOf(BigInteger.valueOf(i)),
                     nameField.valueOf("test_" + i)));
