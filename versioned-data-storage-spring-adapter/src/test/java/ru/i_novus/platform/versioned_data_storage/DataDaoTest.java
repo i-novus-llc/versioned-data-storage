@@ -138,8 +138,8 @@ public class DataDaoTest {
 
         String ddlFormat = "CREATE TABLE %1$s.%2$s (\n" +
                 "  " + addDoubleQuotes(SYS_PRIMARY_COLUMN) + " bigserial NOT NULL,\n" +
-                "  " + FIELD_ID_CODE + " integer,\n" +
-                "  " + FIELD_NAME_CODE + " varchar(32),\n" +
+                "  " + addDoubleQuotes(FIELD_ID_CODE) + " integer,\n" +
+                "  " + addDoubleQuotes(FIELD_NAME_CODE) + " varchar(32),\n" +
                 "  " + addDoubleQuotes(SYS_HASH) + " char(32)\n" +
                 ");";
 
@@ -260,6 +260,7 @@ public class DataDaoTest {
 
         dataDao.createDraftTable(sourceCode, fields);
         dataDao.insertData(sourceCode, nameValuesToRowValues(fields, dataNames));
+
         List<RowValue> dataValues = dataDao.getData(toCriteria(sourceCode, fields));
         assertValues(dataValues, dataNames);
 
