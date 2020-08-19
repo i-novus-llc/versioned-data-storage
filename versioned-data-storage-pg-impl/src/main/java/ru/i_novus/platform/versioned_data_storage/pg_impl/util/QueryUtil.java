@@ -13,6 +13,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
 import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
 import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.escapeFieldName;
 import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.*;
@@ -84,8 +85,19 @@ public class QueryUtil {
         }
     }
 
+    /** Получение наименования поля с кавычками для вычисления hash и fts. */
+    public static String getHashUsedFieldName(Field field) {
+
+        String name = addDoubleQuotes(field.getName());
+
+        if (REFERENCE_FIELD_SQL_TYPE.equals(field.getType()))
+            name += REFERENCE_FIELD_VALUE_OPERATOR + addSingleQuotes(REFERENCE_VALUE_NAME);
+
+        return name;
+    }
+
     /** Получение наименования поля с кавычками из наименования, сформированного по getHashUsedFieldNames. */
-    public static String getFieldClearName(String fieldName) {
+    public static String getClearedFieldName(String fieldName) {
 
         int closeQuoteIndex = fieldName.indexOf('"', 1);
         return fieldName.substring(0, closeQuoteIndex + 1);
@@ -152,6 +164,7 @@ public class QueryUtil {
      * @return Отсутствие значения
      */
     public static boolean isFieldValueNull(FieldValue<?> fieldValue) {
+
         return fieldValue.getValue() == null || fieldValue.getValue().equals("null");
     }
 
@@ -214,6 +227,7 @@ public class QueryUtil {
 
     @SuppressWarnings("all")
     public static boolean isVarcharType(String type) {
+
         return StringField.TYPE.equals(type) || IntegerStringField.TYPE.equals(type);
     }
 
@@ -362,6 +376,11 @@ public class QueryUtil {
         return (str == null) ? null : str.replace("'", "''");
     }
 
+    /** Преобразование списка systemIds в список для LongRowValue. */
+    public static List<Long> toLongSystemIds(List<Object> systemIds) {
+        return systemIds.stream().map(systemId -> (Long) systemId).collect(toList());
+    }
+
     /** Преобразование списка значений в БД-строку-массив. */
     public static String valuesToDbArray(List<?> values) {
 
@@ -386,6 +405,7 @@ public class QueryUtil {
     }
 
     public static String formatDateTime(LocalDateTime localDateTime) {
+
         return (localDateTime != null) ? localDateTime.format(DATETIME_FORMATTER) : null;
     }
 
@@ -403,10 +423,12 @@ public class QueryUtil {
     }
 
     public static String toTimestampWithoutTimeZone(String value) {
+
         return toTimestamp(value) + TIMESTAMP_WITHOUT_TIME_ZONE;
     }
 
     public static Object truncateDateTo(LocalDateTime date, ChronoUnit unit, Object defaultValue) {
+
         return date != null ? date.truncatedTo(unit) : defaultValue;
     }
 }

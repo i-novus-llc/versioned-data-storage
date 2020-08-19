@@ -258,7 +258,7 @@ public class QueryConstants {
     static final String INSERT_RECORD = "INSERT INTO %1$s.%2$s (%3$s) \n";
     static final String INSERT_VALUES = "VALUES %s \n";
     static final String INSERT_SELECT = "SELECT %4$s \n" + "  FROM %1$s.%2$s as %3$s \n" + SELECT_WHERE_DEFAULT;
-    static final String DELETE_RECORD = "DELETE FROM %1$s.%2$s WHERE %3$s \n";
+    static final String DELETE_RECORD = "DELETE FROM %1$s.%2$s \n";
     static final String UPDATE_RECORD = "UPDATE %1$s.%2$s as %3$s SET %4$s WHERE %5$s \n";
     static final String UPDATE_VALUE = "%1$s = %2$s";
 

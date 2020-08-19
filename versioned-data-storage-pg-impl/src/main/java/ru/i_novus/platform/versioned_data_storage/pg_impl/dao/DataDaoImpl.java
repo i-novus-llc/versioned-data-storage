@@ -28,15 +28,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
-import static java.util.Collections.*;
+import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static org.springframework.util.CollectionUtils.isEmpty;
 import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
 import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
 import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.*;
-import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addDoubleQuotes;
-import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.substitute;
+import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.CompareUtil.toDiffRowValues;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.*;
@@ -72,7 +71,12 @@ public class DataDaoImpl implements DataDao {
                 DEFAULT_TABLE_ALIAS);
 
         QueryWithParams queryWithParams = new QueryWithParams(sql);
-        queryWithParams.concat(getCriteriaWhereClause(criteria, DEFAULT_TABLE_ALIAS));
+
+        QueryWithParams where = getCriteriaWhereClause(criteria, DEFAULT_TABLE_ALIAS);
+        if (!StringUtils.isNullOrEmpty(where.getSql())) {
+            queryWithParams.concat(SELECT_WHERE);
+            queryWithParams.concat(where);
+        }
 
         Sorting sorting = !isNullOrEmpty(criteria.getSortings()) ? criteria.getSortings().get(0) : null;
         queryWithParams.concat(sortingToOrderBy(sorting, DEFAULT_TABLE_ALIAS));
@@ -99,7 +103,12 @@ public class DataDaoImpl implements DataDao {
                         DEFAULT_TABLE_ALIAS);
 
         QueryWithParams queryWithParams = new QueryWithParams(sql);
-        queryWithParams.concat(getCriteriaWhereClause(criteria, DEFAULT_TABLE_ALIAS));
+
+        QueryWithParams where = getCriteriaWhereClause(criteria, DEFAULT_TABLE_ALIAS);
+        if (!StringUtils.isNullOrEmpty(where.getSql())) {
+            queryWithParams.concat(SELECT_WHERE);
+            queryWithParams.concat(where);
+        }
 
         return (BigInteger) queryWithParams.createQuery(entityManager).getSingleResult();
     }
@@ -236,7 +245,7 @@ public class DataDaoImpl implements DataDao {
 
     private QueryWithParams getWhereClause(StorageDataCriteria criteria, String alias) {
 
-        QueryWithParams query = new QueryWithParams(SELECT_WHERE_DEFAULT);
+        QueryWithParams query = new QueryWithParams(WHERE_DEFAULT);
         query.concat(getWhereByDates(criteria.getBdate(), criteria.getEdate(), alias));
         query.concat(getWhereByFts(criteria.getCommonFilter(), alias));
         query.concat(getWhereByFilters(criteria.getFieldFilters(), alias));
@@ -356,26 +365,27 @@ public class DataDaoImpl implements DataDao {
         String indexedFieldName = fieldName + index;
 
         if (field instanceof IntegerField || field instanceof FloatField || field instanceof DateField) {
-            filters.add(CONDITION_AND + escapedFieldName + " IN (:" + indexedFieldName + ")");
+            filters.add(CONDITION_AND + escapedFieldName +
+                    " IN (:" + indexedFieldName + ")");
             params.put(indexedFieldName, searchCriteria.getValues());
 
         } else if (field instanceof ReferenceField) {
-            filters.add(CONDITION_AND + escapedFieldName + "->> 'value' IN (:" + indexedFieldName + ")");
+            // Использовать TO_ANY_BIGINT
+            filters.add(CONDITION_AND + escapedFieldName +
+                    REFERENCE_FIELD_VALUE_OPERATOR + addSingleQuotes(REFERENCE_VALUE_NAME) +
+                    " IN (:" + indexedFieldName + ")");
             params.put(indexedFieldName, searchCriteria.getValues().stream().map(Object::toString).collect(toList()));
 
         } else if (field instanceof TreeField) {
             if (SearchTypeEnum.LESS.equals(searchCriteria.getType())) {
-                filters.add(CONDITION_AND + escapedFieldName + "@> (CAST(:" + indexedFieldName + " AS ltree[]))");
-                String valuesArray = searchCriteria.getValues().stream()
-                        .map(Object::toString)
-                        .collect(joining(",", "{", "}"));
-                params.put(indexedFieldName, valuesArray);
+                filters.add(CONDITION_AND + escapedFieldName +
+                        "@> (CAST(:" + indexedFieldName + " AS ltree[]))");
+                params.put(indexedFieldName, valuesToDbArray(searchCriteria.getValues()));
             }
         } else if (field instanceof BooleanField) {
             if (searchCriteria.getValues().size() == 1) {
-                filters.add(CONDITION_AND + escapedFieldName +
-                        (Boolean.TRUE.equals(searchCriteria.getValues().get(0)) ? " IS TRUE " : " IS NOT TRUE")
-                );
+                String isValue = Boolean.TRUE.equals(searchCriteria.getValues().get(0)) ? " IS TRUE " : " IS NOT TRUE";
+                filters.add(CONDITION_AND + escapedFieldName + isValue);
             }
         } else if (field instanceof StringField) {
             if (SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && searchCriteria.getValues().size() == 1) {
@@ -922,8 +932,7 @@ public class DataDaoImpl implements DataDao {
     public void deleteData(String storageCode) {
 
         String tableName = toTableName(storageCode);
-        String sql = String.format(DELETE_RECORD,
-                toSchemaName(storageCode), addDoubleQuotes(tableName), WHERE_DEFAULT);
+        String sql = String.format(DELETE_RECORD, toSchemaName(storageCode), addDoubleQuotes(tableName));
 
         entityManager.createNativeQuery(sql).executeUpdate();
     }
@@ -932,21 +941,29 @@ public class DataDaoImpl implements DataDao {
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public List<String> deleteData(String storageCode, List<Object> systemIds) {
 
-        String schemaName = toSchemaName(storageCode);
-        String tableName = toTableName(storageCode);
+        if (isNullOrEmpty(systemIds))
+            return emptyList();
 
-        String ids = systemIds.stream().map(id -> QUERY_VALUE_SUBST).collect(joining(","));
-        String condition = String.format(CONDITION_IN, addDoubleQuotes(SYS_PRIMARY_COLUMN), ids);
+        StorageDataCriteria criteria = new StorageDataCriteria(storageCode, null, null, null);
+        criteria.setSystemIds(toLongSystemIds(systemIds));
 
-        String sql = String.format(DELETE_RECORD,
-                schemaName, addDoubleQuotes(tableName), condition) +
+        return deleteTableData(criteria);
+    }
+
+    /** Удаление данных таблицы по критерию. */
+    protected List<String> deleteTableData(StorageDataCriteria criteria) {
+
+        QueryWithParams where = getWhereClause(criteria, null);
+        if (StringUtils.isNullOrEmpty(where.getSql()))
+            return emptyList(); // Можно удалять, только если есть хотя бы одно ограничение!
+
+        final String schemaName = getTableSchemaName(criteria.getSchemaName(), criteria.getTableName());
+
+        String sql = String.format(DELETE_RECORD, schemaName, addDoubleQuotes(criteria.getTableName())) +
+                SELECT_WHERE + where.getSql() +
                 RETURNG + addDoubleQuotes(SYS_HASH);
         Query query = entityManager.createNativeQuery(sql);
-
-        int i = 1;
-        for (Object systemId : systemIds) {
-            query.setParameter(i++, systemId);
-        }
+        where.fillQueryParameters(query);
 
         return query.getResultList();
     }
@@ -983,7 +1000,8 @@ public class DataDaoImpl implements DataDao {
 
         String condition = fieldNames.stream().map(s -> s + IS_NULL).collect(joining(CONDITION_AND));
         String sql = String.format(DELETE_RECORD,
-                toSchemaName(draftCode), addDoubleQuotes(toTableName(draftCode)), condition);
+                toSchemaName(draftCode), addDoubleQuotes(toTableName(draftCode))) +
+                SELECT_WHERE + condition;
         entityManager.createNativeQuery(sql).executeUpdate();
     }
 
@@ -1088,7 +1106,7 @@ public class DataDaoImpl implements DataDao {
         String tableName = toTableName(storageCode);
 
         final String alias = TRIGGER_NEW_ALIAS + NAME_SEPARATOR;
-        String tableFields = fieldNames.stream().map(QueryUtil::getFieldClearName).collect(joining(", "));
+        String tableFields = fieldNames.stream().map(QueryUtil::getClearedFieldName).collect(joining(", "));
 
         String expression = String.format(HASH_EXPRESSION,
                 fieldNames.stream().map(field -> alias + field).collect(joining(", ")));
@@ -1104,7 +1122,7 @@ public class DataDaoImpl implements DataDao {
         String tableName = toTableName(storageCode);
 
         final String alias = TRIGGER_NEW_ALIAS + NAME_SEPARATOR;
-        String tableFields = fieldNames.stream().map(QueryUtil::getFieldClearName).collect(joining(", "));
+        String tableFields = fieldNames.stream().map(QueryUtil::getClearedFieldName).collect(joining(", "));
 
         String expression = fieldNames.stream()
                 .map(field -> "coalesce( to_tsvector('ru', " + alias + field + "\\:\\:text),'')")
@@ -1322,7 +1340,7 @@ public class DataDaoImpl implements DataDao {
         QueryWithParams where = getWhereClause(criteria, DEFAULT_TABLE_ALIAS);
         if (!StringUtils.isNullOrEmpty(where.getSql())) {
 
-            sqlSelect += where.getBindedSql();
+            sqlSelect += SELECT_WHERE + where.getBindedSql();
         }
 
         sqlSelect += sortingToOrderBy(null, DEFAULT_TABLE_ALIAS);
@@ -1585,7 +1603,8 @@ public class DataDaoImpl implements DataDao {
         String condition = String.format(CONDITION_EQUAL,
                 addDoubleQuotes(SYS_PUBLISHTIME), addDoubleQuotes(SYS_CLOSETIME));
         String sql = String.format(DELETE_RECORD,
-                toSchemaName(targetCode), addDoubleQuotes(toTableName(targetCode)), condition);
+                toSchemaName(targetCode), addDoubleQuotes(toTableName(targetCode))) +
+                SELECT_WHERE + condition;
 
         if (logger.isDebugEnabled()) {
             logger.debug("deletePointRows method sql: {}", sql);

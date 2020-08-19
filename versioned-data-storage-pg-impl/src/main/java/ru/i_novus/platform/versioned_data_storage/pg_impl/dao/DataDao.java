@@ -181,7 +181,7 @@ public interface DataDao {
     boolean isUnique(String storageCode, List<String> fieldNames, LocalDateTime publishTime);
 
     /**
-     * Копирование данных хранилища по критерию.
+     * Копирование данных таблицы по критерию.
      *
      * @param criteria критерий копирования
      */

@@ -13,10 +13,10 @@ import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
 import ru.i_novus.platform.datastorage.temporal.service.StorageCodeService;
 import ru.i_novus.platform.datastorage.temporal.util.CollectionUtils;
-import ru.i_novus.platform.datastorage.temporal.util.StorageUtils;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.BooleanField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.TreeField;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
 
 import javax.persistence.PersistenceException;
 import javax.transaction.Transactional;
@@ -68,7 +68,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     public String createDraft(String schemaName, List<Field> fields) {
 
         String draftCode = storageCodeService.generateStorageName();
-        createDraftTable(StorageUtils.toStorageCode(schemaName, draftCode), fields);
+        createDraftTable(toStorageCode(schemaName, draftCode), fields);
         return draftCode;
     }
 
@@ -116,16 +116,28 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     @Override
     public void addRows(String draftCode, List<RowValue> rowValues) {
+
+        insertData(draftCode, rowValues);
+    }
+
+    @SuppressWarnings("UnusedReturnValue")
+    protected List<String> insertData(String draftCode, List<RowValue> rowValues) {
         try {
-            dataDao.insertData(draftCode, rowValues);
+            return dataDao.insertData(draftCode, rowValues);
 
         } catch (PersistenceException pe) {
-            processNotUniqueRowException(pe);
+            throw transformException(pe);
         }
     }
 
     @Override
     public void updateRows(String draftCode, List<RowValue> rowValues) {
+
+        updateData(draftCode, rowValues);
+    }
+
+    @SuppressWarnings("UnusedReturnValue")
+    protected List<String> updateData(String draftCode, List<RowValue> rowValues) {
 
         List<CodifiedException> exceptions = new ArrayList<>();
         // NB: Валидация validateRow закомментирована
@@ -136,16 +148,31 @@ public class DraftDataServiceImpl implements DraftDataService {
             throw new ListCodifiedException(exceptions);
         }
 
-        rowValues.forEach(rowValue -> dataDao.updateData(draftCode, rowValue));
+        List<String> hashes = new ArrayList<>(rowValues.size());
+
+        rowValues.forEach(rowValue -> {
+            String hash = dataDao.updateData(draftCode, rowValue);
+            hashes.add(hash);
+        });
+
+        return hashes;
     }
 
     @Override
     public void deleteRows(String draftCode, List<Object> systemIds) {
-        dataDao.deleteData(draftCode, systemIds);
+
+        deleteData(draftCode, systemIds);
+    }
+
+    @SuppressWarnings("UnusedReturnValue")
+    protected List<String> deleteData(String draftCode, List<Object> systemIds) {
+
+        return dataDao.deleteData(draftCode, systemIds);
     }
 
     @Override
     public void deleteAllRows(String draftCode) {
+
         dataDao.deleteData(draftCode);
     }
 
@@ -266,7 +293,7 @@ public class DraftDataServiceImpl implements DraftDataService {
             dataDao.updateHashRows(draftCode, fieldNames);
 
         } catch (PersistenceException pe) {
-            processNotUniqueRowException(pe);
+            throw transformException(pe);
         }
         dataDao.updateFtsRows(draftCode, fieldNames);
     }
@@ -298,7 +325,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         dataDao.createDraftTable(draftCode, fields);
 
         List<String> fieldNames = fields.stream()
-                .map(this::getHashUsedFieldName)
+                .map(QueryUtil::getHashUsedFieldName)
                 .filter(f -> !systemFieldList().contains(f))
                 .collect(Collectors.toList());
         Collections.sort(fieldNames);
@@ -321,18 +348,11 @@ public class DraftDataServiceImpl implements DraftDataService {
         dataDao.createFullTextSearchIndex(draftCode);
     }
 
-    private String getHashUsedFieldName(Field field) {
-        String name = addDoubleQuotes(field.getName());
-        if (REFERENCE_FIELD_SQL_TYPE.equals(field.getType()))
-            name += "->>'value'";
-        return name;
-    }
-
     private String createVersionTable(String draftCode) {
 
         //todo никак не учитывается Field.unique - уникальность в рамках даты
         String versionName = storageCodeService.generateStorageName();
-        String versionCode = StorageUtils.toStorageCode(toSchemaName(draftCode), versionName);
+        String versionCode = toStorageCode(toSchemaName(draftCode), versionName);
         dataDao.copyTable(draftCode, versionCode);
 
         dataDao.addColumn(versionName, SYS_PUBLISHTIME, "timestamp without time zone", MIN_TIMESTAMP_VALUE);
@@ -432,14 +452,19 @@ public class DraftDataServiceImpl implements DraftDataService {
         }
     }
 
-    private void processNotUniqueRowException(PersistenceException pe) {
+    private RuntimeException transformException(PersistenceException exception) {
 
         //Обработка кода ошибки о нарушении уникальности в postgres
-        SQLException sqlException = (SQLException) of(pe).map(Throwable::getCause).map(Throwable::getCause)
+        SQLException sqlException = (SQLException) of(exception)
+                .map(Throwable::getCause).map(Throwable::getCause)
                 .filter(e -> e instanceof SQLException).orElse(null);
-        if (sqlException != null && "23505".equals(sqlException.getSQLState())) {
-            throw new NotUniqueException(NOT_UNIQUE_ROW);
+
+        final String uniqueViolationErrorCode = "23505";
+        if (sqlException != null &&
+                uniqueViolationErrorCode.equals(sqlException.getSQLState())) {
+            return new NotUniqueException(NOT_UNIQUE_ROW);
         }
-        throw pe;
+
+        return exception;
     }
 }
