@@ -1371,7 +1371,10 @@ public class DataDaoImpl implements DataDao {
 
         sqlSelect += sortingToOrderBy(null, DEFAULT_TABLE_ALIAS);
 
-        List<String> fieldNames = getAllEscapedFieldNames(criteria.getStorageCode());
+        List<String> fieldNames = criteria.getFieldNames();
+        if (isNullOrEmpty(fieldNames)) {
+            fieldNames = getAllEscapedFieldNames(criteria.getPurposeCode());
+        }
 
         Map<String, String> mapInsert = new HashMap<>();
         mapInsert.put("targetTable", targetTable);
