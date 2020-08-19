@@ -88,7 +88,7 @@ public class QueryConstants {
     private static final String AND_INFO_TABLE_NAME = "  AND table_name = :tableName \n";
     private static final String AND_INFO_TABLE_SCHEMA_NAME = "  AND table_schema = :schemaName \n";
     private static final String AND_INFO_COLUMN_NAME = "  AND column_name = :columnName \n";
-    static final String AND_INFO_COLUMN_NOT_IN_SYS_LIST = "  AND column_name NOT IN (" + SYS_RECORDS_TEXT + ")";
+    static final String AND_INFO_COLUMN_NOT_IN_SYS_LIST = "  AND column_name NOT IN (" + SYS_FIELD_NAME_TEXT + ")";
 
     public static final String SELECT_SCHEMA_EXISTS = SELECT_EXISTS_START +
             SELECT_ONE +

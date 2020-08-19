@@ -17,8 +17,8 @@ public class StorageCopyCriteria extends StorageDataCriteria {
     /** Наименование таблицы назначения. */
     private final String purposeTableName;
 
-    /** Наименования копируемых полей. */
-    private List<String> fieldNames;
+    /** Экранированные наименования копируемых полей. */
+    private List<String> escapedFieldNames;
 
     public StorageCopyCriteria(String storageCode, String purposeCode,
                                LocalDateTime bdate, LocalDateTime edate, List<Field> fields) {
@@ -45,12 +45,12 @@ public class StorageCopyCriteria extends StorageDataCriteria {
         return purposeTableName;
     }
 
-    public List<String> getFieldNames() {
-        return fieldNames;
+    public List<String> getEscapedFieldNames() {
+        return escapedFieldNames;
     }
 
-    public void setFieldNames(List<String> fieldNames) {
-        this.fieldNames = fieldNames;
+    public void setEscapedFieldNames(List<String> escapedFieldNames) {
+        this.escapedFieldNames = escapedFieldNames;
     }
 
     public String getPurposeCode() {
