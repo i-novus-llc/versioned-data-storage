@@ -1319,6 +1319,14 @@ public class DataDaoImpl implements DataDao {
 
         String sqlSelect = substitute(SELECT_ALL_DATA_BY_FROM_TABLE, mapSelect);
 
+        QueryWithParams where = getWhereClause(criteria, DEFAULT_TABLE_ALIAS);
+        if (!StringUtils.isNullOrEmpty(where.getSql())) {
+
+            sqlSelect += where.getBindedSql();
+        }
+
+        sqlSelect += sortingToOrderBy(null, DEFAULT_TABLE_ALIAS);
+
         List<String> fieldNames = getAllEscapedFieldNames(criteria.getStorageCode());
 
         Map<String, String> mapInsert = new HashMap<>();

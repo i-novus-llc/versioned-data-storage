@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
+import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addSingleQuotes;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.QUERY_NULL_VALUE;
 
 /** Запрос с параметрами.
  * <p>
@@ -82,6 +84,33 @@ public class QueryWithParams {
             return;
 
         concat(queryWithParams.getSql(), queryWithParams.getParams());
+    }
+
+    public String getBindedSql() {
+
+        if (StringUtils.isNullOrEmpty(sql))
+            return null;
+
+        if (isNullOrEmpty(params))
+            return sql;
+
+        String result = sql;
+        for (Map.Entry<String, Object> entry : params.entrySet()) {
+            result = result.replaceAll(":" + entry.getKey(), paramToString(entry.getValue()));
+        }
+
+        return result;
+    }
+
+    private String paramToString(Object param) {
+
+        if (param == null)
+            return QUERY_NULL_VALUE;
+
+        if (param instanceof Number)
+            return param.toString();
+
+        return addSingleQuotes(param.toString());
     }
 
     public Query createQuery(EntityManager entityManager) {

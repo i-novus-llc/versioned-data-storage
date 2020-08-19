@@ -351,8 +351,7 @@ public class QueryConstants {
             "END$$;";
 
     public static final String SELECT_ALL_DATA_BY_FROM_TABLE = "SELECT ${sourceAlias}.* \n" +
-            "  FROM ${sourceTable} AS ${sourceAlias} \n" +
-            " ORDER BY ${sourceAlias}." + addDoubleQuotes(SYS_PRIMARY_COLUMN);
+            "  FROM ${sourceTable} AS ${sourceAlias} \n";
 
     public static final String INSERT_ALL_DATA_BY_FROM_TABLE = "INSERT INTO ${targetTable}(${strColumns})\n" +
             "VALUES(${rowColumns});";
@@ -387,7 +386,7 @@ public class QueryConstants {
 
     public static final String SELECT_ROWS_FROM_DATA = " select %s from data.%s d where %s";
 
-    public static final String SELECT_ROWS_FROM_DATA_BY_FIELD_EQ = " select %1$s from %2$s.%3$s where %4$s = %5$s ";
+    public static final String SELECT_ROWS_FROM_DATA_BY_FIELD_EQ = " SELECT %1$s FROM %2$s.%3$s WHERE %4$s = %5$s ";
 
     public static final String SELECT_RELATION_ROW_FROM_DATA = " select %s from data.%s where %s=? limit 1;\n";
 
