@@ -185,7 +185,8 @@ public class DataDaoImpl implements DataDao {
         String sql = String.format(sqlFormat,
                 addDoubleQuotes(SYS_HASH),
                 escapeStorageTableName(storageCode),
-                DEFAULT_TABLE_ALIAS);
+                DEFAULT_TABLE_ALIAS) +
+                SELECT_WHERE_DEFAULT;
 
         QueryWithParams queryWithParams = new QueryWithParams(sql);
         queryWithParams.concat(getWhereByDates(bdate, edate, DEFAULT_TABLE_ALIAS));
