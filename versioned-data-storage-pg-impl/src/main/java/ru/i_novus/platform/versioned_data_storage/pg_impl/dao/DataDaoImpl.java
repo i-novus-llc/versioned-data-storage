@@ -656,26 +656,14 @@ public class DataDaoImpl implements DataDao {
         createHashIndex(targetCode);
 
         addPrimaryKey(targetCode);
+        addTableSequence(targetCode);
     }
 
-    /** Добавление SYS_PRIMARY_COLUMN. */
-    private void addPrimaryKey(String storageCode) {
-
-        createTableSequence(storageCode);
-
-        String schemaName = toSchemaName(storageCode);
-        String tableName = toTableName(storageCode);
-
-        String ddlAddPrimaryKey = String.format(ALTER_ADD_PRIMARY_KEY,
-                schemaName, addDoubleQuotes(tableName), SYS_PRIMARY_COLUMN);
-        entityManager.createNativeQuery(ddlAddPrimaryKey).executeUpdate();
-
-        String ddlAlterColumn = String.format(ALTER_SET_SEQUENCE_FOR_PRIMARY_KEY,
-                schemaName, addDoubleQuotes(tableName), SYS_PRIMARY_COLUMN, escapeSequenceName(tableName));
-        entityManager.createNativeQuery(ddlAlterColumn).executeUpdate();
-    }
-
-    /** Копирование всех индексов (кроме индекса для SYS_HASH). */
+    /**
+     * Копирование всех индексов
+     * (включая индекс для FTS и исключая индекс для SYS_HASH).
+     */
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
     private void copyIndexes(String sourceCode, String targetCode) {
 
         String sourceSchema = toSchemaName(sourceCode);
@@ -699,6 +687,43 @@ public class DataDaoImpl implements DataDao {
                     .replace(sourceTable, targetTable);
             entityManager.createNativeQuery(ddl).executeUpdate();
         }
+    }
+
+    /** Добавление SYS_PRIMARY_COLUMN. */
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    private void addPrimaryKey(String storageCode) {
+
+        String ddlAddPrimaryKey = String.format(ALTER_ADD_PRIMARY_KEY,
+                toSchemaName(storageCode),
+                addDoubleQuotes(toTableName(storageCode)),
+                addDoubleQuotes(SYS_PRIMARY_COLUMN));
+        entityManager.createNativeQuery(ddlAddPrimaryKey).executeUpdate();
+    }
+
+    /** Добавление последовательности. */
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    protected void addTableSequence(String storageCode) {
+
+        createTableSequence(storageCode);
+
+        String tableName = toTableName(storageCode);
+
+        String ddlAlterColumn = String.format(ALTER_SET_SEQUENCE_FOR_PRIMARY_KEY,
+                toSchemaName(storageCode), addDoubleQuotes(tableName),
+                addDoubleQuotes(SYS_PRIMARY_COLUMN), escapeSequenceName(tableName));
+        entityManager.createNativeQuery(ddlAlterColumn).executeUpdate();
+    }
+
+    @Override
+    @Transactional
+    public void addVersionedInformation(String storageCode) {
+
+        addColumn(storageCode, SYS_PUBLISHTIME, "timestamp without time zone", MIN_TIMESTAMP_VALUE);
+        addColumn(storageCode, SYS_CLOSETIME, "timestamp without time zone", MAX_TIMESTAMP_VALUE);
+
+        createIndex(storageCode,
+                escapeTableIndexName(toTableName(storageCode), TABLE_INDEX_SYSDATE_NAME),
+                Arrays.asList(SYS_PUBLISHTIME, SYS_CLOSETIME));
     }
 
     @Override

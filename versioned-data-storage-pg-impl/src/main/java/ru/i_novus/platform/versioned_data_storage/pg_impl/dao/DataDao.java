@@ -75,6 +75,9 @@ public interface DataDao {
      */
     void copyTable(String sourceCode, String targetCode);
 
+    /** Добавление информации для версионирования. */
+    void addVersionedInformation(String storageCode);
+
     void addColumn(String storageCode, String name, String type, String defaultValue);
 
     /** Изменение типа данных поля. */

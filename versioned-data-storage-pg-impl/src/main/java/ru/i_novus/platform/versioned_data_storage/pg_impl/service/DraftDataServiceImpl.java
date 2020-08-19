@@ -32,7 +32,7 @@ import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
 import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.*;
 import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addDoubleQuotes;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.ExceptionCodes.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.TRANSACTION_ROW_LIMIT;
 
 /**
  * @author lgalimova
@@ -353,14 +353,9 @@ public class DraftDataServiceImpl implements DraftDataService {
         //todo никак не учитывается Field.unique - уникальность в рамках даты
         String versionName = storageCodeService.generateStorageName();
         String versionCode = toStorageCode(toSchemaName(draftCode), versionName);
+
         dataDao.copyTable(draftCode, versionCode);
-
-        dataDao.addColumn(versionName, SYS_PUBLISHTIME, "timestamp without time zone", MIN_TIMESTAMP_VALUE);
-        dataDao.addColumn(versionName, SYS_CLOSETIME, "timestamp without time zone", MAX_TIMESTAMP_VALUE);
-
-        dataDao.createIndex(versionCode,
-                escapeTableIndexName(versionName, TABLE_INDEX_SYSDATE_NAME),
-                Arrays.asList(SYS_PUBLISHTIME, SYS_CLOSETIME));
+        dataDao.addVersionedInformation(versionCode);
 
         List<String> fieldNames = dataDao.getHashUsedFieldNames(versionName);
         dataDao.createTriggers(versionName, fieldNames);
