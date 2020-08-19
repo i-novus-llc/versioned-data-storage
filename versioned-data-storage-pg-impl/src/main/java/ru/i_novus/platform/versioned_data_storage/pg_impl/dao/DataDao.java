@@ -93,7 +93,7 @@ public interface DataDao {
 
     List<String> deleteData(String storageCode, List<Object> systemIds);
 
-    void loadData(String draftCode, String sourceCode, List<String> fields,
+    void loadData(String draftCode, String sourceCode, List<String> fieldNames,
                   LocalDateTime fromDate, LocalDateTime toDate);
 
     void updateReferenceInRows(String storageCode, ReferenceFieldValue fieldValue, List<Object> systemIds);
@@ -198,7 +198,7 @@ public interface DataDao {
                                           LocalDateTime publishTime, LocalDateTime closeTime);
 
     void insertActualDataFromVersion(String targetTable, String versionTable,
-                                     String draftTable, Map<String, String> fieldNames,
+                                     String draftTable, Map<String, String> typedNames,
                                      int offset, int limit,
                                      LocalDateTime publishTime, LocalDateTime closeTime);
 
@@ -214,7 +214,7 @@ public interface DataDao {
                                              LocalDateTime publishTime, LocalDateTime closeTime);
 
     void insertClosedNowDataFromVersion(String targetTable, String versionTable,
-                                        String draftTable, Map<String, String> fieldNames,
+                                        String draftTable, Map<String, String> typedNames,
                                         int offset, int limit,
                                         LocalDateTime publishTime, LocalDateTime closeTime);
 

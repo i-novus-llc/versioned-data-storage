@@ -996,17 +996,17 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void loadData(String draftCode, String sourceCode, List<String> fields,
+    public void loadData(String draftCode, String sourceCode, List<String> fieldNames,
                          LocalDateTime fromDate, LocalDateTime toDate) {
 
         final String alias = DEFAULT_TABLE_ALIAS + NAME_SEPARATOR;
-        String keys = String.join(",", fields);
-        String strFields = fields.stream().map(field -> alias + field).collect(joining(", "));
+        String keys = String.join(",", fieldNames);
+        String aliasColumns = toAliasColumns(fieldNames, alias);
 
         String sqlInsert = String.format(INSERT_RECORD,
                 toSchemaName(draftCode), addDoubleQuotes(toTableName(draftCode)), keys);
         String sqlSelect = String.format(INSERT_SELECT,
-                toSchemaName(sourceCode), addDoubleQuotes(toTableName(sourceCode)), DEFAULT_TABLE_ALIAS, strFields);
+                toSchemaName(sourceCode), addDoubleQuotes(toTableName(sourceCode)), DEFAULT_TABLE_ALIAS, aliasColumns);
 
         QueryWithParams queryWithParams = new QueryWithParams(sqlInsert + sqlSelect);
         queryWithParams.concat(getWhereByDates(fromDate, toDate, DEFAULT_TABLE_ALIAS));
@@ -1379,7 +1379,7 @@ public class DataDaoImpl implements DataDao {
         Map<String, String> mapInsert = new HashMap<>();
         mapInsert.put("targetTable", targetTable);
         mapInsert.put("strColumns", toStrColumns(fieldNames));
-        mapInsert.put("rowColumns", toRowColumns(fieldNames));
+        mapInsert.put("rowColumns", toAliasColumns(fieldNames, ROW_TYPE_VAR_NAME + NAME_SEPARATOR));
 
         String sqlInsert = substitute(INSERT_ALL_DATA_BY_FROM_TABLE, mapInsert);
 
@@ -1406,7 +1406,7 @@ public class DataDaoImpl implements DataDao {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
         String strColumns = toStrColumns(fieldNames);
-        String rowColumns = toRowColumns(fieldNames);
+        String rowColumns = toAliasColumns(fieldNames, ROW_TYPE_VAR_NAME + NAME_SEPARATOR);
 
         Map<String, String> map = new HashMap<>();
         map.put("offset", "" + offset);
@@ -1448,14 +1448,14 @@ public class DataDaoImpl implements DataDao {
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void insertActualDataFromVersion(String targetTable, String versionTable,
-                                            String draftTable, Map<String, String> fieldNames,
+                                            String draftTable, Map<String, String> typedNames,
                                             int offset, int limit,
                                             LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
-        String strColumns = fieldNames.keySet().stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
-        String typedColumns = fieldNames.keySet().stream().map(s -> s + " " + fieldNames.get(s)).reduce((s1, s2) -> s1 + ", " + s2).orElse("");
-        String draftColumns = fieldNames.keySet().stream().map(s -> DRAFT_TABLE_ALIAS + "." + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
+        String strColumns = toStrColumns(typedNames);
+        String typedColumns = toTypedColumns(typedNames);
+        String draftColumns = toAliasColumns(typedNames, DRAFT_TABLE_ALIAS + NAME_SEPARATOR);
 
         Map<String, String> map = new HashMap<>();
         map.put("draftColumns", draftColumns);
@@ -1502,7 +1502,7 @@ public class DataDaoImpl implements DataDao {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
         String strColumns = toStrColumns(fieldNames);
-        String rowColumns = toRowColumns(fieldNames);
+        String rowColumns = toAliasColumns(fieldNames, ROW_TYPE_VAR_NAME + NAME_SEPARATOR);
 
         String sql = String.format(INSERT_OLD_VAL_FROM_VERSION_WITH_CLOSE_DATE,
                 addDoubleQuotes(targetTable),
@@ -1540,13 +1540,13 @@ public class DataDaoImpl implements DataDao {
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void insertClosedNowDataFromVersion(String targetTable, String versionTable,
-                                               String draftTable, Map<String, String> fieldNames,
+                                               String draftTable, Map<String, String> typedNames,
                                                int offset, int limit,
                                                LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
-        String strColumns = fieldNames.keySet().stream().map(s -> "" + s + "").reduce((s1, s2) -> s1 + ", " + s2).orElse("");
-        String typedColumns = fieldNames.keySet().stream().map(s -> s + " " + fieldNames.get(s)).reduce((s1, s2) -> s1 + ", " + s2).orElse("");
+        String strColumns = toStrColumns(typedNames);
+        String typedColumns = toTypedColumns(typedNames);
 
         Map<String, String> map = new HashMap<>();
         map.put("targetTable", escapeTableName(DATA_SCHEMA_NAME, targetTable));
@@ -1592,7 +1592,7 @@ public class DataDaoImpl implements DataDao {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
         String strColumns = toStrColumns(fieldNames);
-        String rowColumns = toRowColumns(fieldNames);
+        String rowColumns = toAliasColumns(fieldNames, ROW_TYPE_VAR_NAME + NAME_SEPARATOR);
 
         Map<String, String> map = new HashMap<>();
         map.put("fields", strColumns);
@@ -1612,17 +1612,6 @@ public class DataDaoImpl implements DataDao {
             logger.debug("insertNewDataFromDraft with sql: {}", sql);
         }
         entityManager.createNativeQuery(sql).executeUpdate();
-    }
-
-    private String toStrColumns(List<String> columns) {
-
-        return columns.stream().filter(Objects::nonNull).collect(joining(", "));
-    }
-
-    private String toRowColumns(List<String> columns) {
-
-        final String alias = ROW_TYPE_VAR_NAME + NAME_SEPARATOR;
-        return columns.stream().filter(Objects::nonNull).map(s -> alias + s).collect(joining(", "));
     }
 
     @Override

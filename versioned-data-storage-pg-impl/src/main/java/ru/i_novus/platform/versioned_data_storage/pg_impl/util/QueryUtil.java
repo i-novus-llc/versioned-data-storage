@@ -139,6 +139,65 @@ public class QueryUtil {
     }
 
     /**
+     * Преобразование списка наименований полей в наименования колонок.
+     *
+     * @param fieldNames список наименований полей
+     * @return Наименования колонок
+     */
+    public static String toStrColumns(List<String> fieldNames) {
+
+        return fieldNames.stream().filter(Objects::nonNull).collect(joining(", "));
+    }
+
+    /**
+     * Преобразование списка наименований полей в наименования колонок с учётом псевдонима.
+     *
+     * @param fieldNames список наименований полей
+     * @param alias      псевдоним
+     * @return Наименования колонок
+     */
+    public static String toAliasColumns(List<String> fieldNames, String alias) {
+
+        return fieldNames.stream().filter(Objects::nonNull).map(s -> alias + s).collect(joining(", "));
+    }
+
+    /**
+     * Преобразование набора наименований полей с типами в наименования колонок.
+     *
+     * @param typedNames набор наименований полей с типами
+     * @return Наименования колонок
+     */
+    public static String toStrColumns(Map<String, String> typedNames) {
+
+        return typedNames.keySet().stream().filter(Objects::nonNull).collect(joining(", "));
+    }
+
+    /**
+     * Преобразование набора наименований полей с типами в наименования колонок с типами.
+     *
+     * @param typedNames набор наименований полей с типами
+     * @return Наименования колонок с типами
+     */
+    public static String toTypedColumns(Map<String, String> typedNames) {
+
+        return typedNames.keySet().stream().filter(Objects::nonNull)
+                .map(name -> name + " " + typedNames.get(name)).collect(joining(", "));
+    }
+
+    /**
+     * Преобразование набора наименований полей с типами в наименования колонок с учётом псевдонима.
+     *
+     * @param typedNames набор наименований полей с типами
+     * @param alias      псевдоним
+     * @return Наименования колонок
+     */
+    public static String toAliasColumns(Map<String, String> typedNames, String alias) {
+
+        return typedNames.keySet().stream().filter(Objects::nonNull)
+                .map(s -> alias + s).collect(joining(", "));
+    }
+
+    /**
      * Преобразование значения поля в параметр запроса.
      *
      * @param fieldValue значение поля
