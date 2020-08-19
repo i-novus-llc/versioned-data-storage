@@ -1008,26 +1008,6 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void loadData(String draftCode, String sourceCode, List<String> fieldNames,
-                         LocalDateTime fromDate, LocalDateTime toDate) {
-
-        final String alias = DEFAULT_TABLE_ALIAS + NAME_SEPARATOR;
-        String keys = String.join(",", fieldNames);
-        String aliasColumns = toAliasColumns(fieldNames, alias);
-
-        String sqlInsert = String.format(INSERT_RECORD,
-                toSchemaName(draftCode), addDoubleQuotes(toTableName(draftCode)), keys);
-        String sqlSelect = String.format(INSERT_SELECT,
-                toSchemaName(sourceCode), addDoubleQuotes(toTableName(sourceCode)), DEFAULT_TABLE_ALIAS, aliasColumns);
-
-        QueryWithParams queryWithParams = new QueryWithParams(sqlInsert + sqlSelect);
-        queryWithParams.concat(getWhereByDates(fromDate, toDate, DEFAULT_TABLE_ALIAS));
-
-        queryWithParams.createQuery(entityManager).executeUpdate();
-    }
-
-    @Override
     @Transactional
     public void deleteEmptyRows(String draftCode) {
 

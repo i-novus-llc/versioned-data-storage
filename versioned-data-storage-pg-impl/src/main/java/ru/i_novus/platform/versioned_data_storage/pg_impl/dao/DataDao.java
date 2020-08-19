@@ -121,9 +121,6 @@ public interface DataDao {
 
     List<String> deleteData(String storageCode, List<Object> systemIds);
 
-    void loadData(String draftCode, String sourceCode, List<String> fieldNames,
-                  LocalDateTime fromDate, LocalDateTime toDate);
-
     void updateReferenceInRows(String storageCode, ReferenceFieldValue fieldValue, List<Object> systemIds);
 
     void deleteEmptyRows(String draftCode);

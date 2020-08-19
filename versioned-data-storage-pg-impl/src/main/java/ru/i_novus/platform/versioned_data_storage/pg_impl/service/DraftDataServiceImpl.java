@@ -185,28 +185,36 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Override
     public void loadData(String draftCode, String sourceCode, LocalDateTime fromDate, LocalDateTime toDate) {
 
-        List<String> draftFieldNames = dataDao.getEscapedFieldNames(draftCode);
-        List<String> sourceFieldNames = dataDao.getEscapedFieldNames(sourceCode);
+        List<String> draftFieldNames = dataDao.getAllEscapedFieldNames(draftCode);
+        List<String> sourceFieldNames = dataDao.getAllEscapedFieldNames(sourceCode);
+        sourceFieldNames.removeIf(SYS_VERSIONED_FIELD_NAME_LIST::contains);
+
         if (!draftFieldNames.equals(sourceFieldNames)) {
             throw new CodifiedException(TABLES_NOT_EQUAL);
         }
 
-        draftFieldNames.add(addDoubleQuotes(SYS_PRIMARY_COLUMN));
-        draftFieldNames.add(addDoubleQuotes(SYS_FTS));
-        draftFieldNames.add(addDoubleQuotes(SYS_HASH));
-
-        dataDao.loadData(draftCode, sourceCode, draftFieldNames, fromDate, toDate);
+        copyAllData(sourceCode, draftCode, draftFieldNames);
         dataDao.updateTableSequence(draftCode);
     }
 
     @Override
     public void copyAllData(String sourceCode, String targetCode) {
 
+        copyAllData(sourceCode, targetCode, dataDao.getAllEscapedFieldNames(targetCode));
+    }
+
+    private void copyAllData(String sourceCode, String targetCode, List<String> fieldNames) {
+
         BigInteger count = dataDao.countData(sourceCode);
         if (BigInteger.ZERO.equals(count))
             return;
 
+        if (dataDao.hasData(targetCode))
+            throw new CodifiedException("target.table.is.not.empty");
+
         StorageCopyCriteria criteria = new StorageCopyCriteria(sourceCode, targetCode, null, null, null);
+        criteria.setFieldNames(fieldNames);
+
         criteria.setCount(count.intValue());
         criteria.setSize(TRANSACTION_ROW_LIMIT);
 
@@ -219,6 +227,7 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     @Override
     public void updateReferenceInRows(String storageCode, ReferenceFieldValue fieldValue, List<Object> systemIds) {
+
         dataDao.updateReferenceInRows(storageCode, fieldValue, systemIds);
     }
 
