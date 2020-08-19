@@ -59,14 +59,14 @@ public interface SearchDataService {
     List<RowValue> findRows(String storageCode, List<String> fields, List<Object> systemIds);
 
     /**
-     * Получение хешей, для которых не существуют записи в хранилище.
+     * Получение хешей, соответствующих записям в хранилище.
      *
      * @param storageCode код хранилища данных
      * @param bdate       дата публикации версии
      * @param edate       дата создания версии
      * @param hashList    список хешей записей
-     * @return Список несуществующих хешей
+     * @return Список существующих хешей
      */
-    List<String> findNonExistentHashes(String storageCode, LocalDateTime bdate, LocalDateTime edate,
-                                       List<String> hashList);
+    List<String> findExistentHashes(String storageCode, LocalDateTime bdate, LocalDateTime edate,
+                                    List<String> hashList);
 }

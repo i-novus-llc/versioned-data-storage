@@ -75,8 +75,8 @@ public class SearchDataServiceImpl implements SearchDataService {
     }
 
     @Override
-    public List<String> findNonExistentHashes(String storageCode, LocalDateTime bdate, LocalDateTime edate,
-                                              List<String> hashList) {
-        return dataDao.findNonExistentHashes(storageCode, bdate, edate, hashList);
+    public List<String> findExistentHashes(String storageCode, LocalDateTime bdate, LocalDateTime edate,
+                                           List<String> hashList) {
+        return dataDao.findExistentHashes(storageCode, bdate, edate, hashList);
     }
 }

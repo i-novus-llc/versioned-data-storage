@@ -23,8 +23,8 @@ public interface DataDao {
 
     List<RowValue> getRowData(String storageCode, List<String> fieldNames, List<Object> systemIds);
 
-    List<String> findNonExistentHashes(String tableName, LocalDateTime bdate, LocalDateTime edate,
-                                       List<String> hashList);
+    List<String> findExistentHashes(String tableName, LocalDateTime bdate, LocalDateTime edate,
+                                    List<String> hashList);
 
     boolean tableStructureEquals(String tableName1, String tableName2);
 

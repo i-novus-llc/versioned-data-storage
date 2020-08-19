@@ -169,40 +169,18 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    public List<String> findNonExistentHashes(String tableName, LocalDateTime bdate, LocalDateTime edate,
-                                              List<String> hashList) {
+    public List<String> findExistentHashes(String storageCode, LocalDateTime bdate, LocalDateTime edate,
+                                           List<String> hashList) {
 
-        // Переделать на = ANY() для ускорения.
-        // Получить те хеши, которые есть, и исключить их из всего списка.
-        Map<String, Object> params = new HashMap<>();
-        String sqlHashArray = "array[" + hashList.stream().map(hash -> {
-            String hashPlaceHolder = "hash" + params.size();
-            params.put(hashPlaceHolder, hash);
-            return QUERY_BIND_CHAR + hashPlaceHolder;
-        }).collect(joining(",")) + "]";
+        final String sqlFormat = "SELECT %1$s \n  FROM %2$s as %3$s ";
+        String sql = String.format(sqlFormat,
+                addDoubleQuotes(SYS_HASH),
+                escapeStorageTableName(storageCode),
+                DEFAULT_TABLE_ALIAS);
 
-        QueryWithParams whereByDates = getWhereByDates(bdate, edate, DEFAULT_TABLE_ALIAS);
-        String sqlByDate = "";
-        if (whereByDates != null && !StringUtils.isNullOrEmpty(whereByDates.getSql())) {
-            sqlByDate = whereByDates.getSql();
-        }
-
-        String sql = "SELECT hash \n" +
-                "  FROM (\n" +
-                "    SELECT unnest(" + sqlHashArray + ") hash \n" +
-                "  ) hashes \n" +
-                " WHERE hash NOT IN ( \n" +
-                "   SELECT " + addDoubleQuotes(SYS_HASH) + QUERY_NEW_LINE +
-                "     FROM " + escapeTableName(DATA_SCHEMA_NAME, tableName) +
-                ALIAS_OPERATOR + DEFAULT_TABLE_ALIAS + QUERY_NEW_LINE +
-                "    WHERE " + WHERE_DEFAULT +
-                "   " + sqlByDate +
-                " )";
-        QueryWithParams queryWithParams = new QueryWithParams(sql, params);
-
-        if (whereByDates != null) {
-            queryWithParams.concat(whereByDates.getParams());
-        }
+        QueryWithParams queryWithParams = new QueryWithParams(sql);
+        queryWithParams.concat(getWhereByDates(bdate, edate, DEFAULT_TABLE_ALIAS));
+        queryWithParams.concat(getWhereByHashList(hashList, DEFAULT_TABLE_ALIAS));
 
         return queryWithParams.createQuery(entityManager).getResultList();
     }
