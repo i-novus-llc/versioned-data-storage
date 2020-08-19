@@ -114,7 +114,7 @@ public class DataDaoImpl implements DataDao {
         List<Field> fields = columnDataTypesToFields(getColumnDataTypes(storageCode), fieldNames);
 
         String sqlFields = getSelectFields(null, fields, true);
-        String sql = String.format(SELECT_ROWS_FROM_DATA_BY_FIELD_ONE,
+        String sql = String.format(SELECT_ROWS_FROM_DATA_BY_FIELD_EQ,
                 sqlFields, schemaName, addDoubleQuotes(tableName),
                 addDoubleQuotes(SYS_PRIMARY_COLUMN), QUERY_VALUE_SUBST);
 
@@ -140,15 +140,12 @@ public class DataDaoImpl implements DataDao {
         List<Field> fields = columnDataTypesToFields(getColumnDataTypes(storageCode), fieldNames);
 
         String sqlFields = getSelectFields(null, fields, true);
-        String sql = String.format(SELECT_ROWS_FROM_DATA_BY_FIELD_ANY,
+        String sql = String.format(SELECT_ROWS_FROM_DATA_BY_FIELD_EQ,
                 sqlFields, schemaName, addDoubleQuotes(tableName),
-                addDoubleQuotes(SYS_PRIMARY_COLUMN), QUERY_VALUE_SUBST);
+                addDoubleQuotes(SYS_PRIMARY_COLUMN),
+                String.format(TO_ANY_BIGINT, QUERY_VALUE_SUBST));
         Query query = entityManager.createNativeQuery(sql);
-
-        String idsArray = systemIds.stream()
-                .map(String::valueOf)
-                .collect(joining(",", "{", "}"));
-        query.setParameter(1, idsArray);
+        query.setParameter(1, valuesToDbArray(systemIds));
 
         @SuppressWarnings("unchecked")
         List<Object[]> list = query.getResultList();
@@ -252,12 +249,8 @@ public class DataDaoImpl implements DataDao {
         StorageDataCriteria whereCriteria = new StorageDataCriteria(criteria);
         if (!isEmpty(criteria.getHashList())) {
             // Поиск только по списку hash:
-            Set<List<FieldSearchCriteria>> filters = singleton(singletonList(
-                    new FieldSearchCriteria(new StringField(SYS_HASH), SearchTypeEnum.EXACT, criteria.getHashList())
-            ));
-            whereCriteria.setFieldFilters(filters);
+            whereCriteria.setFieldFilters(null);
             whereCriteria.setSystemIds(null);
-            whereCriteria.setHashList(null);
         }
 
         return getWhereClause(whereCriteria, alias);
@@ -269,6 +262,7 @@ public class DataDaoImpl implements DataDao {
         query.concat(getWhereByDates(criteria.getBdate(), criteria.getEdate(), alias));
         query.concat(getWhereByFts(criteria.getCommonFilter(), alias));
         query.concat(getWhereByFilters(criteria.getFieldFilters(), alias));
+        query.concat(getWhereByHashList(criteria.getHashList(), alias));
         query.concat(getWhereBySystemIds(criteria.getSystemIds(), alias));
 
         return query;
@@ -449,6 +443,28 @@ public class DataDaoImpl implements DataDao {
         return typedGroup.values().stream().map(Map::values).flatMap(Collection::stream).collect(toList());
     }
 
+    private QueryWithParams getWhereByHashList(List<String> hashList, String alias) {
+
+        if (isNullOrEmpty(hashList))
+            return null;
+
+        Map<String, Object> params = new HashMap<>();
+        String escapedColumn = escapeFieldName(alias, SYS_HASH);
+
+        String sql;
+        if (hashList.size() > 1) {
+            sql = " and (" + escapedColumn + " = " +
+                    String.format(TO_ANY_TEXT, ":hashList") + ")";
+            params.put("hashList", stringsToDbArray(hashList));
+
+        } else {
+            sql = " and (" + escapedColumn + " = :hashItem)";
+            params.put("hashItem", hashList.get(0));
+        }
+
+        return new QueryWithParams(sql, params);
+    }
+
     private QueryWithParams getWhereBySystemIds(List<Long> systemIds, String alias) {
 
         if (isNullOrEmpty(systemIds))
@@ -459,8 +475,9 @@ public class DataDaoImpl implements DataDao {
 
         String sql;
         if (systemIds.size() > 1) {
-            sql = " and (" + escapedColumn + " in (:systemIds))";
-            params.put("systemIds", systemIds);
+            sql = " and (" + escapedColumn + " = " +
+                    String.format(TO_ANY_BIGINT, ":systemIds") + ")";
+            params.put("systemIds", valuesToDbArray(systemIds));
 
         } else {
             sql = " and (" + escapedColumn + " = :systemId)";
@@ -576,7 +593,7 @@ public class DataDaoImpl implements DataDao {
         String sql = SELECT_EXISTENT_SCHEMA_NAME_LIST + condition;
 
         Query query = entityManager.createNativeQuery(sql);
-        query.setParameter(BIND_INFO_SCHEMA_NAME, valuesToDbArray(schemaNames));
+        query.setParameter(BIND_INFO_SCHEMA_NAME, stringsToDbArray(schemaNames));
 
         @SuppressWarnings("unchecked")
         List<String> list = query.getResultList();
@@ -595,17 +612,11 @@ public class DataDaoImpl implements DataDao {
 
         Query query = entityManager.createNativeQuery(sql);
         query.setParameter(BIND_INFO_TABLE_NAME, tableName);
-        query.setParameter(BIND_INFO_SCHEMA_NAME, valuesToDbArray(schemaNames));
+        query.setParameter(BIND_INFO_SCHEMA_NAME, stringsToDbArray(schemaNames));
 
         @SuppressWarnings("unchecked")
         List<String> list = query.getResultList();
         return !isNullOrEmpty(list) ? list : emptyList();
-    }
-
-    /** Преобразование списка строковых значений в БД-строку-массив. */
-    private String valuesToDbArray(List<String> values) {
-
-        return "{" + String.join(",", values) + "}";
     }
 
     @Override

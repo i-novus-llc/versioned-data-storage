@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
+import static java.util.stream.Collectors.joining;
 import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
 import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.escapeFieldName;
 import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.*;
@@ -359,6 +360,20 @@ public class QueryUtil {
     public static String escapeSql(String str) {
 
         return (str == null) ? null : str.replace("'", "''");
+    }
+
+    /** Преобразование списка значений в БД-строку-массив. */
+    public static String valuesToDbArray(List<?> values) {
+
+        return values.stream()
+                .map(String::valueOf)
+                .collect(joining(",", "{", "}"));
+    }
+
+    /** Преобразование списка строковых значений в БД-строку-массив. */
+    public static String stringsToDbArray(List<String> values) {
+
+        return "{" + String.join(",", values) + "}";
     }
 
     /** Создание объекта подстановки в выражение для вычисления отображаемого значения. */
