@@ -14,18 +14,19 @@ import java.util.List;
  * @since 22.03.2018
  */
 public interface SearchDataService {
+
     /**
-     * Получение данных постранично.
+     * Получение данных постранично по критерию.
      *
-     * @param criteria параметры запроса
+     * @param criteria критерий поиска
      * @return Список записей
      */
     CollectionPage<RowValue> getPagedData(StorageDataCriteria criteria);
 
     /**
-     * Получение данных.
+     * Получение данных по критерию.
      *
-     * @param criteria параметры запроса
+     * @param criteria критерий поиска
      * @return Список записей
      */
     List<RowValue> getData(StorageDataCriteria criteria);

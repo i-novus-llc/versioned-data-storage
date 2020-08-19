@@ -29,6 +29,7 @@ import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static org.springframework.util.CollectionUtils.isEmpty;
@@ -113,7 +114,19 @@ public class DataDaoImpl implements DataDao {
         return (BigInteger) queryWithParams.createQuery(entityManager).getSingleResult();
     }
 
-    /** Получение строки данных таблицы по системному идентификатору. */
+    @Override
+    public boolean hasData(String storageCode) {
+
+        StorageDataCriteria criteria = new StorageDataCriteria(storageCode, null, null,
+                emptyList(), emptySet(), null);
+        criteria.setCount(1);
+        criteria.setPage(DataCriteria.MIN_PAGE);
+        criteria.setSize(DataCriteria.MIN_SIZE);
+
+        List<RowValue> data = getData(criteria);
+        return !isNullOrEmpty(data);
+    }
+
     @Override
     public RowValue getRowData(String storageCode, List<String> fieldNames, Object systemId) {
 

@@ -9,12 +9,9 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 
 import java.math.BigInteger;
 import java.time.LocalDateTime;
-import java.util.Collection;
 import java.util.List;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptySet;
-import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
 
 /**
  * @author lgalimova
@@ -54,23 +51,18 @@ public class SearchDataServiceImpl implements SearchDataService {
     @Override
     public boolean hasData(String storageCode) {
 
-        StorageDataCriteria criteria = new StorageDataCriteria(storageCode, null, null,
-                emptyList(), emptySet(), null);
-        criteria.setCount(1);
-        criteria.setPage(DataCriteria.MIN_PAGE);
-        criteria.setSize(DataCriteria.MIN_SIZE);
-
-        Collection<RowValue> rowValues = getPagedData(criteria).getCollection();
-        return !isNullOrEmpty(rowValues);
+        return dataDao.hasData(storageCode);
     }
 
     @Override
     public RowValue findRow(String storageCode, List<String> fields, Object systemId) {
+
         return dataDao.getRowData(storageCode, fields, systemId);
     }
 
     @Override
     public List<RowValue> findRows(String storageCode, List<String> fields, List<Object> systemIds) {
+
         return dataDao.getRowData(storageCode, fields, systemIds);
     }
 

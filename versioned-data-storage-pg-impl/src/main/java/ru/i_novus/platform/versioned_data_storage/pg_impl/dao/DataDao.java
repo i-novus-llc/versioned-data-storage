@@ -15,10 +15,38 @@ import java.util.Map;
 
 public interface DataDao {
 
+    /**
+     * Получение записей по критерию.
+     *
+     * @param criteria критерий поиска
+     * @return Список записей
+     */
     List<RowValue> getData(StorageDataCriteria criteria);
 
+    /**
+     * Подсчёт количества записей по критерию.
+     *
+     * @param criteria критерий поиска
+     * @return Список записей
+     */
     BigInteger getDataCount(StorageDataCriteria criteria);
 
+    /**
+     * Проверка на наличие данных.
+     *
+     * @param storageCode код хранилища данных
+     * @return Признак наличия
+     */
+    boolean hasData(String storageCode);
+
+    /**
+     * Получение строки данных хранилища по системному идентификатору.
+     *
+     * @param storageCode код хранилища
+     * @param fieldNames  список полей
+     * @param systemId    системный идентификатор
+     * @return Запись
+     */
     RowValue getRowData(String storageCode, List<String> fieldNames, Object systemId);
 
     List<RowValue> getRowData(String storageCode, List<String> fieldNames, List<Object> systemIds);
