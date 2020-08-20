@@ -121,4 +121,9 @@ public class StorageUtils {
 
         return addDoubleQuotes(tableName + NAME_CONNECTOR + indexName + TABLE_INDEX_SUFFIX);
     }
+
+    public static String escapeTableFunctionName(String tableName, String functionName) {
+
+        return addDoubleQuotes(tableName + NAME_CONNECTOR + functionName);
+    }
 }

@@ -1,11 +1,8 @@
 package ru.i_novus.platform.datastorage.temporal.model;
 
-import ru.i_novus.platform.datastorage.temporal.util.StringUtils;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class StorageConstants {
 
@@ -29,7 +26,7 @@ public class StorageConstants {
     public static final String SYS_PUBLISHTIME = "SYS_PUBLISHTIME"; // Дата публикации записи
     public static final String SYS_CLOSETIME = "SYS_CLOSETIME"; // Дата прекращения действия записи
     public static final String SYS_HASH = "SYS_HASH"; // Хеш
-    public static final String SYS_PATH = "SYS_PATH";
+    public static final String SYS_PATH = "SYS_PATH"; // не используется
     public static final String SYS_FTS = "FTS"; // Значение для полнотекстового поиска
 
     public static final List<String> SYS_FIELD_NAMES = Arrays.asList(SYS_PRIMARY_COLUMN,
@@ -38,6 +35,8 @@ public class StorageConstants {
     );
 
     public static final List<String> SYS_VERSIONED_FIELD_NAMES = Arrays.asList(SYS_PUBLISHTIME, SYS_CLOSETIME);
+
+    public static final List<String> SYS_TRIGGERED_FIELD_NAMES = Arrays.asList(SYS_HASH, SYS_FTS);
 
     public static final String REFERENCE_VALUE_NAME = "value";
     public static final String REFERENCE_DISPLAY_VALUE_NAME = "displayValue";

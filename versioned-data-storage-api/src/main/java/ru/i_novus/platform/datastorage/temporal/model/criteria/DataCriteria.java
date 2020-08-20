@@ -33,4 +33,13 @@ public class DataCriteria extends Criteria {
 
         return (getPage() - MIN_PAGE) * getSize();
     }
+
+    public int getPageCount() {
+
+        int count = (getCount() != null) ? getCount() : 0;
+        if (count == 0 || getSize() < MIN_SIZE)
+            throw new IllegalStateException("Criteria count and size should be specified for page count");
+
+        return count / getSize() + 1;
+    }
 }

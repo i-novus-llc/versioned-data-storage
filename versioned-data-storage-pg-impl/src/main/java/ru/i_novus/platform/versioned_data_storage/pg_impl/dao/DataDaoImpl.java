@@ -497,83 +497,6 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @Transactional
-    public void createSchema(String schemaName) {
-
-        if (isDefaultSchema(schemaName))
-            return;
-
-        if (!isValidSchemaName(schemaName))
-            throw new IllegalArgumentException("schema.name.is.invalid");
-
-        String ddl = String.format(CREATE_SCHEMA, schemaName);
-        entityManager.createNativeQuery(ddl).executeUpdate();
-    }
-
-    @Override
-    @Transactional
-    public void createDraftTable(String storageCode, List<Field> fields) {
-
-        String schemaName = toSchemaName(storageCode);
-        String tableName = toTableName(storageCode);
-        
-        if (storageExists(storageCode))
-            throw new IllegalArgumentException("table.already.exists");
-
-        String tableFields = "";
-        if (!isNullOrEmpty(fields)) {
-            tableFields = fields.stream()
-                    .map(f -> addDoubleQuotes(f.getName()) + " " + f.getType())
-                    .collect(joining(", \n")) + ", \n";
-        }
-
-        String ddl = String.format(CREATE_DRAFT_TABLE,
-                schemaName, addDoubleQuotes(tableName), tableFields, tableName);
-
-        entityManager.createNativeQuery(ddl).executeUpdate();
-    }
-
-    @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void dropTable(String storageCode) {
-
-        String schemaName = toSchemaName(storageCode);
-        String tableName = toTableName(storageCode);
-
-        if (StringUtils.isNullOrEmpty(tableName)) {
-            logger.error("Dropping table name is empty");
-            return;
-        }
-
-        String ddl = String.format(DROP_TABLE, schemaName, addDoubleQuotes(tableName));
-        entityManager.createNativeQuery(ddl).executeUpdate();
-    }
-
-    protected void createTableSequence(String storageCode) {
-
-        String ddl = String.format(CREATE_TABLE_SEQUENCE, escapeStorageSequenceName(storageCode));
-        entityManager.createNativeQuery(ddl).executeUpdate();
-    }
-
-    @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void updateTableSequence(String storageCode) {
-
-        String sqlSelect = String.format(SELECT_PRIMARY_MAX,
-                toSchemaName(storageCode),
-                addDoubleQuotes(toTableName(storageCode)),
-                addDoubleQuotes(SYS_PRIMARY_COLUMN));
-        String sql = String.format(UPDATE_TABLE_SEQUENCE, escapeStorageSequenceName(storageCode), sqlSelect);
-        entityManager.createNativeQuery(sql).getSingleResult();
-    }
-
-    protected void dropTableSequence(String storageCode) {
-
-        String ddl = String.format(DROP_TABLE_SEQUENCE, escapeStorageSequenceName(storageCode));
-        entityManager.createNativeQuery(ddl).executeUpdate();
-    }
-
-    @Override
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public boolean schemaExists(String schemaName) {
 
@@ -644,6 +567,267 @@ public class DataDaoImpl implements DataDao {
                 .getSingleResult();
 
         return result != null && result;
+    }
+
+    @Override
+    @Transactional
+    public void createSchema(String schemaName) {
+
+        if (isDefaultSchema(schemaName))
+            return;
+
+        if (!isValidSchemaName(schemaName))
+            throw new IllegalArgumentException("schema.name.is.invalid");
+
+        String ddl = String.format(CREATE_SCHEMA, schemaName);
+        entityManager.createNativeQuery(ddl).executeUpdate();
+    }
+
+    @Override
+    @Transactional
+    public void createDraftTable(String storageCode, List<Field> fields) {
+
+        String schemaName = toSchemaName(storageCode);
+        String tableName = toTableName(storageCode);
+        
+        if (storageExists(storageCode))
+            throw new IllegalArgumentException("table.already.exists");
+
+        String tableFields = "";
+        if (!isNullOrEmpty(fields)) {
+            tableFields = fields.stream()
+                    .map(f -> addDoubleQuotes(f.getName()) + " " + f.getType())
+                    .collect(joining(", \n")) + ", \n";
+        }
+
+        String ddl = String.format(CREATE_DRAFT_TABLE,
+                schemaName, addDoubleQuotes(tableName), tableFields, tableName);
+
+        entityManager.createNativeQuery(ddl).executeUpdate();
+    }
+
+    @Override
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    public void dropTable(String storageCode) {
+
+        String schemaName = toSchemaName(storageCode);
+        String tableName = toTableName(storageCode);
+
+        if (StringUtils.isNullOrEmpty(tableName)) {
+            logger.error("Dropping table name is empty");
+            return;
+        }
+
+        dropTriggers(storageCode);
+        dropTableFunctions(storageCode);
+
+        String ddl = String.format(DROP_TABLE, schemaName, addDoubleQuotes(tableName));
+        entityManager.createNativeQuery(ddl).executeUpdate();
+    }
+
+    protected void createTableSequence(String storageCode) {
+
+        String ddl = String.format(CREATE_TABLE_SEQUENCE, escapeStorageSequenceName(storageCode));
+        entityManager.createNativeQuery(ddl).executeUpdate();
+    }
+
+    @Override
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    public void updateTableSequence(String storageCode) {
+
+        String sqlSelect = String.format(SELECT_PRIMARY_MAX,
+                toSchemaName(storageCode),
+                addDoubleQuotes(toTableName(storageCode)),
+                addDoubleQuotes(SYS_PRIMARY_COLUMN));
+        String sql = String.format(UPDATE_TABLE_SEQUENCE, escapeStorageSequenceName(storageCode), sqlSelect);
+        entityManager.createNativeQuery(sql).getSingleResult();
+    }
+
+    protected void dropTableSequence(String storageCode) {
+
+        String ddl = String.format(DROP_TABLE_SEQUENCE, escapeStorageSequenceName(storageCode));
+        entityManager.createNativeQuery(ddl).executeUpdate();
+    }
+
+    @Override
+    @Transactional
+    public void createTriggers(String storageCode, List<String> fieldNames) {
+
+        createHashTrigger(storageCode, fieldNames);
+        createFtsTrigger(storageCode, fieldNames);
+    }
+
+    protected void createHashTrigger(String storageCode, List<String> fieldNames) {
+
+        String schemaName = toSchemaName(storageCode);
+        String tableName = toTableName(storageCode);
+
+        final String alias = TRIGGER_NEW_ALIAS + NAME_SEPARATOR;
+        String tableFields = fieldNames.stream().map(QueryUtil::getClearedFieldName).collect(joining(", "));
+
+        String expression = String.format(HASH_EXPRESSION,
+                fieldNames.stream().map(field -> alias + field).collect(joining(", ")));
+        String triggerBody = String.format(ASSIGN_FIELD, alias + addDoubleQuotes(SYS_HASH), expression);
+        String ddl = String.format(CREATE_TRIGGER, schemaName, tableName,
+                escapeTableFunctionName(tableName, HASH_FUNCTION_NAME),
+                HASH_TRIGGER_NAME, tableFields, triggerBody + ";");
+        entityManager.createNativeQuery(ddl).executeUpdate();
+    }
+
+    protected void createFtsTrigger(String storageCode, List<String> fieldNames) {
+
+        String schemaName = toSchemaName(storageCode);
+        String tableName = toTableName(storageCode);
+
+        final String alias = TRIGGER_NEW_ALIAS + NAME_SEPARATOR;
+        String tableFields = fieldNames.stream().map(QueryUtil::getClearedFieldName).collect(joining(", "));
+
+        String expression = fieldNames.stream()
+                .map(field -> "coalesce( to_tsvector('ru', " + alias + field + "\\:\\:text),'')")
+                .collect(joining(" || ' ' || "));
+        String triggerBody = String.format(ASSIGN_FIELD, alias + addDoubleQuotes(SYS_FTS), expression);
+        String ddl = String.format(CREATE_TRIGGER, schemaName, tableName,
+                escapeTableFunctionName(tableName, FTS_FUNCTION_NAME),
+                FTS_TRIGGER_NAME, tableFields, triggerBody + ";");
+        entityManager.createNativeQuery(ddl).executeUpdate();
+    }
+
+    @Override
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    public void dropTriggers(String storageCode) {
+
+        String schemaName = toSchemaName(storageCode);
+        String tableName = toTableName(storageCode);
+
+        String escapedTableName = addDoubleQuotes(tableName);
+
+        String dropHashTrigger = String.format(DROP_TRIGGER, HASH_TRIGGER_NAME, schemaName, escapedTableName);
+        entityManager.createNativeQuery(dropHashTrigger).executeUpdate();
+
+        String dropFtsTrigger = String.format(DROP_TRIGGER, FTS_TRIGGER_NAME, schemaName, escapedTableName);
+        entityManager.createNativeQuery(dropFtsTrigger).executeUpdate();
+    }
+
+    @Override
+    @Transactional
+    public void enableTriggers(String storageCode) {
+
+        String ddl = String.format(SWITCH_TRIGGERS,
+                escapeStorageTableName(storageCode), OPTION_ENABLE);
+        entityManager.createNativeQuery(ddl).executeUpdate();
+    }
+
+    @Override
+    @Transactional
+    public void disableTriggers(String storageCode) {
+
+        String ddl = String.format(SWITCH_TRIGGERS,
+                escapeStorageTableName(storageCode), OPTION_DISABLE);
+        entityManager.createNativeQuery(ddl).executeUpdate();
+    }
+
+    @Override
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    public void dropTableFunctions(String storageCode) {
+
+        dropTableFunction(storageCode, HASH_FUNCTION_NAME);
+        dropTableFunction(storageCode, FTS_FUNCTION_NAME);
+    }
+
+    protected void dropTableFunction(String storageCode, String functionName) {
+
+        String ddl = String.format(DROP_FUNCTION,
+                toSchemaName(storageCode),
+                escapeTableFunctionName(toTableName(storageCode), functionName));
+        entityManager.createNativeQuery(ddl).executeUpdate();
+    }
+
+    @Override
+    @Transactional
+    public void updateHashRows(String storageCode, List<String> fieldNames) {
+
+        String expression = String.format(HASH_EXPRESSION, String.join(", ", fieldNames));
+        String ddlAssign = String.format(ASSIGN_FIELD, addDoubleQuotes(SYS_HASH), expression);
+
+        String ddl = String.format(UPDATE_FIELD,
+                toSchemaName(storageCode), addDoubleQuotes(toTableName(storageCode)), ddlAssign);
+        entityManager.createNativeQuery(ddl).executeUpdate();
+    }
+
+    @Override
+    @Transactional
+    public void updateFtsRows(String storageCode, List<String> fieldNames) {
+
+        String expression = fieldNames.stream()
+                .map(field -> "coalesce( to_tsvector('ru', " + field + "\\:\\:text),'')")
+                .collect(joining(" || ' ' || "));
+        String ddlAssign = String.format(ASSIGN_FIELD, addDoubleQuotes(SYS_FTS), expression);
+
+        String ddl = String.format(UPDATE_FIELD,
+                toSchemaName(storageCode), addDoubleQuotes(toTableName(storageCode)), ddlAssign);
+        entityManager.createNativeQuery(ddl).executeUpdate();
+    }
+
+    @Override
+    @Transactional
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    public void createIndex(String storageCode, String name, List<String> fieldNames) {
+
+        String expression = fieldNames.stream().map(StringUtils::addDoubleQuotes).collect(joining(","));
+        String ddl = String.format(CREATE_TABLE_INDEX,
+                name,
+                toSchemaName(storageCode),
+                addDoubleQuotes(toTableName(storageCode)),
+                TABLE_INDEX_SIMPLE_USING,
+                expression);
+        entityManager.createNativeQuery(ddl).executeUpdate();
+    }
+
+    @Override
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    public void createHashIndex(String storageCode) {
+
+        String tableName = toTableName(storageCode);
+
+        // Неуникальный индекс, т.к. используется только для создания хранилища версии.
+        // В версии могут быть идентичные строки с отличающимся периодом действия.
+        String ddl = String.format(CREATE_TABLE_INDEX,
+                addDoubleQuotes(tableName + NAME_CONNECTOR + TABLE_INDEX_SYSHASH_NAME),
+                toSchemaName(storageCode),
+                addDoubleQuotes(tableName),
+                TABLE_INDEX_SIMPLE_USING,
+                addDoubleQuotes(SYS_HASH));
+        entityManager.createNativeQuery(ddl).executeUpdate();
+    }
+
+    @Override
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    public void createFtsIndex(String storageCode) {
+
+        String tableName = toTableName(storageCode);
+
+        String ddl = String.format(CREATE_TABLE_INDEX,
+                escapeTableIndexName(tableName, TABLE_INDEX_FTS_NAME),
+                toSchemaName(storageCode),
+                addDoubleQuotes(tableName),
+                TABLE_INDEX_FTS_USING,
+                addDoubleQuotes(SYS_FTS));
+        entityManager.createNativeQuery(ddl).executeUpdate();
+    }
+
+    @Override
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    public void createLtreeIndex(String storageCode, String fieldName) {
+
+        String tableName = toTableName(storageCode);
+
+        String ddl = String.format(CREATE_TABLE_INDEX,
+                escapeTableIndexName(tableName, fieldName.toLowerCase()),
+                toSchemaName(storageCode),
+                addDoubleQuotes(tableName),
+                TABLE_INDEX_LTREE_USING,
+                addDoubleQuotes(fieldName));
+        entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
     @Override
@@ -1109,151 +1293,6 @@ public class DataDaoImpl implements DataDao {
         }
 
         entityManager.createNativeQuery(sql).executeUpdate();
-    }
-
-    @Override
-    @Transactional
-    public void createTriggers(String storageCode, List<String> fieldNames) {
-
-        createHashTrigger(storageCode, fieldNames);
-        createFtsTrigger(storageCode, fieldNames);
-    }
-
-    protected void createHashTrigger(String storageCode, List<String> fieldNames) {
-
-        String schemaName = toSchemaName(storageCode);
-        String tableName = toTableName(storageCode);
-
-        final String alias = TRIGGER_NEW_ALIAS + NAME_SEPARATOR;
-        String tableFields = fieldNames.stream().map(QueryUtil::getClearedFieldName).collect(joining(", "));
-
-        String expression = String.format(HASH_EXPRESSION,
-                fieldNames.stream().map(field -> alias + field).collect(joining(", ")));
-        String triggerBody = String.format(ASSIGN_FIELD, alias + addDoubleQuotes(SYS_HASH), expression);
-        String ddl = String.format(CREATE_TRIGGER, schemaName, tableName,
-                HASH_FUNCTION_NAME, HASH_TRIGGER_NAME, tableFields, triggerBody + ";");
-        entityManager.createNativeQuery(ddl).executeUpdate();
-    }
-
-    protected void createFtsTrigger(String storageCode, List<String> fieldNames) {
-
-        String schemaName = toSchemaName(storageCode);
-        String tableName = toTableName(storageCode);
-
-        final String alias = TRIGGER_NEW_ALIAS + NAME_SEPARATOR;
-        String tableFields = fieldNames.stream().map(QueryUtil::getClearedFieldName).collect(joining(", "));
-
-        String expression = fieldNames.stream()
-                .map(field -> "coalesce( to_tsvector('ru', " + alias + field + "\\:\\:text),'')")
-                .collect(joining(" || ' ' || "));
-        String triggerBody = String.format(ASSIGN_FIELD, alias + addDoubleQuotes(SYS_FTS), expression);
-        String ddl = String.format(CREATE_TRIGGER, schemaName, tableName,
-                FTS_FUNCTION_NAME, FTS_TRIGGER_NAME, tableFields, triggerBody + ";");
-        entityManager.createNativeQuery(ddl).executeUpdate();
-    }
-
-    @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void dropTriggers(String storageCode) {
-
-        String schemaName = toSchemaName(storageCode);
-        String tableName = toTableName(storageCode);
-
-        String escapedTableName = addDoubleQuotes(tableName);
-
-        String dropHashTrigger = String.format(DROP_TRIGGER, HASH_TRIGGER_NAME, schemaName, escapedTableName);
-        entityManager.createNativeQuery(dropHashTrigger).executeUpdate();
-
-        String dropFtsTrigger = String.format(DROP_TRIGGER, FTS_TRIGGER_NAME, schemaName, escapedTableName);
-        entityManager.createNativeQuery(dropFtsTrigger).executeUpdate();
-    }
-
-    @Override
-    @Transactional
-    public void updateHashRows(String storageCode, List<String> fieldNames) {
-
-        String expression = String.format(HASH_EXPRESSION, String.join(", ", fieldNames));
-        String ddlAssign = String.format(ASSIGN_FIELD, addDoubleQuotes(SYS_HASH), expression);
-
-        String ddl = String.format(UPDATE_FIELD,
-                toSchemaName(storageCode), addDoubleQuotes(toTableName(storageCode)), ddlAssign);
-        entityManager.createNativeQuery(ddl).executeUpdate();
-    }
-
-    @Override
-    @Transactional
-    public void updateFtsRows(String storageCode, List<String> fieldNames) {
-
-        String expression = fieldNames.stream()
-                .map(field -> "coalesce( to_tsvector('ru', " + field + "\\:\\:text),'')")
-                .collect(joining(" || ' ' || "));
-        String ddlAssign = String.format(ASSIGN_FIELD, addDoubleQuotes(SYS_FTS), expression);
-
-        String ddl = String.format(UPDATE_FIELD,
-                toSchemaName(storageCode), addDoubleQuotes(toTableName(storageCode)), ddlAssign);
-        entityManager.createNativeQuery(ddl).executeUpdate();
-    }
-
-    @Override
-    @Transactional
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void createIndex(String storageCode, String name, List<String> fieldNames) {
-
-        String expression = fieldNames.stream().map(StringUtils::addDoubleQuotes).collect(joining(","));
-        String ddl = String.format(CREATE_TABLE_INDEX,
-                name,
-                toSchemaName(storageCode),
-                addDoubleQuotes(toTableName(storageCode)),
-                TABLE_INDEX_SIMPLE_USING,
-                expression);
-        entityManager.createNativeQuery(ddl).executeUpdate();
-    }
-
-    @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void createFullTextSearchIndex(String storageCode) {
-
-        String tableName = toTableName(storageCode);
-
-        String ddl = String.format(CREATE_TABLE_INDEX,
-                escapeTableIndexName(tableName, TABLE_INDEX_FTS_NAME),
-                toSchemaName(storageCode),
-                addDoubleQuotes(tableName),
-                TABLE_INDEX_FTS_USING,
-                addDoubleQuotes(SYS_FTS));
-        entityManager.createNativeQuery(ddl).executeUpdate();
-    }
-
-    @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void createLtreeIndex(String storageCode, String fieldName) {
-
-        String tableName = toTableName(storageCode);
-
-        String ddl = String.format(CREATE_TABLE_INDEX,
-                escapeTableIndexName(tableName, fieldName.toLowerCase()),
-                toSchemaName(storageCode),
-                addDoubleQuotes(tableName),
-                TABLE_INDEX_LTREE_USING,
-                addDoubleQuotes(fieldName));
-        entityManager.createNativeQuery(ddl).executeUpdate();
-    }
-
-    @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void createHashIndex(String storageCode) {
-
-        String tableName = toTableName(storageCode);
-
-        // Неуникальный индекс, т.к. используется только для создания хранилища версии.
-        // В версии могут быть идентичные строки с отличающимся периодом действия.
-        String ddl = String.format(CREATE_TABLE_INDEX,
-                addDoubleQuotes(tableName + NAME_CONNECTOR + TABLE_INDEX_SYSHASH_NAME),
-                toSchemaName(storageCode),
-                addDoubleQuotes(tableName),
-                TABLE_INDEX_SIMPLE_USING,
-                addDoubleQuotes(SYS_HASH));
-        entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
     @Override

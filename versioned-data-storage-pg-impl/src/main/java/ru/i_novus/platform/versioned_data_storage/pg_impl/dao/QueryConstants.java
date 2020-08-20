@@ -21,6 +21,9 @@ public class QueryConstants {
     public static final String DEFAULT_TABLE_ALIAS = "d";
     static final String TRIGGER_NEW_ALIAS = "NEW";
 
+    static final String OPTION_DISABLE = "DISABLE ";
+    static final String OPTION_ENABLE = "ENABLE ";
+
     // Специальные выражения в запросах.
     static final String QUERY_NEW_LINE = " \n";
     static final String QUERY_BIND_CHAR = ":";
@@ -225,7 +228,7 @@ public class QueryConstants {
     static final String UPDATE_TABLE_SEQUENCE = "SELECT setval('%1$s', (%2$s))";
     static final String DROP_TABLE_SEQUENCE = "DROP SEQUENCE IF EXISTS %s CASCADE";
 
-    static final String CREATE_TRIGGER = "CREATE OR REPLACE FUNCTION %1$s.\"%2$s_%3$s\"()\n" +
+    static final String CREATE_TRIGGER = "CREATE OR REPLACE FUNCTION %1$s.%3$s()\n" +
             "  RETURNS trigger AS\n" +
             "$BODY$\n" +
             "  BEGIN\n" +
@@ -238,9 +241,13 @@ public class QueryConstants {
             "  BEFORE INSERT OR UPDATE OF %5$s\n" +
             "  ON %1$s.\"%2$s\"\n" +
             "  FOR EACH ROW\n" +
-            "  EXECUTE PROCEDURE %1$s.\"%2$s_%3$s\"();";
+            "  EXECUTE PROCEDURE %1$s.%3$s();";
 
     static final String DROP_TRIGGER = "DROP TRIGGER IF EXISTS %1$s ON %2$s.%3$s;";
+
+    static final String SWITCH_TRIGGERS = "ALTER TABLE %1$s %2$s TRIGGER ALL;";
+
+    static final String DROP_FUNCTION = "DROP FUNCTION IF EXISTS %1$s.%2$s;";
 
     static final String HASH_FUNCTION_NAME = "hash_tf";
     static final String HASH_TRIGGER_NAME = "hash_tg";

@@ -67,32 +67,6 @@ public class DataDaoTest {
     }
 
     @Test
-    public void testCreateSchema() {
-
-        try {
-            dataDao.createSchema(NEW_GOOD_SCHEMA_NAME);
-
-        } catch (Exception e) {
-            fail("Error creating schema '" + NEW_GOOD_SCHEMA_NAME + "':\n" + e.getMessage());
-        }
-
-        try {
-            dataDao.createSchema(NEW_GOOD_SCHEMA_NAME);
-
-        } catch (Exception e) {
-            fail("Error creating same schema '" + NEW_GOOD_SCHEMA_NAME + "':\n" + e.getMessage());
-        }
-
-        try {
-            dataDao.createSchema(NEW_BAD_SCHEMA_NAME);
-            fail("Error creating bad schema '" + NEW_BAD_SCHEMA_NAME + "'");
-
-        } catch (Exception e) {
-            // Nothing to do.
-        }
-    }
-
-    @Test
     public void testSchemaExists() {
 
         assertTrue(dataDao.schemaExists(DATA_SCHEMA_NAME));
@@ -151,6 +125,32 @@ public class DataDaoTest {
         assertTrue(dataDao.storageFieldExists(storageCode, FIELD_ID_CODE));
         assertTrue(dataDao.storageFieldExists(storageCode, FIELD_NAME_CODE));
         assertTrue(dataDao.storageFieldExists(storageCode, SYS_HASH));
+    }
+
+    @Test
+    public void testCreateSchema() {
+
+        try {
+            dataDao.createSchema(NEW_GOOD_SCHEMA_NAME);
+
+        } catch (Exception e) {
+            fail("Error creating schema '" + NEW_GOOD_SCHEMA_NAME + "':\n" + e.getMessage());
+        }
+
+        try {
+            dataDao.createSchema(NEW_GOOD_SCHEMA_NAME);
+
+        } catch (Exception e) {
+            fail("Error creating same schema '" + NEW_GOOD_SCHEMA_NAME + "':\n" + e.getMessage());
+        }
+
+        try {
+            dataDao.createSchema(NEW_BAD_SCHEMA_NAME);
+            fail("Error creating bad schema '" + NEW_BAD_SCHEMA_NAME + "'");
+
+        } catch (Exception e) {
+            // Nothing to do.
+        }
     }
 
     @Test

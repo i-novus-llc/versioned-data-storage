@@ -12,7 +12,6 @@ import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
 import ru.i_novus.platform.datastorage.temporal.service.StorageCodeService;
-import ru.i_novus.platform.datastorage.temporal.util.CollectionUtils;
 import ru.i_novus.platform.datastorage.temporal.util.StringUtils;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.BooleanField;
@@ -30,6 +29,7 @@ import static java.util.Collections.singletonList;
 import static java.util.Optional.of;
 import static java.util.stream.Collectors.toList;
 import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
+import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
 import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.*;
 import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addDoubleQuotes;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.ExceptionCodes.*;
@@ -45,6 +45,9 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     private static final List<String> ESCAPED_SYS_VERSIONED_FIELD_NAMES = SYS_VERSIONED_FIELD_NAMES.stream()
             .map(StringUtils::addDoubleQuotes).collect(toList());
+
+    private static final List<String> ESCAPED_SYS_TRIGGERED_FIELD_NAMES = SYS_TRIGGERED_FIELD_NAMES.stream()
+                .map(StringUtils::addDoubleQuotes).collect(toList());
 
     private DataDao dataDao;
 
@@ -217,16 +220,29 @@ public class DraftDataServiceImpl implements DraftDataService {
         if (dataDao.hasData(targetCode))
             throw new CodifiedException("target.table.is.not.empty");
 
-        StorageCopyCriteria criteria = new StorageCopyCriteria(sourceCode, targetCode, fromDate, toDate, null);
-        criteria.setEscapedFieldNames(fieldNames);
+        boolean isTriggersRedundant = isNullOrEmpty(fieldNames) ||
+                fieldNames.containsAll(ESCAPED_SYS_TRIGGERED_FIELD_NAMES);
 
-        criteria.setCount(count.intValue());
-        criteria.setSize(TRANSACTION_ROW_LIMIT);
+        if (isTriggersRedundant) {
+            dataDao.disableTriggers(targetCode);
+        }
+        try {
+            StorageCopyCriteria criteria = new StorageCopyCriteria(sourceCode, targetCode, fromDate, toDate, null);
+            criteria.setEscapedFieldNames(fieldNames);
 
-        int pageCount = count.divide(BigInteger.valueOf(criteria.getSize())).add(BigInteger.ONE).intValue();
-        for (int page = 0; page < pageCount; page++) {
-            criteria.setPage(page + DataCriteria.MIN_PAGE);
-            dataDao.copyTableData(criteria);
+            criteria.setCount(count.intValue());
+            criteria.setSize(TRANSACTION_ROW_LIMIT);
+
+            int pageCount = criteria.getPageCount();
+            for (int page = 0; page < pageCount; page++) {
+                criteria.setPage(page + DataCriteria.MIN_PAGE);
+                dataDao.copyTableData(criteria);
+            }
+
+        } finally {
+            if (isTriggersRedundant) {
+                dataDao.enableTriggers(targetCode);
+            }
         }
     }
 
@@ -299,7 +315,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         dataDao.deleteEmptyRows(draftCode);
 
         fieldNames = dataDao.getHashUsedFieldNames(draftCode);
-        if (CollectionUtils.isNullOrEmpty(fieldNames))
+        if (isNullOrEmpty(fieldNames))
             return;
 
         dataDao.createTriggers(draftCode, fieldNames);
@@ -359,7 +375,7 @@ public class DraftDataServiceImpl implements DraftDataService {
                 }
             }
         }
-        dataDao.createFullTextSearchIndex(draftCode);
+        dataDao.createFtsIndex(draftCode);
     }
 
     private String createVersionTable(String draftCode) {

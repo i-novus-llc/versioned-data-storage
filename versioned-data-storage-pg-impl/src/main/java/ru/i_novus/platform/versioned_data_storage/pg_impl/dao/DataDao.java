@@ -66,18 +66,6 @@ public interface DataDao {
 
     BigInteger countData(String tableName);
 
-    /** Создание схемы. */
-    void createSchema(String schemaName);
-
-    /** Создание черновика с заданными полями. */
-    void createDraftTable(String storageCode, List<Field> fields);
-
-    /** Удаление таблицы. */
-    void dropTable(String storageCode);
-
-    /** Обновление последовательности для таблицы. */
-    void updateTableSequence(String storageCode);
-
     /** Проверка схемы на существование. */
     boolean schemaExists(String schemaName);
 
@@ -92,6 +80,45 @@ public interface DataDao {
 
     /** Проверка поля хранилища на существование. */
     boolean storageFieldExists(String storageCode, String columnName);
+
+    /** Создание схемы. */
+    void createSchema(String schemaName);
+
+    /** Создание черновика с заданными полями. */
+    void createDraftTable(String storageCode, List<Field> fields);
+
+    /** Удаление таблицы. */
+    void dropTable(String storageCode);
+
+    /** Обновление последовательности для таблицы. */
+    void updateTableSequence(String storageCode);
+
+    /** Создание необходимых триггеров с функциями для таблицы. */
+    void createTriggers(String storageCode, List<String> fieldNames);
+
+    /** Создание триггеров для таблицы. */
+    void dropTriggers(String storageCode);
+
+    /** Включение триггеров для таблицы. */
+    void enableTriggers(String storageCode);
+
+    /** Отключение триггеров для таблицы. */
+    void disableTriggers(String storageCode);
+
+    /** Создание функций для таблицы. */
+    void dropTableFunctions(String storageCode);
+
+    void updateHashRows(String storageCode, List<String> fieldNames);
+
+    void updateFtsRows(String storageCode, List<String> fieldNames);
+
+    void createIndex(String storageCode, String name, List<String> fieldNames);
+
+    void createHashIndex(String storageCode);
+
+    void createFtsIndex(String storageCode);
+
+    void createLtreeIndex(String storageCode, String fieldName);
 
     /**
      * Копирование таблицы.
@@ -128,22 +155,6 @@ public interface DataDao {
     BigInteger countReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue);
 
     void updateReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue, int offset, int limit);
-
-    void createTriggers(String storageCode, List<String> fieldNames);
-
-    void dropTriggers(String storageCode);
-
-    void updateHashRows(String storageCode, List<String> fieldNames);
-
-    void updateFtsRows(String storageCode, List<String> fieldNames);
-
-    void createIndex(String storageCode, String name, List<String> fieldNames);
-
-    void createFullTextSearchIndex(String storageCode);
-
-    void createLtreeIndex(String storageCode, String fieldName);
-
-    void createHashIndex(String storageCode);
 
     List<String> getFieldNames(String storageCode, String sqlSelect);
 
