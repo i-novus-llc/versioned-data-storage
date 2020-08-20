@@ -40,7 +40,7 @@ public interface SearchDataService {
     boolean hasData(String storageCode);
 
     /**
-     * Получение данных записи по системному идентификатору.
+     * Получение записи по системному идентификатору.
      *
      * @param storageCode код хранилища данных
      * @param fields      список полей в ответе
@@ -50,7 +50,7 @@ public interface SearchDataService {
     RowValue findRow(String storageCode, List<String> fields, Object systemId);
 
     /**
-     * Получение данных списка записей по системным идентификаторам.
+     * Получение списка записей по системным идентификаторам.
      *
      * @param storageCode код хранилища данных
      * @param fields      список полей в ответе

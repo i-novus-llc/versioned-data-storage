@@ -40,7 +40,7 @@ public interface DataDao {
     boolean hasData(String storageCode);
 
     /**
-     * Получение строки данных хранилища по системному идентификатору.
+     * Получение записи хранилища по системному идентификатору.
      *
      * @param storageCode код хранилища
      * @param fieldNames  список полей
@@ -49,11 +49,29 @@ public interface DataDao {
      */
     RowValue getRowData(String storageCode, List<String> fieldNames, Object systemId);
 
+    /**
+     * Получение списка записей хранилища по системному идентификатору.
+     *
+     * @param storageCode код хранилища
+     * @param fieldNames  список полей
+     * @param systemIds   список системных идентификаторов
+     * @return Список записей
+     */
     List<RowValue> getRowData(String storageCode, List<String> fieldNames, List<Object> systemIds);
 
-    List<String> findExistentHashes(String tableName, LocalDateTime bdate, LocalDateTime edate,
+    /**
+     * Получение хешей, соответствующих записям в хранилище.
+     *
+     * @param storageCode код хранилища данных
+     * @param bdate       дата публикации версии
+     * @param edate       дата создания версии
+     * @param hashList    список хешей записей
+     * @return Список существующих хешей
+     */
+    List<String> findExistentHashes(String storageCode, LocalDateTime bdate, LocalDateTime edate,
                                     List<String> hashList);
 
+    /** Проверка эквивалентности наименований и типов полей таблиц. */
     boolean tableStructureEquals(String tableName1, String tableName2);
 
     /**
@@ -64,7 +82,13 @@ public interface DataDao {
      */
     Map<String, String> getColumnDataTypes(String storageCode);
 
-    BigInteger countData(String tableName);
+    /**
+     * Подсчёт количества записей хранилища.
+     *
+     * @param storageCode код хранилища
+     * @return Количество записей
+     */
+    BigInteger countData(String storageCode);
 
     /** Проверка схемы на существование. */
     boolean schemaExists(String schemaName);

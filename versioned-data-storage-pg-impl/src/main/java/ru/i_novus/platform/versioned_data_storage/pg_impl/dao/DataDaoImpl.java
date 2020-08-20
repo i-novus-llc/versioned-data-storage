@@ -490,9 +490,9 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    public BigInteger countData(String tableName) {
+    public BigInteger countData(String storageCode) {
 
-        String sql = SELECT_COUNT_ONLY + SELECT_FROM + escapeTableName(DATA_SCHEMA_NAME, tableName);
+        String sql = SELECT_COUNT_ONLY + SELECT_FROM + escapeStorageTableName(storageCode);
         return (BigInteger) entityManager.createNativeQuery(sql).getSingleResult();
     }
 
