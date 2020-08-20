@@ -879,9 +879,11 @@ public class DataDaoImpl implements DataDao {
         String targetTable = toTableName(targetCode);
 
         for (String ddlIndex : ddlIndexes) {
-            String ddl = ddlIndex.replace(
-                    escapeTableName(sourceSchema, sourceTable),
-                    escapeTableName(targetSchema, targetTable))
+            String ddl = ddlIndex
+                    .replace(sourceSchema + NAME_SEPARATOR + sourceTable,
+                            targetSchema + NAME_SEPARATOR + targetTable)
+                    .replace(escapeTableName(sourceSchema, sourceTable),
+                            escapeTableName(targetSchema, targetTable))
                     .replace(sourceTable, targetTable);
             entityManager.createNativeQuery(ddl).executeUpdate();
         }
