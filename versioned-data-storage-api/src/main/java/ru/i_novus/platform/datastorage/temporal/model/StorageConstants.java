@@ -32,15 +32,12 @@ public class StorageConstants {
     public static final String SYS_PATH = "SYS_PATH";
     public static final String SYS_FTS = "FTS"; // Значение для полнотекстового поиска
 
-    public static final List<String> SYS_FIELD_NAME_LIST = Arrays.asList(SYS_PRIMARY_COLUMN,
+    public static final List<String> SYS_FIELD_NAMES = Arrays.asList(SYS_PRIMARY_COLUMN,
             SYS_HASH, SYS_PATH, SYS_FTS,
             SYS_PUBLISHTIME, SYS_CLOSETIME
     );
-    public static final String SYS_FIELD_NAME_TEXT = SYS_FIELD_NAME_LIST.stream()
-            .map(StringUtils::addSingleQuotes)
-            .collect(Collectors.joining(", "));
 
-    public static final List<String> SYS_VERSIONED_FIELD_NAME_LIST = Arrays.asList(SYS_PUBLISHTIME, SYS_CLOSETIME);
+    public static final List<String> SYS_VERSIONED_FIELD_NAMES = Arrays.asList(SYS_PUBLISHTIME, SYS_CLOSETIME);
 
     public static final String REFERENCE_VALUE_NAME = "value";
     public static final String REFERENCE_DISPLAY_VALUE_NAME = "displayValue";
@@ -51,6 +48,6 @@ public class StorageConstants {
 
     // NB: Workaround to sonar issue "squid-S2386".
     public static List<String> systemFieldList() {
-        return SYS_FIELD_NAME_LIST;
+        return SYS_FIELD_NAMES;
     }
 }

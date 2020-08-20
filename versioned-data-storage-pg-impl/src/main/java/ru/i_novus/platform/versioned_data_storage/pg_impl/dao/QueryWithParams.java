@@ -4,12 +4,15 @@ import ru.i_novus.platform.datastorage.temporal.util.StringUtils;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
 import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
 import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addSingleQuotes;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.QUERY_NULL_VALUE;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.formatDateTime;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.toTimestampWithoutTimeZone;
 
 /** Запрос с параметрами.
  * <p>
@@ -94,6 +97,7 @@ public class QueryWithParams {
         if (isNullOrEmpty(params))
             return sql;
 
+        // to-do: Переписать: проходить sql по ":(bind)" и собирать result.
         String result = sql;
         for (Map.Entry<String, Object> entry : params.entrySet()) {
             result = result.replaceAll(":" + entry.getKey(), paramToString(entry.getValue()));
@@ -107,8 +111,14 @@ public class QueryWithParams {
         if (param == null)
             return QUERY_NULL_VALUE;
 
-        if (param instanceof Number)
+        if (param instanceof Number) {
             return param.toString();
+        }
+
+        if (param instanceof LocalDateTime) {
+            return toTimestampWithoutTimeZone(formatDateTime((LocalDateTime) param))
+                    .replace(":", "\\:");
+        }
 
         return addSingleQuotes(param.toString());
     }

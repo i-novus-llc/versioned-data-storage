@@ -13,6 +13,7 @@ import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
 import ru.i_novus.platform.datastorage.temporal.service.StorageCodeService;
 import ru.i_novus.platform.datastorage.temporal.util.CollectionUtils;
+import ru.i_novus.platform.datastorage.temporal.util.StringUtils;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.BooleanField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.TreeField;
@@ -24,10 +25,10 @@ import java.math.BigInteger;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
 import static java.util.Optional.of;
+import static java.util.stream.Collectors.toList;
 import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
 import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.*;
 import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addDoubleQuotes;
@@ -41,6 +42,9 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConsta
 public class DraftDataServiceImpl implements DraftDataService {
 
     private static final Logger logger = LoggerFactory.getLogger(DraftDataServiceImpl.class);
+
+    private static final List<String> ESCAPED_SYS_VERSIONED_FIELD_NAMES = SYS_VERSIONED_FIELD_NAMES.stream()
+            .map(StringUtils::addDoubleQuotes).collect(toList());
 
     private DataDao dataDao;
 
@@ -187,23 +191,24 @@ public class DraftDataServiceImpl implements DraftDataService {
 
         List<String> draftFieldNames = dataDao.getAllEscapedFieldNames(draftCode);
         List<String> sourceFieldNames = dataDao.getAllEscapedFieldNames(sourceCode);
-        sourceFieldNames.removeIf(SYS_VERSIONED_FIELD_NAME_LIST::contains);
+        sourceFieldNames.removeIf(ESCAPED_SYS_VERSIONED_FIELD_NAMES::contains);
 
         if (!draftFieldNames.equals(sourceFieldNames)) {
             throw new CodifiedException(TABLES_NOT_EQUAL);
         }
 
-        copyFieldsAllData(sourceCode, draftCode, draftFieldNames);
+        copyFieldsData(sourceCode, draftCode, draftFieldNames, fromDate, toDate);
         dataDao.updateTableSequence(draftCode);
     }
 
     @Override
     public void copyAllData(String sourceCode, String targetCode) {
 
-        copyFieldsAllData(sourceCode, targetCode, dataDao.getAllEscapedFieldNames(targetCode));
+        copyFieldsData(sourceCode, targetCode, dataDao.getAllEscapedFieldNames(targetCode), null, null);
     }
 
-    private void copyFieldsAllData(String sourceCode, String targetCode, List<String> fieldNames) {
+    private void copyFieldsData(String sourceCode, String targetCode, List<String> fieldNames,
+                                LocalDateTime fromDate, LocalDateTime toDate) {
 
         BigInteger count = dataDao.countData(sourceCode);
         if (BigInteger.ZERO.equals(count))
@@ -212,7 +217,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         if (dataDao.hasData(targetCode))
             throw new CodifiedException("target.table.is.not.empty");
 
-        StorageCopyCriteria criteria = new StorageCopyCriteria(sourceCode, targetCode, null, null, null);
+        StorageCopyCriteria criteria = new StorageCopyCriteria(sourceCode, targetCode, fromDate, toDate, null);
         criteria.setEscapedFieldNames(fieldNames);
 
         criteria.setCount(count.intValue());
@@ -336,7 +341,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         List<String> fieldNames = fields.stream()
                 .map(QueryUtil::getHashUsedFieldName)
                 .filter(f -> !systemFieldList().contains(f))
-                .collect(Collectors.toList());
+                .collect(toList());
         Collections.sort(fieldNames);
 
         if (!fields.isEmpty()) {

@@ -1,6 +1,9 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.dao;
 
+import ru.i_novus.platform.datastorage.temporal.util.StringUtils;
+
 import java.time.format.DateTimeFormatter;
+import java.util.stream.Collectors;
 
 import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
 import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addDoubleQuotes;
@@ -88,7 +91,11 @@ public class QueryConstants {
     private static final String AND_INFO_TABLE_NAME = "  AND table_name = :tableName \n";
     private static final String AND_INFO_TABLE_SCHEMA_NAME = "  AND table_schema = :schemaName \n";
     private static final String AND_INFO_COLUMN_NAME = "  AND column_name = :columnName \n";
-    static final String AND_INFO_COLUMN_NOT_IN_SYS_LIST = "  AND column_name NOT IN (" + SYS_FIELD_NAME_TEXT + ")";
+
+    private static final String SYS_NAMES_ITEMS_TEXT = SYS_FIELD_NAMES.stream()
+            .map(StringUtils::addSingleQuotes)
+            .collect(Collectors.joining(", "));
+    static final String AND_INFO_COLUMN_NOT_IN_SYS_LIST = "  AND column_name NOT IN (" + SYS_NAMES_ITEMS_TEXT + ")";
 
     public static final String SELECT_SCHEMA_EXISTS = SELECT_EXISTS_START +
             SELECT_ONE +

@@ -1344,7 +1344,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    @Transactional(Transactional.TxType.REQUIRED)
     public void copyTableData(StorageCopyCriteria criteria) {
 
         String sourceTable = escapeStorageTableName(criteria.getStorageCode());

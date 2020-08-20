@@ -483,7 +483,7 @@ public class QueryUtil {
 
     public static String toTimestampWithoutTimeZone(String value) {
 
-        return toTimestamp(value) + TIMESTAMP_WITHOUT_TIME_ZONE;
+        return (value != null) ? toTimestamp(value) + TIMESTAMP_WITHOUT_TIME_ZONE : null;
     }
 
     public static Object truncateDateTo(LocalDateTime date, ChronoUnit unit, Object defaultValue) {
