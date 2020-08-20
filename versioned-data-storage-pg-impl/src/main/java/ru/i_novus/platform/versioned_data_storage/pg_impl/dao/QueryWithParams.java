@@ -97,10 +97,10 @@ public class QueryWithParams {
         if (isNullOrEmpty(params))
             return sql;
 
-        // to-do: Переписать: проходить sql по ":(bind)" и собирать result.
+        // to-do: Переписать для ускорения: проходить sql по ":(bind)" и собирать result.
         String result = sql;
         for (Map.Entry<String, Object> entry : params.entrySet()) {
-            result = result.replaceAll(":" + entry.getKey(), paramToString(entry.getValue()));
+            result = result.replace(":" + entry.getKey(), paramToString(entry.getValue()));
         }
 
         return result;
@@ -116,8 +116,7 @@ public class QueryWithParams {
         }
 
         if (param instanceof LocalDateTime) {
-            return toTimestampWithoutTimeZone(formatDateTime((LocalDateTime) param))
-                    .replace(":", "\\:");
+            return toTimestampWithoutTimeZone(formatDateTime((LocalDateTime) param));
         }
 
         return addSingleQuotes(param.toString());
