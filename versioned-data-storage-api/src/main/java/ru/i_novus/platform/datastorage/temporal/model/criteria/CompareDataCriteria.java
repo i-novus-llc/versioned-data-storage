@@ -11,8 +11,8 @@ import java.util.Set;
 /** Критерий сравнения данных в хранилищах. */
 public class CompareDataCriteria extends DataCriteria {
 
-    private String storageCode;
-    private String newStorageCode;
+    private final String storageCode;
+    private final String newStorageCode;
 
     private List<Field> fields;
     private List<String> primaryFields;
@@ -27,15 +27,16 @@ public class CompareDataCriteria extends DataCriteria {
     private Boolean countOnly;
     private DiffReturnTypeEnum returnType; //default ALL
 
-    public CompareDataCriteria() {
-        // Nothing to do.
+    public CompareDataCriteria(String storageCode, String newStorageCode) {
+
+        this.storageCode = storageCode;
+        this.newStorageCode = newStorageCode;
     }
 
     public CompareDataCriteria(String storageCode, String newStorageCode,
                                List<Field> fields, List<String> primaryFields,
                                Set<List<FieldSearchCriteria>> primaryFieldsFilters) {
-        this.storageCode = storageCode;
-        this.newStorageCode = newStorageCode;
+        this(storageCode, newStorageCode);
 
         this.fields = fields;
         this.primaryFields = primaryFields;
@@ -46,16 +47,8 @@ public class CompareDataCriteria extends DataCriteria {
         return storageCode;
     }
 
-    public void setStorageCode(String storageCode) {
-        this.storageCode = storageCode;
-    }
-
     public String getNewStorageCode() {
         return newStorageCode;
-    }
-
-    public void setNewStorageCode(String newStorageCode) {
-        this.newStorageCode = newStorageCode;
     }
 
     public List<Field> getFields() {
