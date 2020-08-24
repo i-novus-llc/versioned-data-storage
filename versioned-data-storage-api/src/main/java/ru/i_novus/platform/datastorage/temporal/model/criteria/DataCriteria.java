@@ -6,6 +6,7 @@ import net.n2oapp.criteria.api.Criteria;
 public class DataCriteria extends Criteria {
 
     // Нумерация страниц с 1, поэтому сдвиг = +1.
+    @SuppressWarnings("unused")
     public static final int PAGE_SHIFT = 1;
 
     public static final int MIN_PAGE = 1;
@@ -15,6 +16,7 @@ public class DataCriteria extends Criteria {
     public static final int NO_PAGINATION_SIZE = 0;
 
     public DataCriteria() {
+        // Nothing to do.
     }
 
     public DataCriteria(DataCriteria criteria) {

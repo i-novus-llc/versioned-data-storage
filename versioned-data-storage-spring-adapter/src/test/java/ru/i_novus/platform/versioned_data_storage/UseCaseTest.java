@@ -653,7 +653,12 @@ public class UseCaseTest {
                 .collect(Collectors.toSet());
 
         // WARN: bug? : replace first publishDate2 with closeDate1
-        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, publishDate1, publishDate2, publishDate2, closeDate2, fields, singletonList(FIELD_ID_CODE), fieldValues);
+        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, fields, singletonList(FIELD_ID_CODE), fieldValues);
+        compareDataCriteria.setOldPublishDate(publishDate1);
+        compareDataCriteria.setOldCloseDate(publishDate2);
+        compareDataCriteria.setNewPublishDate(publishDate2);
+        compareDataCriteria.setNewCloseDate(closeDate2);
+
         DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
         List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
         expectedDiffRowValues.add(new DiffRowValue(
@@ -753,7 +758,12 @@ public class UseCaseTest {
                 .collect(Collectors.toSet());
 
         // WARN: bug? : replace first publishDate2 with closeDate1
-        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, publishDate1, publishDate2, publishDate2, closeDate2, fields, singletonList(FIELD_ID_CODE), fieldValues);
+        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, fields, singletonList(FIELD_ID_CODE), fieldValues);
+        compareDataCriteria.setOldPublishDate(publishDate1);
+        compareDataCriteria.setOldCloseDate(publishDate2);
+        compareDataCriteria.setNewPublishDate(publishDate2);
+        compareDataCriteria.setNewCloseDate(closeDate2);
+
         DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
         List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
         expectedDiffRowValues.add(new DiffRowValue(
@@ -850,7 +860,12 @@ public class UseCaseTest {
                 .collect(Collectors.toSet());
 
         // WARN: bug? : replace first publishDate2 with closeDate1
-        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, publishDate1, publishDate2, publishDate2, closeDate2, fields, Arrays.asList(FIELD_ID_CODE, FIELD_CODE_CODE), fieldValues);
+        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, fields, Arrays.asList(FIELD_ID_CODE, FIELD_CODE_CODE), fieldValues);
+        compareDataCriteria.setOldPublishDate(publishDate1);
+        compareDataCriteria.setOldCloseDate(publishDate2);
+        compareDataCriteria.setNewPublishDate(publishDate2);
+        compareDataCriteria.setNewCloseDate(closeDate2);
+
         DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
         List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
         expectedDiffRowValues.add(new DiffRowValue(
@@ -919,7 +934,12 @@ public class UseCaseTest {
                 .collect(Collectors.toSet());
 
         // WARN: bug? : replace first publishDate2 with closeDate1
-        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, publishDate1, publishDate2, publishDate2, closeDate2, fields, Arrays.asList(FIELD_ID_CODE, FIELD_CODE_CODE), fieldValues);
+        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, fields, Arrays.asList(FIELD_ID_CODE, FIELD_CODE_CODE), fieldValues);
+        compareDataCriteria.setOldPublishDate(publishDate1);
+        compareDataCriteria.setOldCloseDate(publishDate2);
+        compareDataCriteria.setNewPublishDate(publishDate2);
+        compareDataCriteria.setNewCloseDate(closeDate2);
+
         DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
         List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
         expectedDiffRowValues.add(new DiffRowValue(
@@ -978,7 +998,10 @@ public class UseCaseTest {
                 )
                 .collect(Collectors.toSet());
 
-        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode, draftCode, publishDate1, closeDate1, null, null, fields, singletonList(FIELD_ID_CODE), fieldValues);
+        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode, draftCode, fields, singletonList(FIELD_ID_CODE), fieldValues);
+        compareDataCriteria.setOldPublishDate(publishDate1);
+        compareDataCriteria.setOldCloseDate(closeDate1);
+
         DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
         List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
         expectedDiffRowValues.add(new DiffRowValue(
@@ -1048,7 +1071,11 @@ public class UseCaseTest {
                 )
                 .collect(Collectors.toSet());
 
-        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode, storageCode2, publishDate1, closeDate1, publishDate2, null, Arrays.asList(fields.get(0), fields.get(1)), singletonList(FIELD_ID_CODE), fieldValues);
+        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode, storageCode2, Arrays.asList(fields.get(0), fields.get(1)), singletonList(FIELD_ID_CODE), fieldValues);
+        compareDataCriteria.setOldPublishDate(publishDate1);
+        compareDataCriteria.setOldCloseDate(closeDate1);
+        compareDataCriteria.setNewPublishDate(publishDate2);
+
         DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
         assertDiffRowValues(new ArrayList<>(), (List<DiffRowValue>) actualDataDifference.getRows().getCollection());
     }

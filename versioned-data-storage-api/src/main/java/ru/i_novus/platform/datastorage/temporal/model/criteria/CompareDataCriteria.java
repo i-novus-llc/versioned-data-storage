@@ -12,37 +12,31 @@ import java.util.Set;
 public class CompareDataCriteria extends DataCriteria {
 
     private String storageCode;
-    private String draftCode;
     private String newStorageCode;
 
-    private LocalDateTime baseDataDate;
-    private LocalDateTime targetDataDate;
+    private List<Field> fields;
+    private List<String> primaryFields;
+    private Set<List<FieldSearchCriteria>> primaryFieldsFilters;
+
     private LocalDateTime oldPublishDate;
     private LocalDateTime oldCloseDate;
     private LocalDateTime newPublishDate;
     private LocalDateTime newCloseDate;
 
-    private List<Field> fields;
-    private List<String> primaryFields;
     private DiffStatusEnum status;
     private Boolean countOnly;
     private DiffReturnTypeEnum returnType; //default ALL
-    private Set<List<FieldSearchCriteria>> primaryFieldsFilters;
 
     public CompareDataCriteria() {
+        // Nothing to do.
     }
 
     public CompareDataCriteria(String storageCode, String newStorageCode,
-                               LocalDateTime oldPublishDate, LocalDateTime oldCloseDate,
-                               LocalDateTime newPublishDate, LocalDateTime newCloseDate,
                                List<Field> fields, List<String> primaryFields,
                                Set<List<FieldSearchCriteria>> primaryFieldsFilters) {
         this.storageCode = storageCode;
         this.newStorageCode = newStorageCode;
-        this.oldPublishDate = oldPublishDate;
-        this.oldCloseDate = oldCloseDate;
-        this.newPublishDate = newPublishDate;
-        this.newCloseDate = newCloseDate;
+
         this.fields = fields;
         this.primaryFields = primaryFields;
         this.primaryFieldsFilters = primaryFieldsFilters;
@@ -56,15 +50,6 @@ public class CompareDataCriteria extends DataCriteria {
         this.storageCode = storageCode;
     }
 
-    /*
-     * use setNewStorageCode() method
-     */
-    @Deprecated
-    public void setDraftCode(String draftCode) {
-        this.draftCode = draftCode;
-        this.newStorageCode = draftCode;
-    }
-
     public String getNewStorageCode() {
         return newStorageCode;
     }
@@ -73,24 +58,28 @@ public class CompareDataCriteria extends DataCriteria {
         this.newStorageCode = newStorageCode;
     }
 
-    /*
-     * use setOldPublishDate(), setOldCloseDate() methods
-     */
-    @Deprecated
-    public void setBaseDataDate(LocalDateTime baseDataDate) {
-        this.baseDataDate = baseDataDate;
-        this.oldPublishDate = baseDataDate;
-        this.oldCloseDate = baseDataDate;
+    public List<Field> getFields() {
+        return fields;
     }
 
-    /*
-     * use setNewPublishDate(), setNewCloseDate() methods
-     */
-    @Deprecated
-    public void setTargetDataDate(LocalDateTime targetDataDate) {
-        this.targetDataDate = targetDataDate;
-        this.newPublishDate = targetDataDate;
-        this.newCloseDate = targetDataDate;
+    public void setFields(List<Field> fields) {
+        this.fields = fields;
+    }
+
+    public List<String> getPrimaryFields() {
+        return primaryFields;
+    }
+
+    public void setPrimaryFields(List<String> primaryFields) {
+        this.primaryFields = primaryFields;
+    }
+
+    public Set<List<FieldSearchCriteria>> getPrimaryFieldsFilters() {
+        return primaryFieldsFilters;
+    }
+
+    public void setPrimaryFieldsFilters(Set<List<FieldSearchCriteria>> primaryFieldsFilters) {
+        this.primaryFieldsFilters = primaryFieldsFilters;
     }
 
     public LocalDateTime getOldPublishDate() {
@@ -125,22 +114,6 @@ public class CompareDataCriteria extends DataCriteria {
         this.newCloseDate = newCloseDate;
     }
 
-    public List<Field> getFields() {
-        return fields;
-    }
-
-    public void setFields(List<Field> fields) {
-        this.fields = fields;
-    }
-
-    public List<String> getPrimaryFields() {
-        return primaryFields;
-    }
-
-    public void setPrimaryFields(List<String> primaryFields) {
-        this.primaryFields = primaryFields;
-    }
-
     public DiffStatusEnum getStatus() {
         return status;
     }
@@ -163,14 +136,6 @@ public class CompareDataCriteria extends DataCriteria {
 
     public void setReturnType(DiffReturnTypeEnum returnType) {
         this.returnType = returnType;
-    }
-
-    public Set<List<FieldSearchCriteria>> getPrimaryFieldsFilters() {
-        return primaryFieldsFilters;
-    }
-
-    public void setPrimaryFieldsFilters(Set<List<FieldSearchCriteria>> primaryFieldsFilters) {
-        this.primaryFieldsFilters = primaryFieldsFilters;
     }
 }
 
