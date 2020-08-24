@@ -209,10 +209,10 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    public boolean tableStructureEquals(String tableName1, String tableName2) {
+    public boolean storageStructureEquals(String storageCode1, String storageCode2) {
 
-        Map<String, String> dataTypes1 = getColumnDataTypes(tableName1);
-        Map<String, String> dataTypes2 = getColumnDataTypes(tableName2);
+        Map<String, String> dataTypes1 = getColumnDataTypes(storageCode1);
+        Map<String, String> dataTypes2 = getColumnDataTypes(storageCode2);
         return dataTypes1.equals(dataTypes2);
     }
 
