@@ -71,8 +71,14 @@ public interface DataDao {
     List<String> findExistentHashes(String storageCode, LocalDateTime bdate, LocalDateTime edate,
                                     List<String> hashList);
 
-    /** Проверка эквивалентности наименований и типов полей таблиц. */
-    boolean tableStructureEquals(String tableName1, String tableName2);
+    /**
+     * Проверка эквивалентности наименований и типов полей хранилищ.
+     *
+     * @param storageCode1 код первого хранилища данных
+     * @param storageCode2 код второго хранилища данных
+     * @return Результат проверки
+     */
+    boolean storageStructureEquals(String storageCode1, String storageCode2);
 
     /**
      * Получение наименования и типа полей хранилища

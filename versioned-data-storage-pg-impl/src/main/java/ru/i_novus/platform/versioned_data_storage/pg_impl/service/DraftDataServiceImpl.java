@@ -88,7 +88,8 @@ public class DraftDataServiceImpl implements DraftDataService {
         String targetCode = createVersionTable(draftCode);
         List<String> fieldNames = dataDao.getEscapedFieldNames(draftCode);
 
-        if (baseStorageCode != null && dataDao.tableStructureEquals(baseStorageCode, draftCode)) {
+        if (baseStorageCode != null && dataDao.storageStructureEquals(baseStorageCode, draftCode)) {
+
             insertActualDataFromVersion(baseStorageCode, draftCode, targetCode, fieldNames, publishTime, closeTime);
             insertOldDataFromVersion(baseStorageCode, draftCode, targetCode, fieldNames, publishTime, closeTime);
             insertClosedNowDataFromVersion(baseStorageCode, draftCode, targetCode, fieldNames, publishTime, closeTime);
