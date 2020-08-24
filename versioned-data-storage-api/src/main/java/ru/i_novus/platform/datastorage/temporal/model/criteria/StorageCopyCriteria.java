@@ -17,7 +17,7 @@ public class StorageCopyCriteria extends StorageDataCriteria {
     /** Наименование таблицы назначения. */
     private final String purposeTableName;
 
-    /** Экранированные наименования копируемых полей. */
+    /** Экранированные наименования полей для копирования. */
     private List<String> escapedFieldNames;
 
     public StorageCopyCriteria(String storageCode, String purposeCode,
@@ -25,8 +25,8 @@ public class StorageCopyCriteria extends StorageDataCriteria {
 
         super(storageCode, bdate, edate, fields);
 
-        this.purposeTableName = toTableName(purposeCode);
         this.purposeSchemaName = toSchemaName(purposeCode);
+        this.purposeTableName = toTableName(purposeCode);
     }
 
     public StorageCopyCriteria(StorageCopyCriteria criteria) {
