@@ -41,6 +41,7 @@ public class StorageDataCriteria extends DataCriteria {
 
         this.schemaName = toSchemaName(storageCode);
         this.tableName = toTableName(storageCode);
+
         this.bdate = bdate;
         this.edate = edate;
         this.fields = fields;
@@ -69,6 +70,7 @@ public class StorageDataCriteria extends DataCriteria {
 
         this.schemaName = criteria.schemaName;
         this.tableName = criteria.tableName;
+
         this.bdate = criteria.bdate;
         this.edate = criteria.edate;
         this.fields = criteria.fields;

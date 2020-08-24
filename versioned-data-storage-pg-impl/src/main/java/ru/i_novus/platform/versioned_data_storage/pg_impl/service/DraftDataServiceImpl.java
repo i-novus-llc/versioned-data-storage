@@ -6,13 +6,13 @@ import ru.i_novus.components.common.exception.CodifiedException;
 import ru.i_novus.platform.datastorage.temporal.exception.ListCodifiedException;
 import ru.i_novus.platform.datastorage.temporal.exception.NotUniqueException;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
+import ru.i_novus.platform.datastorage.temporal.model.StorageConstants;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageCopyCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
 import ru.i_novus.platform.datastorage.temporal.service.StorageCodeService;
-import ru.i_novus.platform.datastorage.temporal.util.StringUtils;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.BooleanField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.TreeField;
@@ -42,12 +42,6 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConsta
 public class DraftDataServiceImpl implements DraftDataService {
 
     private static final Logger logger = LoggerFactory.getLogger(DraftDataServiceImpl.class);
-
-    private static final List<String> ESCAPED_SYS_VERSIONED_FIELD_NAMES = SYS_VERSIONED_FIELD_NAMES.stream()
-            .map(StringUtils::addDoubleQuotes).collect(toList());
-
-    private static final List<String> ESCAPED_SYS_TRIGGERED_FIELD_NAMES = SYS_TRIGGERED_FIELD_NAMES.stream()
-                .map(StringUtils::addDoubleQuotes).collect(toList());
 
     private DataDao dataDao;
 
@@ -195,7 +189,8 @@ public class DraftDataServiceImpl implements DraftDataService {
 
         List<String> draftFieldNames = dataDao.getAllEscapedFieldNames(draftCode);
         List<String> sourceFieldNames = dataDao.getAllEscapedFieldNames(sourceCode);
-        sourceFieldNames.removeIf(ESCAPED_SYS_VERSIONED_FIELD_NAMES::contains);
+        List<String> escapedVersionFieldNames = StorageConstants.escapedVersionFieldNames();
+        sourceFieldNames.removeIf(escapedVersionFieldNames::contains);
 
         if (!draftFieldNames.equals(sourceFieldNames)) {
             throw new CodifiedException(TABLES_NOT_EQUAL);
@@ -222,7 +217,7 @@ public class DraftDataServiceImpl implements DraftDataService {
             throw new CodifiedException("target.table.is.not.empty");
 
         boolean isTriggersRedundant = isNullOrEmpty(fieldNames) ||
-                fieldNames.containsAll(ESCAPED_SYS_TRIGGERED_FIELD_NAMES);
+                fieldNames.containsAll(escapedTriggeredFieldNames());
 
         if (isTriggersRedundant) {
             dataDao.disableTriggers(targetCode);
@@ -266,7 +261,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Transactional
     public void addField(String draftCode, Field field) {
 
-        if (systemFieldList().contains(field.getName()))
+        if (systemFieldNames().contains(field.getName()))
             throw new CodifiedException(SYS_FIELD_CONFLICT);
 
         List<String> fieldNames = dataDao.getEscapedFieldNames(draftCode);
@@ -357,7 +352,7 @@ public class DraftDataServiceImpl implements DraftDataService {
 
         List<String> fieldNames = fields.stream()
                 .map(QueryUtil::getHashUsedFieldName)
-                .filter(f -> !systemFieldList().contains(f))
+                .filter(f -> !systemFieldNames().contains(f))
                 .collect(toList());
         Collections.sort(fieldNames);
 
