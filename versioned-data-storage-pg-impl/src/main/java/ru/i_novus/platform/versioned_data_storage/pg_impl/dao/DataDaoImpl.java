@@ -1393,8 +1393,9 @@ public class DataDaoImpl implements DataDao {
         Map<String, String> mapSelect = new HashMap<>();
         mapSelect.put("sourceTable", sourceTable);
         mapSelect.put("sourceAlias", DEFAULT_TABLE_ALIAS);
+        mapSelect.put("sourceColumns", DEFAULT_TABLE_ALIAS + NAME_SEPARATOR + ALL_COLUMNS);
 
-        String sqlSelect = substitute(SELECT_ALL_DATA_BY_FROM_TABLE, mapSelect);
+        String sqlSelect = substitute(SELECT_ALL_DATA_FROM_TABLE, mapSelect);
 
         QueryWithParams where = getWhereClause(criteria, DEFAULT_TABLE_ALIAS);
         if (!StringUtils.isNullOrEmpty(where.getSql())) {
@@ -1414,7 +1415,7 @@ public class DataDaoImpl implements DataDao {
         mapInsert.put("strColumns", toStrColumns(fieldNames));
         mapInsert.put("rowColumns", toAliasColumns(fieldNames, ROW_TYPE_VAR_NAME + NAME_SEPARATOR));
 
-        String sqlInsert = substitute(INSERT_ALL_DATA_BY_FROM_TABLE, mapInsert);
+        String sqlInsert = substitute(INSERT_ALL_DATA_FROM_TABLE, mapInsert);
 
         Map<String, String> map = new HashMap<>();
         map.put("offset", "" + criteria.getOffset());

@@ -19,6 +19,7 @@ public class QueryConstants {
 
     public static final String ALIAS_OPERATOR = " as ";
     public static final String DEFAULT_TABLE_ALIAS = "d";
+    static final String ALL_COLUMNS = "*";
     static final String TRIGGER_NEW_ALIAS = "NEW";
 
     static final String OPTION_DISABLE = "DISABLE ";
@@ -364,10 +365,10 @@ public class QueryConstants {
             "    CLOSE tbl_cursor;\n" +
             "END$$;";
 
-    public static final String SELECT_ALL_DATA_BY_FROM_TABLE = "SELECT ${sourceAlias}.* \n" +
+    public static final String SELECT_ALL_DATA_FROM_TABLE = "SELECT ${sourceColumns} \n" +
             "  FROM ${sourceTable} AS ${sourceAlias} \n";
 
-    public static final String INSERT_ALL_DATA_BY_FROM_TABLE = "INSERT INTO ${targetTable}(${strColumns})\n" +
+    public static final String INSERT_ALL_DATA_FROM_TABLE = "INSERT INTO ${targetTable}(${strColumns})\n" +
             "VALUES(${rowColumns});";
 
     //todo: get rid of infinity
