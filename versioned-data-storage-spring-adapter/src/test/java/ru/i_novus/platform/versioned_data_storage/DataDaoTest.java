@@ -3,6 +3,8 @@ package ru.i_novus.platform.versioned_data_storage;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -10,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.i_novus.platform.datastorage.temporal.enums.FieldType;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
+import ru.i_novus.platform.datastorage.temporal.model.LongRowValue;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageCopyCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
@@ -20,11 +23,15 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceException;
+import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.*;
 import static ru.i_novus.platform.versioned_data_storage.DataTestUtils.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.HASH_EXPRESSION;
@@ -36,6 +43,8 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtil
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {JpaTestConfig.class, VersionedDataStorageConfig.class})
 public class DataDaoTest {
+
+    private static final Logger logger = LoggerFactory.getLogger(DataDaoTest.class);
 
     private static final String NEW_GOOD_SCHEMA_NAME = "data_good";
     private static final String NEW_BAD_SCHEMA_NAME = "data\"bad";
@@ -235,15 +244,63 @@ public class DataDaoTest {
     private void testProcessData(String schemaName, String tableName,
                                  List<Field> fields, List<String> nameValues) {
 
+        logger.info("Starting: Process data for {}", getSchemaNameOrDefault(schemaName));
+
         String storageCode = toStorageCode(schemaName, tableName);
         dataDao.createDraftTable(storageCode, fields);
 
-        // Вставка записей.
+        logger.info("Stage 1: Process data: insertData");
         dataDao.insertData(storageCode, nameValuesToRowValues(fields, nameValues));
+        assertData(storageCode, fields, nameValues);
+
+        logger.info("Stage 2: Process data: changeData");
+        int allCount = nameValues.size();
+        int changedCount = 2;
+        List<BigInteger> changedIds = IntStream.range(allCount - changedCount, allCount)
+                .mapToObj(DataTestUtils::indexToId).collect(toList());
+
+        List<RowValue> dataValues = dataDao.getData(toCriteria(storageCode, fields));
+
+        logger.info("Stage 3: Process data: updateData");
+        final String updateNamePrefix = "updated: ";
+        dataValues.stream()
+                .filter(rowValue -> changedIds.contains(getRowIdFieldValue(rowValue)))
+                .map(rowValue -> {
+                    FieldValue idFieldValue = rowValue.getFieldValue(FIELD_ID_CODE);
+                    FieldValue nameFieldValue = rowValue.getFieldValue(FIELD_NAME_CODE);
+                    nameFieldValue.setValue(updateNamePrefix + nameFieldValue.getValue());
+
+                    return new LongRowValue((Long) rowValue.getSystemId(), asList(idFieldValue, nameFieldValue));
+                })
+                .forEachOrdered(rowValue -> dataDao.updateData(storageCode, rowValue));
+
+        List<String> dataNamesAfterUpdate = IntStream.range(0, allCount)
+                .mapToObj(index -> ((index < allCount - changedCount) ? "" : updateNamePrefix) + nameValues.get(index))
+                .collect(toList());
+        assertData(storageCode, fields, dataNamesAfterUpdate);
+
+        logger.info("Stage 4: Process data: deleteData");
+        List<Object> deletedSystemIds = dataValues.stream()
+                .filter(rowValue -> changedIds.contains(getRowIdFieldValue(rowValue)))
+                .map(RowValue::getSystemId)
+                .collect(toList());
+
+        dataDao.deleteData(storageCode, deletedSystemIds);
+        List<String> dataNamesAfterDelete = new ArrayList<>(nameValues.subList(0, allCount - changedCount));
+        assertData(storageCode, fields, dataNamesAfterDelete);
+
+        logger.info("Stage 5: Process data: deleteAllData");
+        dataDao.deleteData(storageCode);
+        assertData(storageCode, fields, emptyList());
+
+        logger.info("Finishing: Process data for {}", getSchemaNameOrDefault(schemaName));
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    private void assertData(String storageCode, List<Field> fields, List<String> nameValues) {
+
         List<RowValue> dataValues = dataDao.getData(toCriteria(storageCode, fields));
         assertValues(dataValues, nameValues);
-
-        //dataDao.updateData();
     }
 
     @Test
