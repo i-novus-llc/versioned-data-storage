@@ -30,34 +30,36 @@ public class QueryConstants {
     static final String QUERY_BIND_CHAR = ":";
     static final String QUERY_NULL_VALUE = "null";
 
-    static final String SELECT_ONE = "SELECT 1 \n";
+    static final String SELECT = "SELECT ";
+    public static final String SELECT_ONE = SELECT +"1\n";
     static final String COUNT_ONLY = "count(*)";
-    static final String SELECT_COUNT_ONLY = "SELECT " + COUNT_ONLY + QUERY_NEW_LINE;
-    static final String SELECT_EXISTS_START = "SELECT EXISTS(\n";
-    static final String SELECT_EXISTS_END = ")";
+    public static final String SELECT_COUNT_ONLY = SELECT + COUNT_ONLY + QUERY_NEW_LINE;
 
-    static final String SELECT_FROM = "  FROM ";
-    static final String SELECT_WHERE = " WHERE ";
-    static final String SELECT_ORDER = " ORDER BY ";
-    static final String SELECT_GROUP = " GROUP BY ";
+    public static final String SELECT_FROM = "  FROM ";
+    public static final String SELECT_WHERE = " WHERE ";
+    public static final String SELECT_ORDER = " ORDER BY ";
+    public static final String SELECT_GROUP = " GROUP BY ";
 
-    static final String WHERE_DEFAULT = " true"; // 1 = 1
-    static final String SELECT_WHERE_DEFAULT = SELECT_WHERE + WHERE_DEFAULT + QUERY_NEW_LINE;
+    public static final String CONDITION_TRUE = " true "; // 1 = 1
+    public static final String CONDITION_FALSE = " false "; // 1 != 1
+    public static final String CONDITION_NOT = " NOT ";
+    public static final String CONDITION_AND = " AND ";
+    public static final String CONDITION_OR = " OR ";
+    public static final String CONDITION_EXISTS_START = "EXISTS(\n";
+    public static final String CONDITION_EXISTS_END = ")";
+    public static final String CONDITION_IN = "%1$s IN (%2$s)";
+    public static final String CONDITION_EQUAL = "%1$s = %2$s";
+
+    public static final String LIKE_ESCAPE_MANY_CHAR = "%";
+    public static final String IS_NULL = " IS NULL";
+    public static final String TO_ANY_BIGINT = "ANY(%s\\:\\:bigint[])";
+    public static final String TO_ANY_TEXT = "ANY(%s\\:\\:text[])";
+
+    public static final String SELECT_WHERE_TRUE = SELECT_WHERE + CONDITION_TRUE + QUERY_NEW_LINE;
     private static final String ORDER_BY_ONE_FIELD = SELECT_ORDER + " %1$s.\"%2$s\" \n";
 
-    private static final String SELECT_LIMIT = " LIMIT ${limit}";
-    private static final String SELECT_OFFSET = " OFFSET ${offset}";
-
-    static final String CONDITION_NOT = " NOT ";
-    static final String CONDITION_AND = " AND ";
-    static final String CONDITION_OR = " OR ";
-    static final String CONDITION_EXISTS = "EXISTS (\n%s)";
-    static final String CONDITION_IN = "%1$s IN (%2$s)";
-    static final String CONDITION_EQUAL = "%1$s = %2$s";
-    static final String LIKE_ESCAPE_MANY_CHAR = "%";
-    static final String IS_NULL = " IS NULL";
-    static final String TO_ANY_BIGINT = "ANY(%s\\:\\:bigint[])";
-    static final String TO_ANY_TEXT = "ANY(%s\\:\\:text[])";
+    public static final String SELECT_LIMIT = " LIMIT ${limit}";
+    public static final String SELECT_OFFSET = " OFFSET ${offset}";
 
     private static final String SUBQUERY_INDENT = "       ";
     private static final String ROUTINE_INDENT = "    ";
@@ -101,40 +103,43 @@ public class QueryConstants {
             .collect(Collectors.joining(", "));
     static final String AND_INFO_COLUMN_NOT_IN_SYS_LIST = "  AND column_name NOT IN (" + SYS_NAMES_ITEMS_TEXT + ")";
 
-    public static final String SELECT_SCHEMA_EXISTS = SELECT_EXISTS_START +
+    public static final String SELECT_SCHEMA_EXISTS = SELECT +
+            CONDITION_EXISTS_START +
             SELECT_ONE +
             FROM_INFO_SCHEMAS +
-            SELECT_WHERE_DEFAULT +
+            SELECT_WHERE_TRUE +
             AND_INFO_SCHEMA_NAME +
-            SELECT_EXISTS_END;
+            CONDITION_EXISTS_END;
 
     public static final String SELECT_EXISTENT_SCHEMA_NAME_LIST = "SELECT schema_name \n" +
             FROM_INFO_SCHEMAS +
-            SELECT_WHERE_DEFAULT +
+            SELECT_WHERE_TRUE +
             "  AND schema_name = ";
 
-    public static final String SELECT_TABLE_EXISTS = SELECT_EXISTS_START +
+    public static final String SELECT_TABLE_EXISTS = SELECT +
+            CONDITION_EXISTS_START +
             SELECT_ONE +
             FROM_INFO_TABLES +
-            SELECT_WHERE_DEFAULT +
+            SELECT_WHERE_TRUE +
             AND_INFO_TABLE_SCHEMA_NAME +
             AND_INFO_TABLE_NAME +
-            SELECT_EXISTS_END;
+            CONDITION_EXISTS_END;
 
     public static final String SELECT_EXISTENT_TABLE_SCHEMA_NAME_LIST = "SELECT table_schema \n" +
             FROM_INFO_TABLES +
-            SELECT_WHERE_DEFAULT +
+            SELECT_WHERE_TRUE +
             AND_INFO_TABLE_NAME +
             "  AND table_schema = ";
 
-    public static final String SELECT_COLUMN_EXISTS = SELECT_EXISTS_START +
+    public static final String SELECT_COLUMN_EXISTS = SELECT +
+            CONDITION_EXISTS_START +
             SELECT_ONE +
             FROM_INFO_COLUMNS +
-            SELECT_WHERE_DEFAULT +
+            SELECT_WHERE_TRUE +
             AND_INFO_TABLE_SCHEMA_NAME +
             AND_INFO_TABLE_NAME +
             AND_INFO_COLUMN_NAME +
-            SELECT_EXISTS_END;
+            CONDITION_EXISTS_END;
 
     private static final String SELECT_ESCAPED_COLUMN_NAME = "SELECT '\"' || column_name || '\"' \n";
     private static final String SELECT_COLUMN_NAME_AND_TYPE = "SELECT column_name, data_type \n";
@@ -147,27 +152,27 @@ public class QueryConstants {
 
     static final String SELECT_ESCAPED_FIELD_NAMES = SELECT_ESCAPED_COLUMN_NAME +
             FROM_INFO_COLUMNS +
-            SELECT_WHERE_DEFAULT +
+            SELECT_WHERE_TRUE +
             AND_INFO_TABLE_SCHEMA_NAME +
             AND_INFO_TABLE_NAME;
 
     static final String SELECT_HASH_USED_FIELD_NAMES = SELECT_ESCAPED_COLUMN_NAME + " || " + INFO_COLUMN_VALUE_SUFFIX +
             FROM_INFO_COLUMNS +
-            SELECT_WHERE_DEFAULT +
+            SELECT_WHERE_TRUE +
             AND_INFO_TABLE_SCHEMA_NAME +
             AND_INFO_TABLE_NAME +
             AND_INFO_COLUMN_NOT_IN_SYS_LIST;
 
     public static final String SELECT_FIELD_TYPE = "SELECT data_type \n" +
             FROM_INFO_COLUMNS +
-            SELECT_WHERE_DEFAULT +
+            SELECT_WHERE_TRUE +
             AND_INFO_TABLE_SCHEMA_NAME +
             AND_INFO_TABLE_NAME +
             AND_INFO_COLUMN_NAME;
 
     public static final String SELECT_FIELD_NAMES_AND_TYPES = SELECT_COLUMN_NAME_AND_TYPE +
             FROM_INFO_COLUMNS +
-            SELECT_WHERE_DEFAULT +
+            SELECT_WHERE_TRUE +
             AND_INFO_TABLE_SCHEMA_NAME +
             AND_INFO_TABLE_NAME;
 
@@ -189,8 +194,8 @@ public class QueryConstants {
     private static final String COALESCE_CLOSE_TIME_VALUE = "coalesce(to_timestamp('${closeTime}', " +
             "'" + QUERY_TIMESTAMP_FORMAT + "')\\:\\:timestamp without time zone, '-infinity')";
 
-    static final String DRAFT_TABLE_ALIAS = "d";
-    static final String VERSION_TABLE_ALIAS = "v";
+    public static final String DRAFT_TABLE_ALIAS = "d";
+    public static final String VERSION_TABLE_ALIAS = "v";
 
     private static final String FROM_DRAFT_TABLE = "  FROM ${draftTable} AS ${draftAlias} \n";
     private static final String FROM_VERSION_TABLE = "  FROM ${versionTable} AS ${versionAlias} \n";
@@ -272,7 +277,7 @@ public class QueryConstants {
     static final String RETURNG = "RETURNING ";
     static final String INSERT_RECORD = "INSERT INTO %1$s.%2$s (%3$s) \n";
     static final String INSERT_VALUES = "VALUES %s \n";
-    static final String INSERT_SELECT = "SELECT %4$s \n" + "  FROM %1$s.%2$s as %3$s \n" + SELECT_WHERE_DEFAULT;
+    static final String INSERT_SELECT = "SELECT %4$s \n" + "  FROM %1$s.%2$s as %3$s \n" + SELECT_WHERE_TRUE;
     static final String DELETE_RECORD = "DELETE FROM %1$s.%2$s \n";
     static final String UPDATE_RECORD = "UPDATE %1$s.%2$s as %3$s SET %4$s WHERE %5$s \n";
     static final String UPDATE_VALUE = "%1$s = %2$s";
@@ -282,12 +287,12 @@ public class QueryConstants {
 
     static final String COUNT_REFERENCE_IN_REF_ROWS = SELECT_COUNT_ONLY +
             FROM_VERSION_TABLE +
-            SELECT_WHERE_DEFAULT +
+            SELECT_WHERE_TRUE +
             AND_EXISTS_VERSION_REF_VALUE;
 
     static final String SELECT_REFERENCE_IN_REF_ROWS = "\nSELECT ${versionAlias}.\"SYS_RECORDID\" \n" +
             FROM_VERSION_TABLE +
-            SELECT_WHERE_DEFAULT +
+            SELECT_WHERE_TRUE +
             AND_EXISTS_VERSION_REF_VALUE +
             ORDER_VERSION_BY_SYS_RECORDID +
             SELECT_LIMIT + SELECT_OFFSET;
@@ -340,12 +345,12 @@ public class QueryConstants {
     static final String TABLE_INDEX_FTS_USING = "USING gin";
     static final String TABLE_INDEX_LTREE_USING = "USING gist";
 
-    static final String ROW_TYPE_VAR_NAME = "row";
+    public static final String ROW_TYPE_VAR_NAME = "row";
 
     // to-do: Переделать остальные DO-DECLARE-BEGIN_END под такую конструкцию.
     public static final String INSERT_DATA_BY_SELECT_FROM_TABLE = "DO $$\n" +
             "DECLARE tbl_cursor refcursor;\n" +
-            "  row ${sourceTable}%rowtype;\n" +
+            "  row ${rowTable}%rowtype;\n" +
             "  i int;\n" +
             "\n" +
             "BEGIN \n" +
@@ -365,10 +370,10 @@ public class QueryConstants {
             "    CLOSE tbl_cursor;\n" +
             "END$$;";
 
-    public static final String SELECT_ALL_DATA_FROM_TABLE = "SELECT ${sourceColumns} \n" +
+    public static final String SELECT_FROM_SOURCE_TABLE = "SELECT ${sourceColumns} \n" +
             "  FROM ${sourceTable} AS ${sourceAlias} \n";
 
-    public static final String INSERT_ALL_DATA_FROM_TABLE = "INSERT INTO ${targetTable}(${strColumns})\n" +
+    public static final String INSERT_INTO_TARGET_TABLE = "INSERT INTO ${targetTable}(${strColumns})\n" +
             "VALUES(${rowColumns});";
 
     //todo: get rid of infinity

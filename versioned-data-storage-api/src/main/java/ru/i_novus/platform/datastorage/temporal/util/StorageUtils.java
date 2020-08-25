@@ -97,13 +97,19 @@ public class StorageUtils {
         return escapeTableName(toSchemaName(storageCode), toTableName(storageCode));
     }
 
+    public static String aliasColumnName(String tableAlias, String fieldName) {
+
+        return tableAlias + NAME_SEPARATOR + fieldName;
+    }
+
     public static String escapeFieldName(String tableAlias, String fieldName) {
 
         String escapedFieldName = addDoubleQuotes(fieldName);
-        return isNullOrEmpty(tableAlias) ? escapedFieldName : tableAlias + NAME_SEPARATOR + escapedFieldName;
+        return isNullOrEmpty(tableAlias) ? escapedFieldName : aliasColumnName(tableAlias, escapedFieldName);
     }
 
     public static String escapeSequenceName(String tableName) {
+
         return addDoubleQuotes(tableName + NAME_CONNECTOR + SYS_PRIMARY_COLUMN + TABLE_SEQUENCE_SUFFIX);
     }
 
