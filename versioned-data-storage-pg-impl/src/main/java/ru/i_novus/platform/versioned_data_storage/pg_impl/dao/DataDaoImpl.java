@@ -1685,7 +1685,7 @@ public class DataDaoImpl implements DataDao {
         String oldDataFields = getSelectFields(oldAlias, criteria.getFields(), false);
         String newDataFields = getSelectFields(newAlias, criteria.getFields(), false);
 
-        String dataSelectFormat = "SELECT %1$s as sysId1 \n %2$s\n, %3$s as sysId2 \n %4$s \n";
+        String dataSelectFormat = "SELECT %1$s AS sysId1 \n %2$s\n, %3$s AS sysId2 \n %4$s \n";
         String dataSelect = String.format(dataSelectFormat,
                 escapeFieldName(oldAlias, SYS_PRIMARY_COLUMN),
                 StringUtils.isNullOrEmpty(oldDataFields) ? "" : ", " + oldDataFields,
@@ -1740,7 +1740,7 @@ public class DataDaoImpl implements DataDao {
 
         String joinType = diffReturnTypeToJoinType(criteria.getReturnType());
 
-        final String fromFormat = "  from %1$s as %2$s \n  %3$s join %4$s as %5$s \n  on %6$s";
+        final String fromFormat = "  FROM %1$s AS %2$s \n  %3$s JOIN %4$s AS %5$s \n    ON %6$s";
         String from = String.format(fromFormat,
                 escapeTableName(oldSchemaName, oldTableName), oldAlias, joinType,
                 escapeTableName(newSchemaName, newTableName), newAlias, primaryEquality);
@@ -1795,9 +1795,9 @@ public class DataDaoImpl implements DataDao {
 
     private String diffReturnTypeToJoinType(DiffReturnTypeEnum typeEnum) {
         switch (typeEnum) {
-            case NEW: return "right";
-            case OLD: return "left";
-            default: return "full";
+            case NEW: return "RIGHT";
+            case OLD: return "LEFT";
+            default: return "FULL";
         }
     }
 
