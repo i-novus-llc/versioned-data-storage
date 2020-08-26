@@ -39,9 +39,26 @@ public class DataTestUtils {
     public static final List<String> testNames = asList(
             "first", "second", "third", "fourth", "fifth", "sixth"
     );
+    private static final int MIXED_NAME_DIVIDER = 2;
 
     private DataTestUtils() {
         // Nothing to do.
+    }
+
+    public static List<String> getMixedNames() {
+
+        int allCount = dataNames.size();
+
+        return IntStream.range(0, allCount)
+                .mapToObj(DataTestUtils::toMixedName)
+                .collect(toList());
+    }
+
+    public static String toMixedName(int index) {
+
+        int allCount = dataNames.size();
+
+        return (index < allCount / MIXED_NAME_DIVIDER) ? dataNames.get(index) : testNames.get(index);
     }
 
     public static List<Field> newIdNameFields() {
