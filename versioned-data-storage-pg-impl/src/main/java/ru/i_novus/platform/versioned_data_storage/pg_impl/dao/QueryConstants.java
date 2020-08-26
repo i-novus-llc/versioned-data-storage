@@ -359,7 +359,7 @@ public class QueryConstants {
     // to-do: Переделать остальные DO-DECLARE-BEGIN_END под такую конструкцию.
     public static final String INSERT_DATA_BY_SELECT_FROM_TABLE = "DO $$\n" +
             "DECLARE tbl_cursor refcursor;\n" +
-            "  row ${rowTable}%rowtype;\n" +
+            "  row record;\n" +
             "  i int;\n" +
             "\n" +
             "BEGIN \n" +
