@@ -1113,11 +1113,10 @@ public class DataDaoImpl implements DataDao {
                 })
                 .collect(joining(","));
 
-        final String tableAlias = "b";
         String condition = String.format(CONDITION_EQUAL_FORMAT,
-                escapeFieldName(tableAlias, SYS_PRIMARY_COLUMN), QUERY_VALUE_SUBST);
+                escapeFieldName(BASE_TABLE_ALIAS, SYS_PRIMARY_COLUMN), QUERY_VALUE_SUBST);
         String sql = String.format(UPDATE_RECORD,
-                schemaName, addDoubleQuotes(tableName), tableAlias, updateKeys, condition) +
+                schemaName, addDoubleQuotes(tableName), BASE_TABLE_ALIAS, updateKeys, condition) +
                 RETURNG + addDoubleQuotes(SYS_HASH);
         Query query = entityManager.createNativeQuery(sql);
 
