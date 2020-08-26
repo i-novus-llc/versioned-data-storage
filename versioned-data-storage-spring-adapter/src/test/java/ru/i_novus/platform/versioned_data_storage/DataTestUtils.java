@@ -31,15 +31,34 @@ public class DataTestUtils {
     public static final String FIELD_NAME_CODE = "NAME";
     public static final String FIELD_CODE_CODE = "CODE";
 
+    private static final int INDEX_TO_ID_FACTOR = 10;
+
     public static final List<String> dataNames = asList(
             "первый", "второй", "третий", "четвёртый", "пятый", "шестой"
     );
     public static final List<String> testNames = asList(
             "first", "second", "third", "fourth", "fifth", "sixth"
     );
+    private static final int MIXED_NAME_DIVIDER = 2;
 
     private DataTestUtils() {
         // Nothing to do.
+    }
+
+    public static List<String> getMixedNames() {
+
+        int allCount = dataNames.size();
+
+        return IntStream.range(0, allCount)
+                .mapToObj(DataTestUtils::toMixedName)
+                .collect(toList());
+    }
+
+    public static String toMixedName(int index) {
+
+        int allCount = dataNames.size();
+
+        return (index < allCount / MIXED_NAME_DIVIDER) ? dataNames.get(index) : testNames.get(index);
     }
 
     public static List<Field> newIdNameFields() {
@@ -57,6 +76,7 @@ public class DataTestUtils {
 
     /** Поиск поля по наименованию. */
     public static Field findFieldOrThrow(String name, List<Field> fields) {
+
         return fields.stream()
                 .filter(field -> name.equals(field.getName()))
                 .findFirst().orElseThrow(() ->
@@ -139,10 +159,17 @@ public class DataTestUtils {
     }
 
     public static Long indexToSystemId(int index) {
+
         return (long) index;
     }
 
     public static BigInteger indexToId(int index) {
-        return BigInteger.valueOf(index * 10);
+
+        return BigInteger.valueOf(index * INDEX_TO_ID_FACTOR);
+    }
+
+    public static int idToIndex(BigInteger id) {
+
+        return id.divide(BigInteger.valueOf(INDEX_TO_ID_FACTOR)).intValue();
     }
 }
