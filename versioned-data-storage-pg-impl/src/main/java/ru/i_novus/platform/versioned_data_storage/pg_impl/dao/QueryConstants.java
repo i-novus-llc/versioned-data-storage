@@ -192,7 +192,7 @@ public class QueryConstants {
     private static final String COALESCE_PUBLISH_TIME_VALUE = "coalesce(to_timestamp('${publishTime}', " +
             "'" + QUERY_TIMESTAMP_FORMAT + "')\\:\\:timestamp without time zone, '-infinity')";
     private static final String COALESCE_CLOSE_TIME_VALUE = "coalesce(to_timestamp('${closeTime}', " +
-            "'" + QUERY_TIMESTAMP_FORMAT + "')\\:\\:timestamp without time zone, '-infinity')";
+            "'" + QUERY_TIMESTAMP_FORMAT + "')\\:\\:timestamp without time zone, 'infinity')";
 
     public static final String DRAFT_TABLE_ALIAS = "d";
     public static final String VERSION_TABLE_ALIAS = "v";
