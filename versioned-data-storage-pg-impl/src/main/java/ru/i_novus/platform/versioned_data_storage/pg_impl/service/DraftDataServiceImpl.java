@@ -196,18 +196,18 @@ public class DraftDataServiceImpl implements DraftDataService {
             throw new CodifiedException(TABLES_NOT_EQUAL);
         }
 
-        copyFieldsData(sourceCode, draftCode, draftFieldNames, fromDate, toDate);
+        copyTableData(sourceCode, draftCode, draftFieldNames, fromDate, toDate);
         dataDao.updateTableSequence(draftCode);
     }
 
     @Override
     public void copyAllData(String sourceCode, String targetCode) {
 
-        copyFieldsData(sourceCode, targetCode, dataDao.getAllEscapedFieldNames(targetCode), null, null);
+        copyTableData(sourceCode, targetCode, dataDao.getAllEscapedFieldNames(targetCode), null, null);
     }
 
-    private void copyFieldsData(String sourceCode, String targetCode, List<String> fieldNames,
-                                LocalDateTime fromDate, LocalDateTime toDate) {
+    private void copyTableData(String sourceCode, String targetCode, List<String> fieldNames,
+                               LocalDateTime fromDate, LocalDateTime toDate) {
 
         BigInteger count = dataDao.countData(sourceCode);
         if (BigInteger.ZERO.equals(count))
