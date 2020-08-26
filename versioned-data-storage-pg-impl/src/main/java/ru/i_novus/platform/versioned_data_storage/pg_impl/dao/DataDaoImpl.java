@@ -640,7 +640,7 @@ public class DataDaoImpl implements DataDao {
                 addDoubleQuotes(toTableName(storageCode)),
                 addDoubleQuotes(SYS_PRIMARY_COLUMN));
         String sql = String.format(UPDATE_TABLE_SEQUENCE, escapeStorageSequenceName(storageCode), sqlSelect);
-        entityManager.createNativeQuery(sql).getSingleResult();
+        entityManager.createNativeQuery(sql).executeUpdate();
     }
 
     protected void dropTableSequence(String storageCode) {
@@ -1421,7 +1421,6 @@ public class DataDaoImpl implements DataDao {
         Map<String, String> map = new HashMap<>();
         map.put("offset", "" + criteria.getOffset());
         map.put("limit", "" + criteria.getSize());
-        map.put("rowTable", sourceTable);
         map.put("sqlSelect", sqlSelect);
         map.put("sqlInsert", sqlInsert);
 

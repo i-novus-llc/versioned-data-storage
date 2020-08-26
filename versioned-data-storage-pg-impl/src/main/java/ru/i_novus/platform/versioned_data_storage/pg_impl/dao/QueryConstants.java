@@ -13,6 +13,7 @@ import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addSingl
  * @author lgalimova
  * @since 22.03.2018
  */
+@SuppressWarnings("java:S1192")
 public class QueryConstants {
 
     public static final int TRANSACTION_ROW_LIMIT = 1000;
@@ -224,14 +225,22 @@ public class QueryConstants {
             "  CONSTRAINT \"%4$s_pkey\" PRIMARY KEY (\"SYS_RECORDID\")" +
             ");";
     static final String DROP_TABLE = "DROP TABLE IF EXISTS %1$s.%2$s";
-    static final String TRUNCATE_TABLE = "TRUNCATE TABLE %1$s.%2$s;";
 
     static final String CREATE_TABLE_COPY = "CREATE TABLE %1$s.%2$s AS " +
             "SELECT * FROM %3$s.%4$s WITH NO DATA;";
 
     static final String CREATE_TABLE_SEQUENCE = "CREATE SEQUENCE %s start 1";
     static final String SELECT_PRIMARY_MAX = "SELECT max(%3$s) FROM %1$s.%2$s";
-    static final String UPDATE_TABLE_SEQUENCE = "SELECT setval('%1$s', (%2$s))";
+    // ALTER SEQUENCE не позволяет использовать SELECT.
+    static final String UPDATE_TABLE_SEQUENCE = "DO $$\n" +
+                "BEGIN \n" +
+                "    if EXISTS(\n" +
+                "       SELECT * FROM pg_class \n" +
+                "        WHERE relkind = 'S' AND oid\\:\\:regclass\\:\\:text = '%1$s' \n" +
+                "       ) then\n" +
+                "       PERFORM setval('%1$s', (%2$s)); \n" +
+                "    end if;\n" +
+                "END$$;";
     static final String DROP_TABLE_SEQUENCE = "DROP SEQUENCE IF EXISTS %s CASCADE";
 
     static final String CREATE_TRIGGER = "CREATE OR REPLACE FUNCTION %1$s.%3$s()\n" +
