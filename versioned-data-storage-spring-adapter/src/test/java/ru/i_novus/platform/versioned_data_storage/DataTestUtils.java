@@ -13,6 +13,7 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.model.StringField;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 
@@ -30,8 +31,12 @@ public class DataTestUtils {
     public static final String FIELD_NAME_CODE = "NAME";
     public static final String FIELD_CODE_CODE = "CODE";
 
-    public static final List<String> dataNames = asList("первый", "второй", "третий", "четвёртый");
-    public static final List<String> testNames = asList("first", "second", "third", "fourth");
+    public static final List<String> dataNames = asList(
+            "первый", "второй", "третий", "четвёртый", "пятый", "шестой"
+    );
+    public static final List<String> testNames = asList(
+            "first", "second", "third", "fourth", "fifth", "sixth"
+    );
 
     private DataTestUtils() {
         // Nothing to do.
@@ -110,10 +115,10 @@ public class DataTestUtils {
             return;
         }
 
-        assertEquals(nameValues.size(), dataValues.size());
+        assertEquals(nameValues.stream().filter(Objects::nonNull).count(), dataValues.size());
 
         IntStream.range(0, nameValues.size()).forEach(index -> {
-            StringFieldValue nameValue = dataValues.stream()
+            StringFieldValue fieldNameValue = dataValues.stream()
                     .filter(rowValue -> {
                         IntegerFieldValue idValue = (IntegerFieldValue) rowValue.getFieldValue(FIELD_ID_CODE);
                         BigInteger value = idValue != null ? idValue.getValue() : null;
@@ -121,8 +126,15 @@ public class DataTestUtils {
                     })
                     .map(rowValue -> (StringFieldValue) rowValue.getFieldValue(FIELD_NAME_CODE))
                     .findFirst().orElse(null);
-            assertNotNull(nameValue);
-            assertEquals(nameValues.get(index), nameValue.getValue());
+
+            String indexNameValue = nameValues.get(index);
+            if (indexNameValue == null) {
+                assertNull(fieldNameValue);
+
+            } else {
+                assertNotNull(fieldNameValue);
+                assertEquals(indexNameValue, fieldNameValue.getValue());
+            }
         });
     }
 
