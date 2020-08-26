@@ -35,6 +35,8 @@ public class StorageCopyCriteria extends StorageDataCriteria {
 
         this.purposeSchemaName = criteria.purposeSchemaName;
         this.purposeTableName = criteria.purposeTableName;
+
+        this.escapedFieldNames = criteria.escapedFieldNames;
     }
 
     public String getPurposeSchemaName() {
