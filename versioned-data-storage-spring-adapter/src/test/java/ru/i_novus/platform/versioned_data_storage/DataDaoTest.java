@@ -29,7 +29,7 @@ import java.util.stream.IntStream;
 import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.model.StorageConstants.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.toStorageCode;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addDoubleQuotes;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addSingleQuotes;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.HASH_EXPRESSION;
@@ -59,9 +59,6 @@ public class DataDaoTest {
 
     @Autowired
     private DataDao dataDao;
-
-    @Autowired
-    private StorageCodeService storageCodeService;
 
     @Autowired
     private FieldFactory fieldFactory;
@@ -256,7 +253,7 @@ public class DataDaoTest {
 
     private String newTestTableName() {
 
-        return "data_test_" + storageCodeService.generateStorageName();
+        return "data_test_" + generateStorageName();
     }
 
     private List<Field> newTestFields() {
@@ -279,9 +276,7 @@ public class DataDaoTest {
 
     private List<RowValue> getData(String schemaName, String tableName, List<Field> fields) {
 
-        DataCriteria criteria = new DataCriteria(tableName, null, null, fields);
-        criteria.setSchemaName(schemaName);
-
+        DataCriteria criteria = new DataCriteria(toStorageCode(schemaName, tableName), null, null, fields);
         return dataDao.getData(criteria);
     }
 

@@ -34,7 +34,9 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.TRANSACTION_ROW_LIMIT;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.model.StorageConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.toStorageCode;
 
 /**
  * Created by tnurdinov on 08.06.2018.
@@ -52,9 +54,6 @@ public class UseCaseTest {
     private static final String FIELD_ID_CODE = "ID";
     private static final String FIELD_NAME_CODE = "NAME";
     private static final String FIELD_CODE_CODE = "CODE";
-
-    @Autowired
-    private StorageCodeService storageCodeService;
 
     @Autowired
     private DraftDataService draftDataService;

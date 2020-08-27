@@ -10,7 +10,6 @@ import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
 import ru.i_novus.platform.datastorage.temporal.util.CollectionUtils;
-import ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.BooleanField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.TreeField;
@@ -24,10 +23,11 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.Optional.of;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.model.StorageConstants.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addDoubleQuotes;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.ExceptionCodes.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.model.StorageConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addDoubleQuotes;
 
 /**
  * @author lgalimova
@@ -59,8 +59,8 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Transactional
     public String createDraft(String schemaName, List<Field> fields) {
 
-        String draftCode = StorageUtils.generateStorageName();
-        createDraftTable(StorageUtils.toStorageCode(schemaName, draftCode), fields);
+        String draftCode = generateStorageName();
+        createDraftTable(toStorageCode(schemaName, draftCode), fields);
         return draftCode;
     }
 
@@ -329,8 +329,8 @@ public class DraftDataServiceImpl implements DraftDataService {
     private String createVersionTable(String draftCode) {
 
         //todo никак не учитывается Field.unique - уникальность в рамках даты
-        String versionName = storageCodeService.generateStorageName();
-        String versionCode = StorageUtils.toStorageCode(toSchemaName(draftCode), versionName);
+        String versionName = generateStorageName();
+        String versionCode = toStorageCode(toSchemaName(draftCode), versionName);
         dataDao.copyTable(draftCode, versionCode);
 
         dataDao.addColumn(versionName, SYS_PUBLISHTIME, "timestamp without time zone", MIN_TIMESTAMP_VALUE);

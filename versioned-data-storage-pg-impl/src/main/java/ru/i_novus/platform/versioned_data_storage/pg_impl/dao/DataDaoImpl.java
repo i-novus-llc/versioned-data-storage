@@ -1713,6 +1713,11 @@ public class DataDaoImpl implements DataDao {
         return !StringUtils.isNullOrEmpty(tableName) ? getSchemaNameOrDefault(schemaName) : DATA_SCHEMA_NAME;
     }
 
+    protected String getStorageCodeSchemaName(String storageCode) {
+
+        return getTableSchemaName(toSchemaName(storageCode), toTableName(storageCode));
+    }
+
     private List<DiffRowValue> toDiffRowValues(List<String> fields, Map<String, Field> fieldMap,
                                                List<Object[]> dataList, CompareDataCriteria criteria) {
         List<DiffRowValue> result = new ArrayList<>();
@@ -1797,23 +1802,6 @@ public class DataDaoImpl implements DataDao {
         }
 
         return query.getSql();
-    }
-
-    // Используются для возможности переопределения схемы.
-    protected String getSchemaName(String schemaName) {
-
-        return getSchemaNameOrDefault(schemaName);
-    }
-
-    // Используются для возможности переопределения схемы.
-    protected String getTableSchemaName(String schemaName, String tableName) {
-
-        return !StringUtils.isNullOrEmpty(tableName) ? getSchemaNameOrDefault(schemaName) : DATA_SCHEMA_NAME;
-    }
-
-    protected String getStorageCodeSchemaName(String storageCode) {
-
-        return getTableSchemaName(toSchemaName(storageCode), toTableName(storageCode));
     }
 
     private static class QueryWithParams {
