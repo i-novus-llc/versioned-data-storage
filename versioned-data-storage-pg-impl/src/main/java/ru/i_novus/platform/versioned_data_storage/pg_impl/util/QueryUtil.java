@@ -12,8 +12,8 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
-import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
-import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.model.StorageConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
 
 /**

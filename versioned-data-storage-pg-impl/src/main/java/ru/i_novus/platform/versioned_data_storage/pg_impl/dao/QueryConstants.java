@@ -1,14 +1,14 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.dao;
 
-import ru.i_novus.platform.datastorage.temporal.util.StringUtils;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
-import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addDoubleQuotes;
-import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addSingleQuotes;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.model.StorageConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addDoubleQuotes;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addSingleQuotes;
 
 /**
  * @author lgalimova

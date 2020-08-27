@@ -1,13 +1,13 @@
-package ru.i_novus.platform.datastorage.temporal.util;
+package ru.i_novus.platform.versioned_data_storage.pg_impl.util;
 
-import ru.i_novus.platform.datastorage.temporal.model.StorageConstants;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.model.StorageConstants;
 
-import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.DATA_SCHEMA_NAME;
-import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.isNullOrEmpty;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.model.StorageConstants.DATA_SCHEMA_NAME;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.isNullOrEmpty;
 
 public class StorageUtils {
 
-    public StorageUtils() {
+    private StorageUtils() {
         throw new UnsupportedOperationException();
     }
 
