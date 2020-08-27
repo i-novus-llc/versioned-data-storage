@@ -10,8 +10,8 @@ import ru.i_novus.platform.datastorage.temporal.enums.ReferenceDisplayType;
 import ru.i_novus.platform.datastorage.temporal.model.*;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.*;
 import ru.i_novus.platform.datastorage.temporal.model.value.*;
-import ru.i_novus.platform.datastorage.temporal.util.StringUtils;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils;
 
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
@@ -30,13 +30,13 @@ import static java.util.Collections.*;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static org.springframework.util.CollectionUtils.isEmpty;
-import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
 import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
-import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.*;
-import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addDoubleQuotes;
-import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addSingleQuotes;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.model.StorageConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addDoubleQuotes;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addSingleQuotes;
 
 public class DataDaoImpl implements DataDao {
 
@@ -61,7 +61,7 @@ public class DataDaoImpl implements DataDao {
         // Схемы предлагается именовать в виде "data_" + код локализации, чтобы исключить случайное совпадение с другими схемами.
         // Код локализации должен содержать только строчные латинские буквы a-z, цифры 0-9 и символ подчёркивания "_".
         // В postgres макс. длина имени = NAMEDATALEN - 1 = 64 - 1, поэтому длина кода локализации должна быть <= 64 - 1 - "data_".len() = 58.
-        final String schemaName = getTableSchemaName(criteria.getSchemaName(), criteria.getTableName());
+        final String schemaName = getStorageCodeSchemaName(criteria.getStorageCode());
 
         List<Field> fields = new ArrayList<>(criteria.getFields());
         fields.add(0, new IntegerField(SYS_PRIMARY_COLUMN));
@@ -72,7 +72,7 @@ public class DataDaoImpl implements DataDao {
 
         final String sqlFormat = "SELECT %1$s \n  FROM %2$s as %3$s ";
         String sql = String.format(sqlFormat, sqlFields,
-                escapeTableName(schemaName, criteria.getTableName()),
+                escapeTableName(schemaName, toTableName(criteria.getStorageCode())),
                 DEFAULT_TABLE_ALIAS);
 
         QueryWithParams queryWithParams = new QueryWithParams(sql, null);
@@ -95,12 +95,12 @@ public class DataDaoImpl implements DataDao {
     @Override
     public BigInteger getDataCount(DataCriteria criteria) {
 
-        final String schemaName = getTableSchemaName(criteria.getSchemaName(), criteria.getTableName());
+        final String schemaName = getStorageCodeSchemaName(criteria.getStorageCode());
 
         final String sqlFormat = "  FROM %s as %s\n";
         String sql = SELECT_COUNT_ONLY +
                 String.format(sqlFormat,
-                        escapeTableName(schemaName, criteria.getTableName()),
+                        escapeTableName(schemaName, toTableName(criteria.getStorageCode())),
                         DEFAULT_TABLE_ALIAS);
 
         QueryWithParams queryWithParams = new QueryWithParams(sql, null);
@@ -113,7 +113,7 @@ public class DataDaoImpl implements DataDao {
     @Override
     public RowValue getRowData(String storageCode, List<String> fieldNames, Object systemId) {
 
-        String schemaName = getSchemaName(toSchemaName(storageCode));
+        String schemaName = getStorageCodeSchemaName(storageCode);
         String tableName = toTableName(storageCode);
 
         List<Field> fields = dataTypesToFields(getColumnDataTypes(storageCode), fieldNames);
@@ -142,7 +142,7 @@ public class DataDaoImpl implements DataDao {
     @Override
     public List<RowValue> getRowData(String storageCode, List<String> fieldNames, List<Object> systemIds) {
 
-        String schemaName = getSchemaName(toSchemaName(storageCode));
+        String schemaName = getStorageCodeSchemaName(storageCode);
         String tableName = toTableName(storageCode);
 
         List<Field> fields = dataTypesToFields(getColumnDataTypes(storageCode), fieldNames);
@@ -1797,6 +1797,23 @@ public class DataDaoImpl implements DataDao {
         }
 
         return query.getSql();
+    }
+
+    // Используются для возможности переопределения схемы.
+    protected String getSchemaName(String schemaName) {
+
+        return getSchemaNameOrDefault(schemaName);
+    }
+
+    // Используются для возможности переопределения схемы.
+    protected String getTableSchemaName(String schemaName, String tableName) {
+
+        return !StringUtils.isNullOrEmpty(tableName) ? getSchemaNameOrDefault(schemaName) : DATA_SCHEMA_NAME;
+    }
+
+    protected String getStorageCodeSchemaName(String storageCode) {
+
+        return getTableSchemaName(toSchemaName(storageCode), toTableName(storageCode));
     }
 
     private static class QueryWithParams {

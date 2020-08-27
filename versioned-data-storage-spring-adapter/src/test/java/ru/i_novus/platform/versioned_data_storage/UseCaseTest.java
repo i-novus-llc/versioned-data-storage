@@ -34,9 +34,7 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.*;
-import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
-import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.toStorageCode;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.TRANSACTION_ROW_LIMIT;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.model.StorageConstants.*;
 
 /**
  * Created by tnurdinov on 08.06.2018.

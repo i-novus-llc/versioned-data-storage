@@ -1,9 +1,10 @@
-package ru.i_novus.platform.datastorage.temporal.model;
+package ru.i_novus.platform.versioned_data_storage.pg_impl.model;
 
 import java.util.regex.Pattern;
 
 public class StorageConstants {
 
+    // Наименование схемы для хранилищ может быть только в нижнем регистре.
     // В postgres максимальная длина имени = NAMEDATALEN - 1 = 64 - 1 .
     private static final String SCHEMA_NAME_REGEX = "[a-z][a-z\\d_]{0,62}";
     public static final Pattern SCHEMA_NAME_PATTERN = Pattern.compile(SCHEMA_NAME_REGEX);
@@ -31,5 +32,6 @@ public class StorageConstants {
     public static final String REFERENCE_HASH_NAME = "hash";
 
     private StorageConstants() {
+        // Nothing to do.
     }
 }

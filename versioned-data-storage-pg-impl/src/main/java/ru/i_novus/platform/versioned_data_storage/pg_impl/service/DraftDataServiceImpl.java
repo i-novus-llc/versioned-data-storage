@@ -9,9 +9,8 @@ import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
-import ru.i_novus.platform.datastorage.temporal.service.StorageCodeService;
 import ru.i_novus.platform.datastorage.temporal.util.CollectionUtils;
-import ru.i_novus.platform.datastorage.temporal.util.StorageUtils;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.BooleanField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.TreeField;
@@ -25,9 +24,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.Optional.of;
-import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
-import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.*;
-import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addDoubleQuotes;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.model.StorageConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addDoubleQuotes;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.ExceptionCodes.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
 
@@ -41,12 +39,9 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     private DataDao dataDao;
 
-    private StorageCodeService storageCodeService;
-
-    public DraftDataServiceImpl(DataDao dataDao, StorageCodeService storageCodeService) {
+    public DraftDataServiceImpl(DataDao dataDao) {
 
         this.dataDao = dataDao;
-        this.storageCodeService = storageCodeService;
     }
 
     @Override
@@ -64,7 +59,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Transactional
     public String createDraft(String schemaName, List<Field> fields) {
 
-        String draftCode = storageCodeService.generateStorageName();
+        String draftCode = StorageUtils.generateStorageName();
         createDraftTable(StorageUtils.toStorageCode(schemaName, draftCode), fields);
         return draftCode;
     }
