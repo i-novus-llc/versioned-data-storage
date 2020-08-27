@@ -6,8 +6,6 @@ import ru.i_novus.platform.datastorage.temporal.model.Field;
 import java.time.LocalDateTime;
 import java.util.*;
 
-import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.*;
-
 public class DataCriteria extends Criteria {
 
     public static final int MIN_PAGE = 1;
@@ -15,8 +13,8 @@ public class DataCriteria extends Criteria {
     public static final int NO_PAGINATION_PAGE = 0;
     public static final int NO_PAGINATION_SIZE = 0;
 
-    /** Наименование таблицы. */
-    private final String tableName;
+    /** Код хранилища. */
+    private final String storageCode;
 
     /** Дата публикации записей. */
     private final LocalDateTime bdate;
@@ -26,9 +24,6 @@ public class DataCriteria extends Criteria {
 
     /** Список требуемых полей в результате. */
     private final List<Field> fields;
-
-    /** Наименование схемы. */
-    private String schemaName;
 
     /** Множество фильтров по отдельным полям. */
     private Set<List<FieldSearchCriteria>> fieldFilters;
@@ -43,8 +38,7 @@ public class DataCriteria extends Criteria {
 
     public DataCriteria(String storageCode, LocalDateTime bdate, LocalDateTime edate, List<Field> fields) {
 
-        this.tableName = toTableName(storageCode);
-        this.schemaName = toSchemaName(storageCode);
+        this.storageCode = storageCode;
         this.bdate = bdate;
         this.edate = edate;
         this.fields = fields;
@@ -71,8 +65,7 @@ public class DataCriteria extends Criteria {
 
         super(criteria);
 
-        this.tableName = criteria.tableName;
-        this.schemaName = criteria.schemaName;
+        this.storageCode = criteria.storageCode;
         this.bdate = criteria.bdate;
         this.edate = criteria.edate;
         this.fields = criteria.fields;
@@ -84,8 +77,8 @@ public class DataCriteria extends Criteria {
         this.systemIds = criteria.systemIds;
     }
 
-    public String getTableName() {
-        return tableName;
+    public String getStorageCode() {
+        return storageCode;
     }
 
     public LocalDateTime getBdate() {
@@ -98,14 +91,6 @@ public class DataCriteria extends Criteria {
 
     public List<Field> getFields() {
         return fields;
-    }
-
-    public String getSchemaName() {
-        return schemaName;
-    }
-
-    public void setSchemaName(String schemaName) {
-        this.schemaName = schemaName;
     }
 
     public Set<List<FieldSearchCriteria>> getFieldFilters() {
@@ -140,22 +125,17 @@ public class DataCriteria extends Criteria {
         this.systemIds = systemIds;
     }
 
-    public String getStorageCode() {
-        return toStorageCode(schemaName, tableName);
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
         DataCriteria that = (DataCriteria) o;
-        return Objects.equals(tableName, that.tableName) &&
+        return Objects.equals(storageCode, that.storageCode) &&
                 Objects.equals(bdate, that.bdate) &&
                 Objects.equals(edate, that.edate) &&
                 Objects.equals(fields, that.fields) &&
 
-                Objects.equals(schemaName, that.schemaName) &&
                 Objects.equals(fieldFilters, that.fieldFilters) &&
                 Objects.equals(commonFilter, that.commonFilter) &&
                 Objects.equals(hashList, that.hashList) &&
@@ -164,7 +144,7 @@ public class DataCriteria extends Criteria {
 
     @Override
     public int hashCode() {
-        return Objects.hash(tableName, bdate, edate, fields,
-                schemaName, fieldFilters, commonFilter, hashList, systemIds);
+        return Objects.hash(storageCode, bdate, edate, fields,
+                fieldFilters, commonFilter, hashList, systemIds);
     }
 }
