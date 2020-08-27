@@ -1,4 +1,4 @@
-package ru.i_novus.platform.versioned_data_storage.pg_impl.model;
+package ru.i_novus.platform.versioned_data_storage.pg_impl.dao;
 
 import java.util.regex.Pattern;
 
