@@ -13,6 +13,7 @@ import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
 import ru.i_novus.platform.datastorage.temporal.service.StorageCodeService;
+import ru.i_novus.platform.datastorage.temporal.util.StringUtils;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.BooleanField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.TreeField;
@@ -91,7 +92,8 @@ public class DraftDataServiceImpl implements DraftDataService {
         String targetCode = createVersionTable(draftCode);
         List<String> fieldNames = dataDao.getEscapedFieldNames(draftCode);
 
-        if (baseStorageCode != null && dataDao.storageStructureEquals(baseStorageCode, draftCode)) {
+        if (!StringUtils.isNullOrEmpty(baseStorageCode) &&
+                dataDao.storageStructureEquals(baseStorageCode, draftCode)) {
 
             insertActualDataFromVersion(baseStorageCode, draftCode, targetCode, fieldNames, publishTime, closeTime);
             insertOldDataFromVersion(baseStorageCode, draftCode, targetCode, fieldNames, publishTime, closeTime);

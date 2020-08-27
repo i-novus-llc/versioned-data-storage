@@ -46,7 +46,7 @@ public interface DraftDataService {
     /**
      * Создание новой версии на основе черновика.
      *
-     * @param baseStorageCode код хранилища данных
+     * @param baseStorageCode код базового хранилища данных
      * @param draftCode       код черновика
      * @param publishTime     дата и время публикации черновика
      * @return Уникальный код хранилища данных, созданного в результате слияния данных исходного хранилища и черновика
@@ -56,7 +56,7 @@ public interface DraftDataService {
     /**
      * Создание новой версии на основе черновика с указанием даты закрытия.
      *
-     * @param baseStorageCode код хранилища данных
+     * @param baseStorageCode код базового хранилища данных
      * @param draftCode       код черновика
      * @param publishTime     дата и время публикации черновика
      * @param closeTime       дата и время завершения действия версии
