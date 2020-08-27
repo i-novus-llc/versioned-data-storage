@@ -5,7 +5,7 @@ import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
 import java.io.Serializable;
 import java.util.List;
 
-import static ru.i_novus.platform.datastorage.temporal.CollectionUtils.isNullOrEmpty;
+import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
 
 /**
  * @author lgalimova

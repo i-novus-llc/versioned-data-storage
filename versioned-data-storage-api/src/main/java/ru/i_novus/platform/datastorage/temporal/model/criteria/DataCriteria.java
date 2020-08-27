@@ -4,12 +4,8 @@ import net.n2oapp.criteria.api.Criteria;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
-// add StorageDataCriteria with storageCode, fields, fieldFilter and statics
 public class DataCriteria extends Criteria {
 
     public static final int MIN_PAGE = 1;
@@ -17,83 +13,72 @@ public class DataCriteria extends Criteria {
     public static final int NO_PAGINATION_PAGE = 0;
     public static final int NO_PAGINATION_SIZE = 0;
 
-    private final String tableName;
+    /** Код хранилища. */
+    private final String storageCode;
+
+    /** Дата публикации записей. */
     private final LocalDateTime bdate;
+
+    /** Дата прекращения действия записей. */
     private final LocalDateTime edate;
+
+    /** Список требуемых полей в результате. */
     private final List<Field> fields;
-    private Set<List<FieldSearchCriteria>> fieldFilter;
-    private List<Long> systemIds;
+
+    /** Множество фильтров по отдельным полям. */
+    private Set<List<FieldSearchCriteria>> fieldFilters;
+
+    /** Общее условие поиска (с использованием FTS). */
     private String commonFilter;
+
+    /** Список хешей записей. */
     private List<String> hashList;
+    /** Список системных идентификаторов записей. */
+    private List<Long> systemIds;
 
-    /**
-     * @param storageCode  наименование таблицы
-     * @param bdate        дата публикации версии
-     * @param edate        дата создания версии
-     * @param fields       список полей в ответе
-     * @param fieldFilter  фильтр по отдельным полям
-     * @param commonFilter фильтр по всем полям
-     */
-    public DataCriteria(String storageCode, LocalDateTime bdate, LocalDateTime edate, List<Field> fields,
-                        List<FieldSearchCriteria> fieldFilter, String commonFilter) {
-        this(storageCode, bdate, edate, fields,
-                new HashSet<List<FieldSearchCriteria>>() {{
-                    add(fieldFilter);
-                }},
-                commonFilter);
-    }
+    public DataCriteria(String storageCode, LocalDateTime bdate, LocalDateTime edate, List<Field> fields) {
 
-    /**
-     * @param storageCode   наименование таблицы
-     * @param bdate         дата публикации версии
-     * @param edate         дата создания версии
-     * @param fields        список полей в ответе
-     * @param hashList      хеши записей
-     */
-    public DataCriteria(String storageCode, LocalDateTime bdate, LocalDateTime edate, List<Field> fields,
-                        List<String> hashList) {
-        this.tableName = storageCode;
+        this.storageCode = storageCode;
         this.bdate = bdate;
         this.edate = edate;
         this.fields = fields;
-        this.hashList = hashList;
     }
 
-    /**
-     * @param storageCode   наименование таблицы
-     * @param bdate         дата публикации версии
-     * @param edate         дата создания версии
-     * @param fields        список полей в ответе
-     * @param fieldFilter множество фильтров по отдельным полям
-     * @param commonFilter  фильтр по всем полям
-     */
     public DataCriteria(String storageCode, LocalDateTime bdate, LocalDateTime edate, List<Field> fields,
-                        Set<List<FieldSearchCriteria>> fieldFilter, String commonFilter) {
-        this.tableName = storageCode;
-        this.bdate = bdate;
-        this.edate = edate;
-        this.fields = fields;
-        this.fieldFilter = fieldFilter;
+                        Set<List<FieldSearchCriteria>> fieldFilters, String commonFilter) {
+        this(storageCode, bdate, edate, fields);
+
+        this.fieldFilters = fieldFilters;
         this.commonFilter = commonFilter;
     }
 
-    /**
-     * @param storageCode   наименование таблицы
-     * @param bdate         дата публикации версии
-     * @param edate         дата создания версии
-     * @param fields        список полей в ответе
-     * @param fieldFilter   множество фильтров по отдельным полям
-     * @param systemIds     множество фильтров по систменым идентификаторам строк
-     * @param commonFilter  фильтр по всем полям
-     */
     public DataCriteria(String storageCode, LocalDateTime bdate, LocalDateTime edate, List<Field> fields,
-                        Set<List<FieldSearchCriteria>> fieldFilter, List<Long> systemIds, String commonFilter) {
-        this(storageCode, bdate, edate, fields, fieldFilter, commonFilter);
-        this.systemIds = systemIds;
+                        List<FieldSearchCriteria> fieldFilters, String commonFilter) {
+        this(storageCode, bdate, edate, fields);
+
+        this.fieldFilters = new HashSet<>();
+        this.fieldFilters.add(fieldFilters);
+        this.commonFilter = commonFilter;
     }
 
-    public String getTableName() {
-        return tableName;
+    public DataCriteria(DataCriteria criteria) {
+
+        super(criteria);
+
+        this.storageCode = criteria.storageCode;
+        this.bdate = criteria.bdate;
+        this.edate = criteria.edate;
+        this.fields = criteria.fields;
+
+        this.fieldFilters = criteria.fieldFilters;
+        this.commonFilter = criteria.commonFilter;
+
+        this.hashList = criteria.hashList;
+        this.systemIds = criteria.systemIds;
+    }
+
+    public String getStorageCode() {
+        return storageCode;
     }
 
     public LocalDateTime getBdate() {
@@ -108,20 +93,36 @@ public class DataCriteria extends Criteria {
         return fields;
     }
 
-    public Set<List<FieldSearchCriteria>> getFieldFilter() {
-        return fieldFilter;
+    public Set<List<FieldSearchCriteria>> getFieldFilters() {
+        return fieldFilters;
     }
 
-    public List<Long> getSystemIds() {
-        return systemIds;
+    public void setFieldFilters(Set<List<FieldSearchCriteria>> fieldFilters) {
+        this.fieldFilters = fieldFilters;
     }
 
     public String getCommonFilter() {
         return commonFilter;
     }
 
+    public void setCommonFilter(String commonFilter) {
+        this.commonFilter = commonFilter;
+    }
+
     public List<String> getHashList() {
         return hashList;
+    }
+
+    public void setHashList(List<String> hashList) {
+        this.hashList = hashList;
+    }
+
+    public List<Long> getSystemIds() {
+        return systemIds;
+    }
+
+    public void setSystemIds(List<Long> systemIds) {
+        this.systemIds = systemIds;
     }
 
     @Override
@@ -129,28 +130,21 @@ public class DataCriteria extends Criteria {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        DataCriteria criteria = (DataCriteria) o;
+        DataCriteria that = (DataCriteria) o;
+        return Objects.equals(storageCode, that.storageCode) &&
+                Objects.equals(bdate, that.bdate) &&
+                Objects.equals(edate, that.edate) &&
+                Objects.equals(fields, that.fields) &&
 
-        if (!Objects.equals(tableName, criteria.tableName)) return false;
-        if (!Objects.equals(bdate, criteria.bdate)) return false;
-        if (!Objects.equals(edate, criteria.edate)) return false;
-        if (!Objects.equals(fields, criteria.fields)) return false;
-        if (!Objects.equals(fieldFilter, criteria.fieldFilter)) return false;
-        if (!Objects.equals(systemIds, criteria.systemIds)) return false;
-        if (!Objects.equals(commonFilter, criteria.commonFilter)) return false;
-        return Objects.equals(hashList, criteria.hashList);
+                Objects.equals(fieldFilters, that.fieldFilters) &&
+                Objects.equals(commonFilter, that.commonFilter) &&
+                Objects.equals(hashList, that.hashList) &&
+                Objects.equals(systemIds, that.systemIds);
     }
 
     @Override
     public int hashCode() {
-        int result = tableName != null ? tableName.hashCode() : 0;
-        result = 31 * result + (bdate != null ? bdate.hashCode() : 0);
-        result = 31 * result + (edate != null ? edate.hashCode() : 0);
-        result = 31 * result + (fields != null ? fields.hashCode() : 0);
-        result = 31 * result + (fieldFilter != null ? fieldFilter.hashCode() : 0);
-        result = 31 * result + (systemIds != null ? systemIds.hashCode() : 0);
-        result = 31 * result + (commonFilter != null ? commonFilter.hashCode() : 0);
-        result = 31 * result + (hashList != null ? hashList.hashCode() : 0);
-        return result;
+        return Objects.hash(storageCode, bdate, edate, fields,
+                fieldFilters, commonFilter, hashList, systemIds);
     }
 }

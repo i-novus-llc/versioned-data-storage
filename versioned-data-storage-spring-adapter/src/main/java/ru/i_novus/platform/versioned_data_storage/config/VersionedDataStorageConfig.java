@@ -4,6 +4,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import ru.i_novus.platform.datastorage.temporal.service.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDaoImpl;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.service.*;
 
 import javax.persistence.EntityManager;
@@ -12,17 +13,15 @@ import javax.persistence.PersistenceContext;
 /**
  * Created by tnurdinov on 25.05.2018.
  */
-
 @Configuration
 public class VersionedDataStorageConfig {
 
     @PersistenceContext
     private EntityManager entityManager;
 
-
     @Bean
     public DataDao dataDao() {
-        return new DataDao(entityManager);
+        return new DataDaoImpl(entityManager);
     }
 
     @Bean

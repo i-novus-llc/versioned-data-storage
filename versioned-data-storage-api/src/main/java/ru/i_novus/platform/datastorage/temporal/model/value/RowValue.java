@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import static ru.i_novus.platform.datastorage.temporal.CollectionUtils.isNullOrEmpty;
+import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
 
 /**
  * @author lgalimova
@@ -14,6 +14,7 @@ import static ru.i_novus.platform.datastorage.temporal.CollectionUtils.isNullOrE
  *
  */
 public abstract class RowValue<T> {
+
     private T systemId;
     private List<FieldValue> fieldValues = new ArrayList<>();
     private String hash;
@@ -49,7 +50,13 @@ public abstract class RowValue<T> {
     }
 
     public FieldValue getFieldValue(String fieldName) {
-        return !isNullOrEmpty(fieldValues) ? fieldValues.stream().filter(fieldValue -> fieldName.equals(fieldValue.getField())).findFirst().orElse(null) : null;
+
+        if (isNullOrEmpty(fieldValues))
+            return null;
+
+        return fieldValues.stream()
+                .filter(fieldValue -> fieldName.equals(fieldValue.getField()))
+                .findFirst().orElse(null);
     }
 
     public String getHash() {
@@ -64,10 +71,11 @@ public abstract class RowValue<T> {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        RowValue<?> rowValue = (RowValue<?>) o;
-        return Objects.equals(systemId, rowValue.systemId) &&
-                Objects.equals(fieldValues, rowValue.fieldValues) &&
-                Objects.equals(hash, rowValue.hash);
+
+        RowValue<?> that = (RowValue<?>) o;
+        return Objects.equals(systemId, that.systemId) &&
+                Objects.equals(fieldValues, that.fieldValues) &&
+                Objects.equals(hash, that.hash);
     }
 
     @Override

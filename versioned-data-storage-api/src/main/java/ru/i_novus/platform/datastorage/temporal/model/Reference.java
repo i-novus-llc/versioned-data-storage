@@ -9,19 +9,26 @@ import java.util.Objects;
  * @since 06.06.2018
  */
 public class Reference implements Serializable {
-    //код хранилища данных, на которое осуществляется ссылка
+
+    /** Код хранилища данных, на которое осуществляется ссылка. */
     private String storageCode;
-    //дата публикации версии
+
+    /** Дата публикации версии. */
     private LocalDateTime date;
-    //поле, на которое осуществляется ссылка
+
+    /** Поле, на которое осуществляется ссылка. */
     private String keyField;
-    //поле, отображаемое в ссылке
+
+    /** Поле, отображаемое в ссылке. */
     private String displayField;
-    //формат отображения ссылки
+
+    /** Формат отображения ссылки. */
     private DisplayExpression displayExpression;
-    //значение ключа связи
+
+    /** Значение ключа связи. */
     private String value;
-    //значение отображаемого значения
+
+    /** Значение отображаемого значения. */
     private String displayValue;
 
     public Reference() {
@@ -32,6 +39,7 @@ public class Reference implements Serializable {
      */
     @Deprecated
     public Reference(String storageCode, LocalDateTime date, String keyField, String displayField) {
+
         this.storageCode = storageCode;
         this.date = date;
         this.keyField = keyField;
@@ -39,6 +47,7 @@ public class Reference implements Serializable {
     }
 
     public Reference(String storageCode, LocalDateTime date, String keyField, DisplayExpression displayExpression) {
+
         this.storageCode = storageCode;
         this.date = date;
         this.keyField = keyField;
@@ -50,35 +59,34 @@ public class Reference implements Serializable {
      */
     @Deprecated
     public Reference(String storageCode, LocalDateTime date, String keyField, String displayField, String value) {
-        this.storageCode = storageCode;
-        this.date = date;
-        this.keyField = keyField;
-        this.displayField = displayField;
+
+        this(storageCode, date, keyField, displayField);
         this.value = value;
     }
 
-    public Reference(String storageCode, LocalDateTime date, String keyField, DisplayExpression displayExpression, String value) {
-        this.storageCode = storageCode;
-        this.date = date;
-        this.keyField = keyField;
-        this.displayExpression = displayExpression;
+    public Reference(String storageCode, LocalDateTime date, String keyField,
+                     DisplayExpression displayExpression, String value) {
+
+        this(storageCode, date, keyField, displayExpression);
         this.value = value;
     }
 
-    public Reference(String storageCode, LocalDateTime date, String keyField, String displayField, String value, String displayValue) {
-        this.storageCode = storageCode;
-        this.date = date;
-        this.keyField = keyField;
-        this.displayField = displayField;
+    /**
+     * @deprecated
+     */
+    @Deprecated
+    public Reference(String storageCode, LocalDateTime date, String keyField, String displayField,
+                     String value, String displayValue) {
+
+        this(storageCode, date, keyField, displayField);
         this.value = value;
         this.displayValue = displayValue;
     }
 
-    public Reference(String storageCode, LocalDateTime date, String keyField, DisplayExpression displayExpression, String value, String displayValue) {
-        this.storageCode = storageCode;
-        this.date = date;
-        this.keyField = keyField;
-        this.displayExpression = displayExpression;
+    public Reference(String storageCode, LocalDateTime date, String keyField,
+                     DisplayExpression displayExpression, String value, String displayValue) {
+
+        this(storageCode, date, keyField, displayExpression);
         this.value = value;
         this.displayValue = displayValue;
     }
@@ -128,19 +136,21 @@ public class Reference implements Serializable {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Reference reference = (Reference) o;
-        return Objects.equals(storageCode, reference.storageCode) &&
-                Objects.equals(date, reference.date) &&
-                Objects.equals(keyField, reference.keyField) &&
-                Objects.equals(displayField, reference.displayField) &&
-                Objects.equals(displayExpression, reference.displayExpression) &&
-                Objects.equals(value, reference.value) &&
-                Objects.equals(displayValue, reference.displayValue);
+
+        Reference that = (Reference) o;
+        return Objects.equals(storageCode, that.storageCode) &&
+                Objects.equals(date, that.date) &&
+                Objects.equals(keyField, that.keyField) &&
+                Objects.equals(displayField, that.displayField) &&
+                Objects.equals(displayExpression, that.displayExpression) &&
+                Objects.equals(value, that.value) &&
+                Objects.equals(displayValue, that.displayValue);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(storageCode, date, keyField, displayField, displayExpression, value, displayValue);
+        return Objects.hash(storageCode, date, keyField,
+                displayField, displayExpression, value, displayValue);
     }
 
     @Override

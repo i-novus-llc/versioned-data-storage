@@ -1,8 +1,7 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.util;
 
 import net.n2oapp.criteria.api.Criteria;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.text.StrSubstitutor;
+import org.apache.commons.text.StringSubstitutor;
 import ru.i_novus.platform.datastorage.temporal.enums.ReferenceDisplayType;
 import ru.i_novus.platform.datastorage.temporal.model.*;
 import ru.i_novus.platform.datastorage.temporal.model.value.*;
@@ -13,7 +12,9 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
-import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.DATA_SCHEME_NAME;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.model.StorageConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
 
 /**
  * @author lgalimova
@@ -22,19 +23,21 @@ import static ru.i_novus.platform.datastorage.temporal.model.DataConstants.DATA_
 public class QueryUtil {
 
     private QueryUtil() {
+        throw new UnsupportedOperationException();
     }
 
     /**
      * Преобразование полученных данных в список записей.
      * <p>
      * При получении всех данных необходимо использовать
-     * совместно с {@link #generateSqlQuery} при {@code includeReference} = true.
+     * совместно с {@link #getSelectFields} при {@code detailed} = true.
      *
      * @param fields список полей
      * @param data   список данных
      * @return Список записей
      */
-    public static List<RowValue> convertToRowValue(List<Field> fields, List<Object[]> data) {
+    public static List<RowValue> toRowValues(List<Field> fields, List<Object[]> data) {
+
         List<RowValue> resultData = new ArrayList<>(data.size());
         for (Object objects : data) {
             LongRowValue rowValue = new LongRowValue();
@@ -50,7 +53,7 @@ public class QueryUtil {
                     if (i == 0) { // SYS_RECORD_ID
                         rowValue.setSystemId(Long.parseLong(row[i].toString()));
 
-                    } else if (i == 1) { // SYS_HASH
+                    } else if (i == 1 && SYS_HASH.equals(field.getName())) { // SYS_HASH
                         rowValue.setHash(row[i].toString());
 
                     } else { // FIELD
@@ -113,7 +116,7 @@ public class QueryUtil {
      * @param fieldValue значение поля
      * @return Отсутствие значения
      */
-    public static boolean isFieldValueNull(FieldValue fieldValue) {
+    public static boolean isFieldValueNull(FieldValue<?> fieldValue) {
         return fieldValue.getValue() == null || fieldValue.getValue().equals("null");
     }
 
@@ -124,84 +127,101 @@ public class QueryUtil {
      * @param fields   список полей таблицы
      * @param detailed отображение дополнительных частей составных полей
      */
-    public static String generateSqlQuery(String alias, List<Field> fields, boolean detailed) {
-        if (StringUtils.isEmpty(alias))
+    public static String getSelectFields(String alias, List<Field> fields, boolean detailed) {
+
+        if (isNullOrEmpty(alias))
             alias = "";
 
         List<String> queryFields = new ArrayList<>();
-        for (Field field : fields) {
+        for (Field<?> field : fields) {
             String query = formatFieldForQuery(field.getName(), alias);
 
             if (field instanceof ReferenceField) {
-                String queryValue = query + "->>'value' as " + addDoubleQuotes(alias + field.getName() + ".value");
+                final String jsonOperator = "->>";
+
+                String queryValue = query + jsonOperator +
+                        addSingleQuotes(REFERENCE_VALUE_NAME) +
+                        ALIAS_OPERATOR +
+                        sqlFieldAlias(field, alias, REFERENCE_VALUE_NAME);
                 queryFields.add(queryValue);
+
                 if (detailed) {
-                    String queryDisplayValue = query + "->>'displayValue' as " + addDoubleQuotes(alias + field.getName() + ".displayValue");
+                    String queryDisplayValue = query + jsonOperator +
+                            addSingleQuotes(REFERENCE_DISPLAY_VALUE_NAME) +
+                            ALIAS_OPERATOR +
+                            sqlFieldAlias(field, alias, REFERENCE_DISPLAY_VALUE_NAME);
                     queryFields.add(queryDisplayValue);
                 }
             } else {
                 if (field instanceof TreeField) {
                     query += "\\:\\:text";
                 }
-                query += " as " + addDoubleQuotes(alias + field.getName() + fields.indexOf(field));
+                query += ALIAS_OPERATOR +
+                        sqlFieldAlias(field, alias, fields.indexOf(field));
                 queryFields.add(query);
             }
         }
-        return String.join(",", queryFields);
+        return String.join(", ", queryFields);
+    }
+
+    private static String sqlFieldAlias(Field<?> field, String prefix, String suffix) {
+        return addDoubleQuotes(prefix + field.getName() + "." + suffix);
+    }
+
+    private static String sqlFieldAlias(Field<?> field, String prefix, int index) {
+        return addDoubleQuotes(prefix + field.getName() + index);
     }
 
     public static String formatFieldForQuery(String field, String alias) {
-        if (!StringUtils.isEmpty(alias))
-            alias = alias + ".";
-        if (field.contains("->>")) {
-            String[] queryParts = field.split("->>");
-            return alias + addDoubleQuotes(queryParts[0]) + "->>" + queryParts[1];
+
+        if (alias == null) {
+            alias = "";
+
+        } else if (!alias.isEmpty()) {
+            alias = alias + NAME_SEPARATOR;
+        }
+
+        if (field.contains(REFERENCE_FIELD_VALUE_OPERATOR)) {
+            String[] queryParts = field.split(REFERENCE_FIELD_VALUE_OPERATOR);
+
+            return alias + addDoubleQuotes(queryParts[0]) +
+                    REFERENCE_FIELD_VALUE_OPERATOR + queryParts[1];
         } else {
             return alias + addDoubleQuotes(field);
         }
     }
 
-    public static String addDoubleQuotes(String source) {
-        return "\"" + source + "\"";
+    public static String getSchemaName(String schemaName) {
+
+        return isNullOrEmpty(schemaName) ? DATA_SCHEMA_NAME : schemaName;
     }
 
-    public static String addSingleQuotes(String source) {
-        return "'" + source + "'";
+    public static String escapeTableName(String schemaName, String tableName) {
+
+        return getSchemaName(schemaName) + NAME_SEPARATOR + addDoubleQuotes(tableName);
     }
 
-    public static String formatJsonbAttrValueForMapping(String field) {
-        if (!field.contains("->>"))
-            return field;
-        else {
-            String[] parts = field.split("->>");
-            return parts[0] + "." + StringUtils.strip(parts[1], "'").toUpperCase();
-        }
+    public static String escapeFieldName(String tableAlias, String fieldName) {
+
+        String escapedFieldName = addDoubleQuotes(fieldName);
+        return isNullOrEmpty(tableAlias) ? escapedFieldName : tableAlias + NAME_SEPARATOR + escapedFieldName;
     }
 
-    public static String getTableName(String table) {
-        return addDoubleQuotes(table);
+    public static String escapeSequenceName(String tableName) {
+        return addDoubleQuotes(tableName + "_" + SYS_PRIMARY_COLUMN + "_seq");
     }
 
-    public static String getSequenceName(String table) {
-        return addDoubleQuotes(table + "_SYS_RECORDID_seq");
-    }
+    public static String escapeSchemaSequenceName(String schemaName, String tableName) {
 
-    public static String getSchemeTableName(String table) {
-        return DATA_SCHEME_NAME + "." + getTableName(table);
-    }
-
-    public static String getSchemeSequenceName(String table) {
-        return DATA_SCHEME_NAME + "." + getSequenceName(table);
-    }
-
-    public static Object truncateDateTo(LocalDateTime date, ChronoUnit unit, Object defaultValue) {
-        return date != null ? date.truncatedTo(unit) : defaultValue;
+        return getSchemaName(schemaName) + NAME_SEPARATOR + escapeSequenceName(tableName);
     }
 
     public static int getOffset(Criteria criteria) {
+
         if (criteria != null) {
             if (criteria.getPage() <= 0 || criteria.getSize() <= 0)
                 throw new IllegalStateException("Criteria page and size should be greater than zero");
+
             return (criteria.getPage() - 1) * criteria.getSize();
         }
         return 0;
@@ -265,51 +285,71 @@ public class QueryUtil {
      * Формирование sql-текста для значения отображаемого выражения.
      *
      * @param displayField поле для получения отображаемого значения
-     * @param table        таблица, к которой привязано поле
+     * @param tableAlias   таблица, к которой привязано поле
      * @return Текст для подстановки в SQL
      */
-    public static String sqlFieldExpression(String displayField, String table) {
-        return table + "." + addDoubleQuotes(displayField);
+    public static String sqlFieldExpression(String displayField, String tableAlias) {
+
+        return tableAlias + NAME_SEPARATOR + addDoubleQuotes(displayField);
     }
 
     /**
      * Формирование sql-текста для значения отображаемого выражения.
      *
      * @param displayExpression выражение для вычисления отображаемого значения
-     * @param table             таблица, к которой привязаны поля-placeholder`ы
+     * @param tableAlias        таблица, к которой привязаны поля-placeholder`ы
      * @return Текст для подстановки в SQL
      */
-    public static String sqlDisplayExpression(DisplayExpression displayExpression, String table) {
-        String sqlDisplayExpression = escapeSql(displayExpression.getValue());
-        Map<String, String> map = new HashMap<>();
+    public static String sqlDisplayExpression(DisplayExpression displayExpression, String tableAlias) {
+
+        final String valueFormat = "' || coalesce(%1$s\\:\\:text, '%2$s') || '";
+
+        Map<String, Object> map = new HashMap<>();
         for (Map.Entry<String, String> e : displayExpression.getPlaceholders().entrySet()) {
-            map.put(e.getKey(), "' || COALESCE(" + table + "." + addDoubleQuotes(e.getKey()) + "\\:\\:TEXT, '" + e.getValue() + "') || '");
+            String value = e.getValue() == null ? "" : e.getValue();
+            value = String.format(valueFormat, escapeFieldName(tableAlias, e.getKey()), value);
+            map.put(e.getKey(), value);
         }
-        return addSingleQuotes(StrSubstitutor.replace(sqlDisplayExpression, map));
+
+        String escapedDisplayExpression = escapeSql(displayExpression.getValue());
+        String displayValue = createDisplayExpressionSubstitutor(map).replace(escapedDisplayExpression);
+        return addSingleQuotes(displayValue);
     }
 
     /**
-     * <p>Escapes the characters in a <code>String</code> to be suitable to pass to
-     * an SQL query.</p>
+     * <p>Escapes the characters in a <code>String</code> to be suitable to pass to an SQL query.
      *
      * <p>For example,
-     * <pre>statement.executeQuery("SELECT * FROM MOVIES WHERE TITLE='" +
-     *   StringEscapeUtils.escapeSql("McHale Navy") +
-     *   "'");</pre>
-     * </p>
+     * <pre>
+     *      statement.executeQuery("SELECT * FROM data_table WHERE name='" +
+     *          StringEscapeUtils.escapeSql("i_novus' style") +
+     *      "'");
+     * </pre>
      * <p>
      * <p>At present, this method only turns single-quotes into doubled single-quotes
-     * (<code>"McHale Navy"</code> => <code>"McHale' Navy"</code>). It does not
-     * handle the cases of percent (%) or underscore (_) for use in LIKE clauses.</p>
+     * (<code>"i_novus' style"</code> => <code>"i_novus'' style"</code>).
+     * It does not handle the cases of percent (%) or underscore (_) for use in LIKE clauses.
      *
      * see http://www.jguru.com/faq/view.jsp?EID=8881
-     * @param str  the string to escape, may be null
-     * @return a new String, escaped for SQL, <code>null</code> if null string input
+     * 
+     * @param str the string to escape, may be null
+     * @return A new String, escaped for SQL, <code>null</code> if null string input
      */
     public static String escapeSql(String str) {
-        if (str == null) {
-            return null;
-        }
-        return StringUtils.replace(str, "'", "''");
+
+        return (str == null) ? null : str.replace("'", "''");
+    }
+
+    /** Создание объекта подстановки в выражение для вычисления отображаемого значения. */
+    public static StringSubstitutor createDisplayExpressionSubstitutor(Map<String, Object> map) {
+
+        StringSubstitutor substitutor = new StringSubstitutor(map,
+                DisplayExpression.PLACEHOLDER_START, DisplayExpression.PLACEHOLDER_END);
+        substitutor.setValueDelimiter(DisplayExpression.PLACEHOLDER_DEFAULT_DELIMITER);
+        return substitutor;
+    }
+
+    public static Object truncateDateTo(LocalDateTime date, ChronoUnit unit, Object defaultValue) {
+        return date != null ? date.truncatedTo(unit) : defaultValue;
     }
 }

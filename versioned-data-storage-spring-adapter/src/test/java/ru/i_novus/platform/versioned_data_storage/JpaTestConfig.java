@@ -30,12 +30,15 @@ public class JpaTestConfig {
             pg = EmbeddedPostgres.builder().setPort(5448)
                     .setCleanDataDirectory(true)
                     .start();
+
             return prepareDb(pg.getTemplateDatabase());
+
         } catch (IOException e) {
             try {
                 pg.close();
-            } catch (IOException e1) {
-                e1.printStackTrace();
+
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
             }
             e.printStackTrace();
             return null;
@@ -43,28 +46,38 @@ public class JpaTestConfig {
 
     }
 
-    private DataSource prepareDb(DataSource dataSource){
+    private DataSource prepareDb(DataSource dataSource) {
+
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(
-                        "CREATE SCHEMA IF NOT EXISTS data;  " +
-                        "DROP TEXT SEARCH CONFIGURATION IF EXISTS ru; " +
-                        "DROP TEXT SEARCH DICTIONARY IF EXISTS ispell_ru; " +
-                        "CREATE TEXT SEARCH DICTIONARY ispell_ru (\n" +
-                             "template= ispell,\n" +
-                             "dictfile= ru,\n" +
-                             "afffile=ru,\n" +
-                             "stopwords = russian\n" +
-                         ");\n" +
-                         "CREATE TEXT SEARCH CONFIGURATION ru ( COPY = russian );\n" +
-                         "ALTER TEXT SEARCH CONFIGURATION ru\n" +
-                            "ALTER MAPPING FOR word, hword, hword_part\n" +
-                                "WITH ispell_ru, russian_stem;"
-                )) {
+             PreparedStatement preparedStatement = connection.prepareStatement(getPreparedQuery())
+        ) {
             preparedStatement.execute();
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return dataSource;
+    }
+
+    private String getPreparedQuery() {
+
+        return "CREATE SCHEMA IF NOT EXISTS data; \n" +
+                "\n" +
+                "DROP TEXT SEARCH CONFIGURATION IF EXISTS ru; \n" +
+                "DROP TEXT SEARCH DICTIONARY IF EXISTS ispell_ru; \n" +
+                "CREATE TEXT SEARCH DICTIONARY ispell_ru ( \n" +
+                "  template= ispell, \n" +
+                "  dictfile= ru, \n" +
+                "  afffile=ru, \n" +
+                "  stopwords = russian \n" +
+                "); \n" +
+                "\n" +
+                "CREATE TEXT SEARCH CONFIGURATION ru ( COPY = russian ); \n" +
+                "ALTER TEXT SEARCH CONFIGURATION ru \n" +
+                "   ALTER MAPPING FOR word, hword, hword_part \n" +
+                "   WITH ispell_ru, russian_stem; \n" +
+                "\n" +
+                "CREATE SCHEMA IF NOT EXISTS data_test; \n";
     }
 
     @Bean

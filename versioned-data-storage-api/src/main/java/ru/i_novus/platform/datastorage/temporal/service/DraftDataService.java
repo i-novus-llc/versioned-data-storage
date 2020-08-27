@@ -9,8 +9,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Сервис работы с черновиками. Черновик ({@code draft}) - это модифицируемый набор записей.
- * У черновика может изменяться как набор данных, так и их структура, вплоть до момента публикации при помощи метода {@code apply}.
+ * Сервис работы с черновиками.
+ * <p>
+ * Черновик ({@code draft}) - это модифицируемый набор записей.
+ * У черновика может изменяться как набор данных, так и их структура,
+ * вплоть до момента публикации при помощи метода {@code apply}.
  *
  * @author lgalimova
  * @since 31.01.2018
@@ -18,7 +21,7 @@ import java.util.List;
 public interface DraftDataService {
 
     /**
-     * Создание черновика версии без данных
+     * Создание черновика версии без данных.
      *
      * @param fields список полей
      * @return Уникальный код черновика
@@ -26,36 +29,45 @@ public interface DraftDataService {
     String createDraft(List<Field> fields);
 
     /**
-     * Создание новой версии на основе черновика
+     * Создание черновика версии без данных.
+     *
+     * @param fields список полей
+     * @return Уникальный код черновика
+     */
+    String createDraft(String schemaName, List<Field> fields);
+
+    /**
+     * Создание новой версии на основе черновика.
      *
      * @param baseStorageCode код хранилища данных
-     * @param draftCode       таблица черновика
+     * @param draftCode       код черновика
      * @param publishTime     дата и время публикации черновика
      * @return Уникальный код хранилища данных, созданного в результате слияния данных исходного хранилища и черновика
      */
     String applyDraft(String baseStorageCode, String draftCode, LocalDateTime publishTime);
 
     /**
-     * Создание новой версии на основе черновика с указанием даты закрытия
+     * Создание новой версии на основе черновика с указанием даты закрытия.
      *
      * @param baseStorageCode код хранилища данных
-     * @param draftCode       таблица черновика
+     * @param draftCode       код черновика
      * @param publishTime     дата и время публикации черновика
      * @param closeTime       дата и время завершения действия версии
      * @return Уникальный код хранилища данных, созданного в результате слияния данных исходного хранилища и черновика
      */
-    String applyDraft(String baseStorageCode, String draftCode, LocalDateTime publishTime, LocalDateTime closeTime);
+    String applyDraft(String baseStorageCode, String draftCode,
+                      LocalDateTime publishTime, LocalDateTime closeTime);
 
     /**
-     * Проверка существования черновика
+     * Проверка существования хранилища.
      *
-     * @param draftCode таблица черновика
+     * @param storageCode код хранилища данных
      * @return Признак существования
      */
-    boolean draftExists(String draftCode);
+    boolean storageExists(String storageCode);
 
     /**
-     * Добавление записей в таблицу
+     * Добавление записей в таблицу.
      *
      * @param draftCode код черновика
      * @param rowValues данные записей
@@ -64,7 +76,7 @@ public interface DraftDataService {
     void addRows(String draftCode, List<RowValue> rowValues);
 
     /**
-     * Удаление записей из таблицы
+     * Удаление записей из таблицы.
      *
      * @param draftCode код черновика
      * @param systemIds системные идентификаторы записей
@@ -72,14 +84,14 @@ public interface DraftDataService {
     void deleteRows(String draftCode, List<Object> systemIds);
 
     /**
-     * Удаление всех записей из таблицы
+     * Удаление всех записей из таблицы.
      *
      * @param draftCode код черновика
      */
     void deleteAllRows(String draftCode);
 
     /**
-     * Изменение записи таблицы
+     * Изменение записи таблицы.
      *
      * @param draftCode код черновика
      * @param rowValue  новые данные записи
@@ -87,7 +99,7 @@ public interface DraftDataService {
     void updateRow(String draftCode, RowValue rowValue);
 
     /**
-     * Изменение записей таблицы
+     * Изменение записей таблицы.
      *
      * @param draftCode код черновика
      * @param rowValues новые данные записей
@@ -95,7 +107,7 @@ public interface DraftDataService {
     void updateRows(String draftCode, List<RowValue> rowValues);
 
     /**
-     * Обновление отображаемого значения ссылки в записях таблицы
+     * Обновление отображаемого значения ссылки в записях таблицы.
      *
      * @param storageCode код хранилища данных
      * @param fieldValue  данные поля
@@ -115,7 +127,7 @@ public interface DraftDataService {
                                   LocalDateTime publishTime, LocalDateTime closeTime);
 
     /**
-     * Загрузить данные в черновик из хранилища
+     * Загрузка данных на указанную дату из хранилища в черновик.
      *
      * @param draftCode         код черновика
      * @param sourceStorageCode код хранилища данных, откуда будут загружены данные
@@ -124,7 +136,7 @@ public interface DraftDataService {
     void loadData(String draftCode, String sourceStorageCode, LocalDateTime onDate);
 
     /**
-     * Загрузить данные в черновик из хранилища
+     * Загрузка данных на указанном интервале из хранилища в черновик.
      *
      * @param draftCode         код черновика
      * @param sourceStorageCode код хранилища данных, откуда будут загружены данные
@@ -134,7 +146,7 @@ public interface DraftDataService {
     void loadData(String draftCode, String sourceStorageCode, LocalDateTime fromDate, LocalDateTime toDate);
 
     /**
-     * Добавление нового поля в таблицу
+     * Добавление нового поля в таблицу.
      *
      * @param draftCode код черновика
      * @param field     данные поля
@@ -142,7 +154,7 @@ public interface DraftDataService {
     void addField(String draftCode, Field field);
 
     /**
-     * Удаления поля из таблицы
+     * Удаления поля из таблицы.
      *
      * @param draftCode код черновика
      * @param fieldName наименование удаляемого поля
@@ -151,7 +163,7 @@ public interface DraftDataService {
     void deleteField(String draftCode, String fieldName);
 
     /**
-     * Изменение типа поля в таблице
+     * Изменение типа поля в таблице.
      *
      * @param draftCode код черновика
      * @param field     данные поля
@@ -159,16 +171,17 @@ public interface DraftDataService {
     void updateField(String draftCode, Field field);
 
     /**
-     * Проверка наличия данных в поле хранилища
+     * Проверка наличия данных в поле хранилища.
      *
      * @param storageCode код хранилища данных
      * @param fieldName   наименование поля
-     * @return возвращает true, если в столбце есть данные, иначе false. Если столбец заполнен значениями null, считается, что он пустой.
+     * @return возвращает true, если в столбце есть данные, иначе false.
+     * Если столбец заполнен значениями null, считается, что он пустой.
      */
     boolean isFieldNotEmpty(String storageCode, String fieldName);
 
     /**
-     * Проверка наличия пустых данных в поле хранилища
+     * Проверка наличия пустых данных в поле хранилища.
      *
      * @param storageCode код хранилища данных
      * @param fieldName   наименование поля
@@ -177,7 +190,7 @@ public interface DraftDataService {
     boolean isFieldContainEmptyValues(String storageCode, String fieldName);
 
     /**
-     * Проверка уникальности значений поля хранилища
+     * Проверка уникальности значений поля хранилища.
      *
      * @param storageCode код хранилища данных
      * @param fieldName   наименование поля
@@ -187,7 +200,7 @@ public interface DraftDataService {
     boolean isFieldUnique(String storageCode, String fieldName, LocalDateTime publishTime);
 
     /**
-     * Проверка уникальности списка значений полей хранилища
+     * Проверка уникальности списка значений полей хранилища.
      *
      * @param storageCode код хранилища данных
      * @param fieldNames  список наименований полей
