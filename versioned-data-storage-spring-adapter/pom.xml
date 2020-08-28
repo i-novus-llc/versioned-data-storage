@@ -122,18 +122,4 @@
         </plugins>
     </build>
 
-    <profiles>
-        <profile>
-            <id>test-logging</id>
-
-            <dependencies>
-                <dependency>
-                    <groupId>ch.qos.logback</groupId>
-                    <artifactId>logback-classic</artifactId>
-                    <version>1.2.3</version>
-                    <scope>test</scope>
-                </dependency>
-            </dependencies>
-        </profile>
-    </profiles>
 </project>
