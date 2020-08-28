@@ -41,6 +41,7 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.*;
 
+@SuppressWarnings("java:S1192")
 public class DataDaoImpl implements DataDao {
 
     private static final Logger logger = LoggerFactory.getLogger(DataDaoImpl.class);
@@ -1384,10 +1385,10 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     @Transactional(Transactional.TxType.REQUIRED)
-    public void copyTableData(StorageCopyCriteria criteria) {
+    public void copyTableData(StorageCopyRequest request) {
 
-        String sourceTable = escapeStorageTableName(criteria.getStorageCode());
-        String targetTable = escapeStorageTableName(criteria.getPurposeCode());
+        String sourceTable = escapeStorageTableName(request.getStorageCode());
+        String targetTable = escapeStorageTableName(request.getPurposeCode());
 
         Map<String, String> mapSelect = new HashMap<>();
         mapSelect.put("sourceTable", sourceTable);
@@ -1396,7 +1397,7 @@ public class DataDaoImpl implements DataDao {
 
         String sqlSelect = substitute(SELECT_FROM_SOURCE_TABLE, mapSelect);
 
-        QueryWithParams where = getWhereClause(criteria, DEFAULT_TABLE_ALIAS);
+        QueryWithParams where = getWhereClause(request, DEFAULT_TABLE_ALIAS);
         if (!StringUtils.isNullOrEmpty(where.getSql())) {
 
             sqlSelect += SELECT_WHERE + where.getBindedSql();
@@ -1404,9 +1405,9 @@ public class DataDaoImpl implements DataDao {
 
         sqlSelect += sortingToOrderBy(null, DEFAULT_TABLE_ALIAS);
 
-        List<String> fieldNames = criteria.getEscapedFieldNames();
+        List<String> fieldNames = request.getEscapedFieldNames();
         if (isNullOrEmpty(fieldNames)) {
-            fieldNames = getAllEscapedFieldNames(criteria.getPurposeCode());
+            fieldNames = getAllEscapedFieldNames(request.getPurposeCode());
         }
 
         Map<String, String> mapInsert = new HashMap<>();
@@ -1417,8 +1418,8 @@ public class DataDaoImpl implements DataDao {
         String sqlInsert = substitute(INSERT_INTO_TARGET_TABLE, mapInsert);
 
         Map<String, String> map = new HashMap<>();
-        map.put("offset", "" + criteria.getOffset());
-        map.put("limit", "" + criteria.getSize());
+        map.put("offset", "" + request.getOffset());
+        map.put("limit", "" + request.getSize());
         map.put("sqlSelect", sqlSelect);
         map.put("sqlInsert", sqlInsert);
 

@@ -7,7 +7,7 @@ import ru.i_novus.platform.datastorage.temporal.exception.ListCodifiedException;
 import ru.i_novus.platform.datastorage.temporal.exception.NotUniqueException;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
-import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageCopyCriteria;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageCopyRequest;
 import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
@@ -209,16 +209,16 @@ public class DraftDataServiceImpl implements DraftDataService {
             dataDao.disableTriggers(targetCode);
         }
         try {
-            StorageCopyCriteria criteria = new StorageCopyCriteria(sourceCode, targetCode, fromDate, toDate, null);
-            criteria.setEscapedFieldNames(fieldNames);
+            StorageCopyRequest request = new StorageCopyRequest(sourceCode, targetCode, fromDate, toDate, null);
+            request.setEscapedFieldNames(fieldNames);
 
-            criteria.setCount(count.intValue());
-            criteria.setSize(TRANSACTION_ROW_LIMIT);
+            request.setCount(count.intValue());
+            request.setSize(TRANSACTION_ROW_LIMIT);
 
-            int pageCount = criteria.getPageCount();
+            int pageCount = request.getPageCount();
             for (int page = 0; page < pageCount; page++) {
-                criteria.setPage(page + DataCriteria.MIN_PAGE);
-                dataDao.copyTableData(criteria);
+                request.setPage(page + DataCriteria.MIN_PAGE);
+                dataDao.copyTableData(request);
             }
 
         } finally {

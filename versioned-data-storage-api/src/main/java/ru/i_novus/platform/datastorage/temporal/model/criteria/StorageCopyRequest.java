@@ -6,10 +6,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 
-
-
-/** Критерий копирования данных в хранилище. */
-public class StorageCopyCriteria extends StorageDataCriteria {
+/** Запрос на копирование данных в хранилище. */
+public class StorageCopyRequest extends StorageDataCriteria {
 
     /** Код хранилища назначения. */
     private final String purposeCode;
@@ -17,15 +15,15 @@ public class StorageCopyCriteria extends StorageDataCriteria {
     /** Экранированные наименования полей для копирования. */
     private List<String> escapedFieldNames;
 
-    public StorageCopyCriteria(String storageCode, String purposeCode,
-                               LocalDateTime bdate, LocalDateTime edate, List<Field> fields) {
+    public StorageCopyRequest(String storageCode, String purposeCode,
+                              LocalDateTime bdate, LocalDateTime edate, List<Field> fields) {
 
         super(storageCode, bdate, edate, fields);
 
         this.purposeCode = purposeCode;
     }
 
-    public StorageCopyCriteria(StorageCopyCriteria criteria) {
+    public StorageCopyRequest(StorageCopyRequest criteria) {
 
         super(criteria);
 
@@ -51,7 +49,7 @@ public class StorageCopyCriteria extends StorageDataCriteria {
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
 
-        StorageCopyCriteria that = (StorageCopyCriteria) o;
+        StorageCopyRequest that = (StorageCopyRequest) o;
         return Objects.equals(purposeCode, that.purposeCode) &&
                 Objects.equals(escapedFieldNames, that.escapedFieldNames);
     }

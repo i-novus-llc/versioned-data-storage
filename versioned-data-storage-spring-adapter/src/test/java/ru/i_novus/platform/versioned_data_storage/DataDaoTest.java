@@ -14,7 +14,7 @@ import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.LongRowValue;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
-import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageCopyCriteria;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageCopyRequest;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.FieldFactory;
 import ru.i_novus.platform.versioned_data_storage.config.VersionedDataStorageConfig;
@@ -323,11 +323,11 @@ public class DataDaoTest {
         List<RowValue> emptyDataValues = dataDao.getData(toCriteria(targetCode, fields));
         assertEquals(0, emptyDataValues == null ? 0 : emptyDataValues.size());
 
-        StorageCopyCriteria criteria = new StorageCopyCriteria(sourceCode, targetCode, null, null, null);
-        criteria.setPage(DataCriteria.MIN_PAGE);
-        criteria.setSize(dataNames.size());
+        StorageCopyRequest request = new StorageCopyRequest(sourceCode, targetCode, null, null, null);
+        request.setPage(DataCriteria.MIN_PAGE);
+        request.setSize(dataNames.size());
 
-        dataDao.copyTableData(criteria);
+        dataDao.copyTableData(request);
         dataValues = dataDao.getData(toCriteria(targetCode, fields));
         assertValues(dataValues, dataNames);
     }
