@@ -14,7 +14,7 @@ public class StorageCopyCriteria extends StorageDataCriteria {
     /** Код хранилища назначения. */
     private final String purposeCode;
 
-    /** Экранированные наименования копируемых полей. */
+    /** Экранированные наименования полей для копирования. */
     private List<String> escapedFieldNames;
 
     public StorageCopyCriteria(String storageCode, String purposeCode,
