@@ -1,4 +1,4 @@
-package ru.i_novus.platform.datastorage.temporal.model;
+package ru.i_novus.platform.versioned_data_storage.pg_impl.dao;
 
 import java.util.Arrays;
 import java.util.List;
@@ -43,6 +43,7 @@ public class StorageConstants {
     public static final String REFERENCE_HASH_NAME = "hash";
 
     private StorageConstants() {
+        // Nothing to do.
     }
 
     // NB: Workaround to sonar issue "squid-S2386".

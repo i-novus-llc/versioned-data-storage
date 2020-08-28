@@ -25,18 +25,13 @@ public class VersionedDataStorageConfig {
     }
 
     @Bean
-    public StorageCodeService getStorageCodeService() {
-        return new StorageCodeServiceImpl();
-    }
-
-    @Bean
     public SearchDataService getSearchDataService() {
         return new SearchDataServiceImpl(dataDao());
     }
 
     @Bean
     public DraftDataService getDraftDataService() {
-        return new DraftDataServiceImpl(dataDao(), getStorageCodeService());
+        return new DraftDataServiceImpl(dataDao());
     }
 
     @Bean

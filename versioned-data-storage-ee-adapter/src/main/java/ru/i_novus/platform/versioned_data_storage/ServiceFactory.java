@@ -20,18 +20,13 @@ public class ServiceFactory implements Serializable {
     private DataDao dataDao;
 
     @Produces
-    public StorageCodeService getStorageCodeService() {
-        return new StorageCodeServiceImpl();
-    }
-
-    @Produces
     public SearchDataService getSearchDataService() {
         return new SearchDataServiceImpl(dataDao);
     }
 
     @Produces
     public DraftDataService getDraftDataService() {
-        return new DraftDataServiceImpl(dataDao, getStorageCodeService());
+        return new DraftDataServiceImpl(dataDao);
     }
 
     @Produces

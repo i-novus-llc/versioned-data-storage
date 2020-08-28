@@ -34,11 +34,9 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.*;
-import static ru.i_novus.platform.datastorage.temporal.model.DisplayExpression.toPlaceholder;
-import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
-import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.toStorageCode;
-import static ru.i_novus.platform.versioned_data_storage.DataTestUtils.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.TRANSACTION_ROW_LIMIT;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.toStorageCode;
 
 /**
  * Created by tnurdinov on 08.06.2018.
@@ -53,9 +51,6 @@ public class UseCaseTest {
 
     @Autowired
     private FieldFactory fieldFactory;
-
-    @Autowired
-    private StorageCodeService storageCodeService;
 
     @Autowired
     private DraftDataService draftDataService;

@@ -1,13 +1,13 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.dao;
 
-import ru.i_novus.platform.datastorage.temporal.util.StringUtils;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils;
 
 import java.time.format.DateTimeFormatter;
 import java.util.stream.Collectors;
 
-import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
-import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addDoubleQuotes;
-import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addSingleQuotes;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addDoubleQuotes;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addSingleQuotes;
 
 /**
  * @author lgalimova
@@ -186,7 +186,7 @@ public class QueryConstants {
     private static final String COALESCE_PUBLISH_TIME_VALUE = "coalesce(to_timestamp('${publishTime}', " +
             "'" + QUERY_TIMESTAMP_FORMAT + "')\\:\\:timestamp without time zone, '-infinity')";
     private static final String COALESCE_CLOSE_TIME_VALUE = "coalesce(to_timestamp('${closeTime}', " +
-            "'" + QUERY_TIMESTAMP_FORMAT + "')\\:\\:timestamp without time zone, '-infinity')";
+            "'" + QUERY_TIMESTAMP_FORMAT + "')\\:\\:timestamp without time zone, 'infinity')";
 
     static final String DRAFT_TABLE_ALIAS = "d";
     static final String VERSION_TABLE_ALIAS = "v";

@@ -14,31 +14,27 @@ import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageCopyCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.FieldFactory;
-import ru.i_novus.platform.datastorage.temporal.service.StorageCodeService;
 import ru.i_novus.platform.versioned_data_storage.config.VersionedDataStorageConfig;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceException;
-import java.util.List;
+import java.math.BigInteger;
+import java.util.*;
 import java.util.stream.IntStream;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.*;
-import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
-import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.getSchemaNameOrDefault;
-import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.toStorageCode;
-import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addDoubleQuotes;
-import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addSingleQuotes;
-import static ru.i_novus.platform.versioned_data_storage.DataTestUtils.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addDoubleQuotes;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addSingleQuotes;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.HASH_EXPRESSION;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = {
-        JpaTestConfig.class, VersionedDataStorageConfig.class
-})
+@ContextConfiguration(classes = {JpaTestConfig.class, VersionedDataStorageConfig.class})
 public class DataDaoTest {
 
     private static final String NEW_GOOD_SCHEMA_NAME = "data_good";
@@ -284,7 +280,7 @@ public class DataDaoTest {
 
     private String newTestTableName() {
 
-        return "data_test_" + storageCodeService.generateStorageName();
+        return "data_test_" + generateStorageName();
     }
 
     private List<Field> newTestFields() {
