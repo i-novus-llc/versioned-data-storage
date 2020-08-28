@@ -638,7 +638,7 @@ public class DataDaoImpl implements DataDao {
                 addDoubleQuotes(toTableName(storageCode)),
                 addDoubleQuotes(SYS_PRIMARY_COLUMN));
         String sql = String.format(UPDATE_TABLE_SEQUENCE, escapeStorageSequenceName(storageCode), sqlSelect);
-        entityManager.createNativeQuery(sql).getSingleResult();
+        entityManager.createNativeQuery(sql).executeUpdate();
     }
 
     protected void dropTableSequence(String storageCode) {
