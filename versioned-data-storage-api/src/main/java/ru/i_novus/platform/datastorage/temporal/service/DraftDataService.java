@@ -21,13 +21,6 @@ import java.util.List;
 public interface DraftDataService {
 
     /**
-     * Создание схемы для хранилищ данных.
-     *
-     * @param schemaName наименование схемы
-     */
-    void createSchema(String schemaName);
-
-    /**
      * Создание черновика версии без данных.
      *
      * @param fields список полей
@@ -64,14 +57,6 @@ public interface DraftDataService {
      */
     String applyDraft(String baseStorageCode, String draftCode,
                       LocalDateTime publishTime, LocalDateTime closeTime);
-
-    /**
-     * Проверка существования схемы.
-     *
-     * @param schemaName наименование схемы
-     * @return Признак существования
-     */
-    boolean schemaExists(String schemaName);
 
     /**
      * Проверка существования хранилища.
