@@ -119,8 +119,8 @@ public class DataDaoImpl implements DataDao {
         StorageDataCriteria criteria = new StorageDataCriteria(storageCode, null, null,
                 emptyList(), emptySet(), null);
         criteria.setCount(1);
-        criteria.setPage(DataCriteria.MIN_PAGE);
-        criteria.setSize(DataCriteria.MIN_SIZE);
+        criteria.setPage(BaseDataCriteria.MIN_PAGE);
+        criteria.setSize(BaseDataCriteria.MIN_SIZE);
 
         List<RowValue> data = getData(criteria);
         return !isNullOrEmpty(data);

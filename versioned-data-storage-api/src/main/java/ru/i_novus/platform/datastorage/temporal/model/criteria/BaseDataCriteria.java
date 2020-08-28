@@ -2,8 +2,8 @@ package ru.i_novus.platform.datastorage.temporal.model.criteria;
 
 import net.n2oapp.criteria.api.Criteria;
 
-/** Критерий поиска данных. */
-public class DataCriteria extends Criteria {
+/** Базовый критерий поиска данных. */
+public class BaseDataCriteria extends Criteria {
 
     // Нумерация страниц с 1, поэтому сдвиг = +1.
     @SuppressWarnings("unused")
@@ -15,11 +15,11 @@ public class DataCriteria extends Criteria {
     public static final int NO_PAGINATION_PAGE = 0;
     public static final int NO_PAGINATION_SIZE = 0;
 
-    public DataCriteria() {
+    public BaseDataCriteria() {
         // Nothing to do.
     }
 
-    public DataCriteria(DataCriteria criteria) {
+    public BaseDataCriteria(BaseDataCriteria criteria) {
         super(criteria);
     }
 

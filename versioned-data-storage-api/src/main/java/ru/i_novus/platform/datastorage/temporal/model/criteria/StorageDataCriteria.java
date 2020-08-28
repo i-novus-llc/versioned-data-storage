@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 /** Критерий поиска данных в хранилище. */
-public class StorageDataCriteria extends DataCriteria {
+public class StorageDataCriteria extends BaseDataCriteria {
 
     /** Код хранилища. */
     private final String storageCode;

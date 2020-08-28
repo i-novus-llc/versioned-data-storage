@@ -358,8 +358,8 @@ public class UseCaseTest {
 
         StorageDataCriteria criteria = new StorageDataCriteria(targetCode, null, null,
                 singletonList(idField), emptySet(), null);
-        criteria.setPage(DataCriteria.MIN_PAGE);
-        criteria.setSize(DataCriteria.MIN_SIZE);
+        criteria.setPage(BaseDataCriteria.MIN_PAGE);
+        criteria.setSize(BaseDataCriteria.MIN_SIZE);
 
         Collection<RowValue> targetRows = searchDataService.getPagedData(criteria).getCollection();
         assertEquals(sourceRows.size(), criteria.getCount().intValue());
