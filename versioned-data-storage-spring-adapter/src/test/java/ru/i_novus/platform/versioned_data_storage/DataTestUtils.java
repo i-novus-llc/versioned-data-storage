@@ -19,12 +19,12 @@ import java.util.stream.IntStream;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.*;
-import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.toStorageCode;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.toStorageCode;
 
 public class DataTestUtils {
 
     public static final String TEST_SCHEMA_NAME = "data_test";
-    public static final String NULL_SCHEMA_NAME = "data_null";
+    public static final String NONEXISTENT_SCHEMA_NAME = "data_null";
 
     public static final String FIELD_ID_CODE = "ID";
     public static final String FIELD_NAME_CODE = "NAME";

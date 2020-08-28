@@ -6,16 +6,13 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 
-import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.*;
+
 
 /** Критерий копирования данных в хранилище. */
 public class StorageCopyCriteria extends StorageDataCriteria {
 
-    /** Наименование схемы назначения. */
-    private final String purposeSchemaName;
-
-    /** Наименование таблицы назначения. */
-    private final String purposeTableName;
+    /** Код хранилища назначения. */
+    private final String purposeCode;
 
     /** Экранированные наименования копируемых полей. */
     private List<String> escapedFieldNames;
@@ -25,24 +22,19 @@ public class StorageCopyCriteria extends StorageDataCriteria {
 
         super(storageCode, bdate, edate, fields);
 
-        this.purposeTableName = toTableName(purposeCode);
-        this.purposeSchemaName = toSchemaName(purposeCode);
+        this.purposeCode = purposeCode;
     }
 
     public StorageCopyCriteria(StorageCopyCriteria criteria) {
 
         super(criteria);
 
-        this.purposeSchemaName = criteria.purposeSchemaName;
-        this.purposeTableName = criteria.purposeTableName;
+        this.purposeCode = criteria.purposeCode;
+        this.escapedFieldNames = criteria.escapedFieldNames;
     }
 
-    public String getPurposeSchemaName() {
-        return purposeSchemaName;
-    }
-
-    public String getPurposeTableName() {
-        return purposeTableName;
+    public String getPurposeCode() {
+        return purposeCode;
     }
 
     public List<String> getEscapedFieldNames() {
@@ -53,10 +45,6 @@ public class StorageCopyCriteria extends StorageDataCriteria {
         this.escapedFieldNames = escapedFieldNames;
     }
 
-    public String getPurposeCode() {
-        return toStorageCode(purposeSchemaName, purposeTableName);
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -64,12 +52,12 @@ public class StorageCopyCriteria extends StorageDataCriteria {
         if (!super.equals(o)) return false;
 
         StorageCopyCriteria that = (StorageCopyCriteria) o;
-        return Objects.equals(purposeSchemaName, that.purposeSchemaName) &&
-                Objects.equals(purposeTableName, that.purposeTableName);
+        return Objects.equals(purposeCode, that.purposeCode) &&
+                Objects.equals(escapedFieldNames, that.escapedFieldNames);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), purposeSchemaName, purposeTableName);
+        return Objects.hash(super.hashCode(), purposeCode, escapedFieldNames);
     }
 }

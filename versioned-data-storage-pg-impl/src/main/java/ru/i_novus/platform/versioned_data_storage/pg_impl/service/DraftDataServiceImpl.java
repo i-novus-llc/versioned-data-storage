@@ -11,11 +11,11 @@ import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageCopyCriter
 import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
-import ru.i_novus.platform.datastorage.temporal.util.CollectionUtils;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.BooleanField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.TreeField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils;
 
 import javax.persistence.PersistenceException;
 import javax.transaction.Transactional;
@@ -26,8 +26,10 @@ import java.util.*;
 
 import static java.util.Collections.singletonList;
 import static java.util.Optional.of;
+import static java.util.stream.Collectors.toList;
+import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.ExceptionCodes.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.TRANSACTION_ROW_LIMIT;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addDoubleQuotes;

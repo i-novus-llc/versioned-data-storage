@@ -11,6 +11,7 @@ import ru.i_novus.platform.datastorage.temporal.model.*;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.*;
 import ru.i_novus.platform.datastorage.temporal.model.value.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils;
 
 import javax.ejb.TransactionAttribute;
@@ -35,10 +36,10 @@ import static org.springframework.util.CollectionUtils.isEmpty;
 import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.CompareUtil.toDiffRowValues;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addDoubleQuotes;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addSingleQuotes;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.*;
 
 public class DataDaoImpl implements DataDao {
 
@@ -58,6 +59,7 @@ public class DataDaoImpl implements DataDao {
     public List<RowValue> getData(StorageDataCriteria criteria) {
 
         final String schemaName = getStorageCodeSchemaName(criteria.getStorageCode());
+        final String tableName = toTableName(criteria.getStorageCode());
 
         List<Field> fields = new ArrayList<>(criteria.getFields());
         fields.add(0, new IntegerField(SYS_PRIMARY_COLUMN));
@@ -66,9 +68,7 @@ public class DataDaoImpl implements DataDao {
 
         final String sqlFormat = "SELECT %1$s \n  FROM %2$s as %3$s ";
         String sqlFields = getSelectFields(DEFAULT_TABLE_ALIAS, fields, true);
-        String sql = String.format(sqlFormat, sqlFields,
-                escapeTableName(schemaName, toTableName(criteria.getStorageCode()),
-                DEFAULT_TABLE_ALIAS);
+        String sql = String.format(sqlFormat, sqlFields, escapeTableName(schemaName, tableName), DEFAULT_TABLE_ALIAS);
 
         QueryWithParams queryWithParams = new QueryWithParams(sql);
 
@@ -95,12 +95,11 @@ public class DataDaoImpl implements DataDao {
     public BigInteger getDataCount(StorageDataCriteria criteria) {
 
         final String schemaName = getStorageCodeSchemaName(criteria.getStorageCode());
+        final String tableName = toTableName(criteria.getStorageCode());
 
         final String sqlFormat = "  FROM %s as %s\n";
         String sql = SELECT_COUNT_ONLY +
-                String.format(sqlFormat,
-                        escapeTableName(schemaName, toTableName(criteria.getStorageCode())),
-                        DEFAULT_TABLE_ALIAS);
+                String.format(sqlFormat, escapeTableName(schemaName, tableName), DEFAULT_TABLE_ALIAS);
 
         QueryWithParams queryWithParams = new QueryWithParams(sql);
 
@@ -1181,9 +1180,10 @@ public class DataDaoImpl implements DataDao {
         if (StringUtils.isNullOrEmpty(where.getSql()))
             return emptyList(); // Можно удалять, только если есть хотя бы одно ограничение!
 
-        final String schemaName = getTableSchemaName(criteria.getSchemaName(), criteria.getTableName());
+        final String schemaName = getStorageCodeSchemaName(criteria.getStorageCode());
+        final String tableName = toTableName(criteria.getStorageCode());
 
-        String sql = String.format(DELETE_RECORD, schemaName, addDoubleQuotes(criteria.getTableName())) +
+        String sql = String.format(DELETE_RECORD, schemaName, addDoubleQuotes(tableName)) +
                 SELECT_WHERE + where.getSql() +
                 RETURNG + addDoubleQuotes(SYS_HASH);
         Query query = entityManager.createNativeQuery(sql);
@@ -1800,23 +1800,6 @@ public class DataDaoImpl implements DataDao {
         }
     }
 
-    // Используются для возможности переопределения схемы.
-    protected String getSchemaName(String schemaName) {
-
-        return getSchemaNameOrDefault(schemaName);
-    }
-
-    // Используются для возможности переопределения схемы.
-    protected String getTableSchemaName(String schemaName, String tableName) {
-
-        return !StringUtils.isNullOrEmpty(tableName) ? getSchemaNameOrDefault(schemaName) : DATA_SCHEMA_NAME;
-    }
-
-    protected String getStorageCodeSchemaName(String storageCode) {
-
-        return getTableSchemaName(toSchemaName(storageCode), toTableName(storageCode));
-    }
-
     private String makeFieldValuesFilter(String alias, Map<String, Object> params,
                                          Set<List<FieldSearchCriteria>> fieldFilters) {
 
@@ -1841,5 +1824,10 @@ public class DataDaoImpl implements DataDao {
     protected String getTableSchemaName(String schemaName, String tableName) {
 
         return !StringUtils.isNullOrEmpty(tableName) ? getSchemaNameOrDefault(schemaName) : DATA_SCHEMA_NAME;
+    }
+
+    protected String getStorageCodeSchemaName(String storageCode) {
+
+        return getTableSchemaName(toSchemaName(storageCode), toTableName(storageCode));
     }
 }

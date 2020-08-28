@@ -20,18 +20,18 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceException;
-import java.math.BigInteger;
-import java.util.*;
+import java.util.List;
 import java.util.stream.IntStream;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.*;
+import static ru.i_novus.platform.versioned_data_storage.DataTestUtils.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.HASH_EXPRESSION;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addDoubleQuotes;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addSingleQuotes;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.HASH_EXPRESSION;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {JpaTestConfig.class, VersionedDataStorageConfig.class})
@@ -54,9 +54,6 @@ public class DataDaoTest {
     @Autowired
     private FieldFactory fieldFactory;
 
-    @Autowired
-    private StorageCodeService storageCodeService;
-
     @Before
     public void setUp() {
         hashField = fieldFactory.createField(SYS_HASH, FieldType.STRING);
@@ -67,13 +64,13 @@ public class DataDaoTest {
 
         assertTrue(dataDao.schemaExists(DATA_SCHEMA_NAME));
         assertTrue(dataDao.schemaExists(TEST_SCHEMA_NAME));
-        assertFalse(dataDao.schemaExists(NULL_SCHEMA_NAME));
+        assertFalse(dataDao.schemaExists(NONEXISTENT_SCHEMA_NAME));
     }
 
     @Test
     public void testFindExistentSchemas() {
 
-        List<String> schemaNames = asList(DATA_SCHEMA_NAME, TEST_SCHEMA_NAME, NULL_SCHEMA_NAME);
+        List<String> schemaNames = asList(DATA_SCHEMA_NAME, TEST_SCHEMA_NAME, NONEXISTENT_SCHEMA_NAME);
 
         List<String> expected = asList(DATA_SCHEMA_NAME, TEST_SCHEMA_NAME);
         List<String> actual = dataDao.findExistentSchemas(schemaNames);
@@ -83,7 +80,7 @@ public class DataDaoTest {
     @Test
     public void testFindExistentTableSchemas() {
 
-        List<String> schemaNames = asList(DATA_SCHEMA_NAME, TEST_SCHEMA_NAME, NULL_SCHEMA_NAME);
+        List<String> schemaNames = asList(DATA_SCHEMA_NAME, TEST_SCHEMA_NAME, NONEXISTENT_SCHEMA_NAME);
         List<String> expected = singletonList(DATA_SCHEMA_NAME);
 
         final String tableName = "test_find_existent_table_schemas";
@@ -200,12 +197,12 @@ public class DataDaoTest {
 
     @Test
     @SuppressWarnings("java:S5778")
-    public void testNullGetData() {
+    public void testGetDataForNonExistentSchema() {
 
         String tableName = newTestTableName();
         List<Field> fields = newTestFields();
         try {
-            dataDao.getData(toCriteria(NULL_SCHEMA_NAME, tableName, fields));
+            dataDao.getData(toCriteria(NONEXISTENT_SCHEMA_NAME, tableName, fields));
             fail();
 
         } catch (PersistenceException e) {

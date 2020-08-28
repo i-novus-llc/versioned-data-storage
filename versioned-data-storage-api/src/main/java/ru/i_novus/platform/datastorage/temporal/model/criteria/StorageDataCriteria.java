@@ -5,16 +5,11 @@ import ru.i_novus.platform.datastorage.temporal.model.Field;
 import java.time.LocalDateTime;
 import java.util.*;
 
-import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.*;
-
 /** Критерий поиска данных в хранилище. */
 public class StorageDataCriteria extends DataCriteria {
 
-    /** Наименование схемы. */
-    private final String schemaName;
-
-    /** Наименование таблицы. */
-    private final String tableName;
+    /** Код хранилища. */
+    private final String storageCode;
 
     /** Дата публикации записей. */
     private final LocalDateTime bdate;
@@ -39,8 +34,7 @@ public class StorageDataCriteria extends DataCriteria {
 
     public StorageDataCriteria(String storageCode, LocalDateTime bdate, LocalDateTime edate, List<Field> fields) {
 
-        this.schemaName = toSchemaName(storageCode);
-        this.tableName = toTableName(storageCode);
+        this.storageCode = storageCode;
         this.bdate = bdate;
         this.edate = edate;
         this.fields = fields;
@@ -67,8 +61,7 @@ public class StorageDataCriteria extends DataCriteria {
 
         super(criteria);
 
-        this.schemaName = criteria.schemaName;
-        this.tableName = criteria.tableName;
+        this.storageCode = criteria.storageCode;
         this.bdate = criteria.bdate;
         this.edate = criteria.edate;
         this.fields = criteria.fields;
@@ -79,12 +72,8 @@ public class StorageDataCriteria extends DataCriteria {
         this.systemIds = criteria.systemIds;
     }
 
-    public String getSchemaName() {
-        return schemaName;
-    }
-
-    public String getTableName() {
-        return tableName;
+    public String getStorageCode() {
+        return storageCode;
     }
 
     public LocalDateTime getBdate() {
@@ -131,18 +120,13 @@ public class StorageDataCriteria extends DataCriteria {
         this.systemIds = systemIds;
     }
 
-    public String getStorageCode() {
-        return toStorageCode(schemaName, tableName);
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
         StorageDataCriteria that = (StorageDataCriteria) o;
-        return Objects.equals(schemaName, that.schemaName) &&
-                Objects.equals(tableName, that.tableName) &&
+        return Objects.equals(storageCode, that.storageCode) &&
                 Objects.equals(bdate, that.bdate) &&
                 Objects.equals(edate, that.edate) &&
                 Objects.equals(fields, that.fields) &&
@@ -155,7 +139,7 @@ public class StorageDataCriteria extends DataCriteria {
 
     @Override
     public int hashCode() {
-        return Objects.hash(schemaName, tableName, bdate, edate, fields,
+        return Objects.hash(storageCode, bdate, edate, fields,
                 fieldFilters, commonFilter, hashList, systemIds);
     }
 }

@@ -1,6 +1,6 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.dao;
 
-import ru.i_novus.platform.datastorage.temporal.util.StringUtils;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
@@ -9,10 +9,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
-import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addSingleQuotes;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.QUERY_NULL_VALUE;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.formatDateTime;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.toTimestampWithoutTimeZone;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addSingleQuotes;
 
 /** Запрос с параметрами.
  * <p>
