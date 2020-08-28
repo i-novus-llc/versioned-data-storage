@@ -197,7 +197,7 @@ public class DataDaoImpl implements DataDao {
                 addDoubleQuotes(SYS_HASH),
                 escapeStorageTableName(storageCode),
                 DEFAULT_TABLE_ALIAS) +
-                SELECT_WHERE_DEFAULT;
+                SELECT_WHERE_TRUE;
 
         QueryWithParams queryWithParams = new QueryWithParams(sql);
         queryWithParams.concat(getWhereByDates(bdate, edate, DEFAULT_TABLE_ALIAS));
@@ -257,7 +257,7 @@ public class DataDaoImpl implements DataDao {
 
     private QueryWithParams getWhereClause(StorageDataCriteria criteria, String alias) {
 
-        QueryWithParams query = new QueryWithParams(WHERE_DEFAULT);
+        QueryWithParams query = new QueryWithParams(CONDITION_TRUE);
         query.concat(getWhereByDates(criteria.getBdate(), criteria.getEdate(), alias));
         query.concat(getWhereByFts(criteria.getCommonFilter(), alias));
         query.concat(getWhereByFilters(criteria.getFieldFilters(), alias));
@@ -349,7 +349,7 @@ public class DataDaoImpl implements DataDao {
             if (filters.isEmpty())
                 return null;
 
-            return WHERE_DEFAULT + String.join(QUERY_NEW_LINE, filters);
+            return CONDITION_TRUE + String.join(QUERY_NEW_LINE, filters);
         })
                 .filter(Objects::nonNull)
                 .collect(joining(CONDITION_OR));
@@ -1372,7 +1372,7 @@ public class DataDaoImpl implements DataDao {
         String sql = "SELECT " + fields + ", " + COUNT_ONLY + QUERY_NEW_LINE +
                 "  FROM " + escapeTableName(schemaName, tableName) +
                 ALIAS_OPERATOR + DEFAULT_TABLE_ALIAS + QUERY_NEW_LINE +
-                SELECT_WHERE_DEFAULT + sqlByDate +
+                SELECT_WHERE_TRUE + sqlByDate +
                 SELECT_GROUP + groupBy + QUERY_NEW_LINE +
                 "HAVING " + COUNT_ONLY + " > 1";
         Query query = entityManager.createNativeQuery(sql);
@@ -1393,9 +1393,9 @@ public class DataDaoImpl implements DataDao {
         Map<String, String> mapSelect = new HashMap<>();
         mapSelect.put("sourceTable", sourceTable);
         mapSelect.put("sourceAlias", DEFAULT_TABLE_ALIAS);
-        mapSelect.put("sourceColumns", DEFAULT_TABLE_ALIAS + NAME_SEPARATOR + ALL_COLUMNS);
+        mapSelect.put("sourceColumns", aliasColumnName(DEFAULT_TABLE_ALIAS, ALL_COLUMNS));
 
-        String sqlSelect = substitute(SELECT_ALL_DATA_FROM_TABLE, mapSelect);
+        String sqlSelect = substitute(SELECT_FROM_SOURCE_TABLE, mapSelect);
 
         QueryWithParams where = getWhereClause(criteria, DEFAULT_TABLE_ALIAS);
         if (!StringUtils.isNullOrEmpty(where.getSql())) {
@@ -1415,12 +1415,11 @@ public class DataDaoImpl implements DataDao {
         mapInsert.put("strColumns", toStrColumns(fieldNames));
         mapInsert.put("rowColumns", toAliasColumns(fieldNames, ROW_TYPE_VAR_NAME + NAME_SEPARATOR));
 
-        String sqlInsert = substitute(INSERT_ALL_DATA_FROM_TABLE, mapInsert);
+        String sqlInsert = substitute(INSERT_INTO_TARGET_TABLE, mapInsert);
 
         Map<String, String> map = new HashMap<>();
         map.put("offset", "" + criteria.getOffset());
         map.put("limit", "" + criteria.getSize());
-        map.put("sourceTable", sourceTable);
         map.put("sqlSelect", sqlSelect);
         map.put("sqlInsert", sqlInsert);
 

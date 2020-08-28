@@ -38,14 +38,14 @@ public class StorageConstants {
             SYS_PUBLISHTIME, SYS_CLOSETIME
     );
 
-    private static final List<String> SYS_VERSIONED_FIELD_NAMES = Arrays.asList(SYS_PUBLISHTIME, SYS_CLOSETIME);
+    private static final List<String> VERSIONED_SYS_FIELD_NAMES = Arrays.asList(SYS_PUBLISHTIME, SYS_CLOSETIME);
 
-    private static final List<String> ESCAPED_SYS_VERSIONED_FIELD_NAMES = SYS_VERSIONED_FIELD_NAMES.stream()
+    private static final List<String> ESCAPED_VERSIONED_SYS_FIELD_NAMES = VERSIONED_SYS_FIELD_NAMES.stream()
             .map(StringUtils::addDoubleQuotes).collect(toList());
 
-    private static final List<String> SYS_TRIGGERED_FIELD_NAMES = Arrays.asList(SYS_HASH, SYS_FTS);
+    private static final List<String> TRIGGERED_SYS_FIELD_NAMES = Arrays.asList(SYS_HASH, SYS_FTS);
 
-    private static final List<String> ESCAPED_SYS_TRIGGERED_FIELD_NAMES = SYS_TRIGGERED_FIELD_NAMES.stream()
+    private static final List<String> ESCAPED_TRIGGERED_SYS_FIELD_NAMES = TRIGGERED_SYS_FIELD_NAMES.stream()
                 .map(StringUtils::addDoubleQuotes).collect(toList());
 
     public static final String REFERENCE_VALUE_NAME = "value";
@@ -62,14 +62,14 @@ public class StorageConstants {
     }
 
     public static List<String> versionFieldNames() {
-        return SYS_VERSIONED_FIELD_NAMES;
+        return VERSIONED_SYS_FIELD_NAMES;
     }
 
     public static List<String> escapedVersionFieldNames() {
-        return ESCAPED_SYS_VERSIONED_FIELD_NAMES;
+        return ESCAPED_VERSIONED_SYS_FIELD_NAMES;
     }
 
     public static List<String> escapedTriggeredFieldNames() {
-        return ESCAPED_SYS_TRIGGERED_FIELD_NAMES;
+        return ESCAPED_TRIGGERED_SYS_FIELD_NAMES;
     }
 }
