@@ -1,18 +1,21 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.util;
 
-import net.n2oapp.criteria.api.Criteria;
 import org.apache.commons.text.StringSubstitutor;
 import ru.i_novus.platform.datastorage.temporal.enums.ReferenceDisplayType;
 import ru.i_novus.platform.datastorage.temporal.model.*;
 import ru.i_novus.platform.datastorage.temporal.model.value.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.model.StorageConstants.*;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.escapeFieldName;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
 
@@ -38,47 +41,70 @@ public class QueryUtil {
      */
     public static List<RowValue> toRowValues(List<Field> fields, List<Object[]> data) {
 
-        List<RowValue> resultData = new ArrayList<>(data.size());
+        List<RowValue> result = new ArrayList<>(data.size());
         for (Object objects : data) {
             LongRowValue rowValue = new LongRowValue();
-            Iterator<Field> fieldIterator = fields.iterator();
             if (objects instanceof Object[]) {
-                Object[] row = (Object[]) objects;
+                addToRowValue((Object[]) objects, fields, rowValue);
 
-                int i = 0;
-                while (i < row.length) {
-                    Field field = fieldIterator.next();
-                    Object value = row[i];
-
-                    if (i == 0) { // SYS_RECORD_ID
-                        rowValue.setSystemId(Long.parseLong(row[i].toString()));
-
-                    } else if (i == 1 && SYS_HASH.equals(field.getName())) { // SYS_HASH
-                        rowValue.setHash(row[i].toString());
-
-                    } else { // FIELD
-                        if (field instanceof ReferenceField
-                                && (i + 1 < row.length)) {
-                            value = new Reference(row[i] != null ? row[i].toString() : null,
-                                    row[i + 1] != null ? row[i + 1].toString() : null);
-                            i++;
-                        }
-
-                        rowValue.getFieldValues().add(getFieldValue(field, value));
-                    }
-
-                    i++;
-                }
             } else {
                 rowValue.getFieldValues().add(getFieldValue(fields.get(0), objects));
             }
-            resultData.add(rowValue);
+            result.add(rowValue);
         }
-        return resultData;
+        return result;
+    }
+
+    private static void addToRowValue(Object[] row, List<Field> fields, LongRowValue rowValue) {
+
+        Iterator<Field> fieldIterator = fields.iterator();
+
+        int i = 0;
+        while (i < row.length) {
+            Field field = fieldIterator.next();
+            Object value = row[i];
+
+            if (i == 0) { // SYS_RECORD_ID
+                rowValue.setSystemId(value != null ? Long.parseLong(value.toString()) : null);
+
+            } else if (i == 1 && SYS_HASH.equals(field.getName())) { // SYS_HASH
+                rowValue.setHash(value != null ? value.toString() : null);
+
+            } else { // FIELD
+                if (field instanceof ReferenceField && (i + 1 < row.length)) {
+                    Object displayValue = row[i + 1];
+                    value = new Reference(value != null ? value.toString() : null,
+                            displayValue != null ? displayValue.toString() : null);
+                    i++;
+                }
+
+                rowValue.getFieldValues().add(getFieldValue(field, value));
+            }
+
+            i++;
+        }
+    }
+
+    /** Получение наименования поля с кавычками для вычисления hash и fts. */
+    public static String getHashUsedFieldName(Field field) {
+
+        String name = addDoubleQuotes(field.getName());
+
+        if (REFERENCE_FIELD_SQL_TYPE.equals(field.getType()))
+            name += REFERENCE_FIELD_VALUE_OPERATOR + addSingleQuotes(REFERENCE_VALUE_NAME);
+
+        return name;
+    }
+
+    /** Получение наименования поля с кавычками из наименования, сформированного по getHashUsedFieldNames. */
+    public static String getClearedFieldName(String fieldName) {
+
+        int closeQuoteIndex = fieldName.indexOf('"', 1);
+        return fieldName.substring(0, closeQuoteIndex + 1);
     }
 
     /**
-     * Получение значения поля в виде объекта соответствующего класса
+     * Получение значения поля в виде объекта соответствующего класса.
      *
      * @param field поле
      * @param value значение
@@ -90,24 +116,104 @@ public class QueryUtil {
 
         if (field instanceof BooleanField) {
             return new BooleanFieldValue(name, (Boolean) value);
+        }
 
-        } else if (field instanceof DateField) {
-            return new DateFieldValue(name,
-                    value != null ? ((java.sql.Date) value).toLocalDate() : null);
+        if (field instanceof DateField) {
+            return new DateFieldValue(name, value != null ? ((java.sql.Date) value).toLocalDate() : null);
+        }
 
-        } else if (field instanceof FloatField) {
+        if (field instanceof FloatField) {
             return new FloatFieldValue(name, (Number) value);
+        }
 
-        } else if (field instanceof IntegerField) {
+        if (field instanceof IntegerField) {
             return new IntegerFieldValue(name,
                     value != null ? new BigInteger(value.toString()) : null);
+        }
 
-        } else if (field instanceof ReferenceField) {
+        if (field instanceof ReferenceField) {
             return new ReferenceFieldValue(name, (Reference) value);
-
         }
 
         return new StringFieldValue(name, value != null ? value.toString() : null);
+    }
+
+    /**
+     * Преобразование списка наименований полей в наименования колонок.
+     *
+     * @param fieldNames список наименований полей
+     * @return Наименования колонок
+     */
+    public static String toStrColumns(List<String> fieldNames) {
+
+        return fieldNames.stream().filter(Objects::nonNull).collect(joining(", "));
+    }
+
+    /**
+     * Преобразование списка наименований полей в наименования колонок с учётом псевдонима.
+     *
+     * @param fieldNames список наименований полей
+     * @param alias      псевдоним
+     * @return Наименования колонок
+     */
+    public static String toAliasColumns(List<String> fieldNames, String alias) {
+
+        return fieldNames.stream().filter(Objects::nonNull).map(s -> alias + s).collect(joining(", "));
+    }
+
+    /**
+     * Преобразование набора наименований полей с типами в наименования колонок.
+     *
+     * @param typedNames набор наименований полей с типами
+     * @return Наименования колонок
+     */
+    public static String toStrColumns(Map<String, String> typedNames) {
+
+        return typedNames.keySet().stream().filter(Objects::nonNull).collect(joining(", "));
+    }
+
+    /**
+     * Преобразование набора наименований полей с типами в наименования колонок с типами.
+     *
+     * @param typedNames набор наименований полей с типами
+     * @return Наименования колонок с типами
+     */
+    public static String toTypedColumns(Map<String, String> typedNames) {
+
+        return typedNames.keySet().stream().filter(Objects::nonNull)
+                .map(name -> name + " " + typedNames.get(name)).collect(joining(", "));
+    }
+
+    /**
+     * Преобразование набора наименований полей с типами в наименования колонок с учётом псевдонима.
+     *
+     * @param typedNames набор наименований полей с типами
+     * @param alias      псевдоним
+     * @return Наименования колонок
+     */
+    public static String toAliasColumns(Map<String, String> typedNames, String alias) {
+
+        return typedNames.keySet().stream().filter(Objects::nonNull)
+                .map(s -> alias + s).collect(joining(", "));
+    }
+
+    /**
+     * Преобразование значения поля в параметр запроса.
+     *
+     * @param fieldValue значение поля
+     * @return Параметр запроса
+     */
+    public static Serializable toQueryParameter(FieldValue fieldValue) {
+
+        if (fieldValue.getValue() == null)
+            return null;
+
+        if (fieldValue instanceof ReferenceFieldValue) {
+            Reference refValue = ((ReferenceFieldValue) fieldValue).getValue();
+            return refValue.getValue();
+        }
+
+        return fieldValue.getValue();
     }
 
     /**
@@ -117,6 +223,7 @@ public class QueryUtil {
      * @return Отсутствие значения
      */
     public static boolean isFieldValueNull(FieldValue<?> fieldValue) {
+
         return fieldValue.getValue() == null || fieldValue.getValue().equals("null");
     }
 
@@ -132,135 +239,121 @@ public class QueryUtil {
         if (isNullOrEmpty(alias))
             alias = "";
 
-        List<String> queryFields = new ArrayList<>();
+        List<String> selectedFields = new ArrayList<>();
         for (Field<?> field : fields) {
-            String query = formatFieldForQuery(field.getName(), alias);
-
-            if (field instanceof ReferenceField) {
-                final String jsonOperator = "->>";
-
-                String queryValue = query + jsonOperator +
-                        addSingleQuotes(REFERENCE_VALUE_NAME) +
-                        ALIAS_OPERATOR +
-                        sqlFieldAlias(field, alias, REFERENCE_VALUE_NAME);
-                queryFields.add(queryValue);
-
-                if (detailed) {
-                    String queryDisplayValue = query + jsonOperator +
-                            addSingleQuotes(REFERENCE_DISPLAY_VALUE_NAME) +
-                            ALIAS_OPERATOR +
-                            sqlFieldAlias(field, alias, REFERENCE_DISPLAY_VALUE_NAME);
-                    queryFields.add(queryDisplayValue);
-                }
-            } else {
-                if (field instanceof TreeField) {
-                    query += "\\:\\:text";
-                }
-                query += ALIAS_OPERATOR +
-                        sqlFieldAlias(field, alias, fields.indexOf(field));
-                queryFields.add(query);
-            }
+            toSelectedField(alias, field, fields.indexOf(field), detailed, selectedFields);
         }
-        return String.join(", ", queryFields);
+
+        return String.join(", ", selectedFields);
     }
 
-    private static String sqlFieldAlias(Field<?> field, String prefix, String suffix) {
-        return addDoubleQuotes(prefix + field.getName() + "." + suffix);
+    private static void toSelectedField(String alias, Field<?> field, int index,
+                                        boolean detailed, List<String> selectedFields) {
+
+        String selectedField = escapeFieldName(alias, field.getName());
+
+        if (field instanceof ReferenceField) {
+            String queryValue = selectedField +
+                    REFERENCE_FIELD_VALUE_OPERATOR + addSingleQuotes(REFERENCE_VALUE_NAME) +
+                    " AS " + sqlFieldAlias(field, index, alias, REFERENCE_VALUE_NAME);
+            selectedFields.add(queryValue);
+
+            if (detailed) {
+                String queryDisplayValue = selectedField +
+                        REFERENCE_FIELD_VALUE_OPERATOR + addSingleQuotes(REFERENCE_DISPLAY_VALUE_NAME) +
+                        " AS " + sqlFieldAlias(field, index, alias, REFERENCE_DISPLAY_VALUE_NAME);
+                selectedFields.add(queryDisplayValue);
+            }
+        } else {
+            if (field instanceof TreeField) {
+                selectedField += "\\:\\:text";
+            }
+
+            selectedField += " AS " + sqlFieldAlias(field, index, alias);
+            selectedFields.add(selectedField);
+        }
     }
 
-    private static String sqlFieldAlias(Field<?> field, String prefix, int index) {
+    private static String sqlFieldAlias(Field<?> field, int index, String prefix) {
+
         return addDoubleQuotes(prefix + field.getName() + index);
     }
 
-    public static String formatFieldForQuery(String field, String alias) {
+    private static String sqlFieldAlias(Field<?> field, int index, String prefix, String suffix) {
 
-        if (alias == null) {
-            alias = "";
-
-        } else if (!alias.isEmpty()) {
-            alias = alias + NAME_SEPARATOR;
-        }
-
-        if (field.contains(REFERENCE_FIELD_VALUE_OPERATOR)) {
-            String[] queryParts = field.split(REFERENCE_FIELD_VALUE_OPERATOR);
-
-            return alias + addDoubleQuotes(queryParts[0]) +
-                    REFERENCE_FIELD_VALUE_OPERATOR + queryParts[1];
-        } else {
-            return alias + addDoubleQuotes(field);
-        }
-    }
-
-    public static String getSchemaName(String schemaName) {
-
-        return isNullOrEmpty(schemaName) ? DATA_SCHEMA_NAME : schemaName;
-    }
-
-    public static String escapeTableName(String schemaName, String tableName) {
-
-        return getSchemaName(schemaName) + NAME_SEPARATOR + addDoubleQuotes(tableName);
-    }
-
-    public static String escapeFieldName(String tableAlias, String fieldName) {
-
-        String escapedFieldName = addDoubleQuotes(fieldName);
-        return isNullOrEmpty(tableAlias) ? escapedFieldName : tableAlias + NAME_SEPARATOR + escapedFieldName;
-    }
-
-    public static String escapeSequenceName(String tableName) {
-        return addDoubleQuotes(tableName + "_" + SYS_PRIMARY_COLUMN + "_seq");
-    }
-
-    public static String escapeSchemaSequenceName(String schemaName, String tableName) {
-
-        return getSchemaName(schemaName) + NAME_SEPARATOR + escapeSequenceName(tableName);
-    }
-
-    public static int getOffset(Criteria criteria) {
-
-        if (criteria != null) {
-            if (criteria.getPage() <= 0 || criteria.getSize() <= 0)
-                throw new IllegalStateException("Criteria page and size should be greater than zero");
-
-            return (criteria.getPage() - 1) * criteria.getSize();
-        }
-        return 0;
+        return addDoubleQuotes(prefix + field.getName() + index + "." + suffix);
     }
 
     @SuppressWarnings("all")
     public static boolean isVarcharType(String type) {
+
         return StringField.TYPE.equals(type) || IntegerStringField.TYPE.equals(type);
     }
 
-    public static boolean isCompatibleTypes(String oldDataType, String newDataType) {
-//        if (ReferenceField.TYPE.equals(newDataType) || ListField.TYPE.equals(newDataType) || ReferenceField.TYPE.equals(oldDataType) || ListField.TYPE.equals(oldDataType)) {
-//            return false;
-//        }
-        if (oldDataType.equals(newDataType) || StringField.TYPE.equals(newDataType)) {
-            return true;
-        }
-        if ((isVarcharType(oldDataType))
-                && (IntegerField.TYPE.equals(newDataType)) || IntegerStringField.TYPE.equals(newDataType)) {
-            return true;
-        }
-        return false;
-    }
-
+    /**
+     * Создание поля по наименованию и типу.
+     *
+     * @param name наименование
+     * @param type тип
+     * @return Поле
+     */
     public static Field getField(String name, String type) {
+
         switch (type) {
             case BooleanField.TYPE:
                 return new BooleanField(name);
+
             case DateField.TYPE:
                 return new DateField(name);
+
             case FloatField.TYPE:
                 return new FloatField(name);
+
             case IntegerField.TYPE:
                 return new IntegerField(name);
+
             case ReferenceField.TYPE:
                 return new ReferenceField(name);
+
             default:
                 return new StringField(name);
         }
+    }
+
+    /**
+     * Получение наименования поля с учётом преобразования типов для использования в запросах.
+     *
+     * @param fieldName поле
+     * @param oldType   старый тип
+     * @param newType   новый тип
+     * @return Наименование поля с учётом преобразования
+     */
+    public static String getFieldNameByType(String fieldName, String oldType, String newType) {
+
+        if (DateField.TYPE.equals(oldType) && isVarcharType(newType)) {
+            return "to_char(" + fieldName + ", '" + QUERY_DATE_FORMAT + "')";
+        }
+
+        if (DateField.TYPE.equals(newType) && StringField.TYPE.equals(oldType)) {
+            return "to_date(" + fieldName + ", '" + QUERY_DATE_FORMAT + "')";
+        }
+
+        if (ReferenceField.TYPE.equals(oldType)) {
+            return "(" + fieldName +
+                    REFERENCE_FIELD_VALUE_OPERATOR + addSingleQuotes(REFERENCE_VALUE_NAME) +
+                    ")" + "\\:\\:varchar\\:\\:" + newType;
+        }
+
+        if (ReferenceField.TYPE.equals(newType)) {
+            return String.format("nullif(jsonb_build_object(%1$s, %2$s), jsonb_build_object(%1$s, null))",
+                    addSingleQuotes(REFERENCE_VALUE_NAME), fieldName);
+        }
+
+        if (isVarcharType(oldType) || isVarcharType(newType)) {
+            return fieldName + "\\:\\:" + newType;
+        }
+
+        return fieldName + "\\:\\:varchar\\:\\:" + newType;
     }
 
     /**
@@ -272,11 +365,13 @@ public class QueryUtil {
     public static ReferenceDisplayType getReferenceDisplayType(Reference reference) {
 
         DisplayExpression displayExpression = reference.getDisplayExpression();
-        if (displayExpression != null && displayExpression.getValue() != null)
+        if (displayExpression != null && displayExpression.getValue() != null) {
             return ReferenceDisplayType.DISPLAY_EXPRESSION;
+        }
 
-        if (reference.getDisplayField() != null)
+        if (reference.getDisplayField() != null) {
             return ReferenceDisplayType.DISPLAY_FIELD;
+        }
 
         return null;
     }
@@ -290,7 +385,7 @@ public class QueryUtil {
      */
     public static String sqlFieldExpression(String displayField, String tableAlias) {
 
-        return tableAlias + NAME_SEPARATOR + addDoubleQuotes(displayField);
+        return escapeFieldName(tableAlias, displayField);
     }
 
     /**
@@ -340,6 +435,25 @@ public class QueryUtil {
         return (str == null) ? null : str.replace("'", "''");
     }
 
+    /** Преобразование списка systemIds в список для LongRowValue. */
+    public static List<Long> toLongSystemIds(List<Object> systemIds) {
+        return systemIds.stream().map(systemId -> (Long) systemId).collect(toList());
+    }
+
+    /** Преобразование списка значений в БД-строку-массив. */
+    public static String valuesToDbArray(List<?> values) {
+
+        return values.stream()
+                .map(String::valueOf)
+                .collect(joining(",", "{", "}"));
+    }
+
+    /** Преобразование списка строковых значений в БД-строку-массив. */
+    public static String stringsToDbArray(List<String> values) {
+
+        return "{" + String.join(",", values) + "}";
+    }
+
     /** Создание объекта подстановки в выражение для вычисления отображаемого значения. */
     public static StringSubstitutor createDisplayExpressionSubstitutor(Map<String, Object> map) {
 
@@ -349,7 +463,31 @@ public class QueryUtil {
         return substitutor;
     }
 
+    public static String formatDateTime(LocalDateTime localDateTime) {
+
+        return (localDateTime != null) ? localDateTime.format(DATETIME_FORMATTER) : null;
+    }
+
+    public static String toTimestamp(String value) {
+
+        // Учесть другие константы: now, today etc.
+        switch(value) {
+            case MIN_TIMESTAMP_VALUE:
+            case MAX_TIMESTAMP_VALUE:
+                return value;
+
+            default:
+                return String.format(TO_TIMESTAMP, addSingleQuotes(value));
+        }
+    }
+
+    public static String toTimestampWithoutTimeZone(String value) {
+
+        return (value != null) ? toTimestamp(value) + TIMESTAMP_WITHOUT_TIME_ZONE : null;
+    }
+
     public static Object truncateDateTo(LocalDateTime date, ChronoUnit unit, Object defaultValue) {
+
         return date != null ? date.truncatedTo(unit) : defaultValue;
     }
 }

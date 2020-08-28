@@ -25,14 +25,20 @@ import java.time.*;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.model.StorageConstants.*;
+import static ru.i_novus.platform.datastorage.temporal.model.DisplayExpression.toPlaceholder;
+import static ru.i_novus.platform.versioned_data_storage.DataTestUtils.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.TRANSACTION_ROW_LIMIT;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.toStorageCode;
 
 /**
  * Created by tnurdinov on 08.06.2018.
@@ -46,6 +52,9 @@ public class UseCaseTest {
     private static final ZoneId UNIVERSAL_TIMEZONE = ZoneId.of("UTC");
 
     @Autowired
+    private FieldFactory fieldFactory;
+
+    @Autowired
     private DraftDataService draftDataService;
 
     @Autowired
@@ -53,9 +62,6 @@ public class UseCaseTest {
 
     @Autowired
     private CompareDataService compareDataService;
-
-    @Autowired
-    private FieldFactory fieldFactory;
 
     private LocalDateTime now() {
         return LocalDateTime.now(UNIVERSAL_TIMEZONE);
@@ -79,8 +85,8 @@ public class UseCaseTest {
     public void testCreateReferenceStorage() throws Exception {
         logger.info("<<<<<<<<<<<<<<< 1 этап >>>>>>>>>>>>>>>>>>>>>");
         List<Field> d_a_fields = new ArrayList<>();
-        Field d_a_id = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field d_a_name = fieldFactory.createField("NAME", FieldType.STRING);
+        Field d_a_id = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field d_a_name = fieldFactory.createField(FIELD_NAME_CODE, FieldType.STRING);
         Field d_a_dateCol = fieldFactory.createField("DATE_COL", FieldType.DATE);
         Field d_a_boolCol = fieldFactory.createField("BOOL_COL", FieldType.BOOLEAN);
         Field d_a_floatCol = fieldFactory.createField("FLOAT_COL", FieldType.FLOAT);
@@ -106,7 +112,7 @@ public class UseCaseTest {
                 d_a_floatCol.valueOf(4f)));
         draftDataService.addRows(d_a_draftCode, d_a_rows);
 
-        DataCriteria criteria = new DataCriteria(d_a_draftCode, null, null, d_a_fields, emptySet(), null);
+        StorageDataCriteria criteria = new StorageDataCriteria(d_a_draftCode, null, null, d_a_fields, emptySet(), null);
         Collection<RowValue> d_a_actualRows = searchDataService.getPagedData(criteria).getCollection();
         assertRows(d_a_rows, d_a_actualRows);
         logger.info("<<<<<<<<<<<<<<< 1 этап завершен >>>>>>>>>>>>>>>>>>>>>");
@@ -115,15 +121,19 @@ public class UseCaseTest {
         LocalDateTime s_a_publishTime = now();
         LocalDateTime beforeSAPublishDate = s_a_publishTime.minus(1, ChronoUnit.DAYS);
         String s_a_storageCode = draftDataService.applyDraft(null, d_a_draftCode, s_a_publishTime);
-        Collection<RowValue> s_a_actualRows = searchDataService.getData(new DataCriteria(s_a_storageCode, beforeSAPublishDate, null, d_a_fields, emptySet(), null));
+
+        criteria = new StorageDataCriteria(s_a_storageCode, beforeSAPublishDate, null, d_a_fields, emptySet(), null);
+        Collection<RowValue> s_a_actualRows = searchDataService.getData(criteria);
         assertEquals(0, s_a_actualRows.size());
-        s_a_actualRows = searchDataService.getData(new DataCriteria(s_a_storageCode, s_a_publishTime, null, d_a_fields, emptySet(), null));
+
+        criteria = new StorageDataCriteria(s_a_storageCode, s_a_publishTime, null, d_a_fields, emptySet(), null);
+        s_a_actualRows = searchDataService.getData(criteria);
         assertRows(d_a_rows, s_a_actualRows);
         logger.info("<<<<<<<<<<<<<<< 2 этап завершен >>>>>>>>>>>>>>>>>>>>>");
 
         logger.info("<<<<<<<<<<<<<<< 3 этап >>>>>>>>>>>>>>>>>>>>>");
-        Field d_b_id = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field d_b_name = fieldFactory.createField("NAME", FieldType.STRING);
+        Field d_b_id = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field d_b_name = fieldFactory.createField(FIELD_NAME_CODE, FieldType.STRING);
         Field d_b_ref = fieldFactory.createField("REF", FieldType.REFERENCE);
         List<Field> d_b_fields = asList(d_b_id, d_b_name, d_b_ref);
         String d_b_draftCode = draftDataService.createDraft(d_b_fields);
@@ -133,7 +143,9 @@ public class UseCaseTest {
                 d_b_ref.valueOf(new Reference(s_a_storageCode, s_a_publishTime, d_a_id.getName(), d_a_name.getName(), "1", "test"))
         );
         draftDataService.addRows(d_b_draftCode, singletonList(d_b_rowValue));
-        List<RowValue> d_b_actualRows = searchDataService.getData(new DataCriteria(d_b_draftCode, null, null, d_b_fields, emptySet(), "name"));
+
+        criteria = new StorageDataCriteria(d_b_draftCode, null, null, d_b_fields, emptySet(), "name");
+        List<RowValue> d_b_actualRows = searchDataService.getData(criteria);
         Object systemId = d_b_actualRows.get(0).getSystemId();
 
         d_b_rowValue = new LongRowValue(
@@ -142,8 +154,10 @@ public class UseCaseTest {
                 d_b_ref.valueOf(new Reference(s_a_storageCode, s_a_publishTime, d_a_id.getName(), d_a_name.getName(), "2"))
         );
         d_b_rowValue.setSystemId(systemId);
-        draftDataService.updateRow(d_b_draftCode, d_b_rowValue);
-        d_b_actualRows = searchDataService.getData(new DataCriteria(d_b_draftCode, null, null, d_b_fields, emptySet(), "name"));
+        draftDataService.updateRows(d_b_draftCode, singletonList(d_b_rowValue));
+
+        criteria = new StorageDataCriteria(d_b_draftCode, null, null, d_b_fields, emptySet(), "name");
+        d_b_actualRows = searchDataService.getData(criteria);
         d_b_rowValue.getFieldValues().forEach(value -> {
             if (value instanceof ReferenceFieldValue) {
                 ((ReferenceFieldValue) value).getValue().setDisplayValue("test2");
@@ -155,13 +169,15 @@ public class UseCaseTest {
         logger.info("<<<<<<<<<<<<<<< 4 этап >>>>>>>>>>>>>>>>>>>>>");
         LocalDateTime s_b_publishTime = now();
         String s_b_storageCode = draftDataService.applyDraft(null, d_b_draftCode, s_b_publishTime);
-        Collection<RowValue> s_b_actualRows = searchDataService.getData(new DataCriteria(s_b_storageCode, null, null, d_b_fields, emptySet(), null));
+
+        criteria = new StorageDataCriteria(s_b_storageCode, null, null, d_b_fields, emptySet(), null);
+        Collection<RowValue> s_b_actualRows = searchDataService.getData(criteria);
         assertRows(singletonList(d_b_rowValue), s_b_actualRows);
         logger.info("<<<<<<<<<<<<<<< 4 этап завершен >>>>>>>>>>>>>>>>>>>>>");
 
         ReferenceFieldValue referenceFieldValue = (ReferenceFieldValue)d_b_ref.valueOf(
                 new Reference(s_a_storageCode, s_a_publishTime, d_a_id.getName(),
-                        new DisplayExpression("${" + d_a_name.getName() + "}"), null, null)
+                        new DisplayExpression(toPlaceholder(d_a_name.getName())), null, null)
         );
     }
 
@@ -169,8 +185,8 @@ public class UseCaseTest {
     public void testUpdateDraft() {
         String existingStorageCode = createStorage();
         List<Field> fields = new ArrayList<>();
-        Field code = fieldFactory.createField("CODE", FieldType.STRING);
-        Field name = fieldFactory.createField("NAME", FieldType.STRING);
+        Field code = fieldFactory.createField(FIELD_CODE_CODE, FieldType.STRING);
+        Field name = fieldFactory.createField(FIELD_NAME_CODE, FieldType.STRING);
         Field ref = fieldFactory.createField("REF", FieldType.STRING);
         fields.add(code);
         fields.add(name);
@@ -187,7 +203,7 @@ public class UseCaseTest {
 
         // Добавление строк.
         List<RowValue> rows = new ArrayList<>();
-        ReferenceFieldValue oldRefValue = new ReferenceFieldValue(ref.getName(), new Reference(existingStorageCode, now(), "ID", "NAME", "1", "test"));
+        ReferenceFieldValue oldRefValue = new ReferenceFieldValue(ref.getName(), new Reference(existingStorageCode, now(), FIELD_ID_CODE, FIELD_NAME_CODE, "1", "test"));
         RowValue rowValue = new LongRowValue(
                 code.valueOf("001"),
                 name.valueOf("name"),
@@ -195,44 +211,59 @@ public class UseCaseTest {
                 date_col.valueOf(LocalDate.now()));
         rows.add(rowValue);
         draftDataService.addRows(draftCode, rows);
-        List<RowValue> actualRows = searchDataService.getData(new DataCriteria(draftCode, null, null, fields, emptySet(), null));
+
+        StorageDataCriteria criteria = new StorageDataCriteria(draftCode, null, null, fields, emptySet(), null);
+        List<RowValue> actualRows = searchDataService.getData(criteria);
         assertRows(rows, actualRows);
 
         // Обновление значения ссылки.
         List<Object> updatedIds = asList(actualRows.get(0).getSystemId(), -1);
         String newDisplayValue = "test3";
         // - отображаемое значение ссылки не должно меняться, т.к. данные не менялись в existingStorageCode.
-        ReferenceFieldValue updatedRefValue = new ReferenceFieldValue(ref.getName(), new Reference(existingStorageCode, now(), "ID", "NAME", null, null));
+        ReferenceFieldValue updatedRefValue = new ReferenceFieldValue(ref.getName(), new Reference(existingStorageCode, now(), FIELD_ID_CODE, FIELD_NAME_CODE, null, null));
         draftDataService.updateReferenceInRows(draftCode, updatedRefValue, updatedIds);
-        actualRows = searchDataService.getData(new DataCriteria(draftCode, null, null, fields, emptySet(), null));
+
+        criteria = new StorageDataCriteria(draftCode, null, null, fields, emptySet(), null);
+        actualRows = searchDataService.getData(criteria);
         assertRows(rows, actualRows);
+
         // - меняются данные в existingStorageCode.
-        Field existingFieldId = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field existingFieldName = fieldFactory.createField("NAME", FieldType.STRING);
-        List<RowValue> existingRows = searchDataService.getData(new DataCriteria(existingStorageCode, null, null, singletonList(existingFieldId), emptySet(), null));
+        Field existingFieldId = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field existingFieldName = fieldFactory.createField(FIELD_NAME_CODE, FieldType.STRING);
+
+        criteria = new StorageDataCriteria(existingStorageCode, null, null, singletonList(existingFieldId), emptySet(), null);
+        List<RowValue> existingRows = searchDataService.getData(criteria);
         assertTrue(existingRows.size() > 0);
+
         Object existingSystemId = existingRows.get(0).getSystemId();
         FieldValue existingFieldValue = new StringFieldValue(existingFieldName.getName(), newDisplayValue);
-        draftDataService.updateRow(existingStorageCode, new LongRowValue((Long)existingSystemId, singletonList(existingFieldValue)));
+        RowValue updateRowValue = new LongRowValue((Long)existingSystemId, singletonList(existingFieldValue));
+        draftDataService.updateRows(existingStorageCode, singletonList(updateRowValue));
         // - отображаемое значение ссылки должно измениться, т.к. изменились данные в existingStorageCode.
         draftDataService.updateReferenceInRows(draftCode, updatedRefValue, updatedIds);
-        actualRows = searchDataService.getData(new DataCriteria(draftCode, null, null, fields, emptySet(), null));
+
+        criteria = new StorageDataCriteria(draftCode, null, null, fields, emptySet(), null);
+        actualRows = searchDataService.getData(criteria);
         ReferenceFieldValue fieldValue = (ReferenceFieldValue)rows.get(0).getFieldValue(ref.getName());
         fieldValue.getValue().setDisplayValue(newDisplayValue);
         assertRows(rows, actualRows);
 
         String storageCode = draftDataService.applyDraft(null, draftCode, now());
-        actualRows = searchDataService.getData(new DataCriteria(storageCode, null, null, fields, emptySet(), null));
+
+        criteria = new StorageDataCriteria(storageCode, null, null, fields, emptySet(), null);
+        actualRows = searchDataService.getData(criteria);
         assertRows(rows, actualRows);
     }
 
     private void assertRows(List<RowValue> expectedRows, Collection<RowValue> actualRows) {
+
         assertEquals("result size not equals", expectedRows.size(), actualRows.size());
-        Assert.assertTrue(
+
+        assertTrue(
                 "not equals actualRows: \n"
-                        + actualRows.stream().map(RowValue::toString).collect(Collectors.joining(", "))
+                        + actualRows.stream().map(RowValue::toString).collect(joining(", "))
                         + " \n and expected rows: \n"
-                        + expectedRows.stream().map(RowValue::toString).collect(Collectors.joining(", "))
+                        + expectedRows.stream().map(RowValue::toString).collect(joining(", "))
                 , actualRows.stream().anyMatch(actualRow ->
                         expectedRows.stream().anyMatch(expectedRow ->
                                 equalsFieldValues(expectedRow.getFieldValues(), actualRow.getFieldValues())
@@ -272,8 +303,8 @@ public class UseCaseTest {
 
     private String createStorage() {
         List<Field> d_a_fields = new ArrayList<>();
-        Field d_a_id = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field d_a_name = fieldFactory.createField("NAME", FieldType.STRING);
+        Field d_a_id = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field d_a_name = fieldFactory.createField(FIELD_NAME_CODE, FieldType.STRING);
         Field d_a_dateCol = fieldFactory.createField("DATE_COL", FieldType.DATE);
         Field d_a_boolCol = fieldFactory.createField("BOOL_COL", FieldType.BOOLEAN);
         Field d_a_floatCol = fieldFactory.createField("FLOAT_COL", FieldType.FLOAT);
@@ -301,6 +332,47 @@ public class UseCaseTest {
         return draftDataService.applyDraft(null, d_a_draftCode, now());
     }
 
+    @Test
+    public void testCopyAllData() {
+
+        List<Field> fields = new ArrayList<>();
+        Field idField = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field nameField = fieldFactory.createField(FIELD_NAME_CODE, FieldType.STRING);
+        fields.add(idField);
+        fields.add(nameField);
+
+        String sourceName = draftDataService.createDraft(fields);
+        String sourceCode = toStorageCode(null, sourceName);
+
+        List<RowValue> sourceRows = new ArrayList<>();
+        IntStream.range(0, TRANSACTION_ROW_LIMIT * 2 - 3).forEach(i -> {
+            sourceRows.add(new LongRowValue(
+                    idField.valueOf(BigInteger.valueOf(i)),
+                    nameField.valueOf("test_" + i)));
+        });
+        draftDataService.addRows(sourceCode, sourceRows);
+
+        String targetName = draftDataService.createDraft(TEST_SCHEMA_NAME, fields);
+        String targetCode = toStorageCode(TEST_SCHEMA_NAME, targetName);
+        draftDataService.copyAllData(sourceCode, targetCode);
+
+        StorageDataCriteria criteria = new StorageDataCriteria(targetCode, null, null,
+                singletonList(idField), emptySet(), null);
+        criteria.setPage(BaseDataCriteria.MIN_PAGE);
+        criteria.setSize(BaseDataCriteria.MIN_SIZE);
+
+        Collection<RowValue> targetRows = searchDataService.getPagedData(criteria).getCollection();
+        assertEquals(sourceRows.size(), criteria.getCount().intValue());
+        assertEquals(1, targetRows.size());
+
+        RowValue targetRow = targetRows.iterator().next();
+        assertTrue(sourceRows.stream()
+                .anyMatch(sourceRow ->
+                        sourceRow.getFieldValue(FIELD_ID_CODE).getValue()
+                                .equals(targetRow.getFieldValue(FIELD_ID_CODE).getValue()))
+        );
+    }
+
     /**
      * Запись двух одинаковых строк в один черновик
      * Ожидается ошибка NotUniqueException - нарушение уникальности строк в БД ("SYS_HASH")
@@ -308,8 +380,8 @@ public class UseCaseTest {
     @Test
     public void testCreateUniqueHash() {
         List<Field> d_a_fields = new ArrayList<>();
-        Field d_a_id = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field d_a_name = fieldFactory.createField("NAME", FieldType.STRING);
+        Field d_a_id = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field d_a_name = fieldFactory.createField(FIELD_NAME_CODE, FieldType.STRING);
         d_a_fields.add(d_a_id);
         d_a_fields.add(d_a_name);
 
@@ -333,8 +405,8 @@ public class UseCaseTest {
     @Test
     public void testDeleteField() {
         List<Field> fields = new ArrayList<>();
-        Field id = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field name = fieldFactory.createField("NAME", FieldType.STRING);
+        Field id = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field name = fieldFactory.createField(FIELD_NAME_CODE, FieldType.STRING);
         Field date = fieldFactory.createField("DATE", FieldType.DATE);
         fields.add(id);
         fields.add(name);
@@ -348,20 +420,22 @@ public class UseCaseTest {
         draftDataService.addRows(storageCode, rows);
 
         List<Field> hashField = singletonList(fieldFactory.createField(SYS_HASH, FieldType.STRING));
-        DataCriteria criteria = new DataCriteria(storageCode, null, null, hashField, emptySet(), null);
+        StorageDataCriteria criteria = new StorageDataCriteria(storageCode, null, null, hashField, emptySet(), null);
 
         RowValue hashBeforeDelete = searchDataService.getData(criteria).get(0);
-        draftDataService.deleteField(storageCode, "NAME");
+        draftDataService.deleteField(storageCode, FIELD_NAME_CODE);
         RowValue dataAfterDelete = searchDataService.getData(criteria).get(0);
-
-        Assert.assertNotEquals(hashBeforeDelete, dataAfterDelete);
+        assertNotEquals(hashBeforeDelete, dataAfterDelete);
 
         fields.remove(name);
-        List<RowValue> searchDeletedField = searchDataService.getData(new DataCriteria(storageCode, null, null, fields, emptySet(), "test"));
-        List<RowValue> searchExistingField = searchDataService.getData(new DataCriteria(storageCode, null, null, fields, emptySet(), "1"));
 
-        Assert.assertTrue(searchDeletedField.isEmpty());
-        Assert.assertTrue(!searchExistingField.isEmpty());
+        criteria = new StorageDataCriteria(storageCode, null, null, fields, emptySet(), "test");
+        List<RowValue> searchDeletedField = searchDataService.getData(criteria);
+        assertTrue(searchDeletedField.isEmpty());
+
+        criteria = new StorageDataCriteria(storageCode, null, null, fields, emptySet(), "1");
+        List<RowValue> searchExistingField = searchDataService.getData(criteria);
+        assertTrue(!searchExistingField.isEmpty());
 
     }
 
@@ -372,8 +446,8 @@ public class UseCaseTest {
     @Test
     public void testAddField() {
         List<Field> fields = new ArrayList<>();
-        Field id = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field name = fieldFactory.createField("NAME", FieldType.STRING);
+        Field id = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field name = fieldFactory.createField(FIELD_NAME_CODE, FieldType.STRING);
         fields.add(id);
         fields.add(name);
 
@@ -384,14 +458,14 @@ public class UseCaseTest {
         draftDataService.addRows(storageCode, rows);
 
         List<Field> hashField = singletonList(fieldFactory.createField(SYS_HASH, FieldType.STRING));
-        DataCriteria criteria = new DataCriteria(storageCode, null, null, hashField, emptySet(), null);
+        StorageDataCriteria criteria = new StorageDataCriteria(storageCode, null, null, hashField, emptySet(), null);
 
         RowValue hashBeforeAdd = searchDataService.getData(criteria).get(0);
         Field date = fieldFactory.createField("DATE", FieldType.DATE);
         draftDataService.addField(storageCode, date);
         RowValue dataAfterAdd = searchDataService.getData(criteria).get(0);
 
-        Assert.assertNotEquals(hashBeforeAdd, dataAfterAdd);
+        assertNotEquals(hashBeforeAdd, dataAfterAdd);
     }
 
     /*
@@ -402,9 +476,9 @@ public class UseCaseTest {
         Long time_sec_diff = 150000L;
 
         List<Field> fields = new ArrayList<>();
-        Field id = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field code = fieldFactory.createField("CODE", FieldType.STRING);
-        Field name = fieldFactory.createField("NAME", FieldType.STRING);
+        Field id = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field code = fieldFactory.createField(FIELD_CODE_CODE, FieldType.STRING);
+        Field name = fieldFactory.createField(FIELD_NAME_CODE, FieldType.STRING);
         fields.add(id);
         fields.add(code);
         fields.add(name);
@@ -430,11 +504,15 @@ public class UseCaseTest {
         LocalDateTime publishDate1 = now();
         LocalDateTime closeDate1 = publishDate1.plusSeconds(time_sec_diff);
         String storageCode = draftDataService.applyDraft(null, draftCode, publishDate1, closeDate1);
-        List<RowValue> actualRows = searchDataService.getData(new DataCriteria(storageCode, publishDate1, closeDate1, fields, emptySet(), null));
+
+        StorageDataCriteria criteria = new StorageDataCriteria(storageCode, publishDate1, closeDate1, fields, emptySet(), null);
+        List<RowValue> actualRows = searchDataService.getData(criteria);
 //        проверка в опубликованной версии
         assertRows(rows1, actualRows);
+
         // "1" (pT1, cT1), "2" (pT1, cT1) общее кол-во записей в таблице версий
-        assertEquals(2, searchDataService.getData(new DataCriteria(storageCode, null, null, fields, emptySet(), null)).size());
+        criteria = new StorageDataCriteria(storageCode, null, null, fields, emptySet(), null);
+        assertEquals(2, searchDataService.getData(criteria).size());
 
         // pT1 < pT2 < cT2 < cT1
         draftCode = draftDataService.createDraft(fields);
@@ -446,13 +524,20 @@ public class UseCaseTest {
         LocalDateTime publishDate2 = publishDate1.plusSeconds(time_sec_diff / 100L);
         LocalDateTime closeDate2 = publishDate1.plusSeconds(time_sec_diff / 100L * 50);
         String storageCode2 = draftDataService.applyDraft(storageCode, draftCode, publishDate2, closeDate2);
-        actualRows = searchDataService.getData(new DataCriteria(storageCode2, publishDate2, closeDate2, fields, emptySet(), null));
+
+        criteria = new StorageDataCriteria(storageCode2, publishDate2, closeDate2, fields, emptySet(), null);
+        actualRows = searchDataService.getData(criteria);
         assertRows(rows2, actualRows);
+
+        criteria = new StorageDataCriteria(storageCode2, null, null, withSysDateFields, emptySet(), null);
         System.out.println("publishDate2 = " + publishDate2 + "\n closeDate2 = " + closeDate2 + "" +
                 "\npublishDate1 = " + publishDate1 + "\n closeDate1 = " + closeDate1 + "" +
-                " \n rows = " + searchDataService.getData(new DataCriteria(storageCode2, null, null, withSysDateFields, emptySet(), null)).toString());
+                " \n rows = " + searchDataService.getData(criteria).toString());
+
         // "1" (pT1, pT2), "1" (cT2, cT1), "2" (pT1, cT1), "3" (pT2, cT2)
-        assertEquals("incorrect total rows count in version table", 4, searchDataService.getData(new DataCriteria(storageCode2, null, null, fields, emptySet(), null)).size());
+        criteria = new StorageDataCriteria(storageCode2, null, null, fields, emptySet(), null);
+        assertEquals("incorrect total rows count in version table", 4, searchDataService.getData(criteria).size());
+
         // pT1 < pT2 < pT3 < cT3 < cT2 < cT1
         draftCode = draftDataService.createDraft(fields);
         List<RowValue> rows3 = new ArrayList<>();
@@ -461,13 +546,19 @@ public class UseCaseTest {
         LocalDateTime publishDate3 = publishDate1.plusSeconds(time_sec_diff / 10L);
         LocalDateTime closeDate3 = publishDate1.plusSeconds(time_sec_diff / 10L * 4);
         String storageCode3 = draftDataService.applyDraft(storageCode2, draftCode, publishDate3, closeDate3);
-        actualRows = searchDataService.getData(new DataCriteria(storageCode3, publishDate3, closeDate3, fields, emptySet(), null));
+
+        criteria = new StorageDataCriteria(storageCode3, publishDate3, closeDate3, fields, emptySet(), null);
+        actualRows = searchDataService.getData(criteria);
+
+        criteria = new StorageDataCriteria(storageCode3, publishDate3, closeDate3, withSysDateFields, emptySet(), null);
         System.out.println("publishDate3 = " + publishDate3 +
                 "\ncloseDate3 = " + closeDate3 + " \n" +
-                searchDataService.getData(new DataCriteria(storageCode3, publishDate3, closeDate3, withSysDateFields, emptySet(), null)));
+                searchDataService.getData(criteria));
         assertRows(rows3, actualRows);
+
         // "1" (pT1, pT2), "1" (pT3, cT3), "1" (cT2, cT1), "2" (pT1, pT3), "2" (cT3, cT1), "3" (pT2, pT3), "3" (cT3, cT2)
-        assertEquals(7, searchDataService.getData(new DataCriteria(storageCode3, null, null, fields, emptySet(), null)).size());
+        criteria = new StorageDataCriteria(storageCode3, null, null, fields, emptySet(), null);
+        assertEquals(7, searchDataService.getData(criteria).size());
 
         // pT1 < pT2 <= pT4 < cT4 <= pT3 < cT3 < cT2 < cT1
         draftCode = draftDataService.createDraft(fields);
@@ -476,29 +567,38 @@ public class UseCaseTest {
         LocalDateTime publishDate4 = publishDate1.plusSeconds(time_sec_diff / 100L);
         LocalDateTime closeDate4 = publishDate1.plusSeconds(time_sec_diff / 10L);
         String storageCode4 = draftDataService.applyDraft(storageCode3, draftCode, publishDate4, closeDate4);
-        actualRows = searchDataService.getData(new DataCriteria(storageCode4, publishDate4, closeDate4, fields, emptySet(), null));
+
+        criteria = new StorageDataCriteria(storageCode4, publishDate4, closeDate4, fields, emptySet(), null);
+        actualRows = searchDataService.getData(criteria);
         assertRows(rows4, actualRows);
+
         // "1" (pT1, cT3), "1" (cT2, cT1), "2" (pT1, pT3), "2" (cT3, cT1), "3" (pT2, pT3) = (pT4, cT4), "3" (cT3, cT2)
-        assertEquals(6, searchDataService.getData(new DataCriteria(storageCode4, null, null, fields, emptySet(), null)).size());
+        criteria = new StorageDataCriteria(storageCode4, null, null, fields, emptySet(), null);
+        assertEquals(6, searchDataService.getData(criteria).size());
         FieldSearchCriteria fieldSearchCriteria = new FieldSearchCriteria(id, SearchTypeEnum.EXACT, singletonList(BigInteger.valueOf(1)));
+
         //test that there are exactly two rows with id=1 (point row was deleted, one was remained unmodified, one was added
-        assertEquals(2,
-                searchDataService.getData(
-                        new DataCriteria(storageCode4, null, null, fields, singletonList(fieldSearchCriteria), null)
-                ).size());
+        criteria = new StorageDataCriteria(storageCode4, null, null, fields, singletonList(fieldSearchCriteria), null);
+        assertEquals(2, searchDataService.getData(criteria).size());
 
         draftCode = draftDataService.createDraft(fields);
         draftDataService.addRows(draftCode, rows);
         storageCode = draftDataService.applyDraft(null, draftCode, publishDate1, null);
-        actualRows = searchDataService.getData(new DataCriteria(storageCode, publishDate1, null, fields, emptySet(), null));
+
+        criteria = new StorageDataCriteria(storageCode, publishDate1, null, fields, emptySet(), null);
+        actualRows = searchDataService.getData(criteria);
         assertRows(rows, actualRows);
 
         draftCode = draftDataService.createDraft(fields);
         draftDataService.addRows(draftCode, rows);
         String storageCode1 = draftDataService.applyDraft(storageCode, draftCode, publishDate2, null);
-        actualRows = searchDataService.getData(new DataCriteria(storageCode1, publishDate1, null, fields, emptySet(), null));
+
+        criteria = new StorageDataCriteria(storageCode1, publishDate1, null, fields, emptySet(), null);
+        actualRows = searchDataService.getData(criteria);
         assertRows(rows, actualRows);
-        actualRows = searchDataService.getData(new DataCriteria(storageCode1, publishDate2, null, fields, emptySet(), null));
+
+        criteria = new StorageDataCriteria(storageCode1, publishDate2, null, fields, emptySet(), null);
+        actualRows = searchDataService.getData(criteria);
         assertRows(rows, actualRows);
 
     }
@@ -509,8 +609,8 @@ public class UseCaseTest {
     @Test
     public void testGetDataDifferenceForTwoPublishedVersionsWithSameStorage() {
         List<Field> fields = new ArrayList<>();
-        Field id = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field code = fieldFactory.createField("CODE", FieldType.STRING);
+        Field id = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field code = fieldFactory.createField(FIELD_CODE_CODE, FieldType.STRING);
         fields.add(id);
         fields.add(code);
         List<RowValue> rows = new ArrayList<>();
@@ -550,7 +650,12 @@ public class UseCaseTest {
                 .collect(Collectors.toSet());
 
         // WARN: bug? : replace first publishDate2 with closeDate1
-        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, publishDate1, publishDate2, publishDate2, closeDate2, fields, singletonList("ID"), fieldValues);
+        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, fields, singletonList(FIELD_ID_CODE), fieldValues);
+        compareDataCriteria.setOldPublishDate(publishDate1);
+        compareDataCriteria.setOldCloseDate(publishDate2);
+        compareDataCriteria.setNewPublishDate(publishDate2);
+        compareDataCriteria.setNewCloseDate(closeDate2);
+
         DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
         List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
         expectedDiffRowValues.add(new DiffRowValue(
@@ -592,8 +697,8 @@ public class UseCaseTest {
     @Test
     public void testGetDataDifferenceForVersionsWithNullValues() {
         List<Field> fields = new ArrayList<>();
-        Field id = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field code = fieldFactory.createField("CODE", FieldType.STRING);
+        Field id = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field code = fieldFactory.createField(FIELD_CODE_CODE, FieldType.STRING);
         fields.add(id);
         fields.add(code);
         List<RowValue> rows = new ArrayList<>();
@@ -650,7 +755,12 @@ public class UseCaseTest {
                 .collect(Collectors.toSet());
 
         // WARN: bug? : replace first publishDate2 with closeDate1
-        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, publishDate1, publishDate2, publishDate2, closeDate2, fields, singletonList("ID"), fieldValues);
+        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, fields, singletonList(FIELD_ID_CODE), fieldValues);
+        compareDataCriteria.setOldPublishDate(publishDate1);
+        compareDataCriteria.setOldCloseDate(publishDate2);
+        compareDataCriteria.setNewPublishDate(publishDate2);
+        compareDataCriteria.setNewCloseDate(closeDate2);
+
         DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
         List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
         expectedDiffRowValues.add(new DiffRowValue(
@@ -699,9 +809,9 @@ public class UseCaseTest {
     @Test
     public void testGetDataDifferenceForTwoPublishedVersionsWithCompositePK() {
         List<Field> fields = new ArrayList<>();
-        Field id = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field code = fieldFactory.createField("CODE", FieldType.STRING);
-        Field name = fieldFactory.createField("NAME", FieldType.STRING);
+        Field id = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field code = fieldFactory.createField(FIELD_CODE_CODE, FieldType.STRING);
+        Field name = fieldFactory.createField(FIELD_NAME_CODE, FieldType.STRING);
         fields.add(id);
         fields.add(code);
         fields.add(name);
@@ -747,7 +857,12 @@ public class UseCaseTest {
                 .collect(Collectors.toSet());
 
         // WARN: bug? : replace first publishDate2 with closeDate1
-        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, publishDate1, publishDate2, publishDate2, closeDate2, fields, Arrays.asList("ID", "CODE"), fieldValues);
+        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, fields, Arrays.asList(FIELD_ID_CODE, FIELD_CODE_CODE), fieldValues);
+        compareDataCriteria.setOldPublishDate(publishDate1);
+        compareDataCriteria.setOldCloseDate(publishDate2);
+        compareDataCriteria.setNewPublishDate(publishDate2);
+        compareDataCriteria.setNewCloseDate(closeDate2);
+
         DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
         List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
         expectedDiffRowValues.add(new DiffRowValue(
@@ -775,8 +890,8 @@ public class UseCaseTest {
     @Test
     public void testGetDataDifferenceForTwoPublishedVersionsWithoutNonPrimaryFields() {
         List<Field> fields = new ArrayList<>();
-        Field id = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field code = fieldFactory.createField("CODE", FieldType.STRING);
+        Field id = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field code = fieldFactory.createField(FIELD_CODE_CODE, FieldType.STRING);
         fields.add(id);
         fields.add(code);
         List<RowValue> rows = new ArrayList<>();
@@ -816,7 +931,12 @@ public class UseCaseTest {
                 .collect(Collectors.toSet());
 
         // WARN: bug? : replace first publishDate2 with closeDate1
-        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, publishDate1, publishDate2, publishDate2, closeDate2, fields, Arrays.asList("ID", "CODE"), fieldValues);
+        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode2, null, fields, Arrays.asList(FIELD_ID_CODE, FIELD_CODE_CODE), fieldValues);
+        compareDataCriteria.setOldPublishDate(publishDate1);
+        compareDataCriteria.setOldCloseDate(publishDate2);
+        compareDataCriteria.setNewPublishDate(publishDate2);
+        compareDataCriteria.setNewCloseDate(closeDate2);
+
         DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
         List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
         expectedDiffRowValues.add(new DiffRowValue(
@@ -838,8 +958,8 @@ public class UseCaseTest {
     @Test
     public void testGetDataDifferenceForPublishedAndDraft() {
         List<Field> fields = new ArrayList<>();
-        Field id = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field code = fieldFactory.createField("CODE", FieldType.STRING);
+        Field id = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field code = fieldFactory.createField(FIELD_CODE_CODE, FieldType.STRING);
         fields.add(id);
         fields.add(code);
         List<RowValue> rows = new ArrayList<>();
@@ -875,7 +995,10 @@ public class UseCaseTest {
                 )
                 .collect(Collectors.toSet());
 
-        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode, draftCode, publishDate1, closeDate1, null, null, fields, singletonList("ID"), fieldValues);
+        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode, draftCode, fields, singletonList(FIELD_ID_CODE), fieldValues);
+        compareDataCriteria.setOldPublishDate(publishDate1);
+        compareDataCriteria.setOldCloseDate(closeDate1);
+
         DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
         List<DiffRowValue> expectedDiffRowValues = new ArrayList<>();
         expectedDiffRowValues.add(new DiffRowValue(
@@ -907,9 +1030,9 @@ public class UseCaseTest {
         LocalDateTime publishDate2 = multiply(publishDate1, 3);
 
         List<Field> fields = new ArrayList<>();
-        Field id = fieldFactory.createField("ID", FieldType.INTEGER);
-        Field code = fieldFactory.createField("CODE", FieldType.STRING);
-        Field name = fieldFactory.createField("NAME", FieldType.STRING);
+        Field id = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+        Field code = fieldFactory.createField(FIELD_CODE_CODE, FieldType.STRING);
+        Field name = fieldFactory.createField(FIELD_NAME_CODE, FieldType.STRING);
         fields.add(id);
         fields.add(code);
 
@@ -945,7 +1068,11 @@ public class UseCaseTest {
                 )
                 .collect(Collectors.toSet());
 
-        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode, storageCode2, publishDate1, closeDate1, publishDate2, null, Arrays.asList(fields.get(0), fields.get(1)), singletonList("ID"), fieldValues);
+        CompareDataCriteria compareDataCriteria = new CompareDataCriteria(storageCode, storageCode2, Arrays.asList(fields.get(0), fields.get(1)), singletonList(FIELD_ID_CODE), fieldValues);
+        compareDataCriteria.setOldPublishDate(publishDate1);
+        compareDataCriteria.setOldCloseDate(closeDate1);
+        compareDataCriteria.setNewPublishDate(publishDate2);
+
         DataDifference actualDataDifference = compareDataService.getDataDifference(compareDataCriteria);
         assertDiffRowValues(new ArrayList<>(), (List<DiffRowValue>) actualDataDifference.getRows().getCollection());
     }
@@ -966,16 +1093,16 @@ public class UseCaseTest {
     @Test
     public void testPublishAndSearchNullCloseDateData() {
         Field stringField = new StringField("string");
-        String draftStorageCode1 = draftDataService.createDraft(Collections.singletonList(stringField));
-        String draftStorageCode2 = draftDataService.createDraft(Collections.singletonList(stringField));
-        String draftStorageCode3 = draftDataService.createDraft(Collections.singletonList(stringField));
-        List<RowValue> rowValues1 = Collections.singletonList(
+        String draftStorageCode1 = draftDataService.createDraft(singletonList(stringField));
+        String draftStorageCode2 = draftDataService.createDraft(singletonList(stringField));
+        String draftStorageCode3 = draftDataService.createDraft(singletonList(stringField));
+        List<RowValue> rowValues1 = singletonList(
                 new LongRowValue(stringField.valueOf("string field value 1")));
         List<RowValue> rowValues2 = Arrays.asList(
                 new LongRowValue(stringField.valueOf("string field value 1")),
                 new LongRowValue(stringField.valueOf("string field value 2.1")),
                 new LongRowValue(stringField.valueOf("string field value 2.2")));
-        List<RowValue> rowValues3 = Collections.singletonList(
+        List<RowValue> rowValues3 = singletonList(
                 new LongRowValue(stringField.valueOf("string field value 3")));
         draftDataService.addRows(draftStorageCode1, rowValues1);
         draftDataService.addRows(draftStorageCode2, rowValues2);
@@ -991,14 +1118,14 @@ public class UseCaseTest {
         String versionStorageCode2 = draftDataService.applyDraft(versionStorageCode1, draftStorageCode2, publishDate2, closeDate2);
 
         //Поиск когда closeTime поиска и данных closeTime одинаковый
-        DataCriteria dataCriteria = new DataCriteria(versionStorageCode2, publishDate2, closeDate2, Collections.singletonList(stringField), emptySet(), null);
+        StorageDataCriteria dataCriteria = new StorageDataCriteria(versionStorageCode2, publishDate2, closeDate2, singletonList(stringField), emptySet(), null);
         CollectionPage<RowValue> actualData = searchDataService.getPagedData(dataCriteria);
         assertEquals(3, actualData.getCount());
         assertRows(rowValues2, actualData.getCollection());
 
         //Поиск когда closeTime поиска null а у данных определен
         //Ожидается пустой ответ, т.к. данные не действуют на всем промежутке
-        dataCriteria = new DataCriteria(versionStorageCode2, publishDate2, null, Collections.singletonList(stringField), emptySet(), null);
+        dataCriteria = new StorageDataCriteria(versionStorageCode2, publishDate2, null, singletonList(stringField), emptySet(), null);
         actualData = searchDataService.getPagedData(dataCriteria);
         assertEquals(0, actualData.getCount());
         assertTrue(actualData.getCollection().isEmpty());
@@ -1008,19 +1135,10 @@ public class UseCaseTest {
 
         //Поиск когда closeTime поиска определен а у данных нет
         //Ожидается одна строка (Последняя опубликованная)
-        dataCriteria = new DataCriteria(versionStorageCode3, publishDate3, null, Collections.singletonList(stringField), emptySet(), null);
+        dataCriteria = new StorageDataCriteria(versionStorageCode3, publishDate3, null, singletonList(stringField), emptySet(), null);
         actualData = searchDataService.getPagedData(dataCriteria);
         assertEquals(1, actualData.getCount());
         assertRows(rowValues3, actualData.getCollection());
-    }
-
-    /**
-     * первая публикация черновика
-     * @throws Exception
-     */
-    @Test
-    public void testFirstApply() throws Exception {
-
     }
 
     @Test
@@ -1039,6 +1157,7 @@ public class UseCaseTest {
             new LongRowValue(new IntegerFieldValue(id, 6))
         };
         draftDataService.addRows(storageCode, Arrays.asList(records));
+
 //      Имитируем поведение недалекого клиента, который хочет найти строки, у которых id равен либо 1, либо 2, либо 3.
 //      Для этого он, вместо того, чтобы создать new FieldSearchCriteria(integerField, SearchTypeEnum.EXACT, Arrays.asList(1, 2, 3),
 //      Создаст 3 разных FieldSearchCriteria, в которые аргументом values укажем синглтон лист со значениями 1, 2 и 3.
@@ -1048,9 +1167,11 @@ public class UseCaseTest {
         FieldSearchCriteria criteria1 = new FieldSearchCriteria(integerField, SearchTypeEnum.EXACT, singletonList(1));
         FieldSearchCriteria criteria2 = new FieldSearchCriteria(integerField, SearchTypeEnum.EXACT, singletonList(2));
         FieldSearchCriteria criteria3 = new FieldSearchCriteria(integerField, SearchTypeEnum.EXACT, singletonList(3));
-        DataCriteria dataCriteria = new DataCriteria(storageCode, null, null, fields, Arrays.asList(criteria1, criteria2, criteria3), null);
+
+        StorageDataCriteria dataCriteria = new StorageDataCriteria(storageCode, null, null, fields, Arrays.asList(criteria1, criteria2, criteria3), null);
         CollectionPage<RowValue> data = searchDataService.getPagedData(dataCriteria);
         assertEquals(3, data.getCount());
+
         Collection<RowValue> collection = data.getCollection();
         BigInteger[] searchIds = {BigInteger.valueOf(1), BigInteger.valueOf(2), BigInteger.valueOf(3)};
         for (RowValue rowValue : collection) {

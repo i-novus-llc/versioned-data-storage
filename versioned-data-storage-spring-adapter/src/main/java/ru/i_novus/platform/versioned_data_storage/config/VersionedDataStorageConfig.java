@@ -48,5 +48,4 @@ public class VersionedDataStorageConfig {
     public FieldFactory getFieldFactory(){
         return new FieldFactoryImpl();
     }
-
 }

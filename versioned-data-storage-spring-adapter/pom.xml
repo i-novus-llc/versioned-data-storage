@@ -24,6 +24,7 @@
             <version>${project.parent.version}</version>
         </dependency>
 
+        <!-- Test -->
         <dependency>
             <groupId>ru.i-novus.components</groupId>
             <artifactId>otj-pg-embedded-rus</artifactId>
@@ -89,6 +90,8 @@
             <version>3.4.1</version>
             <scope>test</scope>
         </dependency>
+        <!-- / Test -->
+
     </dependencies>
 
     <dependencyManagement>
@@ -118,4 +121,5 @@
             </plugin>
         </plugins>
     </build>
+
 </project>

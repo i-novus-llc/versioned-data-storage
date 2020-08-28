@@ -76,6 +76,14 @@ public interface DraftDataService {
     void addRows(String draftCode, List<RowValue> rowValues);
 
     /**
+     * Изменение записей таблицы.
+     *
+     * @param draftCode код черновика
+     * @param rowValues новые данные записей
+     */
+    void updateRows(String draftCode, List<RowValue> rowValues);
+
+    /**
      * Удаление записей из таблицы.
      *
      * @param draftCode код черновика
@@ -91,20 +99,33 @@ public interface DraftDataService {
     void deleteAllRows(String draftCode);
 
     /**
-     * Изменение записи таблицы.
+     * Загрузка данных на указанную дату из хранилища в черновик.
      *
-     * @param draftCode код черновика
-     * @param rowValue  новые данные записи
+     * @param draftCode  код черновика
+     * @param sourceCode код хранилища, откуда будут загружены данные
+     * @param onDate     дата публикации версии
      */
-    void updateRow(String draftCode, RowValue rowValue);
+    void loadData(String draftCode, String sourceCode, LocalDateTime onDate);
 
     /**
-     * Изменение записей таблицы.
+     * Загрузка данных на указанном интервале из хранилища в черновик.
      *
-     * @param draftCode код черновика
-     * @param rowValues новые данные записей
+     * @param draftCode  код черновика
+     * @param sourceCode код хранилища, откуда будут загружены данные
+     * @param fromDate   дата начала действия версии
+     * @param toDate     дата окончания действия версии
      */
-    void updateRows(String draftCode, List<RowValue> rowValues);
+    void loadData(String draftCode, String sourceCode, LocalDateTime fromDate, LocalDateTime toDate);
+
+    /**
+     * Копирование всех записей из исходной таблицы в целевую, эквивалентную по структуре.
+     * <p>
+     * Проверка совпадения структур не выполняется.
+     *
+     * @param sourceCode код исходного хранилища данных
+     * @param targetCode код целевого хранилища данных
+     */
+    void copyAllData(String sourceCode, String targetCode);
 
     /**
      * Обновление отображаемого значения ссылки в записях таблицы.
@@ -127,31 +148,20 @@ public interface DraftDataService {
                                   LocalDateTime publishTime, LocalDateTime closeTime);
 
     /**
-     * Загрузка данных на указанную дату из хранилища в черновик.
-     *
-     * @param draftCode         код черновика
-     * @param sourceStorageCode код хранилища данных, откуда будут загружены данные
-     * @param onDate            дата публикации версии
-     */
-    void loadData(String draftCode, String sourceStorageCode, LocalDateTime onDate);
-
-    /**
-     * Загрузка данных на указанном интервале из хранилища в черновик.
-     *
-     * @param draftCode         код черновика
-     * @param sourceStorageCode код хранилища данных, откуда будут загружены данные
-     * @param fromDate          дата начала действия версии
-     * @param toDate            дата окончания действия версии
-     */
-    void loadData(String draftCode, String sourceStorageCode, LocalDateTime fromDate, LocalDateTime toDate);
-
-    /**
      * Добавление нового поля в таблицу.
      *
      * @param draftCode код черновика
      * @param field     данные поля
      */
     void addField(String draftCode, Field field);
+
+    /**
+     * Изменение типа поля в таблице.
+     *
+     * @param draftCode код черновика
+     * @param field     данные поля
+     */
+    void updateField(String draftCode, Field field);
 
     /**
      * Удаления поля из таблицы.
@@ -161,14 +171,6 @@ public interface DraftDataService {
      * @throws NotUniqueException
      */
     void deleteField(String draftCode, String fieldName);
-
-    /**
-     * Изменение типа поля в таблице.
-     *
-     * @param draftCode код черновика
-     * @param field     данные поля
-     */
-    void updateField(String draftCode, Field field);
 
     /**
      * Проверка наличия данных в поле хранилища.
@@ -185,7 +187,7 @@ public interface DraftDataService {
      *
      * @param storageCode код хранилища данных
      * @param fieldName   наименование поля
-     * @return возвращает true, если в столбце есть null-значения, иначе false.
+     * @return Возвращает true, если в столбце есть null-значения, иначе false.
      */
     boolean isFieldContainEmptyValues(String storageCode, String fieldName);
 
@@ -195,7 +197,7 @@ public interface DraftDataService {
      * @param storageCode код хранилища данных
      * @param fieldName   наименование поля
      * @param publishTime дата публикации версии
-     * @return возврщает true, если значения поля уникальны, иначе false. Null считается уникальным значением.
+     * @return Возвращает true, если значения поля уникальны, иначе false. Null считается уникальным значением.
      */
     boolean isFieldUnique(String storageCode, String fieldName, LocalDateTime publishTime);
 
@@ -204,7 +206,7 @@ public interface DraftDataService {
      *
      * @param storageCode код хранилища данных
      * @param fieldNames  список наименований полей
-     * @return возврщает true, если значения полей уникальны, иначе false. Null считается уникальным значением.
+     * @return Возвращает true, если значения полей уникальны, иначе false. Null считается уникальным значением.
      */
     boolean isUnique(String storageCode, List<String> fieldNames);
 }

@@ -1,4 +1,3 @@
-
 <configuration>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
@@ -10,4 +9,5 @@
     <root level="debug">
         <appender-ref ref="STDOUT" />
     </root>
+    
 </configuration>

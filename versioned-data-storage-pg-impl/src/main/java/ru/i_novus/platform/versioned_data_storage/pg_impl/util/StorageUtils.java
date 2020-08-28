@@ -1,9 +1,9 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.util;
 
-import ru.i_novus.platform.versioned_data_storage.pg_impl.model.StorageConstants;
+import java.util.UUID;
 
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.model.StorageConstants.DATA_SCHEMA_NAME;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.model.StorageConstants.SCHEMA_NAME_PATTERN;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addDoubleQuotes;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.isNullOrEmpty;
 
 public class StorageUtils {
@@ -12,12 +12,18 @@ public class StorageUtils {
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * Преобразование кода хранилища в наименование схемы.
+     *
+     * @param storageCode код хранилища
+     * @return Наименование схемы
+     */
     public static String toSchemaName(String storageCode) {
 
         if (isNullOrEmpty(storageCode))
             return DATA_SCHEMA_NAME;
 
-        int separatorIndex = storageCode.indexOf(StorageConstants.CODE_SEPARATOR);
+        int separatorIndex = storageCode.indexOf(CODE_SEPARATOR);
         if (separatorIndex > 0) {
             return storageCode.substring(0, separatorIndex);
         }
@@ -25,12 +31,18 @@ public class StorageUtils {
         return DATA_SCHEMA_NAME;
     }
 
+    /**
+     * Преобразование кода хранилища в наименование таблицы.
+     *
+     * @param storageCode код хранилища
+     * @return Наименование таблицы
+     */
     public static String toTableName(String storageCode) {
 
         if (isNullOrEmpty(storageCode))
-            return null;
+            return "";
 
-        int separatorIndex = storageCode.indexOf(StorageConstants.CODE_SEPARATOR);
+        int separatorIndex = storageCode.indexOf(CODE_SEPARATOR);
         if (separatorIndex >= 0) {
             return storageCode.substring(separatorIndex + 1);
         }
@@ -38,11 +50,16 @@ public class StorageUtils {
         return storageCode;
     }
 
+    /**
+     * Преобразование наименования схемы и таблицы в код хранилища.
+     *
+     * @param schemaName наименование схемы
+     * @param tableName  наименование таблицы
+     * @return Код хранилища
+     */
     public static String toStorageCode(String schemaName, String tableName) {
 
-        return isNullOrEmpty(schemaName) || DATA_SCHEMA_NAME.equals(schemaName)
-                ? tableName
-                : schemaName + StorageConstants.CODE_SEPARATOR + tableName;
+        return isDefaultSchema(schemaName) ? tableName : schemaName + CODE_SEPARATOR + tableName;
     }
 
     /**
@@ -57,7 +74,7 @@ public class StorageUtils {
     }
 
     /**
-     * Проверка наименования схемы нра корректность.
+     * Проверка наименования схемы на корректность.
      *
      * @param schemaName наименование схемы
      * @return Результат проверки
@@ -70,5 +87,61 @@ public class StorageUtils {
     public static String getSchemaNameOrDefault(String schemaName) {
 
         return isNullOrEmpty(schemaName) ? DATA_SCHEMA_NAME : schemaName;
+    }
+
+    public static String escapeTableName(String schemaName, String tableName) {
+
+        return getSchemaNameOrDefault(schemaName) + NAME_SEPARATOR + addDoubleQuotes(tableName);
+    }
+
+    public static String escapeStorageTableName(String storageCode) {
+
+        return escapeTableName(toSchemaName(storageCode), toTableName(storageCode));
+    }
+
+    public static String aliasColumnName(String tableAlias, String fieldName) {
+
+        return tableAlias + NAME_SEPARATOR + fieldName;
+    }
+
+    public static String escapeFieldName(String tableAlias, String fieldName) {
+
+        String escapedFieldName = addDoubleQuotes(fieldName);
+        return isNullOrEmpty(tableAlias) ? escapedFieldName : aliasColumnName(tableAlias, escapedFieldName);
+    }
+
+    public static String escapeSequenceName(String tableName) {
+
+        return addDoubleQuotes(tableName + NAME_CONNECTOR + SYS_PRIMARY_COLUMN + TABLE_SEQUENCE_SUFFIX);
+    }
+
+    public static String escapeSchemaSequenceName(String schemaName, String tableName) {
+
+        return getSchemaNameOrDefault(schemaName) + NAME_SEPARATOR + escapeSequenceName(tableName);
+    }
+
+    public static String escapeStorageSequenceName(String storageCode) {
+
+        return escapeSchemaSequenceName(toSchemaName(storageCode), toTableName(storageCode));
+    }
+
+    public static String escapeTableIndexName(String tableName, String indexName) {
+
+        return addDoubleQuotes(tableName + NAME_CONNECTOR + indexName + TABLE_INDEX_SUFFIX);
+    }
+
+    public static String escapeTableFunctionName(String tableName, String functionName) {
+
+        return addDoubleQuotes(tableName + NAME_CONNECTOR + functionName);
+    }
+
+    /**
+     * Генерация наименования хранилища.
+     *
+     * @return Наименование хранилища
+     */
+    public static String generateStorageName() {
+
+        return UUID.randomUUID().toString();
     }
 }
