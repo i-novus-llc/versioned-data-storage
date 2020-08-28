@@ -33,17 +33,17 @@ public class StorageConstants {
     public static final String SYS_PATH = "SYS_PATH"; // не используется
     public static final String SYS_FTS = "FTS"; // Значение для полнотекстового поиска
 
-    public static final List<String> SYS_FIELD_NAMES = Arrays.asList(SYS_PRIMARY_COLUMN,
+    private static final List<String> SYS_FIELD_NAMES = Arrays.asList(SYS_PRIMARY_COLUMN,
             SYS_HASH, SYS_PATH, SYS_FTS,
             SYS_PUBLISHTIME, SYS_CLOSETIME
     );
 
-    public static final List<String> SYS_VERSIONED_FIELD_NAMES = Arrays.asList(SYS_PUBLISHTIME, SYS_CLOSETIME);
+    private static final List<String> SYS_VERSIONED_FIELD_NAMES = Arrays.asList(SYS_PUBLISHTIME, SYS_CLOSETIME);
 
     private static final List<String> ESCAPED_SYS_VERSIONED_FIELD_NAMES = SYS_VERSIONED_FIELD_NAMES.stream()
             .map(StringUtils::addDoubleQuotes).collect(toList());
 
-    public static final List<String> SYS_TRIGGERED_FIELD_NAMES = Arrays.asList(SYS_HASH, SYS_FTS);
+    private static final List<String> SYS_TRIGGERED_FIELD_NAMES = Arrays.asList(SYS_HASH, SYS_FTS);
 
     private static final List<String> ESCAPED_SYS_TRIGGERED_FIELD_NAMES = SYS_TRIGGERED_FIELD_NAMES.stream()
                 .map(StringUtils::addDoubleQuotes).collect(toList());

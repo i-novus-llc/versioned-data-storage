@@ -95,7 +95,7 @@ public class QueryConstants {
     private static final String AND_INFO_TABLE_SCHEMA_NAME = "  AND table_schema = :schemaName \n";
     private static final String AND_INFO_COLUMN_NAME = "  AND column_name = :columnName \n";
 
-    private static final String SYS_NAMES_ITEMS_TEXT = SYS_FIELD_NAMES.stream()
+    private static final String SYS_NAMES_ITEMS_TEXT = systemFieldNames().stream()
             .map(StringUtils::addSingleQuotes)
             .collect(Collectors.joining(", "));
     static final String AND_INFO_COLUMN_NOT_IN_SYS_LIST = "  AND column_name NOT IN (" + SYS_NAMES_ITEMS_TEXT + ")";
