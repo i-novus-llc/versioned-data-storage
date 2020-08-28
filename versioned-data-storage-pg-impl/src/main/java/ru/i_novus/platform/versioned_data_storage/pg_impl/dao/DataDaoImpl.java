@@ -226,7 +226,7 @@ public class DataDaoImpl implements DataDao {
         Map<String, String> map = new HashMap<>();
         for (Object[] dataType : nameTypes) {
             String fieldName = (String) dataType[0];
-            if (!systemFieldList().contains(fieldName))
+            if (!systemFieldNames().contains(fieldName))
                 map.put(fieldName, (String) dataType[1]);
         }
         return map;

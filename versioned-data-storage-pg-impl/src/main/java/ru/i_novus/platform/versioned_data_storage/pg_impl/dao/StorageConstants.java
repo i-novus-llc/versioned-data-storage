@@ -1,8 +1,12 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.dao;
 
+import ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
+
+import static java.util.stream.Collectors.toList;
 
 public class StorageConstants {
 
@@ -36,7 +40,13 @@ public class StorageConstants {
 
     public static final List<String> SYS_VERSIONED_FIELD_NAMES = Arrays.asList(SYS_PUBLISHTIME, SYS_CLOSETIME);
 
+    private static final List<String> ESCAPED_SYS_VERSIONED_FIELD_NAMES = SYS_VERSIONED_FIELD_NAMES.stream()
+            .map(StringUtils::addDoubleQuotes).collect(toList());
+
     public static final List<String> SYS_TRIGGERED_FIELD_NAMES = Arrays.asList(SYS_HASH, SYS_FTS);
+
+    private static final List<String> ESCAPED_SYS_TRIGGERED_FIELD_NAMES = SYS_TRIGGERED_FIELD_NAMES.stream()
+                .map(StringUtils::addDoubleQuotes).collect(toList());
 
     public static final String REFERENCE_VALUE_NAME = "value";
     public static final String REFERENCE_DISPLAY_VALUE_NAME = "displayValue";
@@ -47,7 +57,19 @@ public class StorageConstants {
     }
 
     // NB: Workaround to sonar issue "squid-S2386".
-    public static List<String> systemFieldList() {
+    public static List<String> systemFieldNames() {
         return SYS_FIELD_NAMES;
+    }
+
+    public static List<String> versionFieldNames() {
+        return SYS_VERSIONED_FIELD_NAMES;
+    }
+
+    public static List<String> escapedVersionFieldNames() {
+        return ESCAPED_SYS_VERSIONED_FIELD_NAMES;
+    }
+
+    public static List<String> escapedTriggeredFieldNames() {
+        return ESCAPED_SYS_TRIGGERED_FIELD_NAMES;
     }
 }

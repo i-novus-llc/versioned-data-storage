@@ -631,5 +631,6 @@ public class QueryConstants {
     public static final String INSERT_FROM_SELECT_ACTUAL_DATA = "INSERT INTO data.%1$s(%2$s) SELECT %2$s FROM data.%3$s WHERE \"SYS_CLOSETIME\" IS NULL;";
 
     private QueryConstants() {
+        // Nothing to do.
     }
 }
