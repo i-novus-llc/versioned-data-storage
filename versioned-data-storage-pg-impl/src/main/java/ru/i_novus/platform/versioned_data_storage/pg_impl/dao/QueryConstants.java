@@ -13,11 +13,12 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtil
  * @author lgalimova
  * @since 22.03.2018
  */
+@SuppressWarnings("java:S1192")
 public class QueryConstants {
 
     public static final int TRANSACTION_ROW_LIMIT = 1000;
 
-    public static final String ALIAS_OPERATOR = " as ";
+    public static final String ALIAS_OPERATOR = " AS ";
     public static final String DEFAULT_TABLE_ALIAS = "d";
     static final String ALL_COLUMNS = "*";
     static final String TRIGGER_NEW_ALIAS = "NEW";
@@ -42,13 +43,15 @@ public class QueryConstants {
 
     public static final String CONDITION_TRUE = " true "; // 1 = 1
     public static final String CONDITION_FALSE = " false "; // 1 != 1
-    static final String CONDITION_NOT = " NOT ";
-    static final String CONDITION_AND = " AND ";
-    static final String CONDITION_OR = " OR ";
+    public static final String CONDITION_NOT = " NOT ";
+    public static final String CONDITION_AND = " AND ";
+    public static final String CONDITION_OR = " OR ";
     public static final String CONDITION_EXISTS_START = "EXISTS(\n";
     public static final String CONDITION_EXISTS_END = ")";
-    static final String CONDITION_IN = "%1$s IN (%2$s)";
-    static final String CONDITION_EQUAL = "%1$s = %2$s";
+    public static final String CONDITION_IN_FORMAT = "%1$s IN (%2$s)";
+    public static final String CONDITION_EQUAL_FORMAT = "%1$s = %2$s";
+    public static final String CONDITION_IDENTIC = " is not distinct from ";
+    public static final String CONDITION_NOT_IDENTIC = " is distinct from ";
 
     public static final String LIKE_ESCAPE_MANY_CHAR = "%";
     public static final String IS_NULL = " IS NULL";
@@ -111,7 +114,7 @@ public class QueryConstants {
             AND_INFO_SCHEMA_NAME +
             CONDITION_EXISTS_END;
 
-    public static final String SELECT_EXISTENT_SCHEMA_NAME_LIST = "SELECT schema_name \n" +
+    public static final String SELECT_EXISTENT_SCHEMA_NAME_LIST_BY = "SELECT schema_name \n" +
             FROM_INFO_SCHEMAS +
             SELECT_WHERE_TRUE +
             "  AND schema_name = ";
@@ -125,7 +128,7 @@ public class QueryConstants {
             AND_INFO_TABLE_NAME +
             CONDITION_EXISTS_END;
 
-    public static final String SELECT_EXISTENT_TABLE_SCHEMA_NAME_LIST = "SELECT table_schema \n" +
+    public static final String SELECT_EXISTENT_TABLE_SCHEMA_NAME_LIST_BY = "SELECT table_schema \n" +
             FROM_INFO_TABLES +
             SELECT_WHERE_TRUE +
             AND_INFO_TABLE_NAME +
@@ -147,7 +150,8 @@ public class QueryConstants {
     private static final String INFO_COLUMN_VALUE_SUFFIX = "(case " +
             " when data_type = " + addSingleQuotes(REFERENCE_FIELD_SQL_TYPE) +
             " then " + addSingleQuotes(REFERENCE_FIELD_VALUE_OPERATOR +
-            addSingleQuotes(addSingleQuotes(REFERENCE_VALUE_NAME))) + // Двойное закавычивание для двух запросов!
+            // Закавычивание дважды из-за двойного вызова для двух запросов!
+            addSingleQuotes(addSingleQuotes(REFERENCE_VALUE_NAME))) +
             " else '' end)";
 
     static final String SELECT_ESCAPED_FIELD_NAMES = SELECT_ESCAPED_COLUMN_NAME +
@@ -224,14 +228,22 @@ public class QueryConstants {
             "  CONSTRAINT \"%4$s_pkey\" PRIMARY KEY (\"SYS_RECORDID\")" +
             ");";
     static final String DROP_TABLE = "DROP TABLE IF EXISTS %1$s.%2$s";
-    static final String TRUNCATE_TABLE = "TRUNCATE TABLE %1$s.%2$s;";
 
     static final String CREATE_TABLE_COPY = "CREATE TABLE %1$s.%2$s AS " +
             "SELECT * FROM %3$s.%4$s WITH NO DATA;";
 
     static final String CREATE_TABLE_SEQUENCE = "CREATE SEQUENCE %s start 1";
     static final String SELECT_PRIMARY_MAX = "SELECT max(%3$s) FROM %1$s.%2$s";
-    static final String UPDATE_TABLE_SEQUENCE = "SELECT setval('%1$s', (%2$s))";
+    // ALTER SEQUENCE не позволяет использовать SELECT.
+    static final String UPDATE_TABLE_SEQUENCE = "DO $$\n" +
+                "BEGIN \n" +
+                "    if EXISTS(\n" +
+                "       SELECT * FROM pg_class \n" +
+                "        WHERE relkind = 'S' AND oid\\:\\:regclass\\:\\:text = '%1$s' \n" +
+                "       ) then\n" +
+                "       PERFORM setval('%1$s', (%2$s)); \n" +
+                "    end if;\n" +
+                "END$$;";
     static final String DROP_TABLE_SEQUENCE = "DROP SEQUENCE IF EXISTS %s CASCADE";
 
     static final String CREATE_TRIGGER = "CREATE OR REPLACE FUNCTION %1$s.%3$s()\n" +
@@ -462,30 +474,6 @@ public class QueryConstants {
             "       i \\:= i + 1;\n" +
             "    end loop;\n" +
             "    CLOSE tbl_cursor;\n" +
-            "END$$;";
-
-    public static final String COPY_DATA = " DO $$\n" +
-            "DECLARE tbl_cursor refcursor;\n" +
-            "  row data.%1$s%%rowtype;\n" +
-            "  i int;\n" +
-            "\n" +
-            "BEGIN\n" +
-            "    OPEN tbl_cursor FOR\n" +
-            "    SELECT * from data.%2$s\n" +
-            "     ORDER BY \"SYS_RECORDID\";\n" +
-            "\n" +
-            "    MOVE FORWARD %3$s FROM tbl_cursor;\n" +
-            "    i \\:= 0;\n" +
-            "    while i < %4$s loop \n" +
-            "      FETCH FROM tbl_cursor INTO row;\n" +
-            "      EXIT WHEN NOT FOUND;\n" +
-            "\n" +
-            "      row.\"SYS_RECORDID\" \\:= nextval('data.%5$s');\n" +
-            "      INSERT INTO data.%1$s VALUES(row.*);\n" +
-            "\n" +
-            "      i \\:= i + 1;\n" +
-            "  end loop;\n" +
-            "  CLOSE tbl_cursor;\n" +
             "END$$;";
 
     private static final String WHERE_EXISTS_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME = " WHERE exists(\n" +

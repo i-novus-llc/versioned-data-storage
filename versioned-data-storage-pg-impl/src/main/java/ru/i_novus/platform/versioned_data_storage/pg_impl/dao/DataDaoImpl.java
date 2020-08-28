@@ -232,7 +232,7 @@ public class DataDaoImpl implements DataDao {
         return map;
     }
 
-    private String sortingToOrderBy(Sorting sorting, String alias) {
+    protected String sortingToOrderBy(Sorting sorting, String alias) {
 
         String orderBy = SELECT_ORDER;
         if (sorting != null && sorting.getField() != null) {
@@ -513,7 +513,7 @@ public class DataDaoImpl implements DataDao {
             return emptyList();
 
         String condition = String.format(TO_ANY_TEXT, QUERY_BIND_CHAR + BIND_INFO_SCHEMA_NAME);
-        String sql = SELECT_EXISTENT_SCHEMA_NAME_LIST + condition;
+        String sql = SELECT_EXISTENT_SCHEMA_NAME_LIST_BY + condition;
 
         Query query = entityManager.createNativeQuery(sql);
         query.setParameter(BIND_INFO_SCHEMA_NAME, stringsToDbArray(schemaNames));
@@ -531,7 +531,7 @@ public class DataDaoImpl implements DataDao {
             return emptyList();
 
         String condition = String.format(TO_ANY_TEXT, QUERY_BIND_CHAR + BIND_INFO_SCHEMA_NAME);
-        String sql = SELECT_EXISTENT_TABLE_SCHEMA_NAME_LIST + condition;
+        String sql = SELECT_EXISTENT_TABLE_SCHEMA_NAME_LIST_BY + condition;
 
         Query query = entityManager.createNativeQuery(sql);
         query.setParameter(BIND_INFO_TABLE_NAME, tableName);
@@ -1114,7 +1114,7 @@ public class DataDaoImpl implements DataDao {
                 .collect(joining(","));
 
         final String tableAlias = "b";
-        String condition = String.format(CONDITION_EQUAL,
+        String condition = String.format(CONDITION_EQUAL_FORMAT,
                 escapeFieldName(tableAlias, SYS_PRIMARY_COLUMN), QUERY_VALUE_SUBST);
         String sql = String.format(UPDATE_RECORD,
                 schemaName, addDoubleQuotes(tableName), tableAlias, updateKeys, condition) +
@@ -1225,7 +1225,7 @@ public class DataDaoImpl implements DataDao {
         String key = String.format(UPDATE_VALUE,
                 escapedFieldName, getReferenceValuationSelect(schemaName, fieldValue, oldFieldValue));
 
-        String condition = String.format(CONDITION_EQUAL,
+        String condition = String.format(CONDITION_EQUAL_FORMAT,
                 escapeFieldName(REFERENCE_VALUATION_UPDATE_TABLE_ALIAS, SYS_PRIMARY_COLUMN),
                 String.format(TO_ANY_BIGINT, QUERY_VALUE_SUBST)
         );
@@ -1284,7 +1284,7 @@ public class DataDaoImpl implements DataDao {
         map.put("offset", "" + offset);
 
         String select = substitute(SELECT_REFERENCE_IN_REF_ROWS, map);
-        String condition = String.format(CONDITION_IN,
+        String condition = String.format(CONDITION_IN_FORMAT,
                 escapeFieldName(REFERENCE_VALUATION_UPDATE_TABLE_ALIAS, SYS_PRIMARY_COLUMN), select);
         String sql = String.format(UPDATE_RECORD,
                 schemaName, addDoubleQuotes(tableName), REFERENCE_VALUATION_UPDATE_TABLE_ALIAS, updateKey, condition);
@@ -1651,7 +1651,7 @@ public class DataDaoImpl implements DataDao {
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void deletePointRows(String targetCode) {
 
-        String condition = String.format(CONDITION_EQUAL,
+        String condition = String.format(CONDITION_EQUAL_FORMAT,
                 addDoubleQuotes(SYS_PUBLISHTIME), addDoubleQuotes(SYS_CLOSETIME));
         String sql = String.format(DELETE_RECORD,
                 toSchemaName(targetCode), addDoubleQuotes(toTableName(targetCode))) +
@@ -1701,10 +1701,10 @@ public class DataDaoImpl implements DataDao {
         String newPrimaryValuesFilter = makeFieldValuesFilter(newAlias, params, criteria.getPrimaryFieldsFilters());
 
         String nonPrimaryFieldsInequality = isEmpty(nonPrimaryFields)
-                ? " and false "
-                : " and (" + nonPrimaryFields.stream()
+                ? CONDITION_AND + CONDITION_FALSE
+                : CONDITION_AND + " (" + nonPrimaryFields.stream()
                 .map(field -> escapeFieldName(oldAlias, field) +
-                        " is distinct from " + escapeFieldName(newAlias, field))
+                        CONDITION_NOT_IDENTIC + escapeFieldName(newAlias, field))
                 .collect(joining(CONDITION_OR)) +
                 ") ";
 
@@ -1739,17 +1739,17 @@ public class DataDaoImpl implements DataDao {
 
         String joinType = diffReturnTypeToJoinType(criteria.getReturnType());
 
-        final String fromFormat = "  FROM %1$s AS %2$s \n  %3$s JOIN %4$s AS %5$s \n    ON %6$s";
-        String from = String.format(fromFormat,
+        final String fromJoinFormat = "  FROM %1$s AS %2$s \n  %3$s JOIN %4$s AS %5$s \n    ON %6$s";
+        String fromJoin = String.format(fromJoinFormat,
                 escapeTableName(oldSchemaName, oldTableName), oldAlias, joinType,
                 escapeTableName(newSchemaName, newTableName), newAlias, primaryEquality);
 
-        String sql = from +
-                " and (true" + oldPrimaryValuesFilter +
-                " or true" + newPrimaryValuesFilter + ")" +
+        String sql = fromJoin +
+                CONDITION_AND + "(" + CONDITION_TRUE + oldPrimaryValuesFilter +
+                CONDITION_OR + CONDITION_TRUE + newPrimaryValuesFilter + ")" +
                 oldVersionDateFilter +
                 newVersionDateFilter +
-                " where ";
+                SELECT_WHERE;
 
         if (criteria.getStatus() == null) {
             sql += oldPrimaryIsNull + newVersionDateFilter +
