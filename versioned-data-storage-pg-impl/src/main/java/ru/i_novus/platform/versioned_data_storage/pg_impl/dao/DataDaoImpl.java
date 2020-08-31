@@ -1695,7 +1695,7 @@ public class DataDaoImpl implements DataDao {
                 ? " AND false "
                 : " AND (" + nonPrimaryFields.stream()
                 .map(field -> escapeFieldName(oldAlias, field) +
-                        CONDITION_NOT_IDENTIC + escapeFieldName(newAlias, field))
+                        " is distinct from " + escapeFieldName(newAlias, field))
                 .collect(joining(" OR ")) +
                 ") ";
 

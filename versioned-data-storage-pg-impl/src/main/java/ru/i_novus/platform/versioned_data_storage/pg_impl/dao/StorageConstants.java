@@ -2,8 +2,6 @@ package ru.i_novus.platform.versioned_data_storage.pg_impl.dao;
 
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils;
 
-import ru.i_novus.platform.datastorage.temporal.util.StringUtils;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
