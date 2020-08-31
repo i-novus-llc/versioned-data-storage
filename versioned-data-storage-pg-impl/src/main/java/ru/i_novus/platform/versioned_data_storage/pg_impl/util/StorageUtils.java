@@ -1,8 +1,10 @@
-package ru.i_novus.platform.datastorage.temporal.util;
+package ru.i_novus.platform.versioned_data_storage.pg_impl.util;
 
-import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
-import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addDoubleQuotes;
-import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.isNullOrEmpty;
+import java.util.UUID;
+
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addDoubleQuotes;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.isNullOrEmpty;
 
 public class StorageUtils {
 
@@ -72,7 +74,7 @@ public class StorageUtils {
     }
 
     /**
-     * Проверка наименования схемы нра корректность.
+     * Проверка наименования схемы на корректность.
      *
      * @param schemaName наименование схемы
      * @return Результат проверки
@@ -131,5 +133,15 @@ public class StorageUtils {
     public static String escapeTableFunctionName(String tableName, String functionName) {
 
         return addDoubleQuotes(tableName + NAME_CONNECTOR + functionName);
+    }
+
+    /**
+     * Генерация наименования хранилища.
+     *
+     * @return Наименование хранилища
+     */
+    public static String generateStorageName() {
+
+        return UUID.randomUUID().toString();
     }
 }

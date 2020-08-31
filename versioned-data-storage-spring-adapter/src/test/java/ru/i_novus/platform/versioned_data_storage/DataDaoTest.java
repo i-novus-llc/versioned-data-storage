@@ -13,11 +13,10 @@ import ru.i_novus.platform.datastorage.temporal.enums.FieldType;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.LongRowValue;
-import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
-import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageCopyCriteria;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.BaseDataCriteria;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageCopyRequest;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.FieldFactory;
-import ru.i_novus.platform.datastorage.temporal.service.StorageCodeService;
 import ru.i_novus.platform.versioned_data_storage.config.VersionedDataStorageConfig;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 
@@ -34,18 +33,15 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.*;
-import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
-import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.getSchemaNameOrDefault;
-import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.toStorageCode;
-import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addDoubleQuotes;
-import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addSingleQuotes;
 import static ru.i_novus.platform.versioned_data_storage.DataTestUtils.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.HASH_EXPRESSION;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addDoubleQuotes;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addSingleQuotes;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = {
-        JpaTestConfig.class, VersionedDataStorageConfig.class
-})
+@ContextConfiguration(classes = {JpaTestConfig.class, VersionedDataStorageConfig.class})
 public class DataDaoTest {
 
     private static final Logger logger = LoggerFactory.getLogger(DataDaoTest.class);
@@ -67,9 +63,6 @@ public class DataDaoTest {
     @Autowired
     private FieldFactory fieldFactory;
 
-    @Autowired
-    private StorageCodeService storageCodeService;
-
     @Before
     public void setUp() {
         hashField = fieldFactory.createField(SYS_HASH, FieldType.STRING);
@@ -80,13 +73,13 @@ public class DataDaoTest {
 
         assertTrue(dataDao.schemaExists(DATA_SCHEMA_NAME));
         assertTrue(dataDao.schemaExists(TEST_SCHEMA_NAME));
-        assertFalse(dataDao.schemaExists(NULL_SCHEMA_NAME));
+        assertFalse(dataDao.schemaExists(NONEXISTENT_SCHEMA_NAME));
     }
 
     @Test
     public void testFindExistentSchemas() {
 
-        List<String> schemaNames = asList(DATA_SCHEMA_NAME, TEST_SCHEMA_NAME, NULL_SCHEMA_NAME);
+        List<String> schemaNames = asList(DATA_SCHEMA_NAME, TEST_SCHEMA_NAME, NONEXISTENT_SCHEMA_NAME);
 
         List<String> expected = asList(DATA_SCHEMA_NAME, TEST_SCHEMA_NAME);
         List<String> actual = dataDao.findExistentSchemas(schemaNames);
@@ -96,7 +89,7 @@ public class DataDaoTest {
     @Test
     public void testFindExistentTableSchemas() {
 
-        List<String> schemaNames = asList(DATA_SCHEMA_NAME, TEST_SCHEMA_NAME, NULL_SCHEMA_NAME);
+        List<String> schemaNames = asList(DATA_SCHEMA_NAME, TEST_SCHEMA_NAME, NONEXISTENT_SCHEMA_NAME);
         List<String> expected = singletonList(DATA_SCHEMA_NAME);
 
         final String tableName = "test_find_existent_table_schemas";
@@ -213,12 +206,12 @@ public class DataDaoTest {
 
     @Test
     @SuppressWarnings("java:S5778")
-    public void testNullGetData() {
+    public void testGetDataForNonExistentSchema() {
 
         String tableName = newTestTableName();
         List<Field> fields = newTestFields();
         try {
-            dataDao.getData(toCriteria(NULL_SCHEMA_NAME, tableName, fields));
+            dataDao.getData(toCriteria(NONEXISTENT_SCHEMA_NAME, tableName, fields));
             fail();
 
         } catch (PersistenceException e) {
@@ -330,18 +323,18 @@ public class DataDaoTest {
         List<RowValue> emptyDataValues = dataDao.getData(toCriteria(targetCode, fields));
         assertEquals(0, emptyDataValues == null ? 0 : emptyDataValues.size());
 
-        StorageCopyCriteria criteria = new StorageCopyCriteria(sourceCode, targetCode, null, null, null);
-        criteria.setPage(DataCriteria.MIN_PAGE);
-        criteria.setSize(dataNames.size());
+        StorageCopyRequest request = new StorageCopyRequest(sourceCode, targetCode, null, null, null);
+        request.setPage(BaseDataCriteria.MIN_PAGE);
+        request.setSize(dataNames.size());
 
-        dataDao.copyTableData(criteria);
+        dataDao.copyTableData(request);
         dataValues = dataDao.getData(toCriteria(targetCode, fields));
         assertValues(dataValues, dataNames);
     }
 
     private String newTestTableName() {
 
-        return "data_test_" + storageCodeService.generateStorageName();
+        return "data_test_" + generateStorageName();
     }
 
     private List<Field> newTestFields() {

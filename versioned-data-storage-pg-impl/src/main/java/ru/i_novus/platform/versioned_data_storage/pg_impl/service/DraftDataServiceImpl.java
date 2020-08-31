@@ -7,14 +7,13 @@ import ru.i_novus.platform.datastorage.temporal.exception.ListCodifiedException;
 import ru.i_novus.platform.datastorage.temporal.exception.NotUniqueException;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.StorageConstants;
-import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
-import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageCopyCriteria;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.BaseDataCriteria;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageCopyRequest;
 import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
-import ru.i_novus.platform.datastorage.temporal.service.StorageCodeService;
-import ru.i_novus.platform.datastorage.temporal.util.StringUtils;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.BooleanField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.TreeField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
@@ -29,12 +28,12 @@ import java.util.*;
 import static java.util.Collections.singletonList;
 import static java.util.Optional.of;
 import static java.util.stream.Collectors.toList;
-import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
 import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
-import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.*;
-import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addDoubleQuotes;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.ExceptionCodes.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.TRANSACTION_ROW_LIMIT;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addDoubleQuotes;
 
 /**
  * @author lgalimova
@@ -46,17 +45,9 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     private DataDao dataDao;
 
-    private StorageCodeService storageCodeService;
-
-    public DraftDataServiceImpl(DataDao dataDao, StorageCodeService storageCodeService) {
+    public DraftDataServiceImpl(DataDao dataDao) {
 
         this.dataDao = dataDao;
-        this.storageCodeService = storageCodeService;
-    }
-
-    @Override
-    public void createSchema(String schemaName) {
-        dataDao.createSchema(schemaName);
     }
 
     @Override
@@ -69,7 +60,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Transactional
     public String createDraft(String schemaName, List<Field> fields) {
 
-        String draftCode = storageCodeService.generateStorageName();
+        String draftCode = generateStorageName();
         createDraftTable(toStorageCode(schemaName, draftCode), fields);
         return draftCode;
     }
@@ -94,7 +85,6 @@ public class DraftDataServiceImpl implements DraftDataService {
 
         if (!StringUtils.isNullOrEmpty(baseStorageCode) &&
                 dataDao.storageStructureEquals(baseStorageCode, draftCode)) {
-
             insertActualDataFromVersion(baseStorageCode, draftCode, targetCode, fieldNames, publishTime, closeTime);
             insertOldDataFromVersion(baseStorageCode, draftCode, targetCode, fieldNames, publishTime, closeTime);
             insertClosedNowDataFromVersion(baseStorageCode, draftCode, targetCode, fieldNames, publishTime, closeTime);
@@ -106,11 +96,6 @@ public class DraftDataServiceImpl implements DraftDataService {
         }
 
         return targetCode;
-    }
-
-    @Override
-    public boolean schemaExists(String schemaName) {
-        return dataDao.schemaExists(schemaName);
     }
 
     @Override
@@ -225,16 +210,16 @@ public class DraftDataServiceImpl implements DraftDataService {
             dataDao.disableTriggers(targetCode);
         }
         try {
-            StorageCopyCriteria criteria = new StorageCopyCriteria(sourceCode, targetCode, fromDate, toDate, null);
-            criteria.setEscapedFieldNames(fieldNames);
+            StorageCopyRequest request = new StorageCopyRequest(sourceCode, targetCode, fromDate, toDate, null);
+            request.setEscapedFieldNames(fieldNames);
 
-            criteria.setCount(count.intValue());
-            criteria.setSize(TRANSACTION_ROW_LIMIT);
+            request.setCount(count.intValue());
+            request.setSize(TRANSACTION_ROW_LIMIT);
 
-            int pageCount = criteria.getPageCount();
+            int pageCount = request.getPageCount();
             for (int page = 0; page < pageCount; page++) {
-                criteria.setPage(page + DataCriteria.MIN_PAGE);
-                dataDao.copyTableData(criteria);
+                request.setPage(page + BaseDataCriteria.MIN_PAGE);
+                dataDao.copyTableData(request);
             }
 
         } finally {
@@ -379,9 +364,8 @@ public class DraftDataServiceImpl implements DraftDataService {
     private String createVersionTable(String draftCode) {
 
         //todo никак не учитывается Field.unique - уникальность в рамках даты
-        String versionName = storageCodeService.generateStorageName();
+        String versionName = generateStorageName();
         String versionCode = toStorageCode(toSchemaName(draftCode), versionName);
-
         dataDao.copyTable(draftCode, versionCode);
         dataDao.addVersionedInformation(versionCode);
 

@@ -14,9 +14,9 @@ import java.util.*;
 
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
-import static ru.i_novus.platform.datastorage.temporal.model.StorageConstants.*;
-import static ru.i_novus.platform.datastorage.temporal.util.StorageUtils.escapeFieldName;
-import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.escapeFieldName;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
 
 /**
@@ -255,13 +255,13 @@ public class QueryUtil {
         if (field instanceof ReferenceField) {
             String queryValue = selectedField +
                     REFERENCE_FIELD_VALUE_OPERATOR + addSingleQuotes(REFERENCE_VALUE_NAME) +
-                    ALIAS_OPERATOR + sqlFieldAlias(field, index, alias, REFERENCE_VALUE_NAME);
+                    " AS " + sqlFieldAlias(field, index, alias, REFERENCE_VALUE_NAME);
             selectedFields.add(queryValue);
 
             if (detailed) {
                 String queryDisplayValue = selectedField +
                         REFERENCE_FIELD_VALUE_OPERATOR + addSingleQuotes(REFERENCE_DISPLAY_VALUE_NAME) +
-                        ALIAS_OPERATOR + sqlFieldAlias(field, index, alias, REFERENCE_DISPLAY_VALUE_NAME);
+                        " AS " + sqlFieldAlias(field, index, alias, REFERENCE_DISPLAY_VALUE_NAME);
                 selectedFields.add(queryDisplayValue);
             }
         } else {
@@ -269,7 +269,7 @@ public class QueryUtil {
                 selectedField += "\\:\\:text";
             }
 
-            selectedField += ALIAS_OPERATOR + sqlFieldAlias(field, index, alias);
+            selectedField += " AS " + sqlFieldAlias(field, index, alias);
             selectedFields.add(selectedField);
         }
     }
