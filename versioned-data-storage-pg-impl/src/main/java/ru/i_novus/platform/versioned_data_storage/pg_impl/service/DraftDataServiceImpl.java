@@ -218,7 +218,7 @@ public class DraftDataServiceImpl implements DraftDataService {
 
             int pageCount = request.getPageCount();
             for (int page = 0; page < pageCount; page++) {
-                request.setPage(page + BaseDataCriteria.MIN_PAGE);
+                request.setPage(page + BaseDataCriteria.PAGE_SHIFT);
                 dataDao.copyTableData(request);
             }
 
