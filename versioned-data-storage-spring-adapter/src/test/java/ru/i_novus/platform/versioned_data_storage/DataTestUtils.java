@@ -20,6 +20,7 @@ import java.util.stream.IntStream;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.*;
+import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.toStorageCode;
 
 public class DataTestUtils {
@@ -130,7 +131,7 @@ public class DataTestUtils {
     public static void assertValues(List<RowValue> dataValues, List<String> nameValues) {
 
         assertNotNull(dataValues);
-        if (nameValues.isEmpty()) {
+        if (isNullOrEmpty(nameValues)) {
             assertTrue(dataValues.isEmpty());
             return;
         }
