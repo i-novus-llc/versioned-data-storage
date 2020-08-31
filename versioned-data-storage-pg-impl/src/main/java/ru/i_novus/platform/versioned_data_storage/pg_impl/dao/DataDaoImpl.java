@@ -366,11 +366,12 @@ public class DataDaoImpl implements DataDao {
                                        List<String> filters, Map<String, Object> params) {
 
         Field field = searchCriteria.getField();
+        List<? extends Serializable> values = searchCriteria.getValues();
 
-        String fieldName = searchCriteria.getField().getName();
+        String fieldName = field.getName();
         String escapedFieldName = escapeFieldName(alias, fieldName);
 
-        if (searchCriteria.getValues() == null || searchCriteria.getValues().get(0) == null) {
+        if (values == null || values.get(0) == null) {
             filters.add(" AND " + escapedFieldName + " IS NULL");
             return;
         }
@@ -380,37 +381,37 @@ public class DataDaoImpl implements DataDao {
         if (field instanceof IntegerField || field instanceof FloatField || field instanceof DateField) {
             filters.add(" AND " + escapedFieldName +
                     " IN (:" + indexedFieldName + ")");
-            params.put(indexedFieldName, searchCriteria.getValues());
+            params.put(indexedFieldName, values);
 
         } else if (field instanceof ReferenceField) {
             // Использовать TO_ANY_BIGINT
             filters.add(" AND " + escapedFieldName +
                     REFERENCE_FIELD_VALUE_OPERATOR + addSingleQuotes(REFERENCE_VALUE_NAME) +
                     " IN (:" + indexedFieldName + ")");
-            params.put(indexedFieldName, searchCriteria.getValues().stream().map(Object::toString).collect(toList()));
+            params.put(indexedFieldName, values.stream().map(Object::toString).collect(toList()));
 
         } else if (field instanceof TreeField) {
             if (SearchTypeEnum.LESS.equals(searchCriteria.getType())) {
                 filters.add(" AND " + escapedFieldName +
                         "@> (CAST(:" + indexedFieldName + " AS ltree[]))");
-                params.put(indexedFieldName, valuesToDbArray(searchCriteria.getValues()));
+                params.put(indexedFieldName, valuesToDbArray(values));
             }
         } else if (field instanceof BooleanField) {
-            if (searchCriteria.getValues().size() == 1) {
-                String isValue = Boolean.TRUE.equals(searchCriteria.getValues().get(0)) ? " IS TRUE " : " IS NOT TRUE";
+            if (values.size() == 1) {
+                String isValue = Boolean.TRUE.equals(values.get(0)) ? " IS TRUE " : " IS NOT TRUE";
                 filters.add(" AND " + escapedFieldName + isValue);
             }
         } else if (field instanceof StringField) {
-            if (SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && searchCriteria.getValues().size() == 1) {
+            if (SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && values.size() == 1) {
                 filters.add(" AND " + "lower(" + escapedFieldName + ") LIKE :" + indexedFieldName + "");
-                String value = searchCriteria.getValues().get(0).toString().trim().toLowerCase();
+                String value = values.get(0).toString().trim().toLowerCase();
                 params.put(indexedFieldName, LIKE_ESCAPE_MANY_CHAR + value + LIKE_ESCAPE_MANY_CHAR);
             } else {
                 filters.add(" AND " + escapedFieldName + " IN (:" + indexedFieldName + ")");
-                params.put(indexedFieldName, searchCriteria.getValues());
+                params.put(indexedFieldName, values);
             }
         } else {
-            params.put(indexedFieldName, searchCriteria.getValues());
+            params.put(indexedFieldName, values);
         }
     }
 
@@ -436,7 +437,8 @@ public class DataDaoImpl implements DataDao {
                 typedMap.put(criteria.getField().getName(), criteria);
 
             } else {
-                List<Object> typedValues = (List<Object>) typedCriteria.getValues();
+                @SuppressWarnings("unchecked")
+                List<Serializable> typedValues = (List<Serializable>) typedCriteria.getValues();
                 typedValues.addAll(criteria.getValues());
             }
         }
