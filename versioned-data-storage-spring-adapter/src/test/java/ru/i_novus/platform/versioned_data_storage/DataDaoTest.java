@@ -156,13 +156,16 @@ public class DataDaoTest {
     }
 
     @Test
-    public void testCreateDraftTable() {
+    public void testProcessTable() {
 
         String tableName = newTestTableName();
         List<Field> fields = newTestFields();
 
         testCreateDraftTable(null, tableName, fields);
         testCreateDraftTable(TEST_SCHEMA_NAME, tableName, fields);
+
+        testDropTable(null, tableName);
+        testDropTable(TEST_SCHEMA_NAME, tableName);
     }
 
     private void testCreateDraftTable(String schemaName, String tableName, List<Field> fields) {
@@ -171,6 +174,14 @@ public class DataDaoTest {
 
         dataDao.createDraftTable(storageCode, fields);
         assertTrue(dataDao.storageExists(storageCode));
+    }
+
+    private void testDropTable(String schemaName, String tableName) {
+
+        String storageCode = toStorageCode(schemaName, tableName);
+
+        dataDao.dropTable(storageCode);
+        assertFalse(dataDao.storageExists(storageCode));
     }
 
     @Test
