@@ -1806,19 +1806,42 @@ public class DataDaoImpl implements DataDao {
         return query.getSql();
     }
 
-    // Используются для возможности переопределения схемы.
+    /**
+     * Получение корректного наименования схемы.
+     * <p/>
+     * Используется для возможности переопределения работы со схемами.
+     *
+     * @param schemaName Наименование схемы
+     * @return Наименование указанной схемы или схемы по умолчанию
+     */
     protected String getSchemaName(String schemaName) {
 
         return getSchemaNameOrDefault(schemaName);
     }
 
-    // Используются для возможности переопределения схемы.
+    /**
+     * Получение корректного наименования схемы для наименования таблицы.
+     * <p/>
+     * Используется для возможности переопределения работы со схемами.
+     *
+     * @param schemaName Наименование схемы
+     * @param tableName  Наименование таблицы
+     * @return Наименование указанной схемы или схемы по умолчанию
+     */
     protected String getTableSchemaName(String schemaName, String tableName) {
 
-        return !StringUtils.isNullOrEmpty(tableName) ? getSchemaNameOrDefault(schemaName) : DATA_SCHEMA_NAME;
+        return !StringUtils.isNullOrEmpty(tableName) ? getSchemaName(schemaName) : DATA_SCHEMA_NAME;
     }
 
-    protected String getStorageCodeSchemaName(String storageCode) {
+    /**
+     * Получение корректного наименования схемы для кода хранилища.
+     * <p/>
+     * Используется для упрощения работы со схемой в коде хранилища.
+     *
+     * @param storageCode Код хранилища
+     * @return Наименование схемы из кода или схемы по умолчанию
+     */
+    private String getStorageCodeSchemaName(String storageCode) {
 
         return getTableSchemaName(toSchemaName(storageCode), toTableName(storageCode));
     }
