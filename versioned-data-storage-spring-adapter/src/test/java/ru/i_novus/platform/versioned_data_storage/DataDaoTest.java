@@ -156,6 +156,7 @@ public class DataDaoTest {
     }
 
     @Test
+    @Transactional
     public void testProcessTable() {
 
         String tableName = newTestTableName();
