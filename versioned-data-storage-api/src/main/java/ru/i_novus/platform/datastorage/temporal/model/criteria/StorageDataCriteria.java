@@ -120,4 +120,44 @@ public class StorageDataCriteria extends BaseDataCriteria {
     public void setSystemIds(List<Long> systemIds) {
         this.systemIds = systemIds;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if(!super.equals(o)) return false;
+
+        StorageDataCriteria that = (StorageDataCriteria) o;
+        return Objects.equals(storageCode, that.storageCode) &&
+                Objects.equals(bdate, that.bdate) &&
+                Objects.equals(edate, that.edate) &&
+                Objects.equals(fields, that.fields) &&
+
+                Objects.equals(fieldFilters, that.fieldFilters) &&
+                Objects.equals(commonFilter, that.commonFilter) &&
+                Objects.equals(hashList, that.hashList) &&
+                Objects.equals(systemIds, that.systemIds);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), storageCode, bdate, edate, fields,
+                fieldFilters, commonFilter, hashList, systemIds);
+    }
+
+    @Override
+    public String toString() {
+        return "StorageDataCriteria{" +
+                super.toString() +
+                ", storageCode='" + storageCode + '\'' +
+                ", bdate=" + bdate +
+                ", edate=" + edate +
+                ", fields=" + fields +
+
+                ", fieldFilters=" + fieldFilters +
+                ", commonFilter=" + commonFilter +
+                ", hashList=" + hashList +
+                ", systemIds=" + systemIds +
+                '}';
+    }
 }

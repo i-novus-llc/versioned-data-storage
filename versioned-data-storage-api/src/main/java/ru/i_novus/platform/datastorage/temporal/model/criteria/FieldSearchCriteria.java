@@ -75,4 +75,13 @@ public class FieldSearchCriteria implements Serializable {
     public int hashCode() {
         return Objects.hash(field, values, type);
     }
+
+    @Override
+    public String toString() {
+        return "FieldSearchCriteria{" +
+                ", field=" + field +
+                ", values=" + values +
+                ", type=" + type +
+                '}';
+    }
 }

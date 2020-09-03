@@ -12,9 +12,9 @@ public abstract class Field<T> implements Serializable {
     private String name;
     private Integer maxLength;
 
-    private Boolean searchEnabled = false;
-    private Boolean required = false;
     private Boolean unique = false;
+    private Boolean required = false;
+    private Boolean searchEnabled = false;
 
     public Field(String name) {
         this.name = name;
@@ -35,20 +35,12 @@ public abstract class Field<T> implements Serializable {
 
     public abstract FieldValue<Serializable> valueOf(T value);
 
-    public Boolean getSearchEnabled() {
-        return searchEnabled;
+    public Integer getMaxLength() {
+        return maxLength;
     }
 
-    public void setSearchEnabled(Boolean searchEnabled) {
-        this.searchEnabled = searchEnabled;
-    }
-
-    public Boolean getRequired() {
-        return required;
-    }
-
-    public void setRequired(Boolean required) {
-        this.required = required;
+    public void setMaxLength(Integer maxLength) {
+        this.maxLength = maxLength;
     }
 
     public Boolean getUnique() {
@@ -59,12 +51,20 @@ public abstract class Field<T> implements Serializable {
         this.unique = unique;
     }
 
-    public Integer getMaxLength() {
-        return maxLength;
+    public Boolean getRequired() {
+        return required;
     }
 
-    public void setMaxLength(Integer maxLength) {
-        this.maxLength = maxLength;
+    public void setRequired(Boolean required) {
+        this.required = required;
+    }
+
+    public Boolean getSearchEnabled() {
+        return searchEnabled;
+    }
+
+    public void setSearchEnabled(Boolean searchEnabled) {
+        this.searchEnabled = searchEnabled;
     }
 
     @Override
@@ -73,16 +73,27 @@ public abstract class Field<T> implements Serializable {
         if (o == null || getClass() != o.getClass()) return false;
 
         Field<?> that = (Field<?>) o;
-
         return Objects.equals(name, that.name) &&
                 Objects.equals(maxLength, that.maxLength) &&
-                Objects.equals(searchEnabled, that.searchEnabled) &&
+                Objects.equals(unique, that.unique) &&
                 Objects.equals(required, that.required) &&
-                Objects.equals(unique, that.unique);
+                Objects.equals(searchEnabled, that.searchEnabled);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, maxLength, searchEnabled, required, unique);
+        return Objects.hash(name, maxLength, unique, required, searchEnabled);
+    }
+
+    @Override
+    public String toString() {
+        return "Field{" +
+                "name=" + name +
+                ", type=" + getType() +
+                ", maxLength=" + maxLength +
+                ", unique=" + unique +
+                ", required=" + required +
+                ", searchEnabled=" + searchEnabled +
+                '}';
     }
 }

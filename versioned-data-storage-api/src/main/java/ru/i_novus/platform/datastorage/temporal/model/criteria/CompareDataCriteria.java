@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Set;
 
 /** Критерий сравнения данных в хранилищах. */
+@SuppressWarnings("java:S3740")
 public class CompareDataCriteria extends BaseDataCriteria {
 
     private final String storageCode;

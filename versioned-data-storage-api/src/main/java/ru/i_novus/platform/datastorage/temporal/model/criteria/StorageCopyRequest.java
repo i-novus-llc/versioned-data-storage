@@ -4,6 +4,7 @@ import ru.i_novus.platform.datastorage.temporal.model.Field;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 /** Запрос на копирование данных в хранилище. */
 @SuppressWarnings("java:S3740")
@@ -41,5 +42,30 @@ public class StorageCopyRequest extends StorageDataCriteria {
 
     public void setEscapedFieldNames(List<String> escapedFieldNames) {
         this.escapedFieldNames = escapedFieldNames;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+
+        StorageCopyRequest that = (StorageCopyRequest) o;
+        return Objects.equals(purposeCode, that.purposeCode) &&
+                Objects.equals(escapedFieldNames, that.escapedFieldNames);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), purposeCode, escapedFieldNames);
+    }
+
+    @Override
+    public String toString() {
+        return "StorageCopyRequest{" +
+                super.toString() +
+                ", purposeCode='" + purposeCode + '\'' +
+                ", escapedFieldNames=" + escapedFieldNames +
+                '}';
     }
 }
