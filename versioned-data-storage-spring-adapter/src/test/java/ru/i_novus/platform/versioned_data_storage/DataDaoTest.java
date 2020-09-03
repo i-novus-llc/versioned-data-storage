@@ -92,7 +92,7 @@ public class DataDaoTest {
         List<String> schemaNames = asList(DATA_SCHEMA_NAME, TEST_SCHEMA_NAME, NONEXISTENT_SCHEMA_NAME);
         List<String> expected = singletonList(DATA_SCHEMA_NAME);
 
-        final String tableName = "test_find_existent_table_schemas";
+        final String tableName = "findExistentTableSchemas";
         List<Field> fields = newTestFields();
 
         dataDao.createDraftTable(tableName, fields);
