@@ -2,6 +2,8 @@ package ru.i_novus.platform.datastorage.temporal.model.criteria;
 
 import net.n2oapp.criteria.api.Criteria;
 
+import java.util.Objects;
+
 /** Базовый критерий поиска данных. */
 public class BaseDataCriteria extends Criteria {
 
@@ -43,5 +45,30 @@ public class BaseDataCriteria extends Criteria {
             throw new IllegalStateException("Criteria count and size should be specified for page count");
 
         return count / getSize() + 1;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        BaseDataCriteria that = (BaseDataCriteria) o;
+        return Objects.equals(getPage(), that.getPage()) &&
+                Objects.equals(getSize(), that.getSize()) &&
+                Objects.equals(getCount(), that.getCount());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getPage(), getSize(), getCount());
+    }
+
+    @Override
+    public String toString() {
+        return "BaseDataCriteria{" +
+                "page=" + getPage() +
+                ", size=" + getSize() +
+                ", count=" + getCount() +
+                '}';
     }
 }
