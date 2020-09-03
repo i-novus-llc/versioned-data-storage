@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 /** Критерий поиска данных в хранилище. */
+@SuppressWarnings("java:S3740")
 public class StorageDataCriteria extends BaseDataCriteria {
 
     /** Код хранилища. */

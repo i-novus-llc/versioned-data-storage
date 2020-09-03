@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /** Запрос на копирование данных в хранилище. */
+@SuppressWarnings("java:S3740")
 public class StorageCopyRequest extends StorageDataCriteria {
 
     /** Код хранилища назначения. */
