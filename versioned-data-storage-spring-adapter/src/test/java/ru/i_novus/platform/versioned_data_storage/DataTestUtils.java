@@ -14,6 +14,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 
@@ -22,6 +23,7 @@ import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.toStorageCode;
 
+@SuppressWarnings("java:S3740")
 public class DataTestUtils {
 
     public static final String TEST_SCHEMA_NAME = "data_test";
@@ -124,6 +126,16 @@ public class DataTestUtils {
     public static BigInteger getRowIdFieldValue(RowValue rowValue) {
 
         return (BigInteger) rowValue.getFieldValue(FIELD_ID_CODE).getValue();
+    }
+
+    public static void assertObjects(BiConsumer<Object, Object> objectAssert, Object current, Object actual) {
+
+        objectAssert.accept(current, actual);
+
+        if (current != null && actual != null) {
+            objectAssert.accept(current.hashCode(), actual.hashCode());
+            objectAssert.accept(current.toString(), actual.toString());
+        }
     }
 
     /** Сравнение результата поиска данных с проверяемыми данными. */
