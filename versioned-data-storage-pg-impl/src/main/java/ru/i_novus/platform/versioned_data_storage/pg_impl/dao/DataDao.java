@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
+@SuppressWarnings("java:S3740")
 public interface DataDao {
 
     /**

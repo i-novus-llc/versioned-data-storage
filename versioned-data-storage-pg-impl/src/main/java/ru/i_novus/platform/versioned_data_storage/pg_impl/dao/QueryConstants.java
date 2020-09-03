@@ -34,8 +34,6 @@ public class QueryConstants {
     public static final String TO_ANY_BIGINT = "ANY(%s\\:\\:bigint[])";
     public static final String TO_ANY_TEXT = "ANY(%s\\:\\:text[])";
 
-    private static final String ORDER_BY_ONE_FIELD = " ORDER BY %1$s.\"%2$s\" \n";
-
     // Подстановки в запросах.
     static final String QUERY_VALUE_SUBST = "?";
     static final String QUERY_LTREE_SUBST = QUERY_VALUE_SUBST + "\\:\\:ltree";

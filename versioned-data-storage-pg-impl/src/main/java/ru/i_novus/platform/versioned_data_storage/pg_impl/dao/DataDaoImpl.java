@@ -41,7 +41,7 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.*;
 
-@SuppressWarnings("java:S1192")
+@SuppressWarnings({"java:S1192", "java:S3740"})
 public class DataDaoImpl implements DataDao {
 
     private static final Logger logger = LoggerFactory.getLogger(DataDaoImpl.class);
@@ -88,7 +88,7 @@ public class DataDaoImpl implements DataDao {
         }
 
         @SuppressWarnings("unchecked")
-        List<Object[]> list = query.getResultList();
+        List<Object> list = query.getResultList();
         return !isNullOrEmpty(list) ? toRowValues(fields, list) : emptyList();
     }
 
@@ -140,7 +140,7 @@ public class DataDaoImpl implements DataDao {
                 addDoubleQuotes(SYS_PRIMARY_COLUMN), QUERY_VALUE_SUBST);
 
         @SuppressWarnings("unchecked")
-        List<Object[]> list = entityManager.createNativeQuery(sql)
+        List<Object> list = entityManager.createNativeQuery(sql)
                 .setParameter(1, systemId)
                 .getResultList();
         if (isNullOrEmpty(list))
@@ -169,7 +169,7 @@ public class DataDaoImpl implements DataDao {
         query.setParameter(1, valuesToDbArray(systemIds));
 
         @SuppressWarnings("unchecked")
-        List<Object[]> list = query.getResultList();
+        List<Object> list = query.getResultList();
         return !isNullOrEmpty(list) ? toRowValues(fields, list) : emptyList();
     }
 

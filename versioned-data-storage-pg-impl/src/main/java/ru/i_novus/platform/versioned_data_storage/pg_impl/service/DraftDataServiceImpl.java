@@ -39,6 +39,7 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtil
  * @author lgalimova
  * @since 22.03.2018
  */
+@SuppressWarnings("java:S3740")
 public class DraftDataServiceImpl implements DraftDataService {
 
     private static final Logger logger = LoggerFactory.getLogger(DraftDataServiceImpl.class);

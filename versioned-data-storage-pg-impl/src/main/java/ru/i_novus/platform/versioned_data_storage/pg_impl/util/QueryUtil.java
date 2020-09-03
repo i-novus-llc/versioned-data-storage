@@ -23,6 +23,7 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConsta
  * @author lgalimova
  * @since 21.03.2018
  */
+@SuppressWarnings("java:S3740")
 public class QueryUtil {
 
     private QueryUtil() {
@@ -36,10 +37,10 @@ public class QueryUtil {
      * совместно с {@link #getSelectFields} при {@code detailed} = true.
      *
      * @param fields список полей
-     * @param data   список данных
+     * @param data   данные или список данных
      * @return Список записей
      */
-    public static List<RowValue> toRowValues(List<Field> fields, List<Object[]> data) {
+    public static List<RowValue> toRowValues(List<Field> fields, List<Object> data) {
 
         List<RowValue> result = new ArrayList<>(data.size());
         for (Object objects : data) {

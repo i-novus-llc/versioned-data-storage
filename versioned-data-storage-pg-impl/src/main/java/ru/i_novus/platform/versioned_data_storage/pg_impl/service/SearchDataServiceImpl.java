@@ -17,6 +17,7 @@ import static java.util.Collections.emptyList;
  * @author lgalimova
  * @since 28.03.2018
  */
+@SuppressWarnings("java:S3740")
 public class SearchDataServiceImpl implements SearchDataService {
 
     private DataDao dataDao;
