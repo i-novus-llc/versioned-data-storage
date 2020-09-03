@@ -28,6 +28,12 @@ public class BaseDataCriteria extends Criteria {
         return getPage() >= MIN_PAGE && getSize() >= MIN_SIZE;
     }
 
+    public void makeUnpaged() {
+
+        setPage(BaseDataCriteria.NO_PAGINATION_PAGE);
+        setSize(BaseDataCriteria.NO_PAGINATION_SIZE);
+    }
+
     public int getOffset() {
 
         if (getPage() < MIN_PAGE || getSize() < MIN_SIZE)
