@@ -29,9 +29,9 @@ public class DataTestUtils {
     public static final String TEST_SCHEMA_NAME = "data_test";
     public static final String NONEXISTENT_SCHEMA_NAME = "data_null";
 
-    public static final String FIELD_ID_CODE = "ID";
-    public static final String FIELD_NAME_CODE = "NAME";
-    public static final String FIELD_CODE_CODE = "CODE";
+    public static final String FIELD_ID_CODE = "ID"; // Идентификатор
+    public static final String FIELD_NAME_CODE = "NAME"; // Наименование
+    public static final String FIELD_CODE_CODE = "CODE"; // Код
 
     private static final int INDEX_TO_ID_FACTOR = 10;
 
@@ -47,6 +47,7 @@ public class DataTestUtils {
         // Nothing to do.
     }
 
+    /** Формирование смешанного списка наименований из dataNames + testNames. */
     public static List<String> getMixedNames() {
 
         int allCount = dataNames.size();
@@ -56,6 +57,7 @@ public class DataTestUtils {
                 .collect(toList());
     }
 
+    /** Формирование наименования из dataNames + testNames с учётом индекса. */
     public static String toMixedName(int index) {
 
         int allCount = dataNames.size();
@@ -63,6 +65,7 @@ public class DataTestUtils {
         return (index < allCount / MIXED_NAME_DIVIDER) ? dataNames.get(index) : testNames.get(index);
     }
 
+    /** Формирование списка основных полей. */
     public static List<Field> newIdNameFields() {
 
         List<Field> fields = new ArrayList<>();
@@ -128,6 +131,7 @@ public class DataTestUtils {
         return (BigInteger) rowValue.getFieldValue(FIELD_ID_CODE).getValue();
     }
 
+    /** Сравнение объектов с учётом хеша и преобразования в строку. */
     public static void assertObjects(BiConsumer<Object, Object> objectAssert, Object current, Object actual) {
 
         objectAssert.accept(current, actual);
@@ -170,16 +174,19 @@ public class DataTestUtils {
         });
     }
 
+    /** Преобразование индекса nameValues в системный идентификатор. */
     public static Long indexToSystemId(int index) {
 
         return (long) index;
     }
 
+    /** Преобразование индекса nameValues в значение поля FIELD_ID_CODE. */
     public static BigInteger indexToId(int index) {
 
         return BigInteger.valueOf(index * INDEX_TO_ID_FACTOR);
     }
 
+    /** Преобразование значения поля FIELD_ID_CODE в индекс nameValues. */
     public static int idToIndex(BigInteger id) {
 
         return id.divide(BigInteger.valueOf(INDEX_TO_ID_FACTOR)).intValue();
