@@ -191,11 +191,8 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Override
     public void copyAllData(String sourceCode, String targetCode) {
 
-        List<String> sourceFieldNames = dataDao.getAllEscapedFieldNames(sourceCode);
-        List<String> targetFieldNames = dataDao.getAllEscapedFieldNames(targetCode);
-        targetFieldNames.removeIf(targetFieldName -> !sourceFieldNames.contains(targetFieldName));
-
-        copyTableData(sourceCode, targetCode, targetFieldNames, null, null);
+        List<String> fieldNames = dataDao.getAllCommonFieldNames(sourceCode, targetCode);
+        copyTableData(sourceCode, targetCode, fieldNames, null, null);
     }
 
     private void copyTableData(String sourceCode, String targetCode, List<String> fieldNames,
@@ -253,7 +250,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Transactional
     public void addField(String draftCode, Field field) {
 
-        if (systemFieldNames().contains(field.getName()))
+        if (dataDao.getSystemFieldNames().contains(field.getName()))
             throw new CodifiedException(SYS_FIELD_CONFLICT);
 
         List<String> fieldNames = dataDao.getEscapedFieldNames(draftCode);
@@ -344,7 +341,7 @@ public class DraftDataServiceImpl implements DraftDataService {
 
         List<String> fieldNames = fields.stream()
                 .map(QueryUtil::getHashUsedFieldName)
-                .filter(f -> !systemFieldNames().contains(f))
+                .filter(f -> !dataDao.getSystemFieldNames().contains(f))
                 .collect(toList());
         Collections.sort(fieldNames);
 

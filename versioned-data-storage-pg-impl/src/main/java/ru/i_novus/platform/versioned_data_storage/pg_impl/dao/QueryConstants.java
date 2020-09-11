@@ -1,9 +1,6 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.dao;
 
-import ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils;
-
 import java.time.format.DateTimeFormatter;
-import java.util.stream.Collectors;
 
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addDoubleQuotes;
@@ -59,11 +56,6 @@ public class QueryConstants {
     static final String BIND_INFO_TABLE_NAME = "tableName";
     static final String BIND_INFO_COLUMN_NAME = "columnName";
 
-    private static final String SYS_NAMES_ITEMS_TEXT = systemFieldNames().stream()
-            .map(StringUtils::addSingleQuotes)
-            .collect(Collectors.joining(", "));
-    static final String AND_INFO_COLUMN_NOT_IN_SYS_LIST = "  AND column_name NOT IN (" + SYS_NAMES_ITEMS_TEXT + ")";
-
     public static final String SELECT_SCHEMA_EXISTS = "SELECT EXISTS(\n" +
             "SELECT * \n" +
             "  FROM information_schema.schemata \n" +
@@ -118,8 +110,9 @@ public class QueryConstants {
             "  FROM information_schema.columns \n" +
             " WHERE true \n" +
             "  AND table_schema = :schemaName \n" +
-            "  AND table_name = :tableName \n" +
-            AND_INFO_COLUMN_NOT_IN_SYS_LIST;
+            "  AND table_name = :tableName \n";
+
+    static final String AND_INFO_COLUMN_NOT_IN_SYS_LIST = "  AND column_name NOT IN (%s)";
 
     public static final String SELECT_FIELD_TYPE = "SELECT data_type \n" +
             "  FROM information_schema.columns \n" +

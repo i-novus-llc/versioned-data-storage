@@ -244,12 +244,16 @@ public class DataDaoImpl implements DataDao {
                 .setParameter(BIND_INFO_TABLE_NAME, toTableName(storageCode))
                 .getResultList();
 
+        List<String> systemFieldNames = getSystemFieldNames();
+
         Map<String, String> map = new HashMap<>();
-        for (Object[] dataType : nameTypes) {
-            String fieldName = (String) dataType[0];
-            if (!systemFieldNames().contains(fieldName))
-                map.put(fieldName, (String) dataType[1]);
+        for (Object[] nameType : nameTypes) {
+
+            String fieldName = (String) nameType[0];
+            if (!systemFieldNames.contains(fieldName))
+                map.put(fieldName, (String) nameType[1]);
         }
+
         return map;
     }
 
@@ -1318,9 +1322,9 @@ public class DataDaoImpl implements DataDao {
         entityManager.createNativeQuery(sql).executeUpdate();
     }
 
-    @Override
-    public List<String> getFieldNames(String storageCode, String sqlSelect) {
+    private List<String> getFieldNames(String storageCode, String sqlSelect) {
 
+        @SuppressWarnings("unchecked")
         List<String> results = entityManager.createNativeQuery(sqlSelect)
                 .setParameter(BIND_INFO_SCHEMA_NAME, toSchemaName(storageCode))
                 .setParameter(BIND_INFO_TABLE_NAME, toTableName(storageCode))
@@ -1330,6 +1334,7 @@ public class DataDaoImpl implements DataDao {
         return results;
     }
 
+    @Override
     public List<String> getSystemFieldNames() {
         return systemFieldNames();
     }
@@ -1362,6 +1367,16 @@ public class DataDaoImpl implements DataDao {
         return getSystemFieldNames().stream()
                     .map(StringUtils::addSingleQuotes)
                     .collect(Collectors.joining(", "));
+    }
+
+    @Override
+    public List<String> getAllCommonFieldNames(String storageCode1, String storageCode2) {
+
+        List<String> fieldNames1 = getAllEscapedFieldNames(storageCode1);
+        List<String> fieldNames2 = getAllEscapedFieldNames(storageCode2);
+        fieldNames2.removeIf(fieldName2 -> !fieldNames1.contains(fieldName2));
+
+        return fieldNames2;
     }
 
     @Override
@@ -1439,15 +1454,14 @@ public class DataDaoImpl implements DataDao {
 
         QueryWithParams where = getWhereClause(request, DEFAULT_TABLE_ALIAS);
         if (!StringUtils.isNullOrEmpty(where.getSql())) {
-
-            sqlSelect += " WHERE " + where.getBindedSql();
+            sqlSelect += " WHERE " + where.getBindedSql() + QUERY_NEW_LINE;
         }
 
         sqlSelect += sortingToOrderBy(null, DEFAULT_TABLE_ALIAS);
 
         List<String> fieldNames = request.getEscapedFieldNames();
         if (isNullOrEmpty(fieldNames)) {
-            fieldNames = getAllEscapedFieldNames(request.getPurposeCode());
+            fieldNames = getAllCommonFieldNames(request.getStorageCode(), request.getPurposeCode());
         }
 
         Map<String, String> mapInsert = new HashMap<>();

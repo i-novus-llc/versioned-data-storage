@@ -193,7 +193,12 @@ public interface DataDao {
 
     void updateReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue, int offset, int limit);
 
-    List<String> getFieldNames(String storageCode, String sqlSelect);
+    /**
+     * Получение наименований системных полей.
+     *
+     * @return Список наименований полей
+     */
+    List<String> getSystemFieldNames();
 
     /**
      * Получение закавыченных наименований полей хранилища (исключая системные поля).
@@ -218,6 +223,15 @@ public interface DataDao {
      * @return Список наименований полей
      */
     List<String> getHashUsedFieldNames(String storageCode);
+
+    /**
+     * Получение закавыченных наименований полей, общих для обоих хранилищ.
+     *
+     * @param storageCode1 код хранилища 1
+     * @param storageCode2 код хранилища 2
+     * @return Список наименований полей
+     */
+    List<String> getAllCommonFieldNames(String storageCode1, String storageCode2);
 
     /**
      * Получение типа поля хранилища.
