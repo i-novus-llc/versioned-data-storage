@@ -62,10 +62,7 @@ public class DataDaoImpl implements DataDao {
         final String schemaName = getStorageCodeSchemaName(criteria.getStorageCode());
         final String tableName = toTableName(criteria.getStorageCode());
 
-        List<Field> fields = new ArrayList<>(criteria.getFields());
-        fields.add(0, new IntegerField(SYS_PRIMARY_COLUMN));
-        if (fields.stream().noneMatch(field -> SYS_HASH.equals(field.getName())))
-            fields.add(1, new StringField(SYS_HASH));
+        List<Field> fields = makeOutputFields(criteria, schemaName);
 
         final String sqlFormat = "SELECT %1$s \n  FROM %2$s as %3$s ";
         String sqlFields = QueryUtil.toSelectedFields(DEFAULT_TABLE_ALIAS, fields, true);
@@ -89,6 +86,29 @@ public class DataDaoImpl implements DataDao {
 
         @SuppressWarnings("unchecked")
         List<Object> list = query.getResultList();
+        return makeResultRowValues(list, fields, criteria, schemaName);
+    }
+
+    /** Формирование списка полей, выводимых в результате запроса. */
+    @SuppressWarnings("UnusedParameter")
+    protected List<Field> makeOutputFields(StorageDataCriteria criteria, String schemaName) {
+
+        List<Field> fields = new ArrayList<>(criteria.getFields());
+
+        fields.add(0, new IntegerField(SYS_PRIMARY_COLUMN));
+
+        if (!hasField(SYS_HASH, fields)) {
+            fields.add(1, new StringField(SYS_HASH));
+        }
+
+        return fields;
+    }
+
+    /** Формирование результата поиска из результата запроса. */
+    @SuppressWarnings("UnusedParameter")
+    protected List<RowValue> makeResultRowValues(List<Object> list, List<Field> fields,
+                                                 StorageDataCriteria criteria, String schemaName) {
+
         return !isNullOrEmpty(list) ? toRowValues(fields, list) : emptyList();
     }
 
@@ -1310,9 +1330,17 @@ public class DataDaoImpl implements DataDao {
         return results;
     }
 
+    public List<String> getSystemFieldNames() {
+        return systemFieldNames();
+    }
+
     @Override
     public List<String> getEscapedFieldNames(String storageCode) {
-        return getFieldNames(storageCode, SELECT_ESCAPED_FIELD_NAMES + AND_INFO_COLUMN_NOT_IN_SYS_LIST);
+
+        String sql = SELECT_ESCAPED_FIELD_NAMES +
+                String.format(AND_INFO_COLUMN_NOT_IN_SYS_LIST, getSystemFieldNamesText());
+
+        return getFieldNames(storageCode, sql);
     }
 
     @Override
@@ -1322,7 +1350,18 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     public List<String> getHashUsedFieldNames(String storageCode) {
-        return getFieldNames(storageCode, SELECT_HASH_USED_FIELD_NAMES);
+
+        String sql = SELECT_HASH_USED_FIELD_NAMES +
+                String.format(AND_INFO_COLUMN_NOT_IN_SYS_LIST, getSystemFieldNamesText());
+
+        return getFieldNames(storageCode, sql);
+    }
+
+    private String getSystemFieldNamesText() {
+
+        return getSystemFieldNames().stream()
+                    .map(StringUtils::addSingleQuotes)
+                    .collect(Collectors.joining(", "));
     }
 
     @Override
