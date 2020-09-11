@@ -43,13 +43,13 @@ public class QueryUtil {
     public static List<RowValue> toRowValues(List<Field> fields, List<Object> data) {
 
         List<RowValue> result = new ArrayList<>(data.size());
-        for (Object objects : data) {
+        for (Object row : data) {
             LongRowValue rowValue = new LongRowValue();
-            if (objects instanceof Object[]) {
-                addToRowValue((Object[]) objects, fields, rowValue);
+            if (row instanceof Object[]) {
+                addToRowValue((Object[]) row, fields, rowValue);
 
             } else {
-                rowValue.getFieldValues().add(getFieldValue(fields.get(0), objects));
+                rowValue.getFieldValues().add(getFieldValue(fields.get(0), row));
             }
             result.add(rowValue);
         }
@@ -60,30 +60,39 @@ public class QueryUtil {
 
         Iterator<Field> fieldIterator = fields.iterator();
 
-        int i = 0;
-        while (i < row.length) {
-            Field field = fieldIterator.next();
-            Object value = row[i];
+        int next = 0;
+        while (next < row.length) {
+            next = addNextFieldValue(next, row, fieldIterator.next(), rowValue);
+        }
+    }
 
-            if (i == 0) { // SYS_RECORD_ID
-                rowValue.setSystemId(value != null ? Long.parseLong(value.toString()) : null);
+    private static int addNextFieldValue(int i, Object[] row, Field field, LongRowValue rowValue) {
 
-            } else if (i == 1 && SYS_HASH.equals(field.getName())) { // SYS_HASH
-                rowValue.setHash(value != null ? value.toString() : null);
+        Object value = row[i];
 
-            } else { // FIELD
-                if (field instanceof ReferenceField && (i + 1 < row.length)) {
-                    Object displayValue = row[i + 1];
-                    value = new Reference(value != null ? value.toString() : null,
-                            displayValue != null ? displayValue.toString() : null);
-                    i++;
-                }
+        if (i == 0) { // SYS_RECORD_ID
 
-                rowValue.getFieldValues().add(getFieldValue(field, value));
-            }
+            rowValue.setSystemId(value != null ? Long.parseLong(value.toString()) : null);
+            return ++i;
+        }
 
+        if (i == 1 && SYS_HASH.equals(field.getName())) { // SYS_HASH
+
+            rowValue.setHash(value != null ? value.toString() : null);
+            return ++i;
+        }
+
+        // FIELD
+        if (field instanceof ReferenceField && (i + 1 < row.length)) {
+            Object displayValue = row[i + 1];
+            value = new Reference(value != null ? value.toString() : null,
+                    displayValue != null ? displayValue.toString() : null);
             i++;
         }
+
+        rowValue.getFieldValues().add(getFieldValue(field, value));
+
+        return ++i;
     }
 
     /** Получение наименования поля с кавычками для вычисления hash и fts. */
