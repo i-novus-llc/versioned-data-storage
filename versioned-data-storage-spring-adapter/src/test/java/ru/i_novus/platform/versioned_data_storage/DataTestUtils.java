@@ -80,12 +80,13 @@ public class DataTestUtils {
     }
 
     /** Поиск поля по наименованию. */
-    public static Field findFieldOrThrow(String name, List<Field> fields) {
+    public static Field findFieldOrThrow(String fieldName, List<Field> fields) {
 
-        return fields.stream()
-                .filter(field -> name.equals(field.getName()))
-                .findFirst().orElseThrow(() ->
-                        new IllegalArgumentException("field '" + name + "' is not found"));
+        Field field = QueryUtil.findField(fieldName, fields);
+        if (field == null)
+            throw new IllegalArgumentException("field '" + fieldName + "' is not found");
+
+        return field;
     }
 
     /** Преобразование проверяемых данных для выполнения операции. */

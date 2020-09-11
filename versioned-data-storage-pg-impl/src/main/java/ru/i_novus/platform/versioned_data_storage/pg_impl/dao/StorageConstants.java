@@ -25,7 +25,7 @@ public class StorageConstants {
     public static final String TABLE_SEQUENCE_SUFFIX = "_seq";
     public static final String TABLE_INDEX_SUFFIX = "_idx";
 
-    // Системные поля справочников.
+    // Системные поля хранилищ.
     public static final String SYS_PRIMARY_COLUMN = "SYS_RECORDID"; // Первичный ключ записи
     public static final String SYS_PUBLISHTIME = "SYS_PUBLISHTIME"; // Дата публикации записи
     public static final String SYS_CLOSETIME = "SYS_CLOSETIME"; // Дата прекращения действия записи

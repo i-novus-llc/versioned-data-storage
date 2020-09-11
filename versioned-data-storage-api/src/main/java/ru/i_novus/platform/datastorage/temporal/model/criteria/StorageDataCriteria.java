@@ -5,6 +5,8 @@ import ru.i_novus.platform.datastorage.temporal.model.Field;
 import java.time.LocalDateTime;
 import java.util.*;
 
+import static java.util.Collections.emptyList;
+
 /** Критерий поиска данных в хранилище. */
 @SuppressWarnings("java:S3740")
 public class StorageDataCriteria extends BaseDataCriteria {
@@ -38,7 +40,7 @@ public class StorageDataCriteria extends BaseDataCriteria {
         this.storageCode = storageCode;
         this.bdate = bdate;
         this.edate = edate;
-        this.fields = fields;
+        this.fields = fields != null ? fields : emptyList();
     }
 
     public StorageDataCriteria(String storageCode, LocalDateTime bdate, LocalDateTime edate, List<Field> fields,

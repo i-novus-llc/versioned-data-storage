@@ -26,6 +26,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static java.util.Collections.*;
@@ -67,7 +68,7 @@ public class DataDaoImpl implements DataDao {
             fields.add(1, new StringField(SYS_HASH));
 
         final String sqlFormat = "SELECT %1$s \n  FROM %2$s as %3$s ";
-        String sqlFields = getSelectFields(DEFAULT_TABLE_ALIAS, fields, true);
+        String sqlFields = QueryUtil.toSelectedFields(DEFAULT_TABLE_ALIAS, fields, true);
         String sql = String.format(sqlFormat, sqlFields, escapeTableName(schemaName, tableName), DEFAULT_TABLE_ALIAS);
 
         QueryWithParams queryWithParams = new QueryWithParams(sql);
@@ -133,7 +134,7 @@ public class DataDaoImpl implements DataDao {
 
         List<Field> fields = columnDataTypesToFields(getColumnDataTypes(storageCode), fieldNames);
 
-        String sqlFields = getSelectFields(null, fields, true);
+        String sqlFields = QueryUtil.toSelectedFields(null, fields, true);
         String sql = String.format(SELECT_ROWS_FROM_DATA_BY_FIELD_EQ,
                 sqlFields, schemaName, addDoubleQuotes(tableName),
                 addDoubleQuotes(SYS_PRIMARY_COLUMN), QUERY_VALUE_SUBST);
@@ -159,7 +160,7 @@ public class DataDaoImpl implements DataDao {
 
         List<Field> fields = columnDataTypesToFields(getColumnDataTypes(storageCode), fieldNames);
 
-        String sqlFields = getSelectFields(null, fields, true);
+        String sqlFields = QueryUtil.toSelectedFields(null, fields, true);
         String sql = String.format(SELECT_ROWS_FROM_DATA_BY_FIELD_EQ,
                 sqlFields, schemaName, addDoubleQuotes(tableName),
                 addDoubleQuotes(SYS_PRIMARY_COLUMN),
@@ -951,7 +952,7 @@ public class DataDaoImpl implements DataDao {
         String tableName = toTableName(storageCode);
 
         String escapedFieldName = addDoubleQuotes(fieldName);
-        String using = getFieldNameByType(escapedFieldName, oldType, newType);
+        String using = useFieldNameByType(escapedFieldName, oldType, newType);
 
         String ddl = String.format(ALTER_COLUMN_WITH_USING,
                 schemaName, addDoubleQuotes(tableName), escapedFieldName, newType, using);
@@ -1680,8 +1681,8 @@ public class DataDaoImpl implements DataDao {
         String newSchemaName = toSchemaName(newStorageCode);
         String newTableName = toTableName(newStorageCode);
 
-        String oldDataFields = getSelectFields(oldAlias, criteria.getFields(), false);
-        String newDataFields = getSelectFields(newAlias, criteria.getFields(), false);
+        String oldDataFields = QueryUtil.toSelectedFields(oldAlias, criteria.getFields(), false);
+        String newDataFields = QueryUtil.toSelectedFields(newAlias, criteria.getFields(), false);
 
         String dataSelectFormat = "SELECT %1$s AS sysId1 \n %2$s\n, %3$s AS sysId2 \n %4$s \n";
         String dataSelect = String.format(dataSelectFormat,

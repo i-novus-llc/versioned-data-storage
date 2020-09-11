@@ -34,7 +34,7 @@ public class QueryUtil {
      * Преобразование полученных данных в список записей.
      * <p>
      * При получении всех данных необходимо использовать
-     * совместно с {@link #getSelectFields} при {@code detailed} = true.
+     * совместно с {@link #toSelectedFields} при {@code detailed} = true.
      *
      * @param fields список полей
      * @param data   данные или список данных
@@ -238,15 +238,41 @@ public class QueryUtil {
     }
 
     /**
-     * Генерация списка полей для запроса.
+     * Проверка наличия поля в списке по наименованию.
+     *
+     * @param fieldName наименование поля
+     * @param fields    список полей
+     * @return Результат проверки
+     */
+    public static boolean hasField(String fieldName, List<Field> fields) {
+
+        return fields.stream().anyMatch(field -> fieldName.equals(field.getName()));
+    }
+
+    /**
+     * Поиск поля в списке по наименованию.
+     *
+     * @param fieldName наименование поля
+     * @param fields    список полей
+     * @return Поле или null
+     */
+    public static Field findField(String fieldName, List<Field> fields) {
+
+        return fields.stream()
+                .filter(field -> fieldName.equals(field.getName()))
+                .findFirst().orElse(null);
+    }
+
+    /**
+     * Получение списка полей для запроса.
      * 
-     * @param alias    псевдоним таблицы
+     * @param alias    псевдоним хранилища
      * @param fields   список полей таблицы
      * @param detailed отображение дополнительных частей составных полей
      */
-    public static String getSelectFields(String alias, List<Field> fields, boolean detailed) {
+    public static String toSelectedFields(String alias, List<Field> fields, boolean detailed) {
 
-        if (isNullOrEmpty(alias))
+        if (alias == null)
             alias = "";
 
         List<String> selectedFields = new ArrayList<>();
@@ -338,7 +364,7 @@ public class QueryUtil {
      * @param newType   новый тип
      * @return Наименование поля с учётом преобразования
      */
-    public static String getFieldNameByType(String fieldName, String oldType, String newType) {
+    public static String useFieldNameByType(String fieldName, String oldType, String newType) {
 
         if (DateField.TYPE.equals(oldType) && isVarcharType(newType)) {
             return "to_char(" + fieldName + ", '" + QUERY_DATE_FORMAT + "')";
@@ -422,21 +448,12 @@ public class QueryUtil {
     }
 
     /**
-     * <p>Escapes the characters in a <code>String</code> to be suitable to pass to an SQL query.
-     *
-     * <p>For example,
-     * <pre>
-     *      statement.executeQuery("SELECT * FROM data_table WHERE name='" +
-     *          StringEscapeUtils.escapeSql("i_novus' style") +
-     *      "'");
-     * </pre>
+     * Escapes the characters in a <code>String</code> to be suitable to pass to an SQL query.
      * <p>
-     * <p>At present, this method only turns single-quotes into doubled single-quotes
+     * At present, this method only turns single-quotes into doubled single-quotes
      * (<code>"i_novus' style"</code> => <code>"i_novus'' style"</code>).
      * It does not handle the cases of percent (%) or underscore (_) for use in LIKE clauses.
      *
-     * see http://www.jguru.com/faq/view.jsp?EID=8881
-     * 
      * @param str the string to escape, may be null
      * @return A new String, escaped for SQL, <code>null</code> if null string input
      */

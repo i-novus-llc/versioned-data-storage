@@ -110,9 +110,14 @@ public class StorageUtils {
         return isNullOrEmpty(tableAlias) ? escapedFieldName : aliasColumnName(tableAlias, escapedFieldName);
     }
 
+    public static String tableSequenceName(String tableName) {
+
+        return tableName + NAME_CONNECTOR + SYS_PRIMARY_COLUMN + TABLE_SEQUENCE_SUFFIX;
+    }
+
     public static String escapeSequenceName(String tableName) {
 
-        return addDoubleQuotes(tableName + NAME_CONNECTOR + SYS_PRIMARY_COLUMN + TABLE_SEQUENCE_SUFFIX);
+        return addDoubleQuotes(tableSequenceName(tableName));
     }
 
     public static String escapeSchemaSequenceName(String schemaName, String tableName) {
