@@ -9,7 +9,9 @@ import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.StringFieldValue;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.IntegerField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.StringField;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
 
+import javax.persistence.EntityManager;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,7 +23,9 @@ import java.util.stream.IntStream;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.toStorageCode;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.SYS_PRIMARY_COLUMN;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addDoubleQuotes;
 
 @SuppressWarnings("java:S3740")
 public class DataTestUtils {
@@ -191,5 +195,46 @@ public class DataTestUtils {
     public static int idToIndex(BigInteger id) {
 
         return id.divide(BigInteger.valueOf(INDEX_TO_ID_FACTOR)).intValue();
+    }
+
+    public static boolean tableSequenceExists(String storageCode, EntityManager entityManager) {
+
+        final String selectSequenceExists = "SELECT EXISTS(\n" +
+                "  SELECT 1 \n" +
+                "    FROM pg_class \n" +
+                "   WHERE relkind = 'S' \n" +
+                "     AND relname = :seqOnlyName \n" +
+                "     AND oid\\:\\:regclass\\:\\:text = :seqFullName \n" +
+                ")";
+
+        String seqOnlyName = tableSequenceName(toTableName(storageCode));
+        String seqFullName = escapeStorageSequenceName(storageCode);
+
+        Boolean result = (Boolean) entityManager.createNativeQuery(selectSequenceExists)
+                        .setParameter("seqOnlyName", seqOnlyName)
+                        .setParameter("seqFullName", seqFullName)
+                        .getSingleResult();
+
+        return result != null && result;
+    }
+
+    public static boolean tableTriggerExists(String storageCode, String triggerName, EntityManager entityManager) {
+
+        final String selectTriggerExists = "SELECT EXISTS(\n" +
+                "  SELECT 1 \n" +
+                "    FROM pg_trigger \n" +
+                "   WHERE not tgisinternal \n" +
+                "     AND tgname = :triggerName \n" +
+                "     AND tgrelid\\:\\:regclass\\:\\:text = :tableName \n" +
+                ")";
+
+        String tableName = escapeStorageTableName(storageCode);
+
+        Boolean result = (Boolean) entityManager.createNativeQuery(selectTriggerExists)
+                        .setParameter("triggerName", triggerName)
+                        .setParameter("tableName", tableName)
+                        .getSingleResult();
+
+        return result != null && result;
     }
 }
