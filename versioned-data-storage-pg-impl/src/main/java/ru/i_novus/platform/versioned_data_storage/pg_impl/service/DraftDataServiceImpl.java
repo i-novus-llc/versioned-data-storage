@@ -191,7 +191,11 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Override
     public void copyAllData(String sourceCode, String targetCode) {
 
-        copyTableData(sourceCode, targetCode, dataDao.getAllEscapedFieldNames(targetCode), null, null);
+        List<String> sourceFieldNames = dataDao.getAllEscapedFieldNames(sourceCode);
+        List<String> targetFieldNames = dataDao.getAllEscapedFieldNames(targetCode);
+        targetFieldNames.removeIf(targetFieldName -> !sourceFieldNames.contains(targetFieldName));
+
+        copyTableData(sourceCode, targetCode, targetFieldNames, null, null);
     }
 
     private void copyTableData(String sourceCode, String targetCode, List<String> fieldNames,
