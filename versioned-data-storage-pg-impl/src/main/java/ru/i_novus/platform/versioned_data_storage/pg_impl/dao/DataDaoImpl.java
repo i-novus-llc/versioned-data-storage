@@ -1769,10 +1769,12 @@ public class DataDaoImpl implements DataDao {
         String orderBy = " ORDER BY " +
                 criteria.getPrimaryFields().stream()
                         .map(field -> escapeFieldName(newAlias, field))
-                        .collect(joining(",")) + "," +
+                        .collect(joining(", ")) + ", " +
                 criteria.getPrimaryFields().stream()
                         .map(field -> escapeFieldName(oldAlias, field))
-                        .collect(joining(","));
+                        .collect(joining(", ")) + ", " +
+                escapeFieldName(newAlias, SYS_PRIMARY_COLUMN) + ", " +
+                escapeFieldName(oldAlias, SYS_PRIMARY_COLUMN);
 
         QueryWithParams dataQueryWithParams = new QueryWithParams(dataSelect + sql + orderBy, params);
         Query dataQuery = dataQueryWithParams.createQuery(entityManager)
