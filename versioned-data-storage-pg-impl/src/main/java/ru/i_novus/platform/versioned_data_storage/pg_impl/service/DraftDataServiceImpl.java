@@ -354,8 +354,7 @@ public class DraftDataServiceImpl implements DraftDataService {
                     dataDao.createLtreeIndex(draftCode, fieldName);
 
                 else if (Boolean.TRUE.equals(field.getSearchEnabled())) {
-                    String indexName = escapeTableIndexName(toTableName(draftCode), fieldName.toLowerCase());
-                    dataDao.createIndex(draftCode, indexName, singletonList(fieldName));
+                    dataDao.createFieldIndex(draftCode, fieldName);
                 }
             }
         }

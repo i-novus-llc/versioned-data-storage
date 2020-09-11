@@ -28,8 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptySet;
+import static java.util.Collections.*;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static org.springframework.util.CollectionUtils.isEmpty;
@@ -768,13 +767,20 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @Transactional
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void createIndex(String storageCode, String name, List<String> fieldNames) {
+    public void createFieldIndex(String storageCode, String fieldName) {
+
+        String indexName = escapeTableIndexName(toTableName(storageCode), fieldName.toLowerCase());
+        createFieldsIndex(storageCode, indexName, singletonList(fieldName));
+    }
+
+    @Override
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    public void createFieldsIndex(String storageCode, String indexName, List<String> fieldNames) {
 
         String expression = fieldNames.stream().map(StringUtils::addDoubleQuotes).collect(joining(","));
         String ddl = String.format(CREATE_TABLE_INDEX,
-                name,
+                indexName,
                 toSchemaName(storageCode),
                 addDoubleQuotes(toTableName(storageCode)),
                 "",
@@ -920,7 +926,7 @@ public class DataDaoImpl implements DataDao {
         addColumn(storageCode, SYS_PUBLISHTIME, "timestamp without time zone", MIN_TIMESTAMP_VALUE);
         addColumn(storageCode, SYS_CLOSETIME, "timestamp without time zone", MAX_TIMESTAMP_VALUE);
 
-        createIndex(storageCode,
+        createFieldsIndex(storageCode,
                 escapeTableIndexName(toTableName(storageCode), TABLE_INDEX_SYSDATE_NAME),
                 Arrays.asList(SYS_PUBLISHTIME, SYS_CLOSETIME));
     }

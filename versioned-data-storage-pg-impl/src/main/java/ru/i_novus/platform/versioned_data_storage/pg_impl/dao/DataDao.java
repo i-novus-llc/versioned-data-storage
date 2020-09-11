@@ -143,10 +143,16 @@ public interface DataDao {
 
     void updateFtsRows(String storageCode, List<String> fieldNames);
 
-    void createIndex(String storageCode, String name, List<String> fieldNames);
+    /** Создание обычного индекса по одному полю. */
+    void createFieldIndex(String storageCode, String fieldName);
 
+    /** Создание индекса по списку полей. */
+    void createFieldsIndex(String storageCode, String indexName, List<String> fieldNames);
+
+    /** Создание индекса по полю SYS_HASH. */
     void createHashIndex(String storageCode);
 
+    /** Создание индекса по полю SYS_FTS. */
     void createFtsIndex(String storageCode);
 
     void createLtreeIndex(String storageCode, String fieldName);
