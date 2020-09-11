@@ -335,6 +335,13 @@ public class DataDaoTest {
         List<RowValue> emptyDataValues = dataDao.getData(toCriteria(targetCode, fields));
         assertEquals(0, emptyDataValues == null ? 0 : emptyDataValues.size());
 
+        List<String> sourceFieldNames = dataDao.getAllEscapedFieldNames(sourceCode);
+        List<String> targetFieldNames = dataDao.getAllEscapedFieldNames(targetCode);
+        assertEquals(sourceFieldNames.size(), targetFieldNames.size());
+        sourceFieldNames.forEach(sourceFieldName ->
+                assertTrue(targetFieldNames.contains(sourceFieldName))
+        );
+
         StorageCopyRequest request = new StorageCopyRequest(sourceCode, targetCode, null, null, null);
         request.setPage(BaseDataCriteria.MIN_PAGE);
         request.setSize(dataNames.size());
