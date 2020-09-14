@@ -76,8 +76,7 @@ public class DataDaoImpl implements DataDao {
             queryWithParams.concat(where);
         }
 
-        Sorting sorting = !isNullOrEmpty(criteria.getSortings()) ? criteria.getSortings().get(0) : null;
-        queryWithParams.concat(sortingToOrderBy(sorting, DEFAULT_TABLE_ALIAS));
+        queryWithParams.concat(sortingsToOrderBy(criteria, DEFAULT_TABLE_ALIAS, schemaName));
 
         Query query = queryWithParams.createQuery(entityManager);
         if (criteria.hasPageAndSize()) {
@@ -255,17 +254,6 @@ public class DataDaoImpl implements DataDao {
         }
 
         return map;
-    }
-
-    protected String sortingToOrderBy(Sorting sorting, String alias) {
-
-        String orderBy = " ORDER BY ";
-        if (sorting != null && sorting.getField() != null) {
-            orderBy = orderBy + escapeFieldName(alias, sorting.getField()) +
-                    " " + sorting.getDirection().toString() + ", ";
-        }
-
-        return orderBy + " " + escapeFieldName(alias, SYS_PRIMARY_COLUMN);
     }
 
     private QueryWithParams getCriteriaWhereClause(StorageDataCriteria criteria, String alias) {
@@ -514,10 +502,51 @@ public class DataDaoImpl implements DataDao {
         return new QueryWithParams(sql, params);
     }
 
+    /** Получение сортировки по критерию. */
+    @SuppressWarnings("UnusedParameter")
+    protected String sortingsToOrderBy(StorageDataCriteria criteria, String alias, String schemaName) {
+
+        return sortingsToOrderBy(criteria.getSortings(), alias);
+    }
+
+    /** Получение сортировки по списку полей. */
+    private String sortingsToOrderBy(List<Sorting> sortings, String alias) {
+
+        String result = " ORDER BY ";
+
+        if (!isNullOrEmpty(sortings)) {
+            result += sortings.stream()
+                    .filter(sorting -> sorting != null && sorting.getField() != null)
+                    .map(sorting -> toOrderBy(sorting, alias))
+                    .collect(joining(",")) + ",";
+        }
+
+        return result + toPrimaryOrderBy(alias);
+    }
+
+    /** Получение части сортировки по полю. */
+    private String toOrderBy(Sorting sorting, String alias) {
+
+        return " " + escapeFieldName(alias, sorting.getField()) +
+                " " + sorting.getDirection().toString();
+    }
+
+    /** Получение сортировки по умолчанию. */
+    protected String getDefaultOrderBy(String alias) {
+
+        return " ORDER BY " + toPrimaryOrderBy(alias);
+    }
+
+    /** Получение части сортировки по первичному ключу. */
+    private String toPrimaryOrderBy(String alias) {
+
+        return " " + escapeFieldName(alias, SYS_PRIMARY_COLUMN);
+    }
+
     @Override
     public BigInteger countData(String storageCode) {
 
-        String sql = "SELECT count(*) FROM " + escapeStorageTableName(storageCode);
+        String sql = SELECT_COUNT_ONLY + "  FROM " + escapeStorageTableName(storageCode);
         return (BigInteger) entityManager.createNativeQuery(sql).getSingleResult();
     }
 
@@ -1457,7 +1486,7 @@ public class DataDaoImpl implements DataDao {
             sqlSelect += " WHERE " + where.getBindedSql() + QUERY_NEW_LINE;
         }
 
-        sqlSelect += sortingToOrderBy(null, DEFAULT_TABLE_ALIAS);
+        sqlSelect += getDefaultOrderBy(DEFAULT_TABLE_ALIAS);
 
         List<String> fieldNames = request.getEscapedFieldNames();
         if (isNullOrEmpty(fieldNames)) {
