@@ -25,7 +25,7 @@ public class StorageConstants {
     public static final String TABLE_SEQUENCE_SUFFIX = "_seq";
     public static final String TABLE_INDEX_SUFFIX = "_idx";
 
-    // Системные поля справочников.
+    // Системные поля хранилищ.
     public static final String SYS_PRIMARY_COLUMN = "SYS_RECORDID"; // Первичный ключ записи
     public static final String SYS_PUBLISHTIME = "SYS_PUBLISHTIME"; // Дата публикации записи
     public static final String SYS_CLOSETIME = "SYS_CLOSETIME"; // Дата прекращения действия записи
@@ -59,10 +59,6 @@ public class StorageConstants {
     // NB: Workaround to sonar issue "squid-S2386".
     public static List<String> systemFieldNames() {
         return SYS_FIELD_NAMES;
-    }
-
-    public static List<String> versionFieldNames() {
-        return VERSIONED_SYS_FIELD_NAMES;
     }
 
     public static List<String> escapedVersionFieldNames() {

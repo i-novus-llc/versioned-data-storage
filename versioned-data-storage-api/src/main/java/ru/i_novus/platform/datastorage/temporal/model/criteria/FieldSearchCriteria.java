@@ -6,21 +6,30 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
 
-
 /**
+ * Критерий поиска по полю.
+ *
  * @author lgalimova
  * @since 01.02.2018
  */
 public class FieldSearchCriteria implements Serializable {
+
+    /** Поле. */
     private Field field;
-    private List<?> values;
+
+    /** Значения. */
+    private List<? extends Serializable> values;
+
+    /** Тип. */
     private SearchTypeEnum type = SearchTypeEnum.EXACT;
 
     public FieldSearchCriteria(Field field) {
+
         this.field = field;
     }
 
-    public FieldSearchCriteria(Field field, SearchTypeEnum type, List<?> values) {
+    public FieldSearchCriteria(Field field, SearchTypeEnum type, List<? extends Serializable> values) {
+
         this.field = field;
         this.type = type;
         this.values = values;
@@ -34,11 +43,11 @@ public class FieldSearchCriteria implements Serializable {
         this.field = field;
     }
 
-    public List<? extends Object> getValues() {
+    public List<? extends Serializable> getValues() {
         return values;
     }
 
-    public void setValues(List<? extends Object> values) {
+    public void setValues(List<? extends Serializable> values) {
         this.values = values;
     }
 
@@ -56,18 +65,23 @@ public class FieldSearchCriteria implements Serializable {
         if (o == null || getClass() != o.getClass()) return false;
 
         FieldSearchCriteria that = (FieldSearchCriteria) o;
-
-        if (!Objects.equals(field, that.field)) return false;
-        if (!Objects.equals(values, that.values)) return false;
-        return type == that.type;
+        return Objects.equals(field, that.field) &&
+                Objects.equals(values, that.values) &&
+                (type == that.type);
 
     }
 
     @Override
     public int hashCode() {
-        int result = field != null ? field.hashCode() : 0;
-        result = 31 * result + (values != null ? values.hashCode() : 0);
-        result = 31 * result + (type != null ? type.hashCode() : 0);
-        return result;
+        return Objects.hash(field, values, type);
+    }
+
+    @Override
+    public String toString() {
+        return "FieldSearchCriteria{" +
+                ", field=" + field +
+                ", values=" + values +
+                ", type=" + type +
+                '}';
     }
 }

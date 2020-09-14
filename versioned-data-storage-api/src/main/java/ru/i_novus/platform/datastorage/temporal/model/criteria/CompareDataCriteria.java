@@ -6,9 +6,11 @@ import ru.i_novus.platform.datastorage.temporal.model.Field;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /** Критерий сравнения данных в хранилищах. */
+@SuppressWarnings("java:S3740")
 public class CompareDataCriteria extends BaseDataCriteria {
 
     private final String storageCode;
@@ -129,6 +131,59 @@ public class CompareDataCriteria extends BaseDataCriteria {
 
     public void setReturnType(DiffReturnTypeEnum returnType) {
         this.returnType = returnType;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if(!super.equals(o)) return false;
+
+        CompareDataCriteria that = (CompareDataCriteria) o;
+        return Objects.equals(storageCode, that.storageCode) &&
+                Objects.equals(newStorageCode, that.newStorageCode) &&
+
+                Objects.equals(fields, that.fields) &&
+                Objects.equals(primaryFields, that.primaryFields) &&
+                Objects.equals(primaryFieldsFilters, that.primaryFieldsFilters) &&
+
+                Objects.equals(oldPublishDate, that.oldPublishDate) &&
+                Objects.equals(oldCloseDate, that.oldCloseDate) &&
+                Objects.equals(newPublishDate, that.newPublishDate) &&
+                Objects.equals(newCloseDate, that.newCloseDate) &&
+
+                status == that.status &&
+                Objects.equals(countOnly, that.countOnly) &&
+                returnType == that.returnType;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), storageCode, newStorageCode,
+                fields, primaryFields, primaryFieldsFilters,
+                oldPublishDate, oldCloseDate, newPublishDate, newCloseDate,
+                status, countOnly, returnType);
+    }
+
+    @Override
+    public String toString() {
+        return "CompareDataCriteria{" +
+                "storageCode='" + storageCode + '\'' +
+                ", newStorageCode='" + newStorageCode + '\'' +
+
+                ", fields=" + fields +
+                ", primaryFields=" + primaryFields +
+                ", primaryFieldsFilters=" + primaryFieldsFilters +
+
+                ", oldPublishDate=" + oldPublishDate +
+                ", oldCloseDate=" + oldCloseDate +
+                ", newPublishDate=" + newPublishDate +
+                ", newCloseDate=" + newCloseDate +
+
+                ", status=" + status +
+                ", countOnly=" + countOnly +
+                ", returnType=" + returnType +
+                '}';
     }
 }
 

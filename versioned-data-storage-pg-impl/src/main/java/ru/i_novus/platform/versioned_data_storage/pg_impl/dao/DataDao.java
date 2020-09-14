@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
+@SuppressWarnings("java:S3740")
 public interface DataDao {
 
     /**
@@ -142,10 +143,16 @@ public interface DataDao {
 
     void updateFtsRows(String storageCode, List<String> fieldNames);
 
-    void createIndex(String storageCode, String name, List<String> fieldNames);
+    /** Создание обычного индекса по одному полю. */
+    void createFieldIndex(String storageCode, String fieldName);
 
+    /** Создание индекса по списку полей. */
+    void createFieldsIndex(String storageCode, String indexName, List<String> fieldNames);
+
+    /** Создание индекса по полю SYS_HASH. */
     void createHashIndex(String storageCode);
 
+    /** Создание индекса по полю SYS_FTS. */
     void createFtsIndex(String storageCode);
 
     void createLtreeIndex(String storageCode, String fieldName);
@@ -186,7 +193,12 @@ public interface DataDao {
 
     void updateReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue, int offset, int limit);
 
-    List<String> getFieldNames(String storageCode, String sqlSelect);
+    /**
+     * Получение наименований системных полей.
+     *
+     * @return Список наименований полей
+     */
+    List<String> getSystemFieldNames();
 
     /**
      * Получение закавыченных наименований полей хранилища (исключая системные поля).
@@ -211,6 +223,15 @@ public interface DataDao {
      * @return Список наименований полей
      */
     List<String> getHashUsedFieldNames(String storageCode);
+
+    /**
+     * Получение закавыченных наименований полей, общих для обоих хранилищ.
+     *
+     * @param storageCode1 код хранилища 1
+     * @param storageCode2 код хранилища 2
+     * @return Список наименований полей
+     */
+    List<String> getAllCommonFieldNames(String storageCode1, String storageCode2);
 
     /**
      * Получение типа поля хранилища.

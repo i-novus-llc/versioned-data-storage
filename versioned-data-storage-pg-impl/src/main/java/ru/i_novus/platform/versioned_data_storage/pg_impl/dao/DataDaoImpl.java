@@ -26,10 +26,10 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptySet;
+import static java.util.Collections.*;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static org.springframework.util.CollectionUtils.isEmpty;
@@ -41,7 +41,7 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.*;
 
-@SuppressWarnings("java:S1192")
+@SuppressWarnings({"java:S1192", "java:S3740"})
 public class DataDaoImpl implements DataDao {
 
     private static final Logger logger = LoggerFactory.getLogger(DataDaoImpl.class);
@@ -62,13 +62,10 @@ public class DataDaoImpl implements DataDao {
         final String schemaName = getStorageCodeSchemaName(criteria.getStorageCode());
         final String tableName = toTableName(criteria.getStorageCode());
 
-        List<Field> fields = new ArrayList<>(criteria.getFields());
-        fields.add(0, new IntegerField(SYS_PRIMARY_COLUMN));
-        if (fields.stream().noneMatch(field -> SYS_HASH.equals(field.getName())))
-            fields.add(1, new StringField(SYS_HASH));
+        List<Field> fields = makeOutputFields(criteria, schemaName);
 
         final String sqlFormat = "SELECT %1$s \n  FROM %2$s as %3$s ";
-        String sqlFields = getSelectFields(DEFAULT_TABLE_ALIAS, fields, true);
+        String sqlFields = QueryUtil.toSelectedFields(DEFAULT_TABLE_ALIAS, fields, true);
         String sql = String.format(sqlFormat, sqlFields, escapeTableName(schemaName, tableName), DEFAULT_TABLE_ALIAS);
 
         QueryWithParams queryWithParams = new QueryWithParams(sql);
@@ -79,8 +76,7 @@ public class DataDaoImpl implements DataDao {
             queryWithParams.concat(where);
         }
 
-        Sorting sorting = !isNullOrEmpty(criteria.getSortings()) ? criteria.getSortings().get(0) : null;
-        queryWithParams.concat(sortingToOrderBy(sorting, DEFAULT_TABLE_ALIAS));
+        queryWithParams.concat(sortingsToOrderBy(criteria, DEFAULT_TABLE_ALIAS, schemaName));
 
         Query query = queryWithParams.createQuery(entityManager);
         if (criteria.hasPageAndSize()) {
@@ -88,7 +84,30 @@ public class DataDaoImpl implements DataDao {
         }
 
         @SuppressWarnings("unchecked")
-        List<Object[]> list = query.getResultList();
+        List<Object> list = query.getResultList();
+        return makeResultRowValues(list, fields, criteria, schemaName);
+    }
+
+    /** Формирование списка полей, выводимых в результате запроса. */
+    @SuppressWarnings("UnusedParameter")
+    protected List<Field> makeOutputFields(StorageDataCriteria criteria, String schemaName) {
+
+        List<Field> fields = new ArrayList<>(criteria.getFields());
+
+        fields.add(0, new IntegerField(SYS_PRIMARY_COLUMN));
+
+        if (!hasField(SYS_HASH, fields)) {
+            fields.add(1, new StringField(SYS_HASH));
+        }
+
+        return fields;
+    }
+
+    /** Формирование результата поиска из результата запроса. */
+    @SuppressWarnings("UnusedParameter")
+    protected List<RowValue> makeResultRowValues(List<Object> list, List<Field> fields,
+                                                 StorageDataCriteria criteria, String schemaName) {
+
         return !isNullOrEmpty(list) ? toRowValues(fields, list) : emptyList();
     }
 
@@ -134,13 +153,13 @@ public class DataDaoImpl implements DataDao {
 
         List<Field> fields = columnDataTypesToFields(getColumnDataTypes(storageCode), fieldNames);
 
-        String sqlFields = getSelectFields(null, fields, true);
+        String sqlFields = QueryUtil.toSelectedFields(null, fields, true);
         String sql = String.format(SELECT_ROWS_FROM_DATA_BY_FIELD_EQ,
                 sqlFields, schemaName, addDoubleQuotes(tableName),
                 addDoubleQuotes(SYS_PRIMARY_COLUMN), QUERY_VALUE_SUBST);
 
         @SuppressWarnings("unchecked")
-        List<Object[]> list = entityManager.createNativeQuery(sql)
+        List<Object> list = entityManager.createNativeQuery(sql)
                 .setParameter(1, systemId)
                 .getResultList();
         if (isNullOrEmpty(list))
@@ -160,7 +179,7 @@ public class DataDaoImpl implements DataDao {
 
         List<Field> fields = columnDataTypesToFields(getColumnDataTypes(storageCode), fieldNames);
 
-        String sqlFields = getSelectFields(null, fields, true);
+        String sqlFields = QueryUtil.toSelectedFields(null, fields, true);
         String sql = String.format(SELECT_ROWS_FROM_DATA_BY_FIELD_EQ,
                 sqlFields, schemaName, addDoubleQuotes(tableName),
                 addDoubleQuotes(SYS_PRIMARY_COLUMN),
@@ -169,7 +188,7 @@ public class DataDaoImpl implements DataDao {
         query.setParameter(1, valuesToDbArray(systemIds));
 
         @SuppressWarnings("unchecked")
-        List<Object[]> list = query.getResultList();
+        List<Object> list = query.getResultList();
         return !isNullOrEmpty(list) ? toRowValues(fields, list) : emptyList();
     }
 
@@ -224,24 +243,17 @@ public class DataDaoImpl implements DataDao {
                 .setParameter(BIND_INFO_TABLE_NAME, toTableName(storageCode))
                 .getResultList();
 
+        List<String> systemFieldNames = getSystemFieldNames();
+
         Map<String, String> map = new HashMap<>();
-        for (Object[] dataType : nameTypes) {
-            String fieldName = (String) dataType[0];
-            if (!systemFieldNames().contains(fieldName))
-                map.put(fieldName, (String) dataType[1]);
+        for (Object[] nameType : nameTypes) {
+
+            String fieldName = (String) nameType[0];
+            if (!systemFieldNames.contains(fieldName))
+                map.put(fieldName, (String) nameType[1]);
         }
+
         return map;
-    }
-
-    protected String sortingToOrderBy(Sorting sorting, String alias) {
-
-        String orderBy = " ORDER BY ";
-        if (sorting != null && sorting.getField() != null) {
-            orderBy = orderBy + escapeFieldName(alias, sorting.getField()) +
-                    " " + sorting.getDirection().toString() + ", ";
-        }
-
-        return orderBy + " " + escapeFieldName(alias, SYS_PRIMARY_COLUMN);
     }
 
     private QueryWithParams getCriteriaWhereClause(StorageDataCriteria criteria, String alias) {
@@ -366,11 +378,12 @@ public class DataDaoImpl implements DataDao {
                                        List<String> filters, Map<String, Object> params) {
 
         Field field = searchCriteria.getField();
+        List<? extends Serializable> values = searchCriteria.getValues();
 
-        String fieldName = searchCriteria.getField().getName();
+        String fieldName = field.getName();
         String escapedFieldName = escapeFieldName(alias, fieldName);
 
-        if (searchCriteria.getValues() == null || searchCriteria.getValues().get(0) == null) {
+        if (values == null || values.get(0) == null) {
             filters.add(" AND " + escapedFieldName + " IS NULL");
             return;
         }
@@ -380,37 +393,37 @@ public class DataDaoImpl implements DataDao {
         if (field instanceof IntegerField || field instanceof FloatField || field instanceof DateField) {
             filters.add(" AND " + escapedFieldName +
                     " IN (:" + indexedFieldName + ")");
-            params.put(indexedFieldName, searchCriteria.getValues());
+            params.put(indexedFieldName, values);
 
         } else if (field instanceof ReferenceField) {
             // Использовать TO_ANY_BIGINT
             filters.add(" AND " + escapedFieldName +
                     REFERENCE_FIELD_VALUE_OPERATOR + addSingleQuotes(REFERENCE_VALUE_NAME) +
                     " IN (:" + indexedFieldName + ")");
-            params.put(indexedFieldName, searchCriteria.getValues().stream().map(Object::toString).collect(toList()));
+            params.put(indexedFieldName, values.stream().map(Object::toString).collect(toList()));
 
         } else if (field instanceof TreeField) {
             if (SearchTypeEnum.LESS.equals(searchCriteria.getType())) {
                 filters.add(" AND " + escapedFieldName +
                         "@> (CAST(:" + indexedFieldName + " AS ltree[]))");
-                params.put(indexedFieldName, valuesToDbArray(searchCriteria.getValues()));
+                params.put(indexedFieldName, valuesToDbArray(values));
             }
         } else if (field instanceof BooleanField) {
-            if (searchCriteria.getValues().size() == 1) {
-                String isValue = Boolean.TRUE.equals(searchCriteria.getValues().get(0)) ? " IS TRUE " : " IS NOT TRUE";
+            if (values.size() == 1) {
+                String isValue = Boolean.TRUE.equals(values.get(0)) ? " IS TRUE " : " IS NOT TRUE";
                 filters.add(" AND " + escapedFieldName + isValue);
             }
         } else if (field instanceof StringField) {
-            if (SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && searchCriteria.getValues().size() == 1) {
+            if (SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && values.size() == 1) {
                 filters.add(" AND " + "lower(" + escapedFieldName + ") LIKE :" + indexedFieldName + "");
-                String value = searchCriteria.getValues().get(0).toString().trim().toLowerCase();
+                String value = values.get(0).toString().trim().toLowerCase();
                 params.put(indexedFieldName, LIKE_ESCAPE_MANY_CHAR + value + LIKE_ESCAPE_MANY_CHAR);
             } else {
                 filters.add(" AND " + escapedFieldName + " IN (:" + indexedFieldName + ")");
-                params.put(indexedFieldName, searchCriteria.getValues());
+                params.put(indexedFieldName, values);
             }
         } else {
-            params.put(indexedFieldName, searchCriteria.getValues());
+            params.put(indexedFieldName, values);
         }
     }
 
@@ -436,7 +449,8 @@ public class DataDaoImpl implements DataDao {
                 typedMap.put(criteria.getField().getName(), criteria);
 
             } else {
-                List<Object> typedValues = (List<Object>) typedCriteria.getValues();
+                @SuppressWarnings("unchecked")
+                List<Serializable> typedValues = (List<Serializable>) typedCriteria.getValues();
                 typedValues.addAll(criteria.getValues());
             }
         }
@@ -488,10 +502,51 @@ public class DataDaoImpl implements DataDao {
         return new QueryWithParams(sql, params);
     }
 
+    /** Получение сортировки по критерию. */
+    @SuppressWarnings("UnusedParameter")
+    protected String sortingsToOrderBy(StorageDataCriteria criteria, String alias, String schemaName) {
+
+        return sortingsToOrderBy(criteria.getSortings(), alias);
+    }
+
+    /** Получение сортировки по списку полей. */
+    private String sortingsToOrderBy(List<Sorting> sortings, String alias) {
+
+        String result = " ORDER BY ";
+
+        if (!isNullOrEmpty(sortings)) {
+            result += sortings.stream()
+                    .filter(sorting -> sorting != null && sorting.getField() != null)
+                    .map(sorting -> toOrderBy(sorting, alias))
+                    .collect(joining(",")) + ",";
+        }
+
+        return result + toPrimaryOrderBy(alias);
+    }
+
+    /** Получение части сортировки по полю. */
+    private String toOrderBy(Sorting sorting, String alias) {
+
+        return " " + escapeFieldName(alias, sorting.getField()) +
+                " " + sorting.getDirection().toString();
+    }
+
+    /** Получение сортировки по умолчанию. */
+    protected String getDefaultOrderBy(String alias) {
+
+        return " ORDER BY " + toPrimaryOrderBy(alias);
+    }
+
+    /** Получение части сортировки по первичному ключу. */
+    private String toPrimaryOrderBy(String alias) {
+
+        return " " + escapeFieldName(alias, SYS_PRIMARY_COLUMN);
+    }
+
     @Override
     public BigInteger countData(String storageCode) {
 
-        String sql = "SELECT count(*) FROM " + escapeStorageTableName(storageCode);
+        String sql = SELECT_COUNT_ONLY + "  FROM " + escapeStorageTableName(storageCode);
         return (BigInteger) entityManager.createNativeQuery(sql).getSingleResult();
     }
 
@@ -766,13 +821,20 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @Transactional
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
-    public void createIndex(String storageCode, String name, List<String> fieldNames) {
+    public void createFieldIndex(String storageCode, String fieldName) {
+
+        String indexName = escapeTableIndexName(toTableName(storageCode), fieldName.toLowerCase());
+        createFieldsIndex(storageCode, indexName, singletonList(fieldName));
+    }
+
+    @Override
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    public void createFieldsIndex(String storageCode, String indexName, List<String> fieldNames) {
 
         String expression = fieldNames.stream().map(StringUtils::addDoubleQuotes).collect(joining(","));
         String ddl = String.format(CREATE_TABLE_INDEX,
-                name,
+                indexName,
                 toSchemaName(storageCode),
                 addDoubleQuotes(toTableName(storageCode)),
                 "",
@@ -918,7 +980,7 @@ public class DataDaoImpl implements DataDao {
         addColumn(storageCode, SYS_PUBLISHTIME, "timestamp without time zone", MIN_TIMESTAMP_VALUE);
         addColumn(storageCode, SYS_CLOSETIME, "timestamp without time zone", MAX_TIMESTAMP_VALUE);
 
-        createIndex(storageCode,
+        createFieldsIndex(storageCode,
                 escapeTableIndexName(toTableName(storageCode), TABLE_INDEX_SYSDATE_NAME),
                 Arrays.asList(SYS_PUBLISHTIME, SYS_CLOSETIME));
     }
@@ -943,7 +1005,7 @@ public class DataDaoImpl implements DataDao {
         String tableName = toTableName(storageCode);
 
         String escapedFieldName = addDoubleQuotes(fieldName);
-        String using = getFieldNameByType(escapedFieldName, oldType, newType);
+        String using = useFieldNameByType(escapedFieldName, oldType, newType);
 
         String ddl = String.format(ALTER_COLUMN_WITH_USING,
                 schemaName, addDoubleQuotes(tableName), escapedFieldName, newType, using);
@@ -1289,9 +1351,9 @@ public class DataDaoImpl implements DataDao {
         entityManager.createNativeQuery(sql).executeUpdate();
     }
 
-    @Override
-    public List<String> getFieldNames(String storageCode, String sqlSelect) {
+    private List<String> getFieldNames(String storageCode, String sqlSelect) {
 
+        @SuppressWarnings("unchecked")
         List<String> results = entityManager.createNativeQuery(sqlSelect)
                 .setParameter(BIND_INFO_SCHEMA_NAME, toSchemaName(storageCode))
                 .setParameter(BIND_INFO_TABLE_NAME, toTableName(storageCode))
@@ -1302,8 +1364,17 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
+    public List<String> getSystemFieldNames() {
+        return systemFieldNames();
+    }
+
+    @Override
     public List<String> getEscapedFieldNames(String storageCode) {
-        return getFieldNames(storageCode, SELECT_ESCAPED_FIELD_NAMES + AND_INFO_COLUMN_NOT_IN_SYS_LIST);
+
+        String sql = SELECT_ESCAPED_FIELD_NAMES +
+                String.format(AND_INFO_COLUMN_NOT_IN_SYS_LIST, getSystemFieldNamesText());
+
+        return getFieldNames(storageCode, sql);
     }
 
     @Override
@@ -1313,7 +1384,28 @@ public class DataDaoImpl implements DataDao {
 
     @Override
     public List<String> getHashUsedFieldNames(String storageCode) {
-        return getFieldNames(storageCode, SELECT_HASH_USED_FIELD_NAMES);
+
+        String sql = SELECT_HASH_USED_FIELD_NAMES +
+                String.format(AND_INFO_COLUMN_NOT_IN_SYS_LIST, getSystemFieldNamesText());
+
+        return getFieldNames(storageCode, sql);
+    }
+
+    private String getSystemFieldNamesText() {
+
+        return getSystemFieldNames().stream()
+                    .map(StringUtils::addSingleQuotes)
+                    .collect(Collectors.joining(", "));
+    }
+
+    @Override
+    public List<String> getAllCommonFieldNames(String storageCode1, String storageCode2) {
+
+        List<String> fieldNames1 = getAllEscapedFieldNames(storageCode1);
+        List<String> fieldNames2 = getAllEscapedFieldNames(storageCode2);
+        fieldNames2.removeIf(fieldName2 -> !fieldNames1.contains(fieldName2));
+
+        return fieldNames2;
     }
 
     @Override
@@ -1391,15 +1483,14 @@ public class DataDaoImpl implements DataDao {
 
         QueryWithParams where = getWhereClause(request, DEFAULT_TABLE_ALIAS);
         if (!StringUtils.isNullOrEmpty(where.getSql())) {
-
-            sqlSelect += " WHERE " + where.getBindedSql();
+            sqlSelect += " WHERE " + where.getBindedSql() + QUERY_NEW_LINE;
         }
 
-        sqlSelect += sortingToOrderBy(null, DEFAULT_TABLE_ALIAS);
+        sqlSelect += getDefaultOrderBy(DEFAULT_TABLE_ALIAS);
 
         List<String> fieldNames = request.getEscapedFieldNames();
         if (isNullOrEmpty(fieldNames)) {
-            fieldNames = getAllEscapedFieldNames(request.getPurposeCode());
+            fieldNames = getAllCommonFieldNames(request.getStorageCode(), request.getPurposeCode());
         }
 
         Map<String, String> mapInsert = new HashMap<>();
@@ -1672,8 +1763,8 @@ public class DataDaoImpl implements DataDao {
         String newSchemaName = toSchemaName(newStorageCode);
         String newTableName = toTableName(newStorageCode);
 
-        String oldDataFields = getSelectFields(oldAlias, criteria.getFields(), false);
-        String newDataFields = getSelectFields(newAlias, criteria.getFields(), false);
+        String oldDataFields = QueryUtil.toSelectedFields(oldAlias, criteria.getFields(), false);
+        String newDataFields = QueryUtil.toSelectedFields(newAlias, criteria.getFields(), false);
 
         String dataSelectFormat = "SELECT %1$s AS sysId1 \n %2$s\n, %3$s AS sysId2 \n %4$s \n";
         String dataSelect = String.format(dataSelectFormat,
@@ -1767,10 +1858,12 @@ public class DataDaoImpl implements DataDao {
         String orderBy = " ORDER BY " +
                 criteria.getPrimaryFields().stream()
                         .map(field -> escapeFieldName(newAlias, field))
-                        .collect(joining(",")) + "," +
+                        .collect(joining(", ")) + ", " +
                 criteria.getPrimaryFields().stream()
                         .map(field -> escapeFieldName(oldAlias, field))
-                        .collect(joining(","));
+                        .collect(joining(", ")) + ", " +
+                escapeFieldName(newAlias, SYS_PRIMARY_COLUMN) + ", " +
+                escapeFieldName(oldAlias, SYS_PRIMARY_COLUMN);
 
         QueryWithParams dataQueryWithParams = new QueryWithParams(dataSelect + sql + orderBy, params);
         Query dataQuery = dataQueryWithParams.createQuery(entityManager)
@@ -1804,19 +1897,42 @@ public class DataDaoImpl implements DataDao {
         return query.getSql();
     }
 
-    // Используются для возможности переопределения схемы.
+    /**
+     * Получение корректного наименования схемы.
+     * <p/>
+     * Используется для возможности переопределения работы со схемами.
+     *
+     * @param schemaName Наименование схемы
+     * @return Наименование указанной схемы или схемы по умолчанию
+     */
     protected String getSchemaName(String schemaName) {
 
         return getSchemaNameOrDefault(schemaName);
     }
 
-    // Используются для возможности переопределения схемы.
+    /**
+     * Получение корректного наименования схемы для наименования таблицы.
+     * <p/>
+     * Используется для возможности переопределения работы со схемами.
+     *
+     * @param schemaName Наименование схемы
+     * @param tableName  Наименование таблицы
+     * @return Наименование указанной схемы или схемы по умолчанию
+     */
     protected String getTableSchemaName(String schemaName, String tableName) {
 
-        return !StringUtils.isNullOrEmpty(tableName) ? getSchemaNameOrDefault(schemaName) : DATA_SCHEMA_NAME;
+        return !StringUtils.isNullOrEmpty(tableName) ? getSchemaName(schemaName) : DATA_SCHEMA_NAME;
     }
 
-    protected String getStorageCodeSchemaName(String storageCode) {
+    /**
+     * Получение корректного наименования схемы для кода хранилища.
+     * <p/>
+     * Используется для упрощения работы со схемой в коде хранилища.
+     *
+     * @param storageCode Код хранилища
+     * @return Наименование схемы из кода или схемы по умолчанию
+     */
+    private String getStorageCodeSchemaName(String storageCode) {
 
         return getTableSchemaName(toSchemaName(storageCode), toTableName(storageCode));
     }

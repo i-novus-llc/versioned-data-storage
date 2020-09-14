@@ -1,9 +1,6 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.dao;
 
-import ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils;
-
 import java.time.format.DateTimeFormatter;
-import java.util.stream.Collectors;
 
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addDoubleQuotes;
@@ -20,6 +17,7 @@ public class QueryConstants {
 
     public static final String BASE_TABLE_ALIAS = "b";
     public static final String DEFAULT_TABLE_ALIAS = "d";
+    static final String ALL_COLUMNS = "*";
     static final String TRIGGER_NEW_ALIAS = "NEW";
 
     // Специальные выражения в запросах.
@@ -32,8 +30,6 @@ public class QueryConstants {
     public static final String LIKE_ESCAPE_MANY_CHAR = "%";
     public static final String TO_ANY_BIGINT = "ANY(%s\\:\\:bigint[])";
     public static final String TO_ANY_TEXT = "ANY(%s\\:\\:text[])";
-
-    private static final String ORDER_BY_ONE_FIELD = " ORDER BY %1$s.\"%2$s\" \n";
 
     // Подстановки в запросах.
     static final String QUERY_VALUE_SUBST = "?";
@@ -59,11 +55,6 @@ public class QueryConstants {
     static final String BIND_INFO_SCHEMA_NAME = "schemaName";
     static final String BIND_INFO_TABLE_NAME = "tableName";
     static final String BIND_INFO_COLUMN_NAME = "columnName";
-
-    private static final String SYS_NAMES_ITEMS_TEXT = systemFieldNames().stream()
-            .map(StringUtils::addSingleQuotes)
-            .collect(Collectors.joining(", "));
-    static final String AND_INFO_COLUMN_NOT_IN_SYS_LIST = "  AND column_name NOT IN (" + SYS_NAMES_ITEMS_TEXT + ")";
 
     public static final String SELECT_SCHEMA_EXISTS = "SELECT EXISTS(\n" +
             "SELECT * \n" +
@@ -119,8 +110,9 @@ public class QueryConstants {
             "  FROM information_schema.columns \n" +
             " WHERE true \n" +
             "  AND table_schema = :schemaName \n" +
-            "  AND table_name = :tableName \n" +
-            AND_INFO_COLUMN_NOT_IN_SYS_LIST;
+            "  AND table_name = :tableName \n";
+
+    static final String AND_INFO_COLUMN_NOT_IN_SYS_LIST = "  AND column_name NOT IN (%s)";
 
     public static final String SELECT_FIELD_TYPE = "SELECT data_type \n" +
             "  FROM information_schema.columns \n" +

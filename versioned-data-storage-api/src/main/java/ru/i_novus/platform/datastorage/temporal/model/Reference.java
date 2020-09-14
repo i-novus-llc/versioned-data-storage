@@ -155,7 +155,8 @@ public class Reference implements Serializable {
 
     @Override
     public String toString() {
-        return "Reference{" + "storageCode='" + storageCode + '\'' +
+        return "Reference{" +
+                "storageCode='" + storageCode + '\'' +
                 ", date=" + date +
                 ", keyField='" + keyField + '\'' +
                 ", displayField='" + displayField + '\'' +

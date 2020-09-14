@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Objects;
 
 /** Запрос на копирование данных в хранилище. */
+@SuppressWarnings("java:S3740")
 public class StorageCopyRequest extends StorageDataCriteria {
 
     /** Код хранилища назначения. */
@@ -57,5 +58,14 @@ public class StorageCopyRequest extends StorageDataCriteria {
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), purposeCode, escapedFieldNames);
+    }
+
+    @Override
+    public String toString() {
+        return "StorageCopyRequest{" +
+                super.toString() +
+                ", purposeCode='" + purposeCode + '\'' +
+                ", escapedFieldNames=" + escapedFieldNames +
+                '}';
     }
 }
