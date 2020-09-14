@@ -23,6 +23,7 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConsta
  * @author lgalimova
  * @since 21.03.2018
  */
+@SuppressWarnings("java:S3740")
 public class QueryUtil {
 
     private QueryUtil() {
@@ -33,22 +34,22 @@ public class QueryUtil {
      * Преобразование полученных данных в список записей.
      * <p>
      * При получении всех данных необходимо использовать
-     * совместно с {@link #getSelectFields} при {@code detailed} = true.
+     * совместно с {@link #toSelectedFields} при {@code detailed} = true.
      *
      * @param fields список полей
-     * @param data   список данных
+     * @param data   данные или список данных
      * @return Список записей
      */
-    public static List<RowValue> toRowValues(List<Field> fields, List<Object[]> data) {
+    public static List<RowValue> toRowValues(List<Field> fields, List<Object> data) {
 
         List<RowValue> result = new ArrayList<>(data.size());
-        for (Object objects : data) {
+        for (Object row : data) {
             LongRowValue rowValue = new LongRowValue();
-            if (objects instanceof Object[]) {
-                addToRowValue((Object[]) objects, fields, rowValue);
+            if (row instanceof Object[]) {
+                addToRowValue((Object[]) row, fields, rowValue);
 
             } else {
-                rowValue.getFieldValues().add(getFieldValue(fields.get(0), objects));
+                rowValue.getFieldValues().add(getFieldValue(fields.get(0), row));
             }
             result.add(rowValue);
         }
@@ -59,30 +60,39 @@ public class QueryUtil {
 
         Iterator<Field> fieldIterator = fields.iterator();
 
-        int i = 0;
-        while (i < row.length) {
-            Field field = fieldIterator.next();
-            Object value = row[i];
+        int next = 0;
+        while (next < row.length) {
+            next = addNextFieldValue(next, row, fieldIterator.next(), rowValue);
+        }
+    }
 
-            if (i == 0) { // SYS_RECORD_ID
-                rowValue.setSystemId(value != null ? Long.parseLong(value.toString()) : null);
+    private static int addNextFieldValue(int i, Object[] row, Field field, LongRowValue rowValue) {
 
-            } else if (i == 1 && SYS_HASH.equals(field.getName())) { // SYS_HASH
-                rowValue.setHash(value != null ? value.toString() : null);
+        Object value = row[i];
 
-            } else { // FIELD
-                if (field instanceof ReferenceField && (i + 1 < row.length)) {
-                    Object displayValue = row[i + 1];
-                    value = new Reference(value != null ? value.toString() : null,
-                            displayValue != null ? displayValue.toString() : null);
-                    i++;
-                }
+        if (i == 0) { // SYS_RECORD_ID
 
-                rowValue.getFieldValues().add(getFieldValue(field, value));
-            }
+            rowValue.setSystemId(value != null ? Long.parseLong(value.toString()) : null);
+            return ++i;
+        }
 
+        if (i == 1 && SYS_HASH.equals(field.getName())) { // SYS_HASH
+
+            rowValue.setHash(value != null ? value.toString() : null);
+            return ++i;
+        }
+
+        // FIELD
+        if (field instanceof ReferenceField && (i + 1 < row.length)) {
+            Object displayValue = row[i + 1];
+            value = new Reference(value != null ? value.toString() : null,
+                    displayValue != null ? displayValue.toString() : null);
             i++;
         }
+
+        rowValue.getFieldValues().add(getFieldValue(field, value));
+
+        return ++i;
     }
 
     /** Получение наименования поля с кавычками для вычисления hash и fts. */
@@ -228,15 +238,41 @@ public class QueryUtil {
     }
 
     /**
-     * Генерация списка полей для запроса.
+     * Проверка наличия поля в списке по наименованию.
+     *
+     * @param fieldName наименование поля
+     * @param fields    список полей
+     * @return Результат проверки
+     */
+    public static boolean hasField(String fieldName, List<Field> fields) {
+
+        return fields.stream().anyMatch(field -> fieldName.equals(field.getName()));
+    }
+
+    /**
+     * Поиск поля в списке по наименованию.
+     *
+     * @param fieldName наименование поля
+     * @param fields    список полей
+     * @return Поле или null
+     */
+    public static Field findField(String fieldName, List<Field> fields) {
+
+        return fields.stream()
+                .filter(field -> fieldName.equals(field.getName()))
+                .findFirst().orElse(null);
+    }
+
+    /**
+     * Получение списка полей для запроса.
      * 
-     * @param alias    псевдоним таблицы
+     * @param alias    псевдоним хранилища
      * @param fields   список полей таблицы
      * @param detailed отображение дополнительных частей составных полей
      */
-    public static String getSelectFields(String alias, List<Field> fields, boolean detailed) {
+    public static String toSelectedFields(String alias, List<Field> fields, boolean detailed) {
 
-        if (isNullOrEmpty(alias))
+        if (alias == null)
             alias = "";
 
         List<String> selectedFields = new ArrayList<>();
@@ -328,7 +364,7 @@ public class QueryUtil {
      * @param newType   новый тип
      * @return Наименование поля с учётом преобразования
      */
-    public static String getFieldNameByType(String fieldName, String oldType, String newType) {
+    public static String useFieldNameByType(String fieldName, String oldType, String newType) {
 
         if (DateField.TYPE.equals(oldType) && isVarcharType(newType)) {
             return "to_char(" + fieldName + ", '" + QUERY_DATE_FORMAT + "')";
@@ -412,21 +448,12 @@ public class QueryUtil {
     }
 
     /**
-     * <p>Escapes the characters in a <code>String</code> to be suitable to pass to an SQL query.
-     *
-     * <p>For example,
-     * <pre>
-     *      statement.executeQuery("SELECT * FROM data_table WHERE name='" +
-     *          StringEscapeUtils.escapeSql("i_novus' style") +
-     *      "'");
-     * </pre>
+     * Escapes the characters in a <code>String</code> to be suitable to pass to an SQL query.
      * <p>
-     * <p>At present, this method only turns single-quotes into doubled single-quotes
+     * At present, this method only turns single-quotes into doubled single-quotes
      * (<code>"i_novus' style"</code> => <code>"i_novus'' style"</code>).
      * It does not handle the cases of percent (%) or underscore (_) for use in LIKE clauses.
      *
-     * see http://www.jguru.com/faq/view.jsp?EID=8881
-     * 
      * @param str the string to escape, may be null
      * @return A new String, escaped for SQL, <code>null</code> if null string input
      */

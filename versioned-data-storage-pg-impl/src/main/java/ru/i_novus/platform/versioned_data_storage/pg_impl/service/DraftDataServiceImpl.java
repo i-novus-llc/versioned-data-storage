@@ -16,6 +16,7 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.BooleanField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.TreeField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
+import ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils;
 
 import javax.persistence.PersistenceException;
 import javax.transaction.Transactional;
@@ -38,6 +39,7 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtil
  * @author lgalimova
  * @since 22.03.2018
  */
+@SuppressWarnings("java:S3740")
 public class DraftDataServiceImpl implements DraftDataService {
 
     private static final Logger logger = LoggerFactory.getLogger(DraftDataServiceImpl.class);
@@ -82,8 +84,8 @@ public class DraftDataServiceImpl implements DraftDataService {
         String targetCode = createVersionTable(draftCode);
         List<String> fieldNames = dataDao.getEscapedFieldNames(draftCode);
 
-        if (baseStorageCode != null && dataDao.storageStructureEquals(baseStorageCode, draftCode)) {
-
+        if (!StringUtils.isNullOrEmpty(baseStorageCode) &&
+                dataDao.storageStructureEquals(baseStorageCode, draftCode)) {
             insertActualDataFromVersion(baseStorageCode, draftCode, targetCode, fieldNames, publishTime, closeTime);
             insertOldDataFromVersion(baseStorageCode, draftCode, targetCode, fieldNames, publishTime, closeTime);
             insertClosedNowDataFromVersion(baseStorageCode, draftCode, targetCode, fieldNames, publishTime, closeTime);
@@ -189,7 +191,8 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Override
     public void copyAllData(String sourceCode, String targetCode) {
 
-        copyTableData(sourceCode, targetCode, dataDao.getAllEscapedFieldNames(targetCode), null, null);
+        List<String> fieldNames = dataDao.getAllCommonFieldNames(sourceCode, targetCode);
+        copyTableData(sourceCode, targetCode, fieldNames, null, null);
     }
 
     private void copyTableData(String sourceCode, String targetCode, List<String> fieldNames,
@@ -217,7 +220,7 @@ public class DraftDataServiceImpl implements DraftDataService {
 
             int pageCount = request.getPageCount();
             for (int page = 0; page < pageCount; page++) {
-                request.setPage(page + BaseDataCriteria.MIN_PAGE);
+                request.setPage(page + BaseDataCriteria.PAGE_SHIFT);
                 dataDao.copyTableData(request);
             }
 
@@ -247,7 +250,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Transactional
     public void addField(String draftCode, Field field) {
 
-        if (systemFieldNames().contains(field.getName()))
+        if (dataDao.getSystemFieldNames().contains(field.getName()))
             throw new CodifiedException(SYS_FIELD_CONFLICT);
 
         List<String> fieldNames = dataDao.getEscapedFieldNames(draftCode);
@@ -338,7 +341,7 @@ public class DraftDataServiceImpl implements DraftDataService {
 
         List<String> fieldNames = fields.stream()
                 .map(QueryUtil::getHashUsedFieldName)
-                .filter(f -> !systemFieldNames().contains(f))
+                .filter(f -> !dataDao.getSystemFieldNames().contains(f))
                 .collect(toList());
         Collections.sort(fieldNames);
 
@@ -352,8 +355,7 @@ public class DraftDataServiceImpl implements DraftDataService {
                     dataDao.createLtreeIndex(draftCode, fieldName);
 
                 else if (Boolean.TRUE.equals(field.getSearchEnabled())) {
-                    String indexName = escapeTableIndexName(toTableName(draftCode), fieldName.toLowerCase());
-                    dataDao.createIndex(draftCode, indexName, singletonList(fieldName));
+                    dataDao.createFieldIndex(draftCode, fieldName);
                 }
             }
         }

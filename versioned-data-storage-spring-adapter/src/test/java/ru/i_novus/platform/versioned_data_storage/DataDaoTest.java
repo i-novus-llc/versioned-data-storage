@@ -92,7 +92,7 @@ public class DataDaoTest {
         List<String> schemaNames = asList(DATA_SCHEMA_NAME, TEST_SCHEMA_NAME, NONEXISTENT_SCHEMA_NAME);
         List<String> expected = singletonList(DATA_SCHEMA_NAME);
 
-        final String tableName = "test_find_existent_table_schemas";
+        final String tableName = "findExistentTableSchemas";
         List<Field> fields = newTestFields();
 
         dataDao.createDraftTable(tableName, fields);
@@ -156,13 +156,17 @@ public class DataDaoTest {
     }
 
     @Test
-    public void testCreateDraftTable() {
+    @Transactional
+    public void testProcessTable() {
 
         String tableName = newTestTableName();
         List<Field> fields = newTestFields();
 
         testCreateDraftTable(null, tableName, fields);
         testCreateDraftTable(TEST_SCHEMA_NAME, tableName, fields);
+
+        testDropTable(null, tableName);
+        testDropTable(TEST_SCHEMA_NAME, tableName);
     }
 
     private void testCreateDraftTable(String schemaName, String tableName, List<Field> fields) {
@@ -171,6 +175,14 @@ public class DataDaoTest {
 
         dataDao.createDraftTable(storageCode, fields);
         assertTrue(dataDao.storageExists(storageCode));
+    }
+
+    private void testDropTable(String schemaName, String tableName) {
+
+        String storageCode = toStorageCode(schemaName, tableName);
+
+        dataDao.dropTable(storageCode);
+        assertFalse(dataDao.storageExists(storageCode));
     }
 
     @Test
@@ -322,6 +334,13 @@ public class DataDaoTest {
         dataDao.copyTable(sourceCode, targetCode);
         List<RowValue> emptyDataValues = dataDao.getData(toCriteria(targetCode, fields));
         assertEquals(0, emptyDataValues == null ? 0 : emptyDataValues.size());
+
+        List<String> sourceFieldNames = dataDao.getAllEscapedFieldNames(sourceCode);
+        List<String> targetFieldNames = dataDao.getAllEscapedFieldNames(targetCode);
+        assertEquals(sourceFieldNames.size(), targetFieldNames.size());
+        sourceFieldNames.forEach(sourceFieldName ->
+                assertTrue(targetFieldNames.contains(sourceFieldName))
+        );
 
         StorageCopyRequest request = new StorageCopyRequest(sourceCode, targetCode, null, null, null);
         request.setPage(BaseDataCriteria.MIN_PAGE);

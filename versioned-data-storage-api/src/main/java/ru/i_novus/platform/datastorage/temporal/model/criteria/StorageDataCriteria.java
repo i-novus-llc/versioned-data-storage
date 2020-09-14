@@ -5,7 +5,10 @@ import ru.i_novus.platform.datastorage.temporal.model.Field;
 import java.time.LocalDateTime;
 import java.util.*;
 
+import static java.util.Collections.emptyList;
+
 /** Критерий поиска данных в хранилище. */
+@SuppressWarnings("java:S3740")
 public class StorageDataCriteria extends BaseDataCriteria {
 
     /** Код хранилища. */
@@ -37,7 +40,7 @@ public class StorageDataCriteria extends BaseDataCriteria {
         this.storageCode = storageCode;
         this.bdate = bdate;
         this.edate = edate;
-        this.fields = fields;
+        this.fields = fields != null ? fields : emptyList();
     }
 
     public StorageDataCriteria(String storageCode, LocalDateTime bdate, LocalDateTime edate, List<Field> fields,
@@ -124,6 +127,7 @@ public class StorageDataCriteria extends BaseDataCriteria {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
+        if(!super.equals(o)) return false;
 
         StorageDataCriteria that = (StorageDataCriteria) o;
         return Objects.equals(storageCode, that.storageCode) &&
@@ -139,7 +143,23 @@ public class StorageDataCriteria extends BaseDataCriteria {
 
     @Override
     public int hashCode() {
-        return Objects.hash(storageCode, bdate, edate, fields,
+        return Objects.hash(super.hashCode(), storageCode, bdate, edate, fields,
                 fieldFilters, commonFilter, hashList, systemIds);
+    }
+
+    @Override
+    public String toString() {
+        return "StorageDataCriteria{" +
+                super.toString() +
+                ", storageCode='" + storageCode + '\'' +
+                ", bdate=" + bdate +
+                ", edate=" + edate +
+                ", fields=" + fields +
+
+                ", fieldFilters=" + fieldFilters +
+                ", commonFilter=" + commonFilter +
+                ", hashList=" + hashList +
+                ", systemIds=" + systemIds +
+                '}';
     }
 }
