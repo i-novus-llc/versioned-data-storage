@@ -23,9 +23,8 @@ import java.util.stream.IntStream;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.SYS_PRIMARY_COLUMN;
+import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addDoubleQuotes;
 
 @SuppressWarnings("java:S3740")
 public class DataTestUtils {
