@@ -273,9 +273,9 @@ public interface DataDao {
     /**
      * Копирование данных таблицы по параметрам.
      *
-     * @param criteria параметры копирования
+     * @param request параметры копирования
      */
-    void copyTableData(StorageCopyRequest criteria);
+    void copyTableData(StorageCopyRequest request);
 
     void insertAllDataFromDraft(String draftCode, String targetCode, List<String> fieldNames,
                                 int offset, int limit,
