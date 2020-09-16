@@ -55,7 +55,7 @@
         <javaee.api.version>8.0.1</javaee.api.version>
         <jackson.version>2.11.1</jackson.version>
         <hibernate.version>5.4.16.Final</hibernate.version>
-        <n2o.version>7.7.9</n2o.version>
+        <n2o.version>7.9.5</n2o.version>
         <commons.text.version>1.6</commons.text.version>
         <maven.source.version>3.0.1</maven.source.version>
         <maven.javadoc.version>3.1.0</maven.javadoc.version>
