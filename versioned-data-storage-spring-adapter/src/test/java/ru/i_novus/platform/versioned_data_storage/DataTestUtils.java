@@ -276,7 +276,7 @@ public class DataTestUtils {
      */
     public static String getFailedMessage(Class expectedExceptionClass) {
 
-        return WAITING_ERROR + expectedExceptionClass.getSimpleName();
+        return expectedExceptionClass == null ? null : WAITING_ERROR + expectedExceptionClass.getSimpleName();
     }
 
     /**
