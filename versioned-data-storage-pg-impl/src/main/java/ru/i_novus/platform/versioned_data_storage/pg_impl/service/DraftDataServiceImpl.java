@@ -339,7 +339,7 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     private void createDraftTable(String draftCode, List<Field> fields) {
 
-        //todo никак не учитывается Field.unique - уникальность в рамках черновика
+        // todo: Для Field.unique создавать индексы с уникальностью в рамках черновика.
         logger.debug("creating table with name: {}", draftCode);
         dataDao.createDraftTable(draftCode, fields);
 
@@ -368,7 +368,8 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     private String createVersionTable(String draftCode) {
 
-        //todo никак не учитывается Field.unique - уникальность в рамках даты
+        // todo: Для Field.unique заменять уникальные индексы на индексы
+        //  с уникальностью в рамках дат публикации и прекращения действия записи.
         String versionName = generateStorageName();
         String versionCode = toStorageCode(toSchemaName(draftCode), versionName);
         dataDao.copyTable(draftCode, versionCode);
