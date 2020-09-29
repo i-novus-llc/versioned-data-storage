@@ -288,14 +288,14 @@ public class DataDaoImpl implements DataDao {
         String sql = "";
         Map<String, Object> params = new HashMap<>();
 
-        String sqlByPublishDate = " and date_trunc('second', %1$s.%2$s) <= :bdate \n" +
-                " and (date_trunc('second', %1$s.%3$s) > :bdate or %1$s.%3$s is null) \n";
+        String sqlByPublishDate = " AND date_trunc('second', %1$s.%2$s) <= :bdate \n" +
+                " AND (date_trunc('second', %1$s.%3$s) > :bdate or %1$s.%3$s is null) \n";
         sql += String.format(sqlByPublishDate, alias,
                 addDoubleQuotes(SYS_PUBLISHTIME),
                 addDoubleQuotes(SYS_CLOSETIME));
         params.put("bdate", publishDate.truncatedTo(ChronoUnit.SECONDS));
 
-        String sqlByCloseDate = " and (date_trunc('second', %1$s.%2$s) >= :edate or %1$s.%2$s is null) \n";
+        String sqlByCloseDate = " AND (date_trunc('second', %1$s.%2$s) >= :edate OR %1$s.%2$s is null) \n";
         sql += String.format(sqlByCloseDate, alias, addDoubleQuotes(SYS_CLOSETIME));
 
         closeDate = closeDate == null ? PG_MAX_TIMESTAMP : closeDate;
@@ -316,7 +316,7 @@ public class DataDaoImpl implements DataDao {
         // full text search
         String escapedFtsColumn = escapeFieldName(alias, SYS_FTS);
         if (SEARCH_DATE_PATTERN.matcher(search).matches()) {
-            sql += " and (" +
+            sql += " AND (" +
                     escapedFtsColumn + " @@ to_tsquery(:search) or " +
                     escapedFtsColumn + " @@ to_tsquery(:reverseSearch) ) ";
             String[] dateArr = search.split("\\.");
@@ -329,7 +329,7 @@ public class DataDaoImpl implements DataDao {
                     .replace(":", "\\:")
                     .replace("/", "\\/")
                     .replace(" ", "+");
-            sql += " and (" + escapedFtsColumn + " @@ to_tsquery(:formattedSearch||':*') or " +
+            sql += " AND (" + escapedFtsColumn + " @@ to_tsquery(:formattedSearch||':*') or " +
                     escapedFtsColumn + " @@ to_tsquery('ru', :formattedSearch||':*') or " +
                     escapedFtsColumn + " @@ to_tsquery('ru', :original||':*')) ";
             params.put("formattedSearch", "'" + formattedSearch + "'");
@@ -368,7 +368,7 @@ public class DataDaoImpl implements DataDao {
                 .collect(joining(" OR "));
 
         if (!"".equals(sql))
-            sql = " and (" + sql + ")";
+            sql = " AND (" + sql + ")";
 
         return new QueryWithParams(sql, params);
     }
@@ -468,12 +468,12 @@ public class DataDaoImpl implements DataDao {
 
         String sql;
         if (hashList.size() > 1) {
-            sql = " and (" + escapedColumn + " = " +
+            sql = " AND (" + escapedColumn + " = " +
                     String.format(TO_ANY_TEXT, ":hashList") + ")";
             params.put("hashList", stringsToDbArray(hashList));
 
         } else {
-            sql = " and (" + escapedColumn + " = :hashItem)";
+            sql = " AND (" + escapedColumn + " = :hashItem)";
             params.put("hashItem", hashList.get(0));
         }
 
@@ -490,12 +490,12 @@ public class DataDaoImpl implements DataDao {
 
         String sql;
         if (systemIds.size() > 1) {
-            sql = " and (" + escapedColumn + " = " +
+            sql = " AND (" + escapedColumn + " = " +
                     String.format(TO_ANY_BIGINT, ":systemIds") + ")";
             params.put("systemIds", valuesToDbArray(systemIds));
 
         } else {
-            sql = " and (" + escapedColumn + " = :systemId)";
+            sql = " AND (" + escapedColumn + " = :systemId)";
             params.put("systemId", systemIds.get(0));
         }
 
