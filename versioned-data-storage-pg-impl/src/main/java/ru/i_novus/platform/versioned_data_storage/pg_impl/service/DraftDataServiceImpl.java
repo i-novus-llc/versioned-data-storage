@@ -129,14 +129,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     @SuppressWarnings("UnusedReturnValue")
     protected List<String> updateData(String draftCode, List<RowValue> rowValues) {
 
-        List<CodifiedException> exceptions = new ArrayList<>();
-        // NB: Валидация validateRow закомментирована
-        if (rowValues.stream().anyMatch(rowValue -> rowValue.getSystemId() == null))
-            exceptions.add(new CodifiedException(FIELD_IS_REQUIRED_EXCEPTION_CODE, SYS_PRIMARY_COLUMN));
-
-        if (!exceptions.isEmpty()) {
-            throw new ListCodifiedException(exceptions);
-        }
+        validateUpdateData(rowValues);
 
         List<String> hashes = new ArrayList<>(rowValues.size());
 
@@ -146,6 +139,17 @@ public class DraftDataServiceImpl implements DraftDataService {
         });
 
         return hashes;
+    }
+
+    private void validateUpdateData(List<RowValue> rowValues) {
+
+        List<CodifiedException> exceptions = new ArrayList<>();
+        // NB: Валидация validateRow закомментирована
+        if (rowValues.stream().anyMatch(rowValue -> rowValue.getSystemId() == null))
+            exceptions.add(new CodifiedException(FIELD_IS_REQUIRED_EXCEPTION_CODE, SYS_PRIMARY_COLUMN));
+
+        if (!exceptions.isEmpty())
+            throw new ListCodifiedException(exceptions);
     }
 
     @Override
