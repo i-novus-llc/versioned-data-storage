@@ -15,9 +15,7 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
 
 import javax.persistence.EntityManager;
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.IntStream;
@@ -175,9 +173,15 @@ public class DataTestUtils {
     /**
      * Проверка списка на пустоту.
      */
-    public static void assertEmptyList(List<?> list) {
+    public static <T> void assertEmpty(List<T> list) {
+        assertEquals(Collections.<T>emptyList(), list);
+    }
 
-        assertEquals(emptyList(), list);
+    /**
+     * Проверка набора на пустоту.
+     */
+    public static <K, V> void assertEmpty(Map<K, V> map) {
+        assertEquals(Collections.<K, V>emptyMap(), map);
     }
 
     /** Сравнение результата поиска данных с проверяемыми данными. */
@@ -185,7 +189,7 @@ public class DataTestUtils {
 
         assertNotNull(dataValues);
         if (isNullOrEmpty(nameValues)) {
-            assertEmptyList(dataValues);
+            assertEmpty(dataValues);
             return;
         }
 
