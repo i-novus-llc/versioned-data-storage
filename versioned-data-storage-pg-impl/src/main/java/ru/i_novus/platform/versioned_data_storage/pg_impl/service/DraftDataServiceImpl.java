@@ -129,14 +129,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     @SuppressWarnings("UnusedReturnValue")
     protected List<String> updateData(String draftCode, List<RowValue> rowValues) {
 
-        List<CodifiedException> exceptions = new ArrayList<>();
-        // NB: Валидация validateRow закомментирована
-        if (rowValues.stream().anyMatch(rowValue -> rowValue.getSystemId() == null))
-            exceptions.add(new CodifiedException(FIELD_IS_REQUIRED_EXCEPTION_CODE, SYS_PRIMARY_COLUMN));
-
-        if (!exceptions.isEmpty()) {
-            throw new ListCodifiedException(exceptions);
-        }
+        validateUpdateData(rowValues);
 
         List<String> hashes = new ArrayList<>(rowValues.size());
 
@@ -146,6 +139,17 @@ public class DraftDataServiceImpl implements DraftDataService {
         });
 
         return hashes;
+    }
+
+    private void validateUpdateData(List<RowValue> rowValues) {
+
+        List<CodifiedException> exceptions = new ArrayList<>();
+        // NB: Валидация validateRow закомментирована
+        if (rowValues.stream().anyMatch(rowValue -> rowValue.getSystemId() == null))
+            exceptions.add(new CodifiedException(FIELD_IS_REQUIRED_EXCEPTION_CODE, SYS_PRIMARY_COLUMN));
+
+        if (!exceptions.isEmpty())
+            throw new ListCodifiedException(exceptions);
     }
 
     @Override
@@ -335,7 +339,7 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     private void createDraftTable(String draftCode, List<Field> fields) {
 
-        //todo никак не учитывается Field.unique - уникальность в рамках черновика
+        // todo: Для Field.unique создавать индексы с уникальностью в рамках черновика.
         logger.debug("creating table with name: {}", draftCode);
         dataDao.createDraftTable(draftCode, fields);
 
@@ -364,7 +368,8 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     private String createVersionTable(String draftCode) {
 
-        //todo никак не учитывается Field.unique - уникальность в рамках даты
+        // todo: Для Field.unique заменять уникальные индексы на индексы
+        //  с уникальностью в рамках дат публикации и прекращения действия записи.
         String versionName = generateStorageName();
         String versionCode = toStorageCode(toSchemaName(draftCode), versionName);
         dataDao.copyTable(draftCode, versionCode);

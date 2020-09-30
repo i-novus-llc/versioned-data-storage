@@ -24,12 +24,12 @@ public class StorageCopyRequest extends StorageDataCriteria {
         this.purposeCode = purposeCode;
     }
 
-    public StorageCopyRequest(StorageCopyRequest criteria) {
+    public StorageCopyRequest(StorageCopyRequest request) {
 
-        super(criteria);
+        super(request);
 
-        this.purposeCode = criteria.purposeCode;
-        this.escapedFieldNames = criteria.escapedFieldNames;
+        this.purposeCode = request.purposeCode;
+        this.escapedFieldNames = request.escapedFieldNames;
     }
 
     public String getPurposeCode() {

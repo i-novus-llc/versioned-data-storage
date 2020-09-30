@@ -1,5 +1,7 @@
 package ru.i_novus.platform.versioned_data_storage;
 
+import org.junit.Assert;
+import org.springframework.util.StringUtils;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.LongRowValue;
@@ -13,22 +15,22 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
 
 import javax.persistence.EntityManager;
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.SYS_PRIMARY_COLUMN;
+import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addDoubleQuotes;
 
 @SuppressWarnings("java:S3740")
 public class DataTestUtils {
+
+    private static final String WAITING_ERROR = "Waiting error ";
 
     public static final String TEST_SCHEMA_NAME = "data_test";
     public static final String NONEXISTENT_SCHEMA_NAME = "data_null";
@@ -81,6 +83,12 @@ public class DataTestUtils {
         fields.add(nameField);
 
         return fields;
+    }
+
+    /** Получение наименований полей. */
+    public static List<String> toHashUsedFieldNames(List<Field> fields) {
+
+        return fields.stream().map(QueryUtil::getHashUsedFieldName).collect(toList());
     }
 
     /** Поиск поля по наименованию. */
@@ -136,7 +144,9 @@ public class DataTestUtils {
         return (BigInteger) rowValue.getFieldValue(FIELD_ID_CODE).getValue();
     }
 
-    /** Сравнение объектов с учётом хеша и преобразования в строку. */
+    /**
+     * Проверка объектов с учётом хеша и преобразования в строку.
+     */
     public static void assertObjects(BiConsumer<Object, Object> objectAssert, Object current, Object actual) {
 
         objectAssert.accept(current, actual);
@@ -147,12 +157,39 @@ public class DataTestUtils {
         }
     }
 
+    /**
+     * Проверка объектов по особым условиям.
+     */
+    public static void assertSpecialEquals(Object current) {
+
+        assertNotNull(current);
+        assertObjects(Assert::assertEquals, current, current);
+        assertObjects(Assert::assertNotEquals, current, null);
+
+        Object other = (!BigInteger.ZERO.equals(current)) ? BigInteger.ZERO : BigInteger.ONE;
+        assertObjects(Assert::assertNotEquals, current, other);
+    }
+
+    /**
+     * Проверка списка на пустоту.
+     */
+    public static <T> void assertEmpty(List<T> list) {
+        assertEquals(Collections.<T>emptyList(), list);
+    }
+
+    /**
+     * Проверка набора на пустоту.
+     */
+    public static <K, V> void assertEmpty(Map<K, V> map) {
+        assertEquals(Collections.<K, V>emptyMap(), map);
+    }
+
     /** Сравнение результата поиска данных с проверяемыми данными. */
     public static void assertValues(List<RowValue> dataValues, List<String> nameValues) {
 
         assertNotNull(dataValues);
-        if (nameValues.isEmpty()) {
-            assertTrue(dataValues.isEmpty());
+        if (isNullOrEmpty(nameValues)) {
+            assertEmpty(dataValues);
             return;
         }
 
@@ -236,5 +273,24 @@ public class DataTestUtils {
                         .getSingleResult();
 
         return result != null && result;
+    }
+
+    /**
+     * Получение сообщения об ожидании исключения.
+     */
+    public static String getFailedMessage(Class expectedExceptionClass) {
+
+        return expectedExceptionClass == null ? null : WAITING_ERROR + expectedExceptionClass.getSimpleName();
+    }
+
+    /**
+     * Получение кода сообщения об ошибке из исключения.
+     */
+    public static String getExceptionMessage(Exception e) {
+
+        if (!StringUtils.isEmpty(e.getMessage()))
+            return e.getMessage();
+
+        return null;
     }
 }
