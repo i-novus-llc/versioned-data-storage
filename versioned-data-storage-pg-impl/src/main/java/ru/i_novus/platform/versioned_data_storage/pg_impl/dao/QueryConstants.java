@@ -15,9 +15,10 @@ public class QueryConstants {
 
     public static final int TRANSACTION_ROW_LIMIT = 1000;
 
-    public static final String BASE_TABLE_ALIAS = "b";
     public static final String DEFAULT_TABLE_ALIAS = "d";
-    static final String ALL_COLUMNS = "*";
+
+    public static final String BASE_TABLE_ALIAS = "b";
+
     static final String TRIGGER_NEW_ALIAS = "NEW";
 
     // Специальные выражения в запросах.
