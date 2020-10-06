@@ -61,7 +61,11 @@ public class StorageConstants {
         return SYS_FIELD_NAMES;
     }
 
-    public static List<String> escapedVersionFieldNames() {
+    public static List<String> versionedFieldNames() {
+        return VERSIONED_SYS_FIELD_NAMES;
+    }
+
+    public static List<String> escapedVersionedFieldNames() {
         return ESCAPED_VERSIONED_SYS_FIELD_NAMES;
     }
 
