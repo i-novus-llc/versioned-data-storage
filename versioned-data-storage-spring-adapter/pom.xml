@@ -8,7 +8,7 @@
     <parent>
         <groupId>ru.i-novus.components</groupId>
         <artifactId>versioned-data-storage</artifactId>
-        <version>3.5</version>
+        <version>3.6-SNAPSHOT</version>
     </parent>
 
     <dependencies>
