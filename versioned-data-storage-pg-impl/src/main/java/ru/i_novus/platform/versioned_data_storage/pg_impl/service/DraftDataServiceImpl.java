@@ -181,8 +181,8 @@ public class DraftDataServiceImpl implements DraftDataService {
 
         List<String> draftFieldNames = dataDao.getAllEscapedFieldNames(draftCode);
         List<String> sourceFieldNames = dataDao.getAllEscapedFieldNames(sourceCode);
-        List<String> escapedVersionFieldNames = StorageConstants.escapedVersionFieldNames();
-        sourceFieldNames.removeIf(escapedVersionFieldNames::contains);
+        List<String> versionedFieldNames = StorageConstants.escapedVersionedFieldNames();
+        sourceFieldNames.removeIf(versionedFieldNames::contains);
 
         if (!draftFieldNames.equals(sourceFieldNames)) {
             throw new CodifiedException(TABLES_NOT_EQUAL);
