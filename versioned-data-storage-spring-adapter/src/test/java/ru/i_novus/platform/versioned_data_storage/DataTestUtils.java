@@ -42,10 +42,10 @@ public class DataTestUtils {
     private static final int INDEX_TO_ID_FACTOR = 10;
 
     public static final List<String> dataNames = asList(
-            "первый", "второй", "третий", "четвёртый", "пятый", "шестой"
+            "первый", "второй", "третий", "четвёртый", "пятый", "шестой", "седьмой"
     );
     public static final List<String> testNames = asList(
-            "first", "second", "third", "fourth", "fifth", "sixth"
+            "first", "second", "third", "fourth", "fifth", "sixth", "seventh"
     );
     private static final int MIXED_NAME_DIVIDER = 2;
 
