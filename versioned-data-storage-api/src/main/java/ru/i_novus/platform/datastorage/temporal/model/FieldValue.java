@@ -4,15 +4,21 @@ import java.io.Serializable;
 import java.util.Objects;
 
 /**
+ * Значение поля хранилища.
+ *
  * @author lgalimova
  * @since 01.02.2018
  */
 public abstract class FieldValue<T extends Serializable> implements Serializable {
 
+    /** Наименование поля. */
     private String field;
+
+    /** Значение поля */
     private T value;
 
     public FieldValue() {
+        // Nothing to do.
     }
 
     public FieldValue(String field, T value) {

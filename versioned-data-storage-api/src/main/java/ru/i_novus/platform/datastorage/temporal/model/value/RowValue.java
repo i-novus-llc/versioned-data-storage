@@ -2,6 +2,7 @@ package ru.i_novus.platform.datastorage.temporal.model.value;
 
 import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -9,25 +10,35 @@ import java.util.Objects;
 import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
 
 /**
+ * Запись хранилища.
+ *
  * @author lgalimova
  * @since 01.02.2018
  *
  */
-public abstract class RowValue<T> {
+@SuppressWarnings({"rawtypes", "java:S3740"})
+public abstract class RowValue<T> implements Serializable {
 
-    private T systemId;
+    /** Системный идентификатор записи. */
+    private T systemId; // NOSONAR
+
+    /** Значения полей. */
     private List<FieldValue> fieldValues = new ArrayList<>();
+
+    /** Хеш записи. */
     private String hash;
 
     public RowValue() {
+        // Nothing to do.
     }
 
     public RowValue(T systemId, List<FieldValue> fieldValues) {
-        this.systemId = systemId;
-        this.fieldValues = fieldValues;
+
+        this(systemId, fieldValues, null);
     }
 
     public RowValue(T systemId, List<FieldValue> fieldValues, String hash) {
+
         this.systemId = systemId;
         this.fieldValues = fieldValues;
         this.hash = hash;
