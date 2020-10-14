@@ -22,7 +22,7 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
-import javax.persistence.PersistenceException;
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +42,7 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtil
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {JpaTestConfig.class, VersionedDataStorageConfig.class})
+@SuppressWarnings("rawtypes")
 public class DataDaoTest {
 
     private static final Logger logger = LoggerFactory.getLogger(DataDaoTest.class);
@@ -222,16 +223,9 @@ public class DataDaoTest {
 
         String tableName = newTestTableName();
         List<Field> fields = newTestFields();
-        try {
-            dataDao.getData(toCriteria(NONEXISTENT_SCHEMA_NAME, tableName, fields));
-            fail();
 
-        } catch (PersistenceException e) {
-            assertNotNull(e.getMessage());
-
-        } catch (Exception e) {
-            fail();
-        }
+        List<RowValue> dataValues = dataDao.getData(toCriteria(NONEXISTENT_SCHEMA_NAME, tableName, fields));
+        assertValues(dataValues, emptyList());
     }
 
     private void insertValues(String sqlInsert, List<String> nameValues) {

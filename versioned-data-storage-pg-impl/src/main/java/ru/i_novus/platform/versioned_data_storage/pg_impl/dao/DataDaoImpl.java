@@ -41,7 +41,7 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.*;
 
-@SuppressWarnings({"java:S1192", "java:S3740"})
+@SuppressWarnings({"rawtypes", "java:S1192", "java:S3740"})
 public class DataDaoImpl implements DataDao {
 
     private static final Logger logger = LoggerFactory.getLogger(DataDaoImpl.class);
@@ -60,6 +60,9 @@ public class DataDaoImpl implements DataDao {
     public List<RowValue> getData(StorageDataCriteria criteria) {
 
         final String schemaName = getStorageCodeSchemaName(criteria.getStorageCode());
+        if (!schemaExists(schemaName))
+            return emptyList();
+
         final String tableName = toTableName(criteria.getStorageCode());
 
         List<Field> fields = makeOutputFields(criteria, schemaName);
@@ -115,6 +118,9 @@ public class DataDaoImpl implements DataDao {
     public BigInteger getDataCount(StorageDataCriteria criteria) {
 
         final String schemaName = getStorageCodeSchemaName(criteria.getStorageCode());
+        if (!schemaExists(schemaName))
+            return BigInteger.ZERO;
+
         final String tableName = toTableName(criteria.getStorageCode());
 
         final String sqlFormat = "  FROM %s as %s\n";
@@ -149,6 +155,9 @@ public class DataDaoImpl implements DataDao {
     public RowValue getRowData(String storageCode, List<String> fieldNames, Object systemId) {
 
         String schemaName = getStorageCodeSchemaName(storageCode);
+        if (!schemaExists(schemaName))
+            return LongRowValue.EMPTY;
+
         String tableName = toTableName(storageCode);
 
         List<Field> fields = columnDataTypesToFields(getColumnDataTypes(storageCode), fieldNames);
@@ -175,6 +184,9 @@ public class DataDaoImpl implements DataDao {
     public List<RowValue> getRowData(String storageCode, List<String> fieldNames, List<Object> systemIds) {
 
         String schemaName = getStorageCodeSchemaName(storageCode);
+        if (!schemaExists(schemaName))
+            return emptyList();
+
         String tableName = toTableName(storageCode);
 
         List<Field> fields = columnDataTypesToFields(getColumnDataTypes(storageCode), fieldNames);
