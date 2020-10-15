@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.annotation.Transactional;
+import ru.i_novus.components.common.exception.CodifiedException;
 import ru.i_novus.platform.datastorage.temporal.enums.FieldType;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
@@ -223,9 +224,16 @@ public class DataDaoTest {
 
         String tableName = newTestTableName();
         List<Field> fields = newTestFields();
+        try {
+            dataDao.getData(toCriteria(NONEXISTENT_SCHEMA_NAME, tableName, fields));
+            fail();
 
-        List<RowValue> dataValues = dataDao.getData(toCriteria(NONEXISTENT_SCHEMA_NAME, tableName, fields));
-        assertValues(dataValues, emptyList());
+        } catch (CodifiedException e) {
+            assertEquals("storage.does.not.exist", e.getMessage());
+
+        } catch (Exception e) {
+            fail();
+        }
     }
 
     private void insertValues(String sqlInsert, List<String> nameValues) {
