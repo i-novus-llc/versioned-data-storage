@@ -12,7 +12,7 @@ import java.util.Set;
  */
 public class DropDataServiceImpl implements DropDataService {
 
-    private DataDao dataDao;
+    private final DataDao dataDao;
 
     public DropDataServiceImpl(DataDao dataDao) {
         this.dataDao = dataDao;

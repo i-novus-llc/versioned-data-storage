@@ -23,11 +23,11 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConsta
  * @author lgalimova
  * @since 21.03.2018
  */
-@SuppressWarnings("java:S3740")
+@SuppressWarnings({"rawtypes", "java:S3740"})
 public class QueryUtil {
 
     private QueryUtil() {
-        throw new UnsupportedOperationException();
+        // Nothing to do.`
     }
 
     /**
