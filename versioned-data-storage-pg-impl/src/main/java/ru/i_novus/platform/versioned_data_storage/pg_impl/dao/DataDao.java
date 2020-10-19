@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
-@SuppressWarnings("java:S3740")
+@SuppressWarnings({"rawtypes", "java:S3740"})
 public interface DataDao {
 
     /**
@@ -51,7 +51,7 @@ public interface DataDao {
     RowValue getRowData(String storageCode, List<String> fieldNames, Object systemId);
 
     /**
-     * Получение списка записей хранилища по системному идентификатору.
+     * Получение списка записей хранилища по системным идентификаторам.
      *
      * @param storageCode код хранилища
      * @param fieldNames  список полей

@@ -23,6 +23,7 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.persistence.PersistenceException;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -234,8 +235,8 @@ public class DataDaoTest {
             dataDao.getData(toCriteria(NONEXISTENT_SCHEMA_NAME, tableName, fields));
             fail();
 
-        } catch (CodifiedException e) {
-            assertEquals("storage.does.not.exist", e.getMessage());
+        } catch (PersistenceException e) {
+            assertNotNull(e.getMessage());
 
         } catch (Exception e) {
             fail();

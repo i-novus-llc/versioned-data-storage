@@ -4,7 +4,6 @@ import net.n2oapp.criteria.api.CollectionPage;
 import net.n2oapp.criteria.api.Sorting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.i_novus.components.common.exception.CodifiedException;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffReturnTypeEnum;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
 import ru.i_novus.platform.datastorage.temporal.enums.ReferenceDisplayType;
@@ -61,10 +60,6 @@ public class DataDaoImpl implements DataDao {
     public List<RowValue> getData(StorageDataCriteria criteria) {
 
         final String storageCode = criteria.getStorageCode();
-        boolean validated = validateStorage(storageCode);
-        if (!validated)
-            return emptyList();
-
         final String schemaName = getStorageCodeSchemaName(storageCode);
         final String tableName = toTableName(storageCode);
 
@@ -121,10 +116,6 @@ public class DataDaoImpl implements DataDao {
     public BigInteger getDataCount(StorageDataCriteria criteria) {
 
         final String storageCode = criteria.getStorageCode();
-        boolean validated = validateStorage(storageCode);
-        if (!validated)
-            return BigInteger.ZERO;
-
         final String schemaName = getStorageCodeSchemaName(storageCode);
         final String tableName = toTableName(storageCode);
 
@@ -159,10 +150,6 @@ public class DataDaoImpl implements DataDao {
     @Override
     public RowValue getRowData(String storageCode, List<String> fieldNames, Object systemId) {
 
-        boolean validated = validateStorage(storageCode);
-        if (!validated)
-            return LongRowValue.EMPTY;
-
         final String schemaName = getStorageCodeSchemaName(storageCode);
         final String tableName = toTableName(storageCode);
 
@@ -185,13 +172,8 @@ public class DataDaoImpl implements DataDao {
         return row;
     }
 
-    /** Получение строк данных таблицы по системным идентификаторам. */
     @Override
     public List<RowValue> getRowData(String storageCode, List<String> fieldNames, List<Object> systemIds) {
-
-        boolean validated = validateStorage(storageCode);
-        if (!validated)
-            return emptyList();
 
         final String schemaName = getStorageCodeSchemaName(storageCode);
         final String tableName = toTableName(storageCode);
@@ -1954,22 +1936,5 @@ public class DataDaoImpl implements DataDao {
     private String getStorageCodeSchemaName(String storageCode) {
 
         return getTableSchemaName(toSchemaName(storageCode), toTableName(storageCode));
-    }
-
-    /**
-     * Валидация хранилища перед выполняемым действием.
-     * <p/>
-     * Используется для возможности переопределения работы со схемами.
-     *
-     * @param storageCode Код хранилища
-     * @return true - продолжить действие, false - отменить действие
-     * @throws CodifiedException для выдачи ошибки
-     */
-    protected boolean validateStorage(String storageCode) {
-
-        if (!storageExists(storageCode))
-            throw new CodifiedException("storage.does.not.exist");
-
-        return true;
     }
 }
