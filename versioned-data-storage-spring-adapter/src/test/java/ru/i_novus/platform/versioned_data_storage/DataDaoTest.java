@@ -23,7 +23,6 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
-import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -100,6 +99,13 @@ public class DataDaoTest {
         dataDao.createDraftTable(tableName, fields);
         List<String> actual = dataDao.findExistentTableSchemas(schemaNames, tableName);
         assertEquals(expected, actual);
+
+        List<String> expected2 = List.of(DATA_SCHEMA_NAME, TEST_SCHEMA_NAME);
+
+        String usedStorageCode = toStorageCode(TEST_SCHEMA_NAME, tableName);
+        dataDao.createDraftTable(usedStorageCode, fields);
+        List<String> actual2 = dataDao.findExistentTableSchemas(schemaNames, tableName);
+        assertListEquals(expected2, actual2);
     }
 
     @Test

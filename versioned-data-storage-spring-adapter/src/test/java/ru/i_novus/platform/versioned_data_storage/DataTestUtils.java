@@ -27,7 +27,7 @@ import static org.junit.Assert.*;
 import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.*;
 
-@SuppressWarnings("java:S3740")
+@SuppressWarnings({"rawtypes", "java:S3740"})
 public class DataTestUtils {
 
     private static final String WAITING_ERROR = "Waiting error ";
@@ -182,6 +182,38 @@ public class DataTestUtils {
      */
     public static <K, V> void assertEmpty(Map<K, V> map) {
         assertEquals(Collections.<K, V>emptyMap(), map);
+    }
+
+    /**
+     * Проверка списков на совпадение.
+     */
+    public static <T> void assertListEquals(List<T> expected, List<T> actual) {
+
+        if (isNullOrEmpty(expected)) {
+            assertEmpty(actual);
+            return;
+        }
+
+        assertEquals(expected.size(), actual.size());
+
+        expected.forEach(item -> assertListItemEquals(item, expected, actual));
+    }
+
+    /**
+     * Проверка списков на совпадение по элементу.
+     */
+    public static <T> void assertListItemEquals(T item, List<T> expected, List<T> actual) {
+
+        if (item == null) {
+            assertEquals(expected.stream().filter(Objects::isNull).count(),
+                    actual.stream().filter(Objects::isNull).count()
+            );
+            return;
+        }
+
+        assertEquals(expected.stream().filter(item::equals).count(),
+                actual.stream().filter(item::equals).count()
+        );
     }
 
     /** Сравнение результата поиска данных с проверяемыми данными. */
