@@ -9,7 +9,7 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtil
 public class StorageUtils {
 
     private StorageUtils() {
-        throw new UnsupportedOperationException();
+        // Nothing to do.
     }
 
     /**

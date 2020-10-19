@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.annotation.Transactional;
+import ru.i_novus.components.common.exception.CodifiedException;
 import ru.i_novus.platform.datastorage.temporal.enums.FieldType;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
@@ -42,6 +43,7 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtil
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {JpaTestConfig.class, VersionedDataStorageConfig.class})
+@SuppressWarnings("rawtypes")
 public class DataDaoTest {
 
     private static final Logger logger = LoggerFactory.getLogger(DataDaoTest.class);
@@ -98,6 +100,13 @@ public class DataDaoTest {
         dataDao.createDraftTable(tableName, fields);
         List<String> actual = dataDao.findExistentTableSchemas(schemaNames, tableName);
         assertEquals(expected, actual);
+
+        List<String> expected2 = List.of(DATA_SCHEMA_NAME, TEST_SCHEMA_NAME);
+
+        String usedStorageCode = toStorageCode(TEST_SCHEMA_NAME, tableName);
+        dataDao.createDraftTable(usedStorageCode, fields);
+        List<String> actual2 = dataDao.findExistentTableSchemas(schemaNames, tableName);
+        assertListEquals(expected2, actual2);
     }
 
     @Test

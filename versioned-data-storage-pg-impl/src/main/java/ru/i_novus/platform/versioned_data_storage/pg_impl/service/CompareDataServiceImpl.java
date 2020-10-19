@@ -11,7 +11,7 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
  */
 public class CompareDataServiceImpl implements CompareDataService {
 
-    private DataDao dataDao;
+    private final DataDao dataDao;
 
     public CompareDataServiceImpl(DataDao dataDao) {
         this.dataDao = dataDao;

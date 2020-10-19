@@ -5,12 +5,16 @@ import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import java.util.List;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 
 /**
  * @author lgalimova
  * @since 01.02.2018
  */
+@SuppressWarnings("rawtypes")
 public class LongRowValue extends RowValue<Long> {
+
+    public static final LongRowValue EMPTY = new LongRowValue(null, emptyList(), null);
 
     public LongRowValue() {
         super();

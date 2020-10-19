@@ -41,7 +41,7 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.*;
 
-@SuppressWarnings({"java:S1192", "java:S3740"})
+@SuppressWarnings({"rawtypes", "java:S1192", "java:S3740"})
 public class DataDaoImpl implements DataDao {
 
     private static final Logger logger = LoggerFactory.getLogger(DataDaoImpl.class);
@@ -50,7 +50,7 @@ public class DataDaoImpl implements DataDao {
 
     private static final Pattern SEARCH_DATE_PATTERN = Pattern.compile("([0-9]{2})\\.([0-9]{2})\\.([0-9]{4})");
 
-    private EntityManager entityManager;
+    private final EntityManager entityManager;
 
     public DataDaoImpl(EntityManager entityManager) {
         this.entityManager = entityManager;
@@ -59,8 +59,9 @@ public class DataDaoImpl implements DataDao {
     @Override
     public List<RowValue> getData(StorageDataCriteria criteria) {
 
-        final String schemaName = getStorageCodeSchemaName(criteria.getStorageCode());
-        final String tableName = toTableName(criteria.getStorageCode());
+        final String storageCode = criteria.getStorageCode();
+        final String schemaName = getStorageCodeSchemaName(storageCode);
+        final String tableName = toTableName(storageCode);
 
         List<Field> fields = makeOutputFields(criteria, schemaName);
 
@@ -114,8 +115,9 @@ public class DataDaoImpl implements DataDao {
     @Override
     public BigInteger getDataCount(StorageDataCriteria criteria) {
 
-        final String schemaName = getStorageCodeSchemaName(criteria.getStorageCode());
-        final String tableName = toTableName(criteria.getStorageCode());
+        final String storageCode = criteria.getStorageCode();
+        final String schemaName = getStorageCodeSchemaName(storageCode);
+        final String tableName = toTableName(storageCode);
 
         final String sqlFormat = "  FROM %s as %s\n";
         String sql = SELECT_COUNT_ONLY +
@@ -148,8 +150,8 @@ public class DataDaoImpl implements DataDao {
     @Override
     public RowValue getRowData(String storageCode, List<String> fieldNames, Object systemId) {
 
-        String schemaName = getStorageCodeSchemaName(storageCode);
-        String tableName = toTableName(storageCode);
+        final String schemaName = getStorageCodeSchemaName(storageCode);
+        final String tableName = toTableName(storageCode);
 
         List<Field> fields = columnDataTypesToFields(getColumnDataTypes(storageCode), fieldNames);
 
@@ -170,12 +172,11 @@ public class DataDaoImpl implements DataDao {
         return row;
     }
 
-    /** Получение строк данных таблицы по системным идентификаторам. */
     @Override
     public List<RowValue> getRowData(String storageCode, List<String> fieldNames, List<Object> systemIds) {
 
-        String schemaName = getStorageCodeSchemaName(storageCode);
-        String tableName = toTableName(storageCode);
+        final String schemaName = getStorageCodeSchemaName(storageCode);
+        final String tableName = toTableName(storageCode);
 
         List<Field> fields = columnDataTypesToFields(getColumnDataTypes(storageCode), fieldNames);
 
