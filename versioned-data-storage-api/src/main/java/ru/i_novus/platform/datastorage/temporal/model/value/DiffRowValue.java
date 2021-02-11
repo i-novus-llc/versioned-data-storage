@@ -4,7 +4,6 @@ import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
 
 import java.io.Serializable;
 import java.util.List;
-import java.util.Objects;
 
 import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
 
@@ -40,18 +39,4 @@ public class DiffRowValue implements Serializable {
                 .orElse(null);
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof DiffRowValue)) return false;
-
-        DiffRowValue that = (DiffRowValue) o;
-        return Objects.equals(values, that.values) &&
-                status == that.status;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(values, status);
-    }
 }
