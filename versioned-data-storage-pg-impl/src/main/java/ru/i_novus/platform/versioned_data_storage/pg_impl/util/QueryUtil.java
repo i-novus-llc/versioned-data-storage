@@ -14,10 +14,11 @@ import java.util.*;
 
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.escapeFieldName;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addDoubleQuotes;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addSingleQuotes;
 
 /**
  * @author lgalimova
@@ -510,7 +511,7 @@ public class QueryUtil {
 
     public static String toTimestampWithoutTimeZone(String value) {
 
-        return (value != null) ? toTimestamp(value) + TIMESTAMP_WITHOUT_TIME_ZONE : null;
+        return (value != null) ? toTimestamp(value) + TIMESTAMP_WITHOUT_TIME_ZONE : QUERY_NULL_VALUE;
     }
 
     public static Object truncateDateTo(LocalDateTime date, ChronoUnit unit, Object defaultValue) {

@@ -24,7 +24,7 @@ public class QueryConstants {
     // Специальные выражения в запросах.
     static final String QUERY_NEW_LINE = " \n";
     static final String QUERY_BIND_CHAR = ":";
-    static final String QUERY_NULL_VALUE = "null";
+    public static final String QUERY_NULL_VALUE = "null";
 
     public static final String SELECT_COUNT_ONLY = "SELECT count(*) \n";
 
