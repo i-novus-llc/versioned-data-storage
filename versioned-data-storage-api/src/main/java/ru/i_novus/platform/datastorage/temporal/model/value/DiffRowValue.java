@@ -48,11 +48,19 @@ public class DiffRowValue implements Serializable {
 
         DiffRowValue that = (DiffRowValue) o;
         return Objects.equals(values, that.values) &&
-                status == that.status;
+                Objects.equals(status, that.status);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(values, status);
+    }
+
+    @Override
+    public String toString() {
+        return "DiffRowValue{" +
+                "values=" + values +
+                ", status=" + status +
+                '}';
     }
 }

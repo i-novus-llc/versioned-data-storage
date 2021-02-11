@@ -76,4 +76,14 @@ public class DiffFieldValue<T> implements Serializable {
     public int hashCode() {
         return Objects.hash(field, oldValue, newValue, status);
     }
+
+    @Override
+    public String toString() {
+        return "DiffFieldValue{" +
+                "field=" + field +
+                ", oldValue=" + oldValue +
+                ", newValue=" + newValue +
+                ", status=" + status +
+                '}';
+    }
 }
