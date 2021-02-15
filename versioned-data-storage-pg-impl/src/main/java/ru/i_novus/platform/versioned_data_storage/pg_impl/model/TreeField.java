@@ -9,9 +9,14 @@ import ru.i_novus.platform.datastorage.temporal.model.value.TreeFieldValue;
  * @since 16.05.2018
  */
 public class TreeField extends Field<String> {
+
     public static final String TYPE = "ltree";
 
     private String path;
+
+    public TreeField() {
+        // Nothing to do.
+    }
 
     public TreeField(String name) {
         super(name);
@@ -31,6 +36,7 @@ public class TreeField extends Field<String> {
     }
 
     @Override
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public FieldValue valueOf(String value) {
         return new TreeFieldValue(getName(), value);
     }

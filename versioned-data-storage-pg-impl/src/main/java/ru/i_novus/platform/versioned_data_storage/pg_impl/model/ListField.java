@@ -8,7 +8,12 @@ import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
  * @since 21.05.2018
  */
 public class ListField extends Field {
+
     public static final String TYPE = "jsonb";
+
+    public ListField() {
+        // Nothing to do.
+    }
 
     public ListField(String name) {
         super(name);
@@ -20,6 +25,7 @@ public class ListField extends Field {
     }
 
     @Override
+    @SuppressWarnings("rawtypes")
     public FieldValue valueOf(Object value) {
         throw new RuntimeException("not implemented");
     }

@@ -10,7 +10,12 @@ import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
  * @since 01.02.2018
  */
 public class ReferenceField extends Field<Reference> {
+
     public static final String TYPE = "jsonb";
+
+    public ReferenceField() {
+        // Nothing to do.
+    }
 
     public ReferenceField(String name) {
         super(name);
@@ -22,6 +27,7 @@ public class ReferenceField extends Field<Reference> {
     }
 
     @Override
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public FieldValue valueOf(Reference value) {
         return new ReferenceFieldValue(getName(), value);
     }

@@ -11,7 +11,12 @@ import java.math.BigInteger;
  * @since 23.03.2018
  */
 public class IntegerField extends Field<BigInteger> {
+
     public static final String TYPE = "bigint";
+
+    public IntegerField() {
+        // Nothing to do.
+    }
 
     public IntegerField(String name) {
         super(name);
@@ -23,6 +28,7 @@ public class IntegerField extends Field<BigInteger> {
     }
 
     @Override
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public FieldValue valueOf(BigInteger value) {
         return new IntegerFieldValue(getName(), value);
     }

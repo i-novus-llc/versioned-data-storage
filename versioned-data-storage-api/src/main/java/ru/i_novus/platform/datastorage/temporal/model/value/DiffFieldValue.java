@@ -10,6 +10,7 @@ import java.util.Objects;
  * @author lgalimova
  * @since 10.05.2018
  */
+@SuppressWarnings({"java:S3740", "java:S1948"})
 public class DiffFieldValue<T> implements Serializable {
 
     private Field field;
@@ -74,5 +75,15 @@ public class DiffFieldValue<T> implements Serializable {
     @Override
     public int hashCode() {
         return Objects.hash(field, oldValue, newValue, status);
+    }
+
+    @Override
+    public String toString() {
+        return "DiffFieldValue{" +
+                "field=" + field +
+                ", oldValue=" + oldValue +
+                ", newValue=" + newValue +
+                ", status=" + status +
+                '}';
     }
 }
