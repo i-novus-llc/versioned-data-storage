@@ -335,7 +335,6 @@ public class DataDaoImpl implements DataDao {
                     escapedFtsColumn + " @@ to_tsquery('ru', :original||':*')) ";
             params.put("formattedSearch", "'" + formattedSearch + "'");
             params.put("original", "'''" + search + "'''");
-
         }
 
         return new QueryWithParams(sql, params);

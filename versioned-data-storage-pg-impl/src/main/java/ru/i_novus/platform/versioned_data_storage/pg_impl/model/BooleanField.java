@@ -9,7 +9,12 @@ import ru.i_novus.platform.datastorage.temporal.model.value.BooleanFieldValue;
  * @since 23.03.2018
  */
 public class BooleanField extends Field<Boolean> {
+
     public static final String TYPE = "boolean";
+
+    public BooleanField() {
+        // Nothing to do.
+    }
 
     public BooleanField(String name) {
         super(name);
@@ -21,6 +26,7 @@ public class BooleanField extends Field<Boolean> {
     }
 
     @Override
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public FieldValue valueOf(Boolean value) {
         return new BooleanFieldValue(getName(), value);
     }

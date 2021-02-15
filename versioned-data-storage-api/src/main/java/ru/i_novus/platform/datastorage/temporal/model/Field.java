@@ -16,6 +16,10 @@ public abstract class Field<T> implements Serializable {
     private Boolean required = false;
     private Boolean searchEnabled = false;
 
+    public Field() {
+        // Nothing to do.
+    }
+
     public Field(String name) {
         this.name = name;
     }

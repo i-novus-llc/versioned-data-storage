@@ -9,7 +9,12 @@ import ru.i_novus.platform.datastorage.temporal.model.value.StringFieldValue;
  * @since 21.05.2018
  */
 public class IntegerStringField extends Field<String> {
+
     public static final String TYPE = "character varying";
+
+    public IntegerStringField() {
+        // Nothing to do.
+    }
 
     public IntegerStringField(String name) {
         super(name);
@@ -21,6 +26,7 @@ public class IntegerStringField extends Field<String> {
     }
 
     @Override
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public FieldValue valueOf(String value) {
         return new StringFieldValue(getName(), value);
     }

@@ -13,7 +13,12 @@ import static java.util.Optional.ofNullable;
  * @since 23.03.2018
  */
 public class FloatField extends Field<Number> {
+
     public static final String TYPE = "numeric";
+
+    public FloatField() {
+        // Nothing to do.
+    }
 
     public FloatField(String name) {
         super(name);
@@ -25,11 +30,12 @@ public class FloatField extends Field<Number> {
     }
 
     @Override
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public FieldValue valueOf(Number value) {
-        return new FloatFieldValue(
-                getName(),
+        return new FloatFieldValue(getName(),
                 ofNullable(value)
                         .map(String::valueOf)
-                        .map(BigDecimal::new).orElse(null));
+                        .map(BigDecimal::new).orElse(null)
+        );
     }
 }

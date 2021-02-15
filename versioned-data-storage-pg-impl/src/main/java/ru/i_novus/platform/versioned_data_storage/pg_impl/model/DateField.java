@@ -11,7 +11,12 @@ import java.time.LocalDate;
  * @since 01.02.2018
  */
 public class DateField extends Field<LocalDate> {
+
     public static final String TYPE = "date";
+
+    public DateField() {
+        // Nothing to do.
+    }
 
     public DateField(String name) {
         super(name);
@@ -23,6 +28,7 @@ public class DateField extends Field<LocalDate> {
     }
 
     @Override
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public FieldValue valueOf(LocalDate value) {
         return new DateFieldValue(getName(), value);
     }
