@@ -3,7 +3,8 @@ package ru.i_novus.platform.versioned_data_storage.pg_impl.util;
 import org.apache.commons.text.StringSubstitutor;
 import ru.i_novus.platform.datastorage.temporal.enums.ReferenceDisplayType;
 import ru.i_novus.platform.datastorage.temporal.model.*;
-import ru.i_novus.platform.datastorage.temporal.model.value.*;
+import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
+import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 
 import java.io.Serializable;
@@ -24,7 +25,7 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtil
  * @author lgalimova
  * @since 21.03.2018
  */
-@SuppressWarnings({"rawtypes", "java:S3740"})
+@SuppressWarnings({"rawtypes","unchecked","java:S3740"})
 public class QueryUtil {
 
     private QueryUtil() {
@@ -50,7 +51,7 @@ public class QueryUtil {
                 addToRowValue((Object[]) row, fields, rowValue);
 
             } else {
-                rowValue.getFieldValues().add(getFieldValue(fields.get(0), row));
+                rowValue.getFieldValues().add(toFieldValue(fields.get(0), row));
             }
             result.add(rowValue);
         }
@@ -91,7 +92,7 @@ public class QueryUtil {
             i++;
         }
 
-        rowValue.getFieldValues().add(getFieldValue(field, value));
+        rowValue.getFieldValues().add(toFieldValue(field, value));
 
         return ++i;
     }
@@ -121,32 +122,39 @@ public class QueryUtil {
      * @param value значение
      * @return Значение поля
      */
-    private static FieldValue getFieldValue(Field field, Object value) {
+    private static FieldValue toFieldValue(Field field, Object value) {
 
-        String name = field.getName();
+        return field.valueOf(toValueByField(field, value));
+    }
 
-        if (field instanceof BooleanField) {
-            return new BooleanFieldValue(name, (Boolean) value);
+    /**
+     * Получение значения в виде соответствующего объекта.
+     *
+     * @param field поле
+     * @param value значение
+     * @return Значение
+     */
+    public static Object toValueByField(Field field, Object value) {
+
+        if (value == null) {
+            return null;
         }
 
         if (field instanceof DateField) {
-            return new DateFieldValue(name, value != null ? ((java.sql.Date) value).toLocalDate() : null);
-        }
-
-        if (field instanceof FloatField) {
-            return new FloatFieldValue(name, (Number) value);
+            return ((java.sql.Date) value).toLocalDate();
         }
 
         if (field instanceof IntegerField) {
-            return new IntegerFieldValue(name,
-                    value != null ? new BigInteger(value.toString()) : null);
+            return new BigInteger(value.toString());
         }
 
-        if (field instanceof ReferenceField) {
-            return new ReferenceFieldValue(name, (Reference) value);
+        if (field instanceof BooleanField ||
+                field instanceof FloatField ||
+                field instanceof ReferenceField) {
+            return value;
         }
 
-        return new StringFieldValue(name, value != null ? value.toString() : null);
+        return value.toString();
     }
 
     /**
