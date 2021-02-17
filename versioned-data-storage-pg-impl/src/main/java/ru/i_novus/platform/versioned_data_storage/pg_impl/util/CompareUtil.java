@@ -10,6 +10,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.toValueByField;
+
+@SuppressWarnings({"unchecked","rawtypes"})
 public class CompareUtil {
 
     private CompareUtil() {
@@ -23,21 +26,20 @@ public class CompareUtil {
             return result;
         }
 
+        List<String> primaryFields = criteria.getPrimaryFields();
         for (Object[] row : dataList) {
+            int i = 1; // get old/new versions data excluding sys_recordid
             List<DiffFieldValue> fieldValues = new ArrayList<>();
-            int i = 1; // get old/new versions data exclude sys_recordid
-            List<String> primaryFields = criteria.getPrimaryFields();
             DiffStatusEnum rowStatus = null;
             for (Field field : fields) {
-
                 DiffFieldValue fieldValue = new DiffFieldValue();
                 fieldValue.setField(field);
 
-                fieldValue.setOldValue(row[i]);
-                fieldValue.setNewValue(row[row.length / 2 + i]);
+                fieldValue.setOldValue(toValueByField(field, row[i]));
+                fieldValue.setNewValue(toValueByField(field, row[row.length / 2 + i]));
 
                 if (primaryFields.contains(field.getName())) {
-                    rowStatus = CompareUtil.diffFieldValueToStatusEnum(fieldValue, rowStatus);
+                    rowStatus = diffFieldValueToStatusEnum(fieldValue, rowStatus);
                 }
 
                 fieldValues.add(fieldValue);
