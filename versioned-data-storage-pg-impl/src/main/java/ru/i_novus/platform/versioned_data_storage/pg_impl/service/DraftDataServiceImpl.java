@@ -426,7 +426,7 @@ public class DraftDataServiceImpl implements DraftDataService {
 
         Map<String, String> dataTypes = dataDao.getColumnDataTypes(versionCode);
         Map<String, String> typedNames = new LinkedHashMap<>();
-        fieldNames.forEach(column -> typedNames.put(column, dataTypes.get(column.replaceAll("\"", ""))));
+        fieldNames.forEach(column -> typedNames.put(column, dataTypes.get(column.replace("\"", ""))));
 
         BigInteger count = dataDao.countActualDataFromVersion(versionCode, draftCode, publishTime, closeTime);
         for (int offset = 0; offset < count.intValue(); offset += TRANSACTION_ROW_LIMIT) {
@@ -454,13 +454,14 @@ public class DraftDataServiceImpl implements DraftDataService {
      * есть пересечения по дате
      * нет SYS_HASH (из versionCode те, которых нет в draftCode
      */
+    @SuppressWarnings("I-novus:MethodNameWordCountRule")
     private void insertClosedNowDataFromVersion(String versionCode, String draftCode,
                                                 String targetCode, List<String> fieldNames,
                                                 LocalDateTime publishTime, LocalDateTime closeTime) {
 
         Map<String, String> dataTypes = dataDao.getColumnDataTypes(versionCode);
         Map<String, String> typedNames = new LinkedHashMap<>();
-        fieldNames.forEach(column -> typedNames.put(column, dataTypes.get(column.replaceAll("\"", ""))));
+        fieldNames.forEach(column -> typedNames.put(column, dataTypes.get(column.replace("\"", ""))));
 
         BigInteger count = dataDao.countClosedNowDataFromVersion(versionCode, draftCode, publishTime, closeTime);
         for (int offset = 0; offset < count.intValue(); offset += TRANSACTION_ROW_LIMIT) {

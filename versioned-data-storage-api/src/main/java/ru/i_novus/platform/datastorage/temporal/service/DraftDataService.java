@@ -18,6 +18,7 @@ import java.util.List;
  * @author lgalimova
  * @since 31.01.2018
  */
+@SuppressWarnings("java:S3740")
 public interface DraftDataService {
 
     /**
