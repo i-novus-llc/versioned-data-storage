@@ -100,6 +100,27 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     @Override
+    @Transactional
+    public String applyDraftItself(String draftCode, LocalDateTime publishTime) {
+
+        if (!storageExists(draftCode))
+            throw new IllegalArgumentException("draft.table.does.not.exist");
+
+        List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
+        if (!fieldNames.isEmpty()) {
+            dataDao.dropTriggers(draftCode);
+        }
+
+        dataDao.addVersionedInformation(draftCode);
+
+        if (!fieldNames.isEmpty()) {
+            dataDao.createTriggers(draftCode, fieldNames);
+        }
+
+        return draftCode;
+    }
+
+    @Override
     public boolean storageExists(String storageCode) {
 
         return dataDao.storageExists(storageCode);
