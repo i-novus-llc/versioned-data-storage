@@ -24,7 +24,7 @@ public interface DraftDataService {
      * Создание черновика версии без данных.
      *
      * @param fields список полей
-     * @return Уникальный код черновика
+     * @return Уникальный код хранилища данных черновика
      */
     String createDraft(List<Field> fields);
 
@@ -32,7 +32,7 @@ public interface DraftDataService {
      * Создание черновика версии без данных.
      *
      * @param fields список полей
-     * @return Уникальный код черновика
+     * @return Уникальный код хранилища данных черновика
      */
     String createDraft(String schemaName, List<Field> fields);
 
