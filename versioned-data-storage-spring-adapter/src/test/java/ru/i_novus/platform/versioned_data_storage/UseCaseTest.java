@@ -28,8 +28,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptySet;
-import static java.util.Collections.singletonList;
+import static java.util.Collections.*;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -601,6 +600,18 @@ public class UseCaseTest {
         actualRows = searchDataService.getData(criteria);
         assertRows(rows, actualRows);
 
+    }
+
+    @Test
+    public void testApplyDraftItself() {
+
+        String draftCode = draftDataService.createDraft(emptyList());
+
+        LocalDateTime publishDate = now();
+        String appliedCode = draftDataService.applyDraftItself(draftCode, publishDate);
+        assertNotNull(appliedCode);
+
+        assertFalse(searchDataService.hasData(draftCode));
     }
 
     /*
