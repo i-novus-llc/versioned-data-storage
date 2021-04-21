@@ -62,6 +62,9 @@ public class UseCaseTest {
     @Autowired
     private CompareDataService compareDataService;
 
+    @Autowired
+    private StorageService storageService;
+
     private LocalDateTime now() {
         return LocalDateTime.now(UNIVERSAL_TIMEZONE);
     }
@@ -603,15 +606,23 @@ public class UseCaseTest {
     }
 
     @Test
-    public void testApplyDraftItself() {
+    public void testCreateStorage() {
 
-        String draftCode = draftDataService.createDraft(emptyList());
+        String storageCode = storageService.createStorage(emptyList());
+        assertNotNull(storageCode);
 
-        LocalDateTime publishDate = now();
-        String appliedCode = draftDataService.applyDraftItself(draftCode, publishDate);
-        assertNotNull(appliedCode);
+        assertFalse(searchDataService.hasData(storageCode));
+    }
 
-        assertFalse(searchDataService.hasData(draftCode));
+    @Test
+    public void testCreateStorageWithEmptyFields() {
+
+        Field idField = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+
+        String storageCode = storageService.createStorage(singletonList(idField));
+        assertNotNull(storageCode);
+
+        assertFalse(searchDataService.hasData(storageCode));
     }
 
     /*
