@@ -45,6 +45,11 @@ public class VersionedDataStorageConfig {
     }
 
     @Bean
+    public StorageService getStorageService() {
+        return new StorageServiceImpl(dataDao(), getDraftDataService());
+    }
+
+    @Bean
     public FieldFactory getFieldFactory(){
         return new FieldFactoryImpl();
     }
