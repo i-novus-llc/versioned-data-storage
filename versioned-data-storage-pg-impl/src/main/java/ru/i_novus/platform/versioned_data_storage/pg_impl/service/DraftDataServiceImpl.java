@@ -342,17 +342,20 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     private void createDraftTable(String draftCode, List<Field> fields) {
 
+        List<String> systemFieldNames = dataDao.getSystemFieldNames();
+        if (fields.stream().anyMatch(field -> systemFieldNames.contains(field.getName())))
+            throw new CodifiedException(SYS_FIELD_CONFLICT);
+
         // todo: Для Field.unique создавать индексы с уникальностью в рамках черновика.
         logger.debug("creating table with name: {}", draftCode);
         dataDao.createDraftTable(draftCode, fields);
 
-        List<String> fieldNames = fields.stream()
-                .map(QueryUtil::getHashUsedFieldName)
-                .filter(f -> !dataDao.getSystemFieldNames().contains(f))
-                .collect(toList());
-        Collections.sort(fieldNames);
-
         if (!fields.isEmpty()) {
+            List<String> fieldNames = fields.stream()
+                    .map(QueryUtil::getHashUsedFieldName)
+                    .collect(toList());
+            Collections.sort(fieldNames); // Sort is required to use applyDraft.
+
             dataDao.createTriggers(draftCode, fieldNames);
 
             for (Field field : fields) {
