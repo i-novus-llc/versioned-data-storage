@@ -61,15 +61,6 @@ public interface DraftDataService {
                       LocalDateTime publishTime, LocalDateTime closeTime);
 
     /**
-     * Преобразование черновика в версию.
-     *
-     * @param draftCode       код черновика
-     * @param publishTime     дата и время публикации черновика
-     * @return Уникальный код хранилища данных версии
-     */
-    String applyDraftItself(String draftCode, LocalDateTime publishTime);
-
-    /**
      * Проверка существования хранилища.
      *
      * @param storageCode код хранилища данных
