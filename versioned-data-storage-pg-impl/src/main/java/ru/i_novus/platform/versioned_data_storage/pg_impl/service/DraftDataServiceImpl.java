@@ -54,6 +54,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Override
     @Transactional
     public String createDraft(List<Field> fields) {
+
         return createDraft(null, fields);
     }
 
@@ -341,17 +342,20 @@ public class DraftDataServiceImpl implements DraftDataService {
 
     private void createDraftTable(String draftCode, List<Field> fields) {
 
+        List<String> systemFieldNames = dataDao.getSystemFieldNames();
+        if (fields.stream().anyMatch(field -> systemFieldNames.contains(field.getName())))
+            throw new CodifiedException(SYS_FIELD_CONFLICT);
+
         // todo: Для Field.unique создавать индексы с уникальностью в рамках черновика.
         logger.debug("creating table with name: {}", draftCode);
         dataDao.createDraftTable(draftCode, fields);
 
-        List<String> fieldNames = fields.stream()
-                .map(QueryUtil::getHashUsedFieldName)
-                .filter(f -> !dataDao.getSystemFieldNames().contains(f))
-                .collect(toList());
-        Collections.sort(fieldNames);
-
         if (!fields.isEmpty()) {
+            List<String> fieldNames = fields.stream()
+                    .map(QueryUtil::getHashUsedFieldName)
+                    .collect(toList());
+            Collections.sort(fieldNames); // Sort is required to use applyDraft.
+
             dataDao.createTriggers(draftCode, fieldNames);
 
             for (Field field : fields) {
@@ -405,7 +409,7 @@ public class DraftDataServiceImpl implements DraftDataService {
 
         Map<String, String> dataTypes = dataDao.getColumnDataTypes(versionCode);
         Map<String, String> typedNames = new LinkedHashMap<>();
-        fieldNames.forEach(column -> typedNames.put(column, dataTypes.get(column.replaceAll("\"", ""))));
+        fieldNames.forEach(column -> typedNames.put(column, dataTypes.get(column.replace("\"", ""))));
 
         BigInteger count = dataDao.countActualDataFromVersion(versionCode, draftCode, publishTime, closeTime);
         for (int offset = 0; offset < count.intValue(); offset += TRANSACTION_ROW_LIMIT) {
@@ -433,13 +437,14 @@ public class DraftDataServiceImpl implements DraftDataService {
      * есть пересечения по дате
      * нет SYS_HASH (из versionCode те, которых нет в draftCode
      */
+    @SuppressWarnings("I-novus:MethodNameWordCountRule")
     private void insertClosedNowDataFromVersion(String versionCode, String draftCode,
                                                 String targetCode, List<String> fieldNames,
                                                 LocalDateTime publishTime, LocalDateTime closeTime) {
 
         Map<String, String> dataTypes = dataDao.getColumnDataTypes(versionCode);
         Map<String, String> typedNames = new LinkedHashMap<>();
-        fieldNames.forEach(column -> typedNames.put(column, dataTypes.get(column.replaceAll("\"", ""))));
+        fieldNames.forEach(column -> typedNames.put(column, dataTypes.get(column.replace("\"", ""))));
 
         BigInteger count = dataDao.countClosedNowDataFromVersion(versionCode, draftCode, publishTime, closeTime);
         for (int offset = 0; offset < count.intValue(); offset += TRANSACTION_ROW_LIMIT) {
