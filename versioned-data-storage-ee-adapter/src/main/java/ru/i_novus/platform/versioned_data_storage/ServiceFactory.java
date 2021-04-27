@@ -40,6 +40,11 @@ public class ServiceFactory implements Serializable {
     }
 
     @Produces
+    public StorageService getStorageService() {
+        return new StorageServiceImpl(dataDao, getDraftDataService());
+    }
+
+    @Produces
     public FieldFactory getFieldFactory(){
         return new FieldFactoryImpl();
     }

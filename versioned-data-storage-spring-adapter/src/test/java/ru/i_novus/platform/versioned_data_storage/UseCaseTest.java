@@ -28,8 +28,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptySet;
-import static java.util.Collections.singletonList;
+import static java.util.Collections.*;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -62,6 +61,9 @@ public class UseCaseTest {
 
     @Autowired
     private CompareDataService compareDataService;
+
+    @Autowired
+    private StorageService storageService;
 
     private LocalDateTime now() {
         return LocalDateTime.now(UNIVERSAL_TIMEZONE);
@@ -601,6 +603,26 @@ public class UseCaseTest {
         actualRows = searchDataService.getData(criteria);
         assertRows(rows, actualRows);
 
+    }
+
+    @Test
+    public void testCreateStorage() {
+
+        String storageCode = storageService.createStorage(emptyList());
+        assertNotNull(storageCode);
+
+        assertFalse(searchDataService.hasData(storageCode));
+    }
+
+    @Test
+    public void testCreateStorageWithEmptyFields() {
+
+        Field idField = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);
+
+        String storageCode = storageService.createStorage(singletonList(idField));
+        assertNotNull(storageCode);
+
+        assertFalse(searchDataService.hasData(storageCode));
     }
 
     /*

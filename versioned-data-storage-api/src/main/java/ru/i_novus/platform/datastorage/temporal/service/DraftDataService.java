@@ -18,21 +18,23 @@ import java.util.List;
  * @author lgalimova
  * @since 31.01.2018
  */
+@SuppressWarnings({"rawtypes", "java:S3740"})
 public interface DraftDataService {
 
     /**
      * Создание черновика версии без данных.
      *
      * @param fields список полей
-     * @return Уникальный код черновика
+     * @return Уникальный код хранилища данных черновика
      */
     String createDraft(List<Field> fields);
 
     /**
-     * Создание черновика версии без данных.
+     * Создание черновика версии без данных на заданной схеме.
      *
-     * @param fields список полей
-     * @return Уникальный код черновика
+     * @param schemaName схема данных
+     * @param fields     список полей
+     * @return Уникальный код хранилища данных черновика
      */
     String createDraft(String schemaName, List<Field> fields);
 
