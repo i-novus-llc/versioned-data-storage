@@ -383,8 +383,15 @@ public class DataDaoImpl implements DataDao {
         String fieldName = field.getName();
         String escapedFieldName = escapeFieldName(alias, fieldName);
 
-        if (values == null || values.get(0) == null) {
+        if (values == null || values.get(0) == null ||
+                SearchTypeEnum.IS_NULL.equals(searchCriteria.getType())) {
+
             filters.add(" AND " + escapedFieldName + " IS NULL");
+            return;
+
+        } else if (SearchTypeEnum.IS_NOT_NULL.equals(searchCriteria.getType())) {
+
+            filters.add(" AND " + escapedFieldName + " IS NOT NULL");
             return;
         }
 
