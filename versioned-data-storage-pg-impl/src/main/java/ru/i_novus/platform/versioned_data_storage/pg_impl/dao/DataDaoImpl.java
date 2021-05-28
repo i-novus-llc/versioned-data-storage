@@ -1791,7 +1791,7 @@ public class DataDaoImpl implements DataDao {
 
         String nonPrimaryFieldsInequality = isEmpty(nonPrimaryFields)
                 ? " AND false "
-                : " AND (" + nonPrimaryFields.stream()
+                : " AND (" + nonPrimaryFields.stream() // not equals (but null equals to null)
                 .map(field -> escapeFieldName(oldAlias, field) +
                         " is distinct from " + escapeFieldName(newAlias, field))
                 .collect(joining(" OR ")) +
