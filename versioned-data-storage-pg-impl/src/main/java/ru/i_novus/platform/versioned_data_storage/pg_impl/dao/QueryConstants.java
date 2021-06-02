@@ -440,7 +440,7 @@ public class QueryConstants {
             "\n" +
             "      row.\"SYS_RECORDID\" \\:= nextval('${targetSequence}');\n" +
             "      INSERT INTO ${targetTable} (\"SYS_RECORDID\", ${strColumns}, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\")\n" +
-            "      SELECT \"SYS_RECORDID\", ${strColumns}, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\" " +
+            "      SELECT \"SYS_RECORDID\", ${rowColumns}, \"FTS\", \"SYS_HASH\", \"SYS_PUBLISHTIME\", \"SYS_CLOSETIME\" " +
             "        FROM data.merged_actual_rows('${strColumns}'\\:\\:text, row.\"SYS_HASH\", '${versionTable}'\\:\\:text,\n" +
             "                  to_timestamp('${publishTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone,\n" +
             "                  coalesce(to_timestamp('${closeTime}', 'YYYY-MM-DD HH24:MI:SS')\\:\\:timestamp without time zone, 'infinity'),\n" +
