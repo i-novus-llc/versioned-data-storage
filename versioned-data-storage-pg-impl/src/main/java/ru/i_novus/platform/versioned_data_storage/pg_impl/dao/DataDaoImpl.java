@@ -1572,6 +1572,7 @@ public class DataDaoImpl implements DataDao {
         String strColumns = toStrColumns(typedNames);
         String typedColumns = toTypedColumns(typedNames);
         String draftColumns = toAliasColumns(typedNames, DRAFT_TABLE_ALIAS + NAME_SEPARATOR);
+        String rowColumns = toAliasColumns(typedNames, ROW_TYPE_VAR_NAME + NAME_SEPARATOR);
 
         Map<String, String> map = new HashMap<>();
         map.put("draftColumns", draftColumns);
@@ -1587,6 +1588,7 @@ public class DataDaoImpl implements DataDao {
         map.put("targetSequence", escapeSchemaSequenceName(DATA_SCHEMA_NAME, targetTable));
         map.put("strColumns", strColumns);
         map.put("typedColumns", typedColumns);
+        map.put("rowColumns", rowColumns); // Сами данные берутся из черновика!
 
         String sql = substitute(INSERT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME, map);
 
