@@ -290,7 +290,7 @@ public class DataDaoImpl implements DataDao {
         Map<String, Object> params = new HashMap<>();
 
         String sqlByPublishDate = " AND date_trunc('second', %1$s.%2$s) <= :bdate \n" +
-                " AND (date_trunc('second', %1$s.%3$s) > :bdate or %1$s.%3$s is null) \n";
+                " AND (date_trunc('second', %1$s.%3$s) > :bdate OR %1$s.%3$s is null) \n";
         sql += String.format(sqlByPublishDate, alias,
                 addDoubleQuotes(SYS_PUBLISHTIME),
                 addDoubleQuotes(SYS_CLOSETIME));
