@@ -11,6 +11,10 @@
     <artifactId>versioned-data-storage-api</artifactId>
     <packaging>jar</packaging>
 
+    <properties>
+        <junit.version>4.12</junit.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>net.n2oapp.criteria</groupId>
@@ -26,6 +30,16 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-text</artifactId>
         </dependency>
+
+        <!-- Test -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- / Test -->
+
     </dependencies>
 
 </project>

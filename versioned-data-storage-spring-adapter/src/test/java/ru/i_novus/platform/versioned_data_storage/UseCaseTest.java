@@ -437,8 +437,7 @@ public class UseCaseTest {
 
         criteria = new StorageDataCriteria(storageCode, null, null, fields, emptySet(), "1");
         List<RowValue> searchExistingField = searchDataService.getData(criteria);
-        assertTrue(!searchExistingField.isEmpty());
-
+        assertFalse(searchExistingField.isEmpty());
     }
 
     /**
