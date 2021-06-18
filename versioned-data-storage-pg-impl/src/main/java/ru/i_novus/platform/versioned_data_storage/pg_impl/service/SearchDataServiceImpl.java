@@ -1,7 +1,6 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.service;
 
 import net.n2oapp.criteria.api.CollectionPage;
-import ru.i_novus.platform.datastorage.temporal.model.criteria.BaseDataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageDataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.SearchDataService;
@@ -29,13 +28,15 @@ public class SearchDataServiceImpl implements SearchDataService {
     @Override
     public CollectionPage<RowValue> getPagedData(StorageDataCriteria criteria) {
 
-        if (criteria.getCount() == null) {
-            BigInteger count = dataDao.getDataCount(criteria);
-            criteria.setCount(count.intValue());
-
-            if (BigInteger.ZERO.equals(count))
-                return new CollectionPage<>(criteria.getCount(), emptyList(), criteria);
+        Integer count = criteria.getCount();
+        if (count == null) {
+            BigInteger dataCount = dataDao.getDataCount(criteria);
+            count = dataCount.intValue();
+            criteria.setCount(count);
         }
+
+        if (count == 0)
+            return new CollectionPage<>(count, emptyList(), criteria);
 
         List<RowValue> data = dataDao.getData(criteria);
         return new CollectionPage<>(criteria.getCount(), data, criteria);
