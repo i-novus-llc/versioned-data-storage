@@ -10,13 +10,13 @@ import java.util.Objects;
  */
 public class Reference implements Serializable {
 
-    /** Код хранилища данных, на которое осуществляется ссылка. */
+    /** Код хранилища данных, на которое ведёт ссылка. */
     private String storageCode;
 
     /** Дата публикации версии. */
     private LocalDateTime date;
 
-    /** Поле, на которое осуществляется ссылка. */
+    /** Поле, на которое ведёт ссылка. */
     private String keyField;
 
     /** Поле, отображаемое в ссылке. */
