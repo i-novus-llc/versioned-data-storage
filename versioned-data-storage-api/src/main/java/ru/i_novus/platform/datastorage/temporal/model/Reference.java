@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 
 /**
+ * Ссылка на запись хранилища данных.
+ *
  * @author lgalimova
  * @since 06.06.2018
  */
@@ -13,7 +15,7 @@ public class Reference implements Serializable {
     /** Код хранилища данных, на которое ведёт ссылка. */
     private String storageCode;
 
-    /** Дата публикации версии. */
+    /** Дата публикации версии хранилища данных. */
     private LocalDateTime date;
 
     /** Поле, на которое ведёт ссылка. */
@@ -25,7 +27,10 @@ public class Reference implements Serializable {
     /** Формат отображения ссылки. */
     private DisplayExpression displayExpression;
 
-    /** Значение ключа связи. */
+    /** Хеш записи, на который ведёт ссылка. */
+    private String hash;
+
+    /** Значение ключа записи, на который ведёт ссылка. */
     private String value;
 
     /** Значение отображаемого значения. */
@@ -91,9 +96,16 @@ public class Reference implements Serializable {
         this.displayValue = displayValue;
     }
 
-    public Reference(String value, String displayValue) {
+    public Reference(String hash, String value, String displayValue) {
+
+        this.hash = hash;
         this.value = value;
         this.displayValue = displayValue;
+    }
+
+    public Reference(String value, String displayValue) {
+
+        this(null, value, displayValue);
     }
 
     public String getStorageCode() {
@@ -110,6 +122,14 @@ public class Reference implements Serializable {
 
     public String getDisplayField() {
         return displayField;
+    }
+
+    public String getHash() {
+        return hash;
+    }
+
+    public void setHash(String hash) {
+        this.hash = hash;
     }
 
     public String getValue() {
@@ -143,6 +163,7 @@ public class Reference implements Serializable {
                 Objects.equals(keyField, that.keyField) &&
                 Objects.equals(displayField, that.displayField) &&
                 Objects.equals(displayExpression, that.displayExpression) &&
+                Objects.equals(hash, that.hash) &&
                 Objects.equals(value, that.value) &&
                 Objects.equals(displayValue, that.displayValue);
     }
@@ -150,7 +171,7 @@ public class Reference implements Serializable {
     @Override
     public int hashCode() {
         return Objects.hash(storageCode, date, keyField,
-                displayField, displayExpression, value, displayValue);
+                displayField, displayExpression, hash, value, displayValue);
     }
 
     @Override
@@ -161,8 +182,9 @@ public class Reference implements Serializable {
                 ", keyField='" + keyField + '\'' +
                 ", displayField='" + displayField + '\'' +
                 ", displayExpression='" + displayExpression + '\'' +
-                ", value=" + value +
-                ", displayValue=" + displayValue +
+                (hash != null ? ", hash='" + hash + '\'' : "") +
+                (value != null ? ", value='" + value + '\'' : "") +
+                (displayValue != null ? ", displayValue='" + displayValue + '\'' : "") +
                 '}';
     }
 }
