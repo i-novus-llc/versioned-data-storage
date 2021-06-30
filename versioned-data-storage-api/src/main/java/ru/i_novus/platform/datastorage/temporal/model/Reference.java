@@ -24,7 +24,7 @@ public class Reference implements Serializable {
     /** Поле, отображаемое в ссылке. */
     private String displayField;
 
-    /** Формат отображения ссылки. */
+    /** Формат отображаемого значения ссылки. */
     private DisplayExpression displayExpression;
 
     /** Хеш записи, на который ведёт ссылка. */
@@ -33,7 +33,7 @@ public class Reference implements Serializable {
     /** Значение ключа записи, на который ведёт ссылка. */
     private String value;
 
-    /** Значение отображаемого значения. */
+    /** Отображаемое значение ссылки. */
     private String displayValue;
 
     public Reference() {
