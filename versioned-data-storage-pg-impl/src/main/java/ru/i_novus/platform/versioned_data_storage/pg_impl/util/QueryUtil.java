@@ -3,6 +3,7 @@ package ru.i_novus.platform.versioned_data_storage.pg_impl.util;
 import org.apache.commons.text.StringSubstitutor;
 import ru.i_novus.platform.datastorage.temporal.enums.ReferenceDisplayType;
 import ru.i_novus.platform.datastorage.temporal.model.*;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.FieldValuePartEnum;
 import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
@@ -18,8 +19,7 @@ import static java.util.stream.Collectors.toList;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.escapeFieldName;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addDoubleQuotes;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addSingleQuotes;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.*;
 
 /**
  * @author lgalimova
@@ -38,17 +38,20 @@ public class QueryUtil {
      * При получении всех данных необходимо использовать
      * совместно с {@link #toSelectedFields} при {@code detailed} = true.
      *
-     * @param fields список полей
-     * @param data   данные или список данных
+     * @param fields     список полей
+     * @param valueParts дополнительные части значений для составных полей
+     * @param data       данные или список данных
      * @return Список записей
      */
-    public static List<RowValue> toRowValues(List<Field> fields, List<Object> data) {
+    public static List<RowValue> toRowValues(List<Field> fields,
+                                             Set<FieldValuePartEnum> valueParts,
+                                             List<Object> data) {
 
         List<RowValue> result = new ArrayList<>(data.size());
         for (Object row : data) {
             LongRowValue rowValue = new LongRowValue();
             if (row instanceof Object[]) {
-                addToRowValue((Object[]) row, fields, rowValue);
+                addToRowValue((Object[]) row, fields, valueParts, rowValue);
 
             } else {
                 rowValue.getFieldValues().add(toFieldValue(fields.get(0), row));
@@ -58,17 +61,21 @@ public class QueryUtil {
         return result;
     }
 
-    private static void addToRowValue(Object[] row, List<Field> fields, LongRowValue rowValue) {
+    private static void addToRowValue(Object[] row, List<Field> fields,
+                                      Set<FieldValuePartEnum> valueParts,
+                                      LongRowValue rowValue) {
 
         Iterator<Field> fieldIterator = fields.iterator();
 
         int next = 0;
         while (next < row.length) {
-            next = addNextFieldValue(next, row, fieldIterator.next(), rowValue);
+            next = addNextFieldValue(next, row, fieldIterator.next(), valueParts, rowValue);
         }
     }
 
-    private static int addNextFieldValue(int i, Object[] row, Field field, LongRowValue rowValue) {
+    private static int addNextFieldValue(int i, Object[] row, Field field,
+                                         Set<FieldValuePartEnum> valueParts,
+                                         LongRowValue rowValue) {
 
         Object value = row[i];
 
@@ -80,16 +87,28 @@ public class QueryUtil {
 
         if (i == 1 && SYS_HASH.equals(field.getName())) { // SYS_HASH
 
-            rowValue.setHash(value != null ? value.toString() : null);
+            rowValue.setHash(stringFrom(value));
             return ++i;
         }
 
-        // FIELD
-        if (field instanceof ReferenceField && (i + 1 < row.length)) {
-            Object displayValue = row[i + 1];
-            value = new Reference(value != null ? value.toString() : null,
-                    displayValue != null ? displayValue.toString() : null);
-            i++;
+        // SPECIAL FIELDS:
+        if (field instanceof ReferenceField) {
+
+            Object hash = null;
+            if (valueParts.contains(FieldValuePartEnum.REFERENCE_HASH)) {
+
+                hash = (i + 1 < row.length) ? row[i + 1] : null;
+                i++;
+            }
+
+            Object displayValue = null;
+            if (valueParts.contains(FieldValuePartEnum.REFERENCE_DISPLAY_VALUE)) {
+
+                displayValue = (i + 1 < row.length) ? row[i + 1] : null;
+                i++;
+            }
+
+            value = new Reference(stringFrom(hash), stringFrom(value), stringFrom(displayValue));
         }
 
         rowValue.getFieldValues().add(toFieldValue(field, value));
@@ -274,26 +293,28 @@ public class QueryUtil {
 
     /**
      * Получение списка полей для запроса.
-     * 
-     * @param alias    псевдоним хранилища
-     * @param fields   список полей таблицы
-     * @param detailed отображение дополнительных частей составных полей
+     *
+     * @param alias      псевдоним хранилища
+     * @param fields     список полей таблицы
+     * @param valueParts дополнительные части значений для составных полей
      */
-    public static String toSelectedFields(String alias, List<Field> fields, boolean detailed) {
+    public static String toSelectedFields(String alias, List<Field> fields,
+                                          Set<FieldValuePartEnum> valueParts) {
 
         if (alias == null)
             alias = "";
 
         List<String> selectedFields = new ArrayList<>();
         for (Field<?> field : fields) {
-            toSelectedField(alias, field, fields.indexOf(field), detailed, selectedFields);
+            toSelectedField(alias, field, fields.indexOf(field), valueParts, selectedFields);
         }
 
         return String.join(", ", selectedFields);
     }
 
     private static void toSelectedField(String alias, Field<?> field, int index,
-                                        boolean detailed, List<String> selectedFields) {
+                                        Set<FieldValuePartEnum> valueParts,
+                                        List<String> selectedFields) {
 
         String selectedField = escapeFieldName(alias, field.getName());
 
@@ -303,7 +324,14 @@ public class QueryUtil {
                     " AS " + sqlFieldAlias(field, index, alias, REFERENCE_VALUE_NAME);
             selectedFields.add(queryValue);
 
-            if (detailed) {
+            if (valueParts.contains(FieldValuePartEnum.REFERENCE_HASH)) {
+                String queryHash = selectedField +
+                        REFERENCE_FIELD_VALUE_OPERATOR + addSingleQuotes(REFERENCE_HASH_NAME) +
+                        " AS " + sqlFieldAlias(field, index, alias, REFERENCE_HASH_NAME);
+                selectedFields.add(queryHash);
+            }
+
+            if (valueParts.contains(FieldValuePartEnum.REFERENCE_DISPLAY_VALUE)) {
                 String queryDisplayValue = selectedField +
                         REFERENCE_FIELD_VALUE_OPERATOR + addSingleQuotes(REFERENCE_DISPLAY_VALUE_NAME) +
                         " AS " + sqlFieldAlias(field, index, alias, REFERENCE_DISPLAY_VALUE_NAME);
