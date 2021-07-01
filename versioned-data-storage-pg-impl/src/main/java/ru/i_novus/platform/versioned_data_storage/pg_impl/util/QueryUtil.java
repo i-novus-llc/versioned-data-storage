@@ -13,6 +13,7 @@ import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
@@ -67,53 +68,63 @@ public class QueryUtil {
 
         Iterator<Field> fieldIterator = fields.iterator();
 
-        int next = 0;
-        while (next < row.length) {
-            next = addNextFieldValue(next, row, fieldIterator.next(), valueParts, rowValue);
+        final AtomicInteger next = new AtomicInteger(0);
+        while (next.get() < row.length) {
+            addNextFieldValue(next, row, fieldIterator.next(), valueParts, rowValue);
         }
     }
 
-    private static int addNextFieldValue(int i, Object[] row, Field field,
-                                         Set<FieldValuePartEnum> valueParts,
-                                         LongRowValue rowValue) {
-
+    private static void addNextFieldValue(AtomicInteger index,
+                                          Object[] row, Field field,
+                                          Set<FieldValuePartEnum> valueParts,
+                                          LongRowValue rowValue) {
+        int i = index.get();
         Object value = row[i];
 
         if (i == 0) { // SYS_RECORD_ID
 
             rowValue.setSystemId(value != null ? Long.parseLong(value.toString()) : null);
-            return ++i;
+            index.incrementAndGet();
+            return;
         }
 
         if (i == 1 && SYS_HASH.equals(field.getName())) { // SYS_HASH
 
             rowValue.setHash(stringFrom(value));
-            return ++i;
+            index.incrementAndGet();
+            return;
         }
 
         // SPECIAL FIELDS:
         if (field instanceof ReferenceField) {
 
-            Object hash = null;
-            if (valueParts.contains(FieldValuePartEnum.REFERENCE_HASH)) {
-
-                hash = (i + 1 < row.length) ? row[i + 1] : null;
-                i++;
-            }
-
-            Object displayValue = null;
-            if (valueParts.contains(FieldValuePartEnum.REFERENCE_DISPLAY_VALUE)) {
-
-                displayValue = (i + 1 < row.length) ? row[i + 1] : null;
-                i++;
-            }
-
-            value = new Reference(stringFrom(hash), stringFrom(value), stringFrom(displayValue));
+            value = getNextReference(index, row, value, valueParts);
         }
 
         rowValue.getFieldValues().add(toFieldValue(field, value));
 
-        return ++i;
+        index.incrementAndGet();
+    }
+
+    /** Формирование ссылки из полученных частей значений в записи. */
+    private static Reference getNextReference(AtomicInteger index,
+                                              Object[] row, Object value,
+                                              Set<FieldValuePartEnum> valueParts) {
+        Object hash = null;
+        if (valueParts.contains(FieldValuePartEnum.REFERENCE_HASH)) {
+
+            int i = index.incrementAndGet();
+            hash = (i < row.length) ? row[i] : null;
+        }
+
+        Object displayValue = null;
+        if (valueParts.contains(FieldValuePartEnum.REFERENCE_DISPLAY_VALUE)) {
+
+            int i = index.incrementAndGet();
+            displayValue = (i < row.length) ? row[i] : null;
+        }
+
+        return new Reference(stringFrom(hash), stringFrom(value), stringFrom(displayValue));
     }
 
     /** Получение наименования поля с кавычками для вычисления hash и fts. */
