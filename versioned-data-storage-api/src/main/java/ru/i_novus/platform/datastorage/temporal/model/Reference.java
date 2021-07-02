@@ -177,14 +177,19 @@ public class Reference implements Serializable {
     @Override
     public String toString() {
         return "Reference{" +
-                "storageCode='" + storageCode + '\'' +
-                ", date=" + date +
-                ", keyField='" + keyField + '\'' +
-                ", displayField='" + displayField + '\'' +
-                ", displayExpression='" + displayExpression + '\'' +
-                (hash != null ? ", hash='" + hash + '\'' : "") +
-                (value != null ? ", value='" + value + '\'' : "") +
-                (displayValue != null ? ", displayValue='" + displayValue + '\'' : "") +
+                valueOrEmpty("storageCode", storageCode) +
+                valueOrEmpty("date", date) +
+                valueOrEmpty("keyField", keyField) +
+                valueOrEmpty("displayField", displayField) +
+                valueOrEmpty("displayExpression", displayExpression) +
+                valueOrEmpty("hash", hash) +
+                valueOrEmpty("value", value) +
+                valueOrEmpty("displayValue", displayValue) +
                 '}';
+    }
+
+    private String valueOrEmpty(String name, Object value) {
+
+        return (value != null) ? (", " + name + "='" + value + '\'') : "";
     }
 }
