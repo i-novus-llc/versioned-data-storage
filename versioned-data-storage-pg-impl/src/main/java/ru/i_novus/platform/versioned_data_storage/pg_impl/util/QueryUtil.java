@@ -3,7 +3,6 @@ package ru.i_novus.platform.versioned_data_storage.pg_impl.util;
 import org.apache.commons.text.StringSubstitutor;
 import ru.i_novus.platform.datastorage.temporal.enums.ReferenceDisplayType;
 import ru.i_novus.platform.datastorage.temporal.model.*;
-import ru.i_novus.platform.datastorage.temporal.model.criteria.FieldValuePartEnum;
 import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
