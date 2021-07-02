@@ -65,8 +65,10 @@ public class DataDaoImpl implements DataDao {
 
         List<Field> fields = makeOutputFields(criteria, schemaName);
 
+        Set<FieldValuePartEnum> valueParts = EnumSet.allOf(FieldValuePartEnum.class);
+        String sqlFields = toSelectedFields(DEFAULT_TABLE_ALIAS, fields, valueParts);
+
         final String sqlFormat = "SELECT %1$s \n  FROM %2$s as %3$s ";
-        String sqlFields = QueryUtil.toSelectedFields(DEFAULT_TABLE_ALIAS, fields, true);
         String sql = String.format(sqlFormat, sqlFields, escapeTableName(schemaName, tableName), DEFAULT_TABLE_ALIAS);
 
         QueryWithParams queryWithParams = new QueryWithParams(sql);
@@ -86,7 +88,7 @@ public class DataDaoImpl implements DataDao {
 
         @SuppressWarnings("unchecked")
         List<Object> list = query.getResultList();
-        return makeResultRowValues(list, fields, criteria, schemaName);
+        return makeResultRowValues(list, fields, valueParts, criteria, schemaName);
     }
 
     /** Формирование списка полей, выводимых в результате запроса. */
@@ -107,9 +109,10 @@ public class DataDaoImpl implements DataDao {
     /** Формирование результата поиска из результата запроса. */
     @SuppressWarnings("UnusedParameter")
     protected List<RowValue> makeResultRowValues(List<Object> list, List<Field> fields,
+                                                 Set<FieldValuePartEnum> valueParts,
                                                  StorageDataCriteria criteria, String schemaName) {
 
-        return !isNullOrEmpty(list) ? toRowValues(fields, list) : emptyList();
+        return !isNullOrEmpty(list) ? toRowValues(fields, valueParts, list) : emptyList();
     }
 
     @Override
@@ -155,7 +158,9 @@ public class DataDaoImpl implements DataDao {
 
         List<Field> fields = columnDataTypesToFields(getColumnDataTypes(storageCode), fieldNames);
 
-        String sqlFields = QueryUtil.toSelectedFields(null, fields, true);
+        Set<FieldValuePartEnum> valueParts = EnumSet.allOf(FieldValuePartEnum.class);
+        String sqlFields = toSelectedFields(null, fields, valueParts);
+
         String sql = String.format(SELECT_ROWS_FROM_DATA_BY_FIELD_EQ,
                 sqlFields, schemaName, addDoubleQuotes(tableName),
                 addDoubleQuotes(SYS_PRIMARY_COLUMN), QUERY_VALUE_SUBST);
@@ -167,7 +172,7 @@ public class DataDaoImpl implements DataDao {
         if (isNullOrEmpty(list))
             return null;
 
-        RowValue row = toRowValues(fields, list).get(0);
+        RowValue row = toRowValues(fields, valueParts, list).get(0);
         row.setSystemId(systemId); // ??
         return row;
     }
@@ -180,17 +185,20 @@ public class DataDaoImpl implements DataDao {
 
         List<Field> fields = columnDataTypesToFields(getColumnDataTypes(storageCode), fieldNames);
 
-        String sqlFields = QueryUtil.toSelectedFields(null, fields, true);
+        Set<FieldValuePartEnum> valueParts = EnumSet.allOf(FieldValuePartEnum.class);
+        String sqlFields = toSelectedFields(null, fields, valueParts);
+
         String sql = String.format(SELECT_ROWS_FROM_DATA_BY_FIELD_EQ,
                 sqlFields, schemaName, addDoubleQuotes(tableName),
                 addDoubleQuotes(SYS_PRIMARY_COLUMN),
                 String.format(TO_ANY_BIGINT, QUERY_VALUE_SUBST));
+
         Query query = entityManager.createNativeQuery(sql);
         query.setParameter(1, valuesToDbArray(systemIds));
 
         @SuppressWarnings("unchecked")
         List<Object> list = query.getResultList();
-        return !isNullOrEmpty(list) ? toRowValues(fields, list) : emptyList();
+        return !isNullOrEmpty(list) ? toRowValues(fields, valueParts, list) : emptyList();
     }
 
     /** Преобразование набора наименований полей с типами в список полей. */
@@ -1772,8 +1780,9 @@ public class DataDaoImpl implements DataDao {
         String newSchemaName = toSchemaName(newStorageCode);
         String newTableName = toTableName(newStorageCode);
 
-        String oldDataFields = QueryUtil.toSelectedFields(oldAlias, criteria.getFields(), false);
-        String newDataFields = QueryUtil.toSelectedFields(newAlias, criteria.getFields(), false);
+        Set<FieldValuePartEnum> valueParts = EnumSet.noneOf(FieldValuePartEnum.class);
+        String oldDataFields = toSelectedFields(oldAlias, criteria.getFields(), valueParts);
+        String newDataFields = toSelectedFields(newAlias, criteria.getFields(), valueParts);
 
         String dataSelectFormat = "SELECT %1$s AS sysId1 \n %2$s\n, %3$s AS sysId2 \n %4$s \n";
         String dataSelect = String.format(dataSelectFormat,

@@ -18,6 +18,11 @@ public class StringUtils {
         return s == null || s.isEmpty();
     }
 
+    public static String stringFrom(Object value) {
+
+        return value != null ? value.toString() : null;
+    }
+
     public static String addDoubleQuotes(String source) {
         return "\"" + source + "\"";
     }
