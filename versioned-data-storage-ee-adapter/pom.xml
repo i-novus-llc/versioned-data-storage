@@ -5,7 +5,7 @@
     <parent>
         <groupId>ru.i-novus.components</groupId>
         <artifactId>versioned-data-storage</artifactId>
-        <version>3.15-SNAPSHOT</version>
+        <version>3.15</version>
     </parent>
 
     <artifactId>versioned-data-storage-ee-adapter</artifactId>
