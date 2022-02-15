@@ -412,42 +412,93 @@ public class DataDaoImpl implements DataDao {
         String indexedFieldName = fieldName + index;
 
         if (field instanceof IntegerField || field instanceof FloatField || field instanceof DateField) {
-            filters.add(" AND " + escapedFieldName +
-                    " IN (:" + indexedFieldName + ")");
+            filters.add(" AND " + escapedFieldName + " IN (:" + indexedFieldName + ")");
             params.put(indexedFieldName, values);
 
         } else if (field instanceof ReferenceField) {
-            // Использовать TO_ANY_BIGINT
-            filters.add(" AND " + escapedFieldName +
-                    REFERENCE_FIELD_VALUE_OPERATOR + addSingleQuotes(REFERENCE_VALUE_NAME) +
-                    " IN (:" + indexedFieldName + ")");
-            params.put(indexedFieldName, values.stream().map(Object::toString).collect(toList()));
+            toWhereClauseByReference(searchCriteria, escapedFieldName, indexedFieldName, values, filters, params);
 
         } else if (field instanceof TreeField) {
-            if (SearchTypeEnum.LESS.equals(searchCriteria.getType())) {
-                filters.add(" AND " + escapedFieldName +
-                        "@> (CAST(:" + indexedFieldName + " AS ltree[]))");
-                params.put(indexedFieldName, valuesToDbArray(values));
-            }
+            toWhereClauseByTree(searchCriteria, escapedFieldName, indexedFieldName, values, filters, params);
+
         } else if (field instanceof BooleanField) {
             if (values.size() == 1) {
                 String isValue = Boolean.TRUE.equals(values.get(0)) ? " IS TRUE " : " IS NOT TRUE";
                 filters.add(" AND " + escapedFieldName + isValue);
             }
+
         } else if (field instanceof StringField) {
-            if (SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && values.size() == 1) {
-                filters.add(" AND " + "lower(" + escapedFieldName + ") LIKE :" + indexedFieldName + "");
-                String value = values.get(0).toString().trim().toLowerCase();
-                params.put(indexedFieldName, LIKE_ESCAPE_MANY_CHAR + value + LIKE_ESCAPE_MANY_CHAR);
-            } else {
-                filters.add(" AND " + escapedFieldName + " IN (:" + indexedFieldName + ")");
-                params.put(indexedFieldName, values);
-            }
+            toWhereClauseByString(searchCriteria, escapedFieldName, indexedFieldName, values, filters, params);
+
         } else {
             params.put(indexedFieldName, values);
         }
     }
 
+    private void toWhereClauseByReference(FieldSearchCriteria searchCriteria, String escapedFieldName,
+                                          String indexedFieldName, List<? extends Serializable> values,
+                                          List<String> filters, Map<String, Object> params) {
+
+        if (SearchTypeEnum.REFERENCE.equals(searchCriteria.getType())) {
+
+            String referenceValue = escapedFieldName +
+                    REFERENCE_FIELD_VALUE_OPERATOR + addSingleQuotes(REFERENCE_VALUE_NAME);
+
+            filters.add(" AND " + referenceValue + " IN (:" + indexedFieldName + ")");
+            params.put(indexedFieldName, values.stream().map(Object::toString).collect(toList()));
+
+            return;
+        }
+
+        String referenceDisplayValue = escapedFieldName +
+                REFERENCE_FIELD_VALUE_OPERATOR + addSingleQuotes(REFERENCE_DISPLAY_VALUE_NAME);
+
+        if (SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && values.size() == 1) {
+
+            filters.add(" AND " + "lower(" + referenceDisplayValue + ") LIKE :" + indexedFieldName + "");
+            String value = values.get(0).toString().trim().toLowerCase();
+            params.put(indexedFieldName, LIKE_ESCAPE_MANY_CHAR + value + LIKE_ESCAPE_MANY_CHAR);
+
+        } else {
+
+            filters.add(" AND " + referenceDisplayValue + " IN (:" + indexedFieldName + ")");
+            params.put(indexedFieldName, values.stream().map(Object::toString).collect(toList()));
+        }
+    }
+
+    private void toWhereClauseByTree(FieldSearchCriteria searchCriteria, String escapedFieldName,
+                                     String indexedFieldName, List<? extends Serializable> values,
+                                     List<String> filters, Map<String, Object> params) {
+
+        if (SearchTypeEnum.MORE.equals(searchCriteria.getType())) {
+
+            filters.add(" AND " + escapedFieldName + "<@ (CAST(:" + indexedFieldName + " AS ltree[]))");
+            params.put(indexedFieldName, valuesToDbArray(values));
+
+        } else if (SearchTypeEnum.LESS.equals(searchCriteria.getType())) {
+
+            filters.add(" AND " + escapedFieldName + "@> (CAST(:" + indexedFieldName + " AS ltree[]))");
+            params.put(indexedFieldName, valuesToDbArray(values));
+        }
+    }
+
+    private void toWhereClauseByString(FieldSearchCriteria searchCriteria, String escapedFieldName,
+                                       String indexedFieldName, List<? extends Serializable> values,
+                                       List<String> filters, Map<String, Object> params) {
+
+        if (SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && values.size() == 1) {
+
+            filters.add(" AND " + "lower(" + escapedFieldName + ") LIKE :" + indexedFieldName + "");
+            String value = values.get(0).toString().trim().toLowerCase();
+            params.put(indexedFieldName, LIKE_ESCAPE_MANY_CHAR + value + LIKE_ESCAPE_MANY_CHAR);
+
+        } else {
+            filters.add(" AND " + escapedFieldName + " IN (:" + indexedFieldName + ")");
+            params.put(indexedFieldName, values);
+        }
+    }
+
+    /** Предварительная подготовка списка критериев поиска. */
     private Set<List<FieldSearchCriteria>> prepareFilters(Set<List<FieldSearchCriteria>> filters) {
 
         Set<List<FieldSearchCriteria>> set = new HashSet<>();
@@ -458,6 +509,7 @@ public class DataDaoImpl implements DataDao {
         return set;
     }
 
+    /** Перегруппировка списка критериев в соответствии с типом поиска для оптимизации запроса. */
     private List<FieldSearchCriteria> groupBySearchType(List<FieldSearchCriteria> list) {
 
         EnumMap<SearchTypeEnum, Map<String, FieldSearchCriteria>> typedGroup = new EnumMap<>(SearchTypeEnum.class);
