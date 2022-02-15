@@ -7,9 +7,15 @@ import org.slf4j.LoggerFactory;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffReturnTypeEnum;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
 import ru.i_novus.platform.datastorage.temporal.enums.ReferenceDisplayType;
-import ru.i_novus.platform.datastorage.temporal.model.*;
+import ru.i_novus.platform.datastorage.temporal.model.DataDifference;
+import ru.i_novus.platform.datastorage.temporal.model.Field;
+import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
+import ru.i_novus.platform.datastorage.temporal.model.Reference;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.*;
-import ru.i_novus.platform.datastorage.temporal.model.value.*;
+import ru.i_novus.platform.datastorage.temporal.model.value.DiffRowValue;
+import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
+import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
+import ru.i_novus.platform.datastorage.temporal.model.value.TreeFieldValue;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils;
@@ -359,19 +365,19 @@ public class DataDaoImpl implements DataDao {
         fieldFilters = prepareFilters(fieldFilters);
         AtomicInteger index = new AtomicInteger(0);
         sql += fieldFilters.stream().map(list -> {
-            if (isEmpty(list))
-                return null;
+                    if (isEmpty(list))
+                        return null;
 
-            List<String> filters = new ArrayList<>();
-            list.forEach(searchCriteria ->
-                toWhereClauseByFilter(searchCriteria, index.getAndIncrement(), alias, filters, params)
-            );
+                    List<String> filters = new ArrayList<>();
+                    list.forEach(searchCriteria ->
+                            toWhereClauseByFilter(searchCriteria, index.getAndIncrement(), alias, filters, params)
+                    );
 
-            if (filters.isEmpty())
-                return null;
+                    if (filters.isEmpty())
+                        return null;
 
-            return " true " + String.join(QUERY_NEW_LINE, filters);
-        })
+                    return " true " + String.join(QUERY_NEW_LINE, filters);
+                })
                 .filter(Objects::nonNull)
                 .collect(joining(" OR "));
 
