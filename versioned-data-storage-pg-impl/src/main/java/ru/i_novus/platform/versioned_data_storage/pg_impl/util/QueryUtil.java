@@ -18,8 +18,9 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.escapeFieldName;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.*;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addSingleQuotes;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.stringFrom;
 
 /**
  * @author lgalimova
@@ -129,7 +130,7 @@ public class QueryUtil {
     /** Получение наименования поля с кавычками для вычисления hash и fts. */
     public static String getHashUsedFieldName(Field field) {
 
-        String name = addDoubleQuotes(field.getName());
+        String name = escapeFieldName(null, field.getName());
 
         if (REFERENCE_FIELD_SQL_TYPE.equals(field.getType()))
             name += REFERENCE_FIELD_VALUE_OPERATOR + addSingleQuotes(REFERENCE_VALUE_NAME);
@@ -200,13 +201,15 @@ public class QueryUtil {
     /**
      * Преобразование списка наименований полей в наименования колонок с учётом псевдонима.
      *
+     * @param tableAlias псевдоним таблицы/записи
      * @param fieldNames список наименований полей
-     * @param alias      псевдоним
      * @return Наименования колонок
      */
-    public static String toAliasColumns(List<String> fieldNames, String alias) {
+    public static String toAliasColumns(String tableAlias, List<String> fieldNames) {
 
-        return fieldNames.stream().filter(Objects::nonNull).map(s -> alias + s).collect(joining(", "));
+        return fieldNames.stream().filter(Objects::nonNull)
+                .map(name -> aliasColumnName(tableAlias, name))
+                .collect(joining(", "));
     }
 
     /**
@@ -229,20 +232,22 @@ public class QueryUtil {
     public static String toTypedColumns(Map<String, String> typedNames) {
 
         return typedNames.keySet().stream().filter(Objects::nonNull)
-                .map(name -> name + " " + typedNames.get(name)).collect(joining(", "));
+                .map(name -> name + " " + typedNames.get(name))
+                .collect(joining(", "));
     }
 
     /**
      * Преобразование набора наименований полей с типами в наименования колонок с учётом псевдонима.
      *
+     * @param tableAlias псевдоним таблицы/записи
      * @param typedNames набор наименований полей с типами
-     * @param alias      псевдоним
      * @return Наименования колонок
      */
-    public static String toAliasColumns(Map<String, String> typedNames, String alias) {
+    public static String toAliasColumns(String tableAlias, Map<String, String> typedNames) {
 
         return typedNames.keySet().stream().filter(Objects::nonNull)
-                .map(s -> alias + s).collect(joining(", "));
+                .map(name -> aliasColumnName(tableAlias, name))
+                .collect(joining(", "));
     }
 
     /**
@@ -359,12 +364,12 @@ public class QueryUtil {
 
     private static String sqlFieldAlias(Field<?> field, int index, String prefix) {
 
-        return addDoubleQuotes(prefix + field.getName() + index);
+        return escapeCustomName(prefix + field.getName() + index);
     }
 
     private static String sqlFieldAlias(Field<?> field, int index, String prefix, String suffix) {
 
-        return addDoubleQuotes(prefix + field.getName() + index + "." + suffix);
+        return escapeCustomName(prefix + field.getName() + index + "." + suffix);
     }
 
     @SuppressWarnings("all")
@@ -462,11 +467,11 @@ public class QueryUtil {
     /**
      * Формирование sql-текста для значения отображаемого выражения.
      *
-     * @param displayField поле для получения отображаемого значения
      * @param tableAlias   таблица, к которой привязано поле
+     * @param displayField поле для получения отображаемого значения
      * @return Текст для подстановки в SQL
      */
-    public static String sqlFieldExpression(String displayField, String tableAlias) {
+    public static String sqlDisplayField(String tableAlias, String displayField) {
 
         return escapeFieldName(tableAlias, displayField);
     }
@@ -474,11 +479,11 @@ public class QueryUtil {
     /**
      * Формирование sql-текста для значения отображаемого выражения.
      *
-     * @param displayExpression выражение для вычисления отображаемого значения
      * @param tableAlias        таблица, к которой привязаны поля-placeholder`ы
+     * @param displayExpression выражение для вычисления отображаемого значения
      * @return Текст для подстановки в SQL
      */
-    public static String sqlDisplayExpression(DisplayExpression displayExpression, String tableAlias) {
+    public static String sqlDisplayExpression(String tableAlias, DisplayExpression displayExpression) {
 
         final String valueFormat = "' || coalesce(%1$s\\:\\:text, '%2$s') || '";
 

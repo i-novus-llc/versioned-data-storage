@@ -36,10 +36,9 @@ import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.*;
 import static ru.i_novus.platform.versioned_data_storage.DataTestUtils.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.HASH_EXPRESSION;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addDoubleQuotes;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addSingleQuotes;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -51,9 +50,6 @@ public class DataDaoTest {
 
     private static final String NEW_GOOD_SCHEMA_NAME = "data_good";
     private static final String NEW_BAD_SCHEMA_NAME = "data\"bad";
-
-    private static final String INSERT_RECORD = "INSERT INTO %1$s.%2$s (%3$s)\n";
-    private static final String INSERT_VALUES = "VALUES(%s)\n";
 
     private Field hashField;
 
@@ -124,14 +120,14 @@ public class DataDaoTest {
         String storageCode = toStorageCode(schemaName, tableName);
         assertFalse(dataDao.storageExists(storageCode));
 
-        String ddlFormat = "CREATE TABLE %1$s.%2$s (\n" +
-                "  " + addDoubleQuotes(SYS_PRIMARY_COLUMN) + " bigserial NOT NULL,\n" +
-                "  " + addDoubleQuotes(FIELD_ID_CODE) + " integer,\n" +
-                "  " + addDoubleQuotes(FIELD_NAME_CODE) + " varchar(32),\n" +
-                "  " + addDoubleQuotes(SYS_HASH) + " char(32)\n" +
+        String ddlFormat = "CREATE TABLE %1$s (\n" +
+                "  " + escapeSystemFieldName(null, SYS_PRIMARY_COLUMN) + " bigserial NOT NULL,\n" +
+                "  " + escapeFieldName(null, FIELD_ID_CODE) + " integer,\n" +
+                "  " + escapeFieldName(null, FIELD_NAME_CODE) + " varchar(32),\n" +
+                "  " + escapeSystemFieldName(null, SYS_HASH) + " char(32)\n" +
                 ");";
 
-        String ddl = String.format(ddlFormat, getSchemaNameOrDefault(schemaName), addDoubleQuotes(tableName));
+        String ddl = String.format(ddlFormat, escapeStorageTableName(storageCode));
         entityManager.createNativeQuery(ddl).executeUpdate();
         assertTrue(dataDao.storageExists(storageCode));
         assertTrue(dataDao.storageFieldExists(storageCode, FIELD_ID_CODE));
@@ -212,14 +208,13 @@ public class DataDaoTest {
         String storageCode = toStorageCode(schemaName, tableName);
         dataDao.createDraftTable(storageCode, fields);
 
-        String escapedTableName = addDoubleQuotes(tableName);
         String columns = fields.stream()
-                .map(field -> addDoubleQuotes(field.getName()))
+                .map(field -> escapeFieldName(null, field.getName()))
                 .reduce((s1, s2) -> s1 + ", " + s2).orElse("");
-        columns += ", " + addDoubleQuotes(SYS_HASH);
+        columns += ", " + escapeSystemFieldName(null, SYS_HASH);
 
-        String sqlValuesFormat = "%1$s" + ", " + String.format(HASH_EXPRESSION, "%1$s");
-        String sqlInsert = String.format(INSERT_RECORD, getSchemaNameOrDefault(schemaName), escapedTableName, columns) +
+        String sqlValuesFormat = "(%1$s" + ", " + String.format(HASH_EXPRESSION, "%1$s") + ")";
+        String sqlInsert = String.format(INSERT_RECORD, escapeStorageTableName(storageCode), columns) +
                 String.format(INSERT_VALUES, sqlValuesFormat);
         insertValues(sqlInsert, nameValues);
         List<RowValue> dataValues = dataDao.getData(toCriteria(storageCode, fields));

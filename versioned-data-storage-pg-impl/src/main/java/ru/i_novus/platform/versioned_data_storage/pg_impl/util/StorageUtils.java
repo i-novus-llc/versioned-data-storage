@@ -84,60 +84,91 @@ public class StorageUtils {
         return SCHEMA_NAME_PATTERN.matcher(schemaName).matches();
     }
 
+    /** Получение наименования схемы. */
     public static String getSchemaNameOrDefault(String schemaName) {
 
         return isNullOrEmpty(schemaName) ? DATA_SCHEMA_NAME : schemaName;
     }
 
+    /** Экранирование наименования таблицы на схеме. */
     public static String escapeTableName(String schemaName, String tableName) {
 
-        return getSchemaNameOrDefault(schemaName) + NAME_SEPARATOR + addDoubleQuotes(tableName);
+        return getSchemaNameOrDefault(schemaName) + NAME_SEPARATOR + escapeCustomName(tableName);
     }
 
+    /** Экранирование наименования таблицы хранилища. */
     public static String escapeStorageTableName(String storageCode) {
 
         return escapeTableName(toSchemaName(storageCode), toTableName(storageCode));
     }
 
+    /** Формирование полного наименования поля с псевдонимом таблицы. */
     public static String aliasColumnName(String tableAlias, String fieldName) {
 
         return tableAlias + NAME_SEPARATOR + fieldName;
     }
 
-    public static String escapeFieldName(String tableAlias, String fieldName) {
+    /** Экранирование системных наименований для SQL. */
+    public static String escapeSystemName(String name) {
 
-        String escapedFieldName = addDoubleQuotes(fieldName);
+        return addDoubleQuotes(name); // Просто обрамление кавычками!
+    }
+
+    /** Экранирование пользовательских наименований для SQL. */
+    public static String escapeCustomName(String name) {
+
+        return addDoubleQuotes(name); // todo: Заменить!
+    }
+
+    /** Экранирование наименования системного поля. */
+    public static String escapeSystemFieldName(String tableAlias, String fieldName) {
+
+        String escapedFieldName = escapeSystemName(fieldName);
         return isNullOrEmpty(tableAlias) ? escapedFieldName : aliasColumnName(tableAlias, escapedFieldName);
     }
 
+    /** Экранирование наименования пользовательского поля. */
+    public static String escapeFieldName(String tableAlias, String fieldName) {
+
+        String escapedFieldName = escapeCustomName(fieldName);
+        return isNullOrEmpty(tableAlias) ? escapedFieldName : aliasColumnName(tableAlias, escapedFieldName);
+    }
+
+    /** Формирование наименования последовательности для таблицы. */
     public static String tableSequenceName(String tableName) {
 
         return tableName + NAME_CONNECTOR + SYS_PRIMARY_COLUMN + TABLE_SEQUENCE_SUFFIX;
     }
 
+    /** Экранирование наименования последовательности для таблицы. */
     public static String escapeSequenceName(String tableName) {
 
-        return addDoubleQuotes(tableSequenceName(tableName));
+        return escapeCustomName(tableSequenceName(tableName));
     }
 
+    /** Экранирование наименования последовательности для таблицы на схеме. */
     public static String escapeSchemaSequenceName(String schemaName, String tableName) {
 
         return getSchemaNameOrDefault(schemaName) + NAME_SEPARATOR + escapeSequenceName(tableName);
     }
 
+    /** Экранирование наименования последовательности для хранилища. */
     public static String escapeStorageSequenceName(String storageCode) {
 
         return escapeSchemaSequenceName(toSchemaName(storageCode), toTableName(storageCode));
     }
 
+    /** Экранирование наименования индекса для таблицы. */
     public static String escapeTableIndexName(String tableName, String indexName) {
 
-        return addDoubleQuotes(tableName + NAME_CONNECTOR + indexName + TABLE_INDEX_SUFFIX);
+        return escapeCustomName(tableName + NAME_CONNECTOR + indexName);
     }
 
-    public static String escapeTableFunctionName(String tableName, String functionName) {
+    /** Экранирование наименования функции для хранилища. */
+    public static String escapeStorageFunctionName(String storageCode, String functionName) {
 
-        return addDoubleQuotes(tableName + NAME_CONNECTOR + functionName);
+        return toSchemaName(storageCode) + NAME_SEPARATOR +
+                escapeCustomName(toTableName(storageCode) + NAME_CONNECTOR + functionName);
     }
 
     /**
