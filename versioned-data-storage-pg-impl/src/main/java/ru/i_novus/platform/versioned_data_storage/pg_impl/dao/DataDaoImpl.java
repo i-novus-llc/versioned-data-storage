@@ -1963,7 +1963,7 @@ public class DataDaoImpl implements DataDao {
      */
     protected String getSchemaName(String schemaName) {
 
-        return getSchemaNameOrDefault(schemaName);
+        return escapeSchemaName(schemaName);
     }
 
     /**

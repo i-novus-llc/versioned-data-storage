@@ -261,7 +261,7 @@ public class DataDaoTest {
     private void testProcessData(String schemaName, String tableName,
                                  List<Field> fields, List<String> nameValues) {
 
-        logger.info("Starting: Process data for {}", getSchemaNameOrDefault(schemaName));
+        logger.info("Starting: Process data for {}", escapeSchemaName(schemaName));
 
         String storageCode = toStorageCode(schemaName, tableName);
         dataDao.createDraftTable(storageCode, fields);
@@ -310,7 +310,7 @@ public class DataDaoTest {
         dataDao.deleteData(storageCode);
         assertData(storageCode, fields, emptyList());
 
-        logger.info("Finishing: Process data for {}", getSchemaNameOrDefault(schemaName));
+        logger.info("Finishing: Process data for {}", escapeSchemaName(schemaName));
     }
 
     @SuppressWarnings("SameParameterValue")

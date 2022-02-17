@@ -9,10 +9,31 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUti
 
 public class StorageConstants {
 
+    // Наименование идентификатора.
+    // SQL identifiers and key words must begin with a letter
+    // (a-z, but also letters with diacritical marks and non-Latin letters) or an underscore (_).
+    // Subsequent characters in an identifier or key word can be
+    // letters, underscores, digits (0-9), or dollar signs ($).
+    // Note that dollar signs are not allowed in identifiers according
+    // to the letter of the SQL standard, so their use might render applications less portable.
+    // The SQL standard will not define a key word that contains digits or starts or ends with an underscore,
+    // so identifiers of this form are safe against possible conflict with future extensions of the standard.
+    // В postgres максимальная длина имени = NAMEDATALEN - 1 = 64 - 1 .
+    private static final String SQL_NAME_WRONG_CHAR_REGEX = "[^A-Za-z0-9_-]+";
+    public static final Pattern SQL_NAME_WRONG_CHAR_PATTERN = Pattern.compile(SQL_NAME_WRONG_CHAR_REGEX);
+    public static final String SQL_NAME_WRONG_CHAR_REPLACE = "";
+    private static final String SQL_NAME_FIRST_CHAR_REGEX = "[^A-Za-z_]";
+    public static final Pattern SQL_NAME_FIRST_CHAR_PATTERN = Pattern.compile(SQL_NAME_FIRST_CHAR_REGEX);
+    public static final String SQL_NAME_FIRST_CHAR_DEFAULT = "_";
+
     // Наименование схемы для хранилищ может быть только в нижнем регистре.
     // В postgres максимальная длина имени = NAMEDATALEN - 1 = 64 - 1 .
     private static final String SCHEMA_NAME_REGEX = "[a-z][a-z\\d_]{0,62}";
     public static final Pattern SCHEMA_NAME_PATTERN = Pattern.compile(SCHEMA_NAME_REGEX);
+
+    private static final String SCHEMA_NAME_WRONG_CHAR_REGEX = "[^A-Za-z0-9_]";
+    public static final Pattern SCHEMA_NAME_WRONG_CHAR_PATTERN = Pattern.compile(SCHEMA_NAME_WRONG_CHAR_REGEX);
+    public static final String SCHEMA_NAME_WRONG_CHAR_REPLACE = "0";
 
     public static final String CODE_SEPARATOR = ".";
 
