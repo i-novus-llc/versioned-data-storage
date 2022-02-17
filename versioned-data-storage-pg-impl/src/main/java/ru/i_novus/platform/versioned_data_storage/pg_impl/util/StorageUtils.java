@@ -27,11 +27,18 @@ public class StorageUtils {
         if (isNullOrEmpty(name))
             return "";
 
-        if (SQL_NAME_FIRST_CHAR_PATTERN.matcher(name.substring(0, 1)).matches()) {
-            name = SQL_NAME_FIRST_CHAR_DEFAULT + name;
-        }
+        return limitSqlName(name);
+    }
 
-        return name;
+    /**
+     * Ограничение наименования в SQL.
+     *
+     * @param name наименование
+     * @return Ограниченное наименование
+     */
+    public static String limitSqlName(String name) {
+
+        return (name.length() <= SQL_NAME_MAX_LENGTH) ? name : name.substring(0, SQL_NAME_MAX_LENGTH);
     }
 
     /**
@@ -46,8 +53,7 @@ public class StorageUtils {
             return "";
 
         String name = SCHEMA_NAME_WRONG_CHAR_PATTERN.matcher(text).replaceAll(SCHEMA_NAME_WRONG_CHAR_REPLACE);
-
-        return name.toLowerCase();
+        return limitSqlName(name.toLowerCase());
     }
 
     /** Экранирование системных наименований для SQL. */
