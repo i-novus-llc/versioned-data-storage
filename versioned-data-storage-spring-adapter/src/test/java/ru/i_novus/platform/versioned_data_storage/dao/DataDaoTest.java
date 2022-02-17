@@ -358,7 +358,7 @@ public class DataDaoTest {
 
     private String newTestTableName() {
 
-        return "data_test_" + generateStorageName();
+        return "test_table_" + generateStorageName();
     }
 
     private List<Field> newTestFields() {
