@@ -83,11 +83,11 @@ public class StorageUtils {
         if (isNullOrEmpty(storageCode))
             return DATA_SCHEMA_NAME;
 
-        int separatorIndex = storageCode.indexOf(CODE_SEPARATOR);
-        if (!(separatorIndex > 0))
+        int index = storageCode.indexOf(CODE_SEPARATOR);
+        if (!(index > 0))
             return DATA_SCHEMA_NAME;
 
-        String name = sqlSchemaName(storageCode.substring(0, separatorIndex));
+        String name = sqlSchemaName(storageCode.substring(0, index));
         return isNullOrEmpty(name) ? DATA_SCHEMA_NAME : name;
     }
 
@@ -102,8 +102,8 @@ public class StorageUtils {
         if (isNullOrEmpty(storageCode))
             return "";
 
-        int separatorIndex = storageCode.indexOf(CODE_SEPARATOR);
-        String name = (separatorIndex >= 0) ? storageCode.substring(separatorIndex + 1) : storageCode;
+        int index = storageCode.indexOf(CODE_SEPARATOR);
+        String name = (index >= 0) ? storageCode.substring(index + 1) : storageCode;
         if (isNullOrEmpty(name))
             return "";
 
@@ -141,7 +141,7 @@ public class StorageUtils {
      */
     public static boolean isValidSchemaName(String schemaName) {
 
-        return SCHEMA_NAME_PATTERN.matcher(schemaName).matches();
+        return !isNullOrEmpty(schemaName) && SCHEMA_NAME_PATTERN.matcher(schemaName).matches();
     }
 
     /** Экранирование наименования схемы. */
