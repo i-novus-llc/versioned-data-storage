@@ -70,8 +70,6 @@ public class StorageUtils {
 
         String result = sqlName(name);
         return addDoubleQuotes(result);
-
-        //return addDoubleQuotes(name); // todo: Заменить!
     }
 
     /**
