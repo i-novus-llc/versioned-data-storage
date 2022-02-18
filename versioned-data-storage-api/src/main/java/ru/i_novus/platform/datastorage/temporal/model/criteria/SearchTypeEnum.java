@@ -4,16 +4,31 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * Тип поиска значений поля.
+ *
  * @author lgalimova
  * @since 21.03.2017
- * MORE - using with Tree field, return all children
- * LESS - using with Tree field, return all parent
  */
 public enum SearchTypeEnum {
 
-    EXACT, LIKE,
-    MORE, LESS,
-    IS_NULL, IS_NOT_NULL
+    // Сравнение значений:
+    EXACT,          // на совпадение или на вхождение в список
+
+    // Сравнение по вхождению подстроки:
+    LIKE,           // обычное
+
+    // Специальное сравнение:
+    IS_NULL,        // на совпадение с null
+    IS_NOT_NULL,    // на несовпадение с null
+
+    // Сравнение для ссылок:
+    REFERENCE,      // по значению ключа записи, на который ведёт ссылка
+                    // (иначе - по отображаемому значению ссылки)
+
+    // Сравнение для дерева:
+    MORE,           // поиск по всем потомкам
+    LESS            // поиск по всем предкам
+
     ;
 
     private static final Map<String, SearchTypeEnum> TYPE_MAP = new HashMap<>();

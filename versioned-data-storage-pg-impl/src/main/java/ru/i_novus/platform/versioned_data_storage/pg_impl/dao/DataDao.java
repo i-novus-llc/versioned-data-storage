@@ -170,12 +170,12 @@ public interface DataDao {
     /** Добавление информации для версионирования. */
     void addVersionedInformation(String storageCode);
 
-    void addColumn(String storageCode, String name, String type, String defaultValue);
+    void addColumn(String storageCode, String fieldName, String fieldType, String defaultValue);
 
     /** Изменение типа данных поля. */
     void alterDataType(String storageCode, String fieldName, String oldType, String newType);
 
-    void deleteColumn(String storageCode, String name);
+    void deleteColumn(String storageCode, String fieldName);
 
     List<String> insertData(String storageCode, List<RowValue> data);
 
@@ -281,35 +281,35 @@ public interface DataDao {
                                 int offset, int limit,
                                 LocalDateTime publishTime, LocalDateTime closeTime);
 
-    BigInteger countActualDataFromVersion(String versionTable, String draftTable,
+    BigInteger countActualDataFromVersion(String versionCode, String draftCode,
                                           LocalDateTime publishTime, LocalDateTime closeTime);
 
-    void insertActualDataFromVersion(String targetTable, String versionTable,
-                                     String draftTable, Map<String, String> typedNames,
+    void insertActualDataFromVersion(String targetCode, String versionCode,
+                                     String draftCode, Map<String, String> typedNames,
                                      int offset, int limit,
                                      LocalDateTime publishTime, LocalDateTime closeTime);
 
-    BigInteger countOldDataFromVersion(String versionTable, String draftTable,
+    BigInteger countOldDataFromVersion(String versionCode, String draftCode,
                                        LocalDateTime publishTime, LocalDateTime closeTime);
 
-    void insertOldDataFromVersion(String targetTable, String versionTable,
-                                  String draftTable, List<String> fieldNames,
+    void insertOldDataFromVersion(String targetCode, String versionCode,
+                                  String draftCode, List<String> fieldNames,
                                   int offset, int limit,
                                   LocalDateTime publishTime, LocalDateTime closeTime);
 
-    BigInteger countClosedNowDataFromVersion(String versionTable, String draftTable,
+    BigInteger countClosedNowDataFromVersion(String versionCode, String draftCode,
                                              LocalDateTime publishTime, LocalDateTime closeTime);
 
-    void insertClosedNowDataFromVersion(String targetTable, String versionTable,
-                                        String draftTable, Map<String, String> typedNames,
+    void insertClosedNowDataFromVersion(String targetCode, String versionCode,
+                                        String draftCode, Map<String, String> typedNames,
                                         int offset, int limit,
                                         LocalDateTime publishTime, LocalDateTime closeTime);
 
-    BigInteger countNewValFromDraft(String draftTable, String versionTable,
+    BigInteger countNewValFromDraft(String draftCode, String versionCode,
                                     LocalDateTime publishTime, LocalDateTime closeTime);
 
-    void insertNewDataFromDraft(String targetTable, String versionTable,
-                                String draftTable,  List<String> fieldNames,
+    void insertNewDataFromDraft(String targetCode, String versionCode,
+                                String draftCode,  List<String> fieldNames,
                                 int offset, int limit,
                                 LocalDateTime publishTime, LocalDateTime closeTime);
 

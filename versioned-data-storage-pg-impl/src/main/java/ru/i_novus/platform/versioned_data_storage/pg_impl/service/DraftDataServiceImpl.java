@@ -33,7 +33,6 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.ExceptionCodes.
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.TRANSACTION_ROW_LIMIT;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addDoubleQuotes;
 
 /**
  * @author lgalimova
@@ -261,7 +260,7 @@ public class DraftDataServiceImpl implements DraftDataService {
             throw new CodifiedException(SYS_FIELD_CONFLICT);
 
         List<String> fieldNames = dataDao.getEscapedFieldNames(draftCode);
-        if (fieldNames.contains(addDoubleQuotes(field.getName())))
+        if (fieldNames.contains(escapeFieldName(field.getName())))
             throw new CodifiedException(COLUMN_ALREADY_EXISTS);
 
         dataDao.dropTriggers(draftCode);
@@ -299,7 +298,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     public void deleteField(String draftCode, String fieldName) {
 
         List<String> fieldNames = dataDao.getEscapedFieldNames(draftCode);
-        if (!fieldNames.contains(addDoubleQuotes(fieldName)))
+        if (!fieldNames.contains(escapeFieldName(fieldName)))
             throw new CodifiedException(COLUMN_NOT_EXISTS);
 
         dataDao.dropTriggers(draftCode);
@@ -390,7 +389,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     private void insertAllDataFromDraft(String draftCode, String targetCode, List<String> fieldNames,
                                         LocalDateTime publishTime, LocalDateTime closeTime) {
 
-        fieldNames.add(addDoubleQuotes(SYS_FTS));
+        fieldNames.add(escapeSystemFieldName(SYS_FTS));
 
         BigInteger count = dataDao.countData(draftCode);
         for (int offset = 0; offset < count.intValue(); offset += TRANSACTION_ROW_LIMIT) {

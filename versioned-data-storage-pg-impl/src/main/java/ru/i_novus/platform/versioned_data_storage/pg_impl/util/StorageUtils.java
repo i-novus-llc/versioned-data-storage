@@ -13,6 +13,66 @@ public class StorageUtils {
     }
 
     /**
+     * Преобразование текста в наименование, допустимое в SQL.
+     *
+     * @param text текст
+     * @return Наименование, допустимое в SQL
+     */
+    public static String sqlName(String text) {
+
+        if (isNullOrEmpty(text))
+            return "";
+
+        String name = SQL_NAME_WRONG_CHAR_PATTERN.matcher(text).replaceAll(SQL_NAME_WRONG_CHAR_REPLACE);
+        if (isNullOrEmpty(name))
+            return "";
+
+        return limitSqlName(name);
+    }
+
+    /**
+     * Ограничение наименования в SQL.
+     *
+     * @param name наименование
+     * @return Ограниченное наименование
+     */
+    public static String limitSqlName(String name) {
+
+        return (name.length() <= SQL_NAME_MAX_LENGTH) ? name : name.substring(0, SQL_NAME_MAX_LENGTH);
+    }
+
+    /**
+     * Преобразование текста в наименование схемы.
+     *
+     * @param text текст
+     * @return Наименование схемы
+     */
+    public static String sqlSchemaName(String text) {
+
+        if (isNullOrEmpty(text))
+            return "";
+
+        String name = SCHEMA_NAME_WRONG_CHAR_PATTERN.matcher(text).replaceAll(SCHEMA_NAME_WRONG_CHAR_REPLACE);
+        return limitSqlName(name.toLowerCase());
+    }
+
+    /** Экранирование системных наименований для SQL. */
+    public static String escapeSystemName(String name) {
+
+        return addDoubleQuotes(name); // Просто обрамление кавычками!
+    }
+
+    /** Экранирование пользовательских наименований для SQL. */
+    public static String escapeCustomName(String name) {
+
+        if (isNullOrEmpty(name))
+            return "";
+
+        String result = sqlName(name);
+        return addDoubleQuotes(result);
+    }
+
+    /**
      * Преобразование кода хранилища в наименование схемы.
      *
      * @param storageCode код хранилища
@@ -23,12 +83,12 @@ public class StorageUtils {
         if (isNullOrEmpty(storageCode))
             return DATA_SCHEMA_NAME;
 
-        int separatorIndex = storageCode.indexOf(CODE_SEPARATOR);
-        if (separatorIndex > 0) {
-            return storageCode.substring(0, separatorIndex);
-        }
+        int index = storageCode.indexOf(CODE_SEPARATOR);
+        if (!(index > 0))
+            return DATA_SCHEMA_NAME;
 
-        return DATA_SCHEMA_NAME;
+        String name = sqlSchemaName(storageCode.substring(0, index));
+        return isNullOrEmpty(name) ? DATA_SCHEMA_NAME : name;
     }
 
     /**
@@ -42,12 +102,12 @@ public class StorageUtils {
         if (isNullOrEmpty(storageCode))
             return "";
 
-        int separatorIndex = storageCode.indexOf(CODE_SEPARATOR);
-        if (separatorIndex >= 0) {
-            return storageCode.substring(separatorIndex + 1);
-        }
+        int index = storageCode.indexOf(CODE_SEPARATOR);
+        String name = (index >= 0) ? storageCode.substring(index + 1) : storageCode;
+        if (isNullOrEmpty(name))
+            return "";
 
-        return storageCode;
+        return isNullOrEmpty(name) ? "" : sqlName(name);
     }
 
     /**
@@ -81,63 +141,101 @@ public class StorageUtils {
      */
     public static boolean isValidSchemaName(String schemaName) {
 
-        return SCHEMA_NAME_PATTERN.matcher(schemaName).matches();
+        return !isNullOrEmpty(schemaName) && SCHEMA_NAME_PATTERN.matcher(schemaName).matches();
     }
 
-    public static String getSchemaNameOrDefault(String schemaName) {
+    /** Экранирование наименования схемы. */
+    public static String escapeSchemaName(String schemaName) {
 
-        return isNullOrEmpty(schemaName) ? DATA_SCHEMA_NAME : schemaName;
+        String name = sqlSchemaName(schemaName);
+        return isNullOrEmpty(name) ? DATA_SCHEMA_NAME : name;
     }
 
+    /** Экранирование наименования таблицы на схеме. */
     public static String escapeTableName(String schemaName, String tableName) {
 
-        return getSchemaNameOrDefault(schemaName) + NAME_SEPARATOR + addDoubleQuotes(tableName);
+        return escapeSchemaName(schemaName) + NAME_SEPARATOR + escapeCustomName(tableName);
     }
 
+    /** Экранирование наименования таблицы хранилища. */
     public static String escapeStorageTableName(String storageCode) {
 
         return escapeTableName(toSchemaName(storageCode), toTableName(storageCode));
     }
 
+    /** Формирование полного наименования поля с псевдонимом таблицы. */
     public static String aliasColumnName(String tableAlias, String fieldName) {
 
         return tableAlias + NAME_SEPARATOR + fieldName;
     }
 
-    public static String escapeFieldName(String tableAlias, String fieldName) {
+    /** Формирование наименования поля с типом. */
+    public static String typedColumnName(String fieldName, String fieldType) {
 
-        String escapedFieldName = addDoubleQuotes(fieldName);
+        return fieldName + " " + fieldType;
+    }
+
+    /** Экранирование наименования системного поля. */
+    public static String escapeSystemFieldName(String fieldName) {
+
+        return escapeSystemName(fieldName);
+    }
+
+    /** Экранирование наименования системного поля с учётом псевдонима таблицы. */
+    public static String aliasSystemFieldName(String tableAlias, String fieldName) {
+
+        String escapedFieldName = escapeSystemFieldName(fieldName);
         return isNullOrEmpty(tableAlias) ? escapedFieldName : aliasColumnName(tableAlias, escapedFieldName);
     }
 
+    /** Экранирование наименования пользовательского поля. */
+    public static String escapeFieldName(String fieldName) {
+
+        return escapeCustomName(fieldName);
+    }
+
+    /** Экранирование наименования пользовательского поля с учётом псевдонима таблицы. */
+    public static String aliasFieldName(String tableAlias, String fieldName) {
+
+        String escapedFieldName = escapeFieldName(fieldName);
+        return isNullOrEmpty(tableAlias) ? escapedFieldName : aliasColumnName(tableAlias, escapedFieldName);
+    }
+
+    /** Формирование наименования последовательности для таблицы. */
     public static String tableSequenceName(String tableName) {
 
         return tableName + NAME_CONNECTOR + SYS_PRIMARY_COLUMN + TABLE_SEQUENCE_SUFFIX;
     }
 
+    /** Экранирование наименования последовательности для таблицы. */
     public static String escapeSequenceName(String tableName) {
 
-        return addDoubleQuotes(tableSequenceName(tableName));
+        return escapeCustomName(tableSequenceName(tableName));
     }
 
+    /** Экранирование наименования последовательности для таблицы на схеме. */
     public static String escapeSchemaSequenceName(String schemaName, String tableName) {
 
-        return getSchemaNameOrDefault(schemaName) + NAME_SEPARATOR + escapeSequenceName(tableName);
+        return escapeSchemaName(schemaName) + NAME_SEPARATOR + escapeSequenceName(tableName);
     }
 
+    /** Экранирование наименования последовательности для хранилища. */
     public static String escapeStorageSequenceName(String storageCode) {
 
         return escapeSchemaSequenceName(toSchemaName(storageCode), toTableName(storageCode));
     }
 
+    /** Экранирование наименования индекса для таблицы. */
     public static String escapeTableIndexName(String tableName, String indexName) {
 
-        return addDoubleQuotes(tableName + NAME_CONNECTOR + indexName + TABLE_INDEX_SUFFIX);
+        return escapeCustomName(tableName + NAME_CONNECTOR + indexName);
     }
 
-    public static String escapeTableFunctionName(String tableName, String functionName) {
+    /** Экранирование наименования функции для хранилища. */
+    public static String escapeStorageFunctionName(String storageCode, String functionName) {
 
-        return addDoubleQuotes(tableName + NAME_CONNECTOR + functionName);
+        return toSchemaName(storageCode) + NAME_SEPARATOR +
+                escapeCustomName(toTableName(storageCode) + NAME_CONNECTOR + functionName);
     }
 
     /**
