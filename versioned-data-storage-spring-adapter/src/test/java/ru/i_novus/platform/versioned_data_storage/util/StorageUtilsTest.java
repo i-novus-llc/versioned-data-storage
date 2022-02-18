@@ -36,7 +36,10 @@ public class StorageUtilsTest {
 
     private static final String TEST_SCHEMA_NAME = "test_schema";
     private static final String TEST_TABLE_NAME = "test-table";
+    private static final String DATA_STORAGE_CODE = DATA_SCHEMA_NAME + CODE_SEPARATOR + TEST_TABLE_NAME;
     private static final String TEST_STORAGE_CODE = TEST_SCHEMA_NAME + CODE_SEPARATOR + TEST_TABLE_NAME;
+    private static final String DATA_SCHEMA_TABLE_NAME = DATA_SCHEMA_NAME + NAME_SEPARATOR + '"' + TEST_TABLE_NAME + '"';
+    private static final String TEST_SCHEMA_TABLE_NAME = TEST_SCHEMA_NAME + NAME_SEPARATOR + '"' + TEST_TABLE_NAME + '"';
 
     @Test
     public void testSqlName() {
@@ -101,6 +104,8 @@ public class StorageUtilsTest {
         assertEquals(DATA_SCHEMA_NAME, toSchemaName(""));
 
         assertEquals(DATA_SCHEMA_NAME, toSchemaName(TEST_TABLE_NAME));
+        assertEquals(DATA_SCHEMA_NAME, toSchemaName(TEST_TABLE_NAME));
+        assertEquals(DATA_SCHEMA_NAME, toSchemaName(DATA_STORAGE_CODE));
         assertEquals(DATA_SCHEMA_NAME, toSchemaName(CODE_SEPARATOR + TEST_TABLE_NAME));
         assertEquals(TEST_SCHEMA_NAME, toSchemaName(TEST_STORAGE_CODE));
 
@@ -116,6 +121,7 @@ public class StorageUtilsTest {
         assertEquals("", toTableName(""));
 
         assertEquals(TEST_TABLE_NAME, toTableName(TEST_TABLE_NAME));
+        assertEquals(TEST_TABLE_NAME, toTableName(DATA_STORAGE_CODE));
         assertEquals(TEST_TABLE_NAME, toTableName(CODE_SEPARATOR + TEST_TABLE_NAME));
         assertEquals(TEST_TABLE_NAME, toTableName(TEST_STORAGE_CODE));
 
@@ -171,5 +177,25 @@ public class StorageUtilsTest {
         );
 
         assertTrue(escapeSchemaName(VERY_LONG_NAME).length() <= SQL_NAME_MAX_LENGTH);
+    }
+
+    @Test
+    public void testEscapeTableName() {
+
+        assertEquals(DATA_SCHEMA_TABLE_NAME, escapeTableName(null, TEST_TABLE_NAME));
+        assertEquals(DATA_SCHEMA_TABLE_NAME, escapeTableName("", TEST_TABLE_NAME));
+
+        assertEquals(DATA_SCHEMA_TABLE_NAME, escapeTableName(DATA_SCHEMA_NAME, TEST_TABLE_NAME));
+        assertEquals(TEST_SCHEMA_TABLE_NAME, escapeTableName(TEST_SCHEMA_NAME, TEST_TABLE_NAME));
+    }
+
+    @Test
+    public void testEscapeStorageTableName() {
+
+        assertEquals(DATA_SCHEMA_TABLE_NAME, escapeStorageTableName(TEST_TABLE_NAME));
+        assertEquals(DATA_SCHEMA_TABLE_NAME, escapeStorageTableName(TEST_TABLE_NAME));
+
+        assertEquals(DATA_SCHEMA_TABLE_NAME, escapeStorageTableName(DATA_STORAGE_CODE));
+        assertEquals(TEST_SCHEMA_TABLE_NAME, escapeStorageTableName(TEST_STORAGE_CODE));
     }
 }
