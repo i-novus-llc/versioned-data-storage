@@ -170,16 +170,28 @@ public class StorageUtils {
     }
 
     /** Экранирование наименования системного поля. */
-    public static String escapeSystemFieldName(String tableAlias, String fieldName) {
+    public static String escapeSystemFieldName(String fieldName) {
 
-        String escapedFieldName = escapeSystemName(fieldName);
+        return escapeSystemName(fieldName);
+    }
+
+    /** Экранирование наименования системного поля с учётом псевдонима таблицы. */
+    public static String aliasSystemFieldName(String tableAlias, String fieldName) {
+
+        String escapedFieldName = escapeSystemFieldName(fieldName);
         return isNullOrEmpty(tableAlias) ? escapedFieldName : aliasColumnName(tableAlias, escapedFieldName);
     }
 
     /** Экранирование наименования пользовательского поля. */
-    public static String escapeFieldName(String tableAlias, String fieldName) {
+    public static String escapeFieldName(String fieldName) {
 
-        String escapedFieldName = escapeCustomName(fieldName);
+        return escapeCustomName(fieldName);
+    }
+
+    /** Экранирование наименования пользовательского поля с учётом псевдонима таблицы. */
+    public static String aliasFieldName(String tableAlias, String fieldName) {
+
+        String escapedFieldName = escapeFieldName(fieldName);
         return isNullOrEmpty(tableAlias) ? escapedFieldName : aliasColumnName(tableAlias, escapedFieldName);
     }
 

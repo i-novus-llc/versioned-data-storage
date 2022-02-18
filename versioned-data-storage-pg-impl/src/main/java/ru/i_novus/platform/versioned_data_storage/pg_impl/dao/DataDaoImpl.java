@@ -171,7 +171,7 @@ public class DataDaoImpl implements DataDao {
 
         String sql = String.format(SELECT_ROWS_FROM_DATA_BY_FIELD_EQ,
                 sqlFields, escapeTableName(schemaName, tableName),
-                escapeSystemFieldName(null, SYS_PRIMARY_COLUMN), QUERY_VALUE_SUBST);
+                escapeSystemFieldName(SYS_PRIMARY_COLUMN), QUERY_VALUE_SUBST);
 
         @SuppressWarnings("unchecked")
         List<Object> list = entityManager.createNativeQuery(sql)
@@ -198,7 +198,7 @@ public class DataDaoImpl implements DataDao {
 
         String sql = String.format(SELECT_ROWS_FROM_DATA_BY_FIELD_EQ,
                 sqlFields, escapeTableName(schemaName, tableName),
-                escapeSystemFieldName(null, SYS_PRIMARY_COLUMN),
+                escapeSystemFieldName(SYS_PRIMARY_COLUMN),
                 String.format(TO_ANY_BIGINT, QUERY_VALUE_SUBST));
 
         Query query = entityManager.createNativeQuery(sql);
@@ -231,7 +231,7 @@ public class DataDaoImpl implements DataDao {
 
         final String sqlFormat = "SELECT %1$s \n  FROM %2$s as %3$s ";
         String sql = String.format(sqlFormat,
-                escapeSystemFieldName(null, SYS_HASH),
+                escapeSystemFieldName(SYS_HASH),
                 escapeStorageTableName(storageCode),
                 DEFAULT_TABLE_ALIAS) +
                 " WHERE true \n";
@@ -308,12 +308,12 @@ public class DataDaoImpl implements DataDao {
         String sqlByPublishDate = " AND date_trunc('second', %1$s.%2$s) <= :bdate \n" +
                 " AND (date_trunc('second', %1$s.%3$s) > :bdate OR %1$s.%3$s is null) \n";
         sql += String.format(sqlByPublishDate, alias,
-                escapeSystemFieldName(null, SYS_PUBLISHTIME),
-                escapeSystemFieldName(null, SYS_CLOSETIME));
+                escapeSystemFieldName(SYS_PUBLISHTIME),
+                escapeSystemFieldName(SYS_CLOSETIME));
         params.put("bdate", publishDate.truncatedTo(ChronoUnit.SECONDS));
 
         String sqlByCloseDate = " AND (date_trunc('second', %1$s.%2$s) >= :edate OR %1$s.%2$s is null) \n";
-        sql += String.format(sqlByCloseDate, alias, escapeSystemFieldName(null, SYS_CLOSETIME));
+        sql += String.format(sqlByCloseDate, alias, escapeSystemFieldName(SYS_CLOSETIME));
 
         closeDate = closeDate == null ? PG_MAX_TIMESTAMP : closeDate;
         params.put("edate", closeDate.truncatedTo(ChronoUnit.SECONDS));
@@ -331,7 +331,7 @@ public class DataDaoImpl implements DataDao {
         Map<String, Object> params = new HashMap<>();
 
         // full text search
-        String escapedFtsColumn = escapeFieldName(alias, SYS_FTS);
+        String escapedFtsColumn = aliasFieldName(alias, SYS_FTS);
         if (SEARCH_DATE_PATTERN.matcher(search).matches()) {
             sql += " AND (" +
                     escapedFtsColumn + " @@ to_tsquery(:search) or " +
@@ -397,7 +397,7 @@ public class DataDaoImpl implements DataDao {
         List<? extends Serializable> values = searchCriteria.getValues();
 
         String fieldName = field.getName();
-        String escapedFieldName = escapeFieldName(alias, fieldName);
+        String escapedFieldName = aliasFieldName(alias, fieldName);
 
         if (values == null || values.get(0) == null ||
                 SearchTypeEnum.IS_NULL.equals(searchCriteria.getType())) {
@@ -539,7 +539,7 @@ public class DataDaoImpl implements DataDao {
             return null;
 
         Map<String, Object> params = new HashMap<>();
-        String escapedColumn = escapeFieldName(alias, SYS_HASH);
+        String escapedColumn = aliasFieldName(alias, SYS_HASH);
 
         String sql;
         if (hashList.size() > 1) {
@@ -561,7 +561,7 @@ public class DataDaoImpl implements DataDao {
             return null;
 
         Map<String, Object> params = new HashMap<>();
-        String escapedColumn = escapeFieldName(alias, SYS_PRIMARY_COLUMN);
+        String escapedColumn = aliasFieldName(alias, SYS_PRIMARY_COLUMN);
 
         String sql;
         if (systemIds.size() > 1) {
@@ -602,14 +602,14 @@ public class DataDaoImpl implements DataDao {
     /** Получение части сортировки по полю. */
     private String toOrderBy(String alias, Sorting sorting) {
 
-        return " " + escapeFieldName(alias, sorting.getField()) +
+        return " " + aliasFieldName(alias, sorting.getField()) +
                 " " + sorting.getDirection().toString();
     }
 
     /** Получение части сортировки по первичному ключу. */
     private String toPrimaryOrderBy(String alias) {
 
-        return " " + escapeSystemFieldName(alias, SYS_PRIMARY_COLUMN);
+        return " " + aliasSystemFieldName(alias, SYS_PRIMARY_COLUMN);
     }
 
     /** Получение сортировки по умолчанию. */
@@ -724,7 +724,7 @@ public class DataDaoImpl implements DataDao {
         String tableFields = "";
         if (!isNullOrEmpty(fields)) {
             tableFields = fields.stream()
-                    .map(f -> escapeFieldName(null, f.getName()) + " " + f.getType())
+                    .map(f -> escapeFieldName(f.getName()) + " " + f.getType())
                     .collect(joining(", \n")) + ", \n";
         }
 
@@ -762,7 +762,7 @@ public class DataDaoImpl implements DataDao {
 
         String sqlSelect = String.format(SELECT_PRIMARY_MAX,
                 escapeStorageTableName(storageCode),
-                escapeSystemFieldName(null, SYS_PRIMARY_COLUMN));
+                escapeSystemFieldName(SYS_PRIMARY_COLUMN));
 
         String sql = String.format(UPDATE_TABLE_SEQUENCE, escapeStorageSequenceName(storageCode), sqlSelect);
         entityManager.createNativeQuery(sql).executeUpdate();
@@ -790,7 +790,7 @@ public class DataDaoImpl implements DataDao {
                 .collect(joining(", "));
 
         String expression = String.format(HASH_EXPRESSION, hashedFields);
-        String triggerBody = escapeSystemFieldName(TRIGGER_NEW_ALIAS, SYS_HASH) + " = " + expression;
+        String triggerBody = aliasSystemFieldName(TRIGGER_NEW_ALIAS, SYS_HASH) + " = " + expression;
 
         String ddl = String.format(CREATE_TRIGGER,
                 escapeStorageTableName(storageCode),
@@ -808,7 +808,7 @@ public class DataDaoImpl implements DataDao {
                 .map(field -> aliasColumnName(TRIGGER_NEW_ALIAS, field))
                 .map(field -> "coalesce( to_tsvector('ru', " + field + "\\:\\:text),'')")
                 .collect(joining(" || ' ' || "));
-        String triggerBody = escapeSystemFieldName(TRIGGER_NEW_ALIAS, SYS_FTS) + " = " + expression;
+        String triggerBody = aliasSystemFieldName(TRIGGER_NEW_ALIAS, SYS_FTS) + " = " + expression;
 
         String ddl = String.format(CREATE_TRIGGER,
                 escapeStorageTableName(storageCode),
@@ -866,7 +866,7 @@ public class DataDaoImpl implements DataDao {
     public void updateHashRows(String storageCode, List<String> fieldNames) {
 
         String expression = String.format(HASH_EXPRESSION, String.join(", ", fieldNames));
-        String ddlAssign = escapeSystemFieldName(null, SYS_HASH) + " = " + expression;
+        String ddlAssign = escapeSystemFieldName(SYS_HASH) + " = " + expression;
 
         String ddl = String.format(UPDATE_FIELD, escapeStorageTableName(storageCode), ddlAssign);
         entityManager.createNativeQuery(ddl).executeUpdate();
@@ -879,7 +879,7 @@ public class DataDaoImpl implements DataDao {
         String expression = fieldNames.stream()
                 .map(field -> "coalesce( to_tsvector('ru', " + field + "\\:\\:text),'')")
                 .collect(joining(" || ' ' || "));
-        String ddlAssign = escapeSystemFieldName(null, SYS_FTS) + " = " + expression;
+        String ddlAssign = escapeSystemFieldName(SYS_FTS) + " = " + expression;
 
         String ddl = String.format(UPDATE_FIELD, escapeStorageTableName(storageCode), ddlAssign);
         entityManager.createNativeQuery(ddl).executeUpdate();
@@ -900,7 +900,7 @@ public class DataDaoImpl implements DataDao {
     public void createFieldsIndex(String storageCode, String indexName, List<String> fieldNames) {
 
         String expression = fieldNames.stream()
-                .map(name -> StorageUtils.escapeFieldName(null, name))
+                .map(StorageUtils::escapeFieldName)
                 .collect(joining(","));
 
         String ddl = String.format(CREATE_TABLE_INDEX,
@@ -923,7 +923,7 @@ public class DataDaoImpl implements DataDao {
                 indexName,
                 escapeStorageTableName(storageCode),
                 "", // no using clause
-                escapeSystemFieldName(null, SYS_HASH));
+                escapeSystemFieldName(SYS_HASH));
         entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
@@ -937,7 +937,7 @@ public class DataDaoImpl implements DataDao {
                 indexName,
                 escapeStorageTableName(storageCode),
                 TABLE_INDEX_FTS_USING,
-                escapeSystemFieldName(null, SYS_FTS));
+                escapeSystemFieldName(SYS_FTS));
         entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
@@ -951,7 +951,7 @@ public class DataDaoImpl implements DataDao {
                 indexName,
                 escapeStorageTableName(storageCode),
                 TABLE_INDEX_LTREE_USING,
-                escapeFieldName(null, fieldName));
+                escapeFieldName(fieldName));
         entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
@@ -988,7 +988,7 @@ public class DataDaoImpl implements DataDao {
         String sourceSchema = toSchemaName(sourceCode);
         String sourceTable = toTableName(sourceCode);
 
-        final String notLikeIndexes = LIKE_ESCAPE_MANY_CHAR + escapeSystemFieldName(null, SYS_HASH) + LIKE_ESCAPE_MANY_CHAR;
+        final String notLikeIndexes = LIKE_ESCAPE_MANY_CHAR + escapeSystemFieldName(SYS_HASH) + LIKE_ESCAPE_MANY_CHAR;
         String sql = SELECT_DDL_INDEXES + AND_DDL_INDEX_NOT_LIKE;
         List<String> ddlIndexes = entityManager.createNativeQuery(sql)
                 .setParameter(BIND_INFO_SCHEMA_NAME, sourceSchema)
@@ -1016,7 +1016,7 @@ public class DataDaoImpl implements DataDao {
 
         String ddlAddPrimaryKey = String.format(ALTER_ADD_PRIMARY_KEY,
                 escapeStorageTableName(storageCode),
-                escapeSystemFieldName(null, SYS_PRIMARY_COLUMN));
+                escapeSystemFieldName(SYS_PRIMARY_COLUMN));
         entityManager.createNativeQuery(ddlAddPrimaryKey).executeUpdate();
     }
 
@@ -1028,7 +1028,7 @@ public class DataDaoImpl implements DataDao {
 
         String ddlAlterColumn = String.format(ALTER_SET_SEQUENCE_FOR_PRIMARY_KEY,
                 escapeStorageTableName(storageCode),
-                escapeSystemFieldName(null, SYS_PRIMARY_COLUMN),
+                escapeSystemFieldName(SYS_PRIMARY_COLUMN),
                 escapeStorageSequenceName(storageCode)
         );
         entityManager.createNativeQuery(ddlAlterColumn).executeUpdate();
@@ -1050,7 +1050,7 @@ public class DataDaoImpl implements DataDao {
     @Transactional
     public void addColumn(String storageCode, String fieldName, String fieldType, String defaultValue) {
 
-        String escapedFieldName = escapeFieldName(null, fieldName);
+        String escapedFieldName = escapeFieldName(fieldName);
         String condition = (defaultValue != null) ? "DEFAULT " + defaultValue : "";
 
         String ddl = String.format(ALTER_ADD_COLUMN,
@@ -1066,7 +1066,7 @@ public class DataDaoImpl implements DataDao {
         if (Objects.equals(oldType, newType))
             return;
 
-        String escapedFieldName = escapeFieldName(null, fieldName);
+        String escapedFieldName = escapeFieldName(fieldName);
         String using = useFieldNameByType(escapedFieldName, oldType, newType);
 
         String ddl = String.format(ALTER_COLUMN_WITH_USING,
@@ -1080,7 +1080,8 @@ public class DataDaoImpl implements DataDao {
     public void deleteColumn(String storageCode, String fieldName) {
 
         String ddl = String.format(ALTER_DELETE_COLUMN,
-                escapeStorageTableName(storageCode), escapeFieldName(null, fieldName));
+                escapeStorageTableName(storageCode),
+                escapeFieldName(fieldName));
         entityManager.createNativeQuery(ddl).executeUpdate();
     }
 
@@ -1096,7 +1097,7 @@ public class DataDaoImpl implements DataDao {
 
         List<FieldValue> fieldValues = (List<FieldValue>) data.get(0).getFieldValues();
         String insertKeys = fieldValues.stream()
-                .map(fieldValue -> escapeFieldName(null, fieldValue.getField()))
+                .map(fieldValue -> escapeFieldName(fieldValue.getField()))
                 .collect(joining(","));
 
         List<String> substList = data.stream()
@@ -1148,8 +1149,7 @@ public class DataDaoImpl implements DataDao {
         String sql = String.format(INSERT_RECORD,
                 escapeTableName(schemaName, tableName), insertKeys) +
                 String.format(INSERT_VALUES, insertSubsts) +
-                "RETURNING " + escapeSystemFieldName(null, SYS_HASH
-        );
+                "RETURNING " + escapeSystemFieldName(SYS_HASH);
         Query query = entityManager.createNativeQuery(sql);
 
         int i = 1;
@@ -1210,7 +1210,7 @@ public class DataDaoImpl implements DataDao {
         String sql = String.format(REFERENCE_VALUATION_SELECT_EXPRESSION,
                 escapeStorageTableName(refStorageCode),
                 REFERENCE_VALUATION_SELECT_TABLE_ALIAS,
-                escapeFieldName(REFERENCE_VALUATION_SELECT_TABLE_ALIAS, refValue.getKeyField()),
+                aliasFieldName(REFERENCE_VALUATION_SELECT_TABLE_ALIAS, refValue.getKeyField()),
                 sqlExpression,
                 valueSubst,
                 getFieldType(refStorageCode, refValue.getKeyField()),
@@ -1225,16 +1225,16 @@ public class DataDaoImpl implements DataDao {
 
         String updateKeys = ((List<FieldValue>) rowValue.getFieldValues()).stream()
                 .map(fieldValue -> {
-                    String escapedFieldName = escapeFieldName(null, fieldValue.getField());
+                    String escapedFieldName = escapeFieldName(fieldValue.getField());
                     String substValue = toUpdateValueSubst(toSchemaName(storageCode), fieldValue);
                     return escapedFieldName + " = " + substValue;
                 })
                 .collect(joining(","));
 
-        String condition = escapeFieldName(BASE_TABLE_ALIAS, SYS_PRIMARY_COLUMN) + " = " + QUERY_VALUE_SUBST;
+        String condition = aliasFieldName(BASE_TABLE_ALIAS, SYS_PRIMARY_COLUMN) + " = " + QUERY_VALUE_SUBST;
         String sql = String.format(UPDATE_RECORD,
                 escapeStorageTableName(storageCode), BASE_TABLE_ALIAS, updateKeys, condition) +
-                "RETURNING " + escapeSystemFieldName(null, SYS_HASH);
+                "RETURNING " + escapeSystemFieldName(SYS_HASH);
         Query query = entityManager.createNativeQuery(sql);
 
         int i = 1;
@@ -1300,7 +1300,7 @@ public class DataDaoImpl implements DataDao {
 
         String sql = String.format(DELETE_RECORD, escapeTableName(schemaName, tableName)) +
                 " WHERE " + where.getSql() +
-                "RETURNING " + escapeSystemFieldName(null, SYS_HASH);
+                "RETURNING " + escapeSystemFieldName(SYS_HASH);
         Query query = entityManager.createNativeQuery(sql);
         where.fillQueryParameters(query);
 
@@ -1330,13 +1330,13 @@ public class DataDaoImpl implements DataDao {
         if (getReferenceDisplayType(fieldValue.getValue()) == null)
             return;
 
-        String escapedFieldName = escapeFieldName(null, fieldValue.getField());
-        String oldFieldName = escapeFieldName(REFERENCE_VALUATION_UPDATE_TABLE_ALIAS, fieldValue.getField());
+        String escapedFieldName = escapeFieldName(fieldValue.getField());
+        String oldFieldName = aliasFieldName(REFERENCE_VALUATION_UPDATE_TABLE_ALIAS, fieldValue.getField());
         String oldFieldValue = String.format(REFERENCE_VALUATION_OLD_VALUE, oldFieldName);
         String key = escapedFieldName + " = " +
                 getReferenceValuationSelect(toSchemaName(storageCode), fieldValue, oldFieldValue);
 
-        String condition = escapeFieldName(REFERENCE_VALUATION_UPDATE_TABLE_ALIAS, SYS_PRIMARY_COLUMN) +
+        String condition = aliasFieldName(REFERENCE_VALUATION_UPDATE_TABLE_ALIAS, SYS_PRIMARY_COLUMN) +
                 " = " + String.format(TO_ANY_BIGINT, QUERY_VALUE_SUBST);
         String sql = String.format(UPDATE_RECORD,
                 escapeStorageTableName(storageCode), REFERENCE_VALUATION_UPDATE_TABLE_ALIAS, key, condition);
@@ -1360,7 +1360,7 @@ public class DataDaoImpl implements DataDao {
         Map<String, String> map = new HashMap<>();
         map.put("versionTable", escapeTableName(schemaName, tableName));
         map.put("versionAlias", VERSION_TABLE_ALIAS);
-        map.put("refFieldName", escapeFieldName(null, fieldValue.getField()));
+        map.put("refFieldName", escapeFieldName(fieldValue.getField()));
 
         String sql = substitute(COUNT_REFERENCE_IN_REF_ROWS, map);
         BigInteger count = (BigInteger) entityManager.createNativeQuery(sql).getSingleResult();
@@ -1378,20 +1378,20 @@ public class DataDaoImpl implements DataDao {
 
         String schemaName = toSchemaName(storageCode);
 
-        String oldFieldExpression = escapeFieldName(REFERENCE_VALUATION_UPDATE_TABLE_ALIAS, fieldValue.getField());
+        String oldFieldExpression = aliasFieldName(REFERENCE_VALUATION_UPDATE_TABLE_ALIAS, fieldValue.getField());
         String oldFieldValue = String.format(REFERENCE_VALUATION_OLD_VALUE, oldFieldExpression);
-        String updateKey = escapeFieldName(null, fieldValue.getField()) + " = " +
+        String updateKey = escapeFieldName(fieldValue.getField()) + " = " +
                 getReferenceValuationSelect(schemaName, fieldValue, oldFieldValue);
 
         Map<String, String> map = new HashMap<>();
         map.put("versionTable", escapeStorageTableName(storageCode));
         map.put("versionAlias", VERSION_TABLE_ALIAS);
-        map.put("refFieldName", escapeFieldName(null, fieldValue.getField()));
+        map.put("refFieldName", escapeFieldName(fieldValue.getField()));
         map.put("limit", "" + limit);
         map.put("offset", "" + offset);
 
         String select = substitute(SELECT_REFERENCE_IN_REF_ROWS, map);
-        String condition = escapeFieldName(REFERENCE_VALUATION_UPDATE_TABLE_ALIAS, SYS_PRIMARY_COLUMN) +
+        String condition = aliasFieldName(REFERENCE_VALUATION_UPDATE_TABLE_ALIAS, SYS_PRIMARY_COLUMN) +
                 " IN (" + select + ")";
         String sql = String.format(UPDATE_RECORD,
                 escapeStorageTableName(storageCode), REFERENCE_VALUATION_UPDATE_TABLE_ALIAS, updateKey, condition);
@@ -1476,7 +1476,7 @@ public class DataDaoImpl implements DataDao {
         String sql = String.format(IS_FIELD_NOT_NULL,
                 escapeStorageTableName(storageCode),
                 DEFAULT_TABLE_ALIAS,
-                escapeFieldName(DEFAULT_TABLE_ALIAS, fieldName)
+                aliasFieldName(DEFAULT_TABLE_ALIAS, fieldName)
         );
         return (boolean) entityManager.createNativeQuery(sql).getSingleResult();
     }
@@ -1487,7 +1487,7 @@ public class DataDaoImpl implements DataDao {
         String sql = String.format(IS_FIELD_CONTAIN_NULL_VALUES,
                 escapeStorageTableName(storageCode),
                 DEFAULT_TABLE_ALIAS,
-                escapeFieldName(DEFAULT_TABLE_ALIAS, fieldName)
+                aliasFieldName(DEFAULT_TABLE_ALIAS, fieldName)
         );
         return (boolean) entityManager.createNativeQuery(sql).getSingleResult();
     }
@@ -1496,7 +1496,7 @@ public class DataDaoImpl implements DataDao {
     public boolean isUnique(String storageCode, List<String> fieldNames, LocalDateTime publishTime) {
 
         String fields = fieldNames.stream()
-                .map(name -> escapeFieldName(null, name) + "\\:\\:text")
+                .map(name -> escapeFieldName(name) + "\\:\\:text")
                 .collect(joining(", "));
         String groupBy = IntStream.rangeClosed(1, fieldNames.size())
                 .mapToObj(String::valueOf)
@@ -1788,8 +1788,8 @@ public class DataDaoImpl implements DataDao {
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void deletePointRows(String targetCode) {
 
-        String condition = escapeSystemFieldName(null, SYS_PUBLISHTIME) + " = " +
-                escapeSystemFieldName(null, SYS_CLOSETIME);
+        String condition = escapeSystemFieldName(SYS_PUBLISHTIME) + " = " +
+                escapeSystemFieldName(SYS_CLOSETIME);
 
         String sql = String.format(DELETE_RECORD, escapeStorageTableName(targetCode)) +
                 " WHERE " + condition;
@@ -1824,14 +1824,14 @@ public class DataDaoImpl implements DataDao {
 
         String dataSelectFormat = "SELECT %1$s AS sysId1 \n %2$s\n, %3$s AS sysId2 \n %4$s \n";
         String dataSelect = String.format(dataSelectFormat,
-                escapeFieldName(oldAlias, SYS_PRIMARY_COLUMN),
+                aliasFieldName(oldAlias, SYS_PRIMARY_COLUMN),
                 StringUtils.isNullOrEmpty(oldDataFields) ? "" : ", " + oldDataFields,
-                escapeFieldName(newAlias, SYS_PRIMARY_COLUMN),
+                aliasFieldName(newAlias, SYS_PRIMARY_COLUMN),
                 StringUtils.isNullOrEmpty(newDataFields) ? "" : ", " + newDataFields);
 
         String primaryEquality = criteria.getPrimaryFields().stream()
-                .map(field -> escapeFieldName(oldAlias, field ) +
-                        " = " + escapeFieldName(newAlias, field))
+                .map(field -> aliasFieldName(oldAlias, field ) +
+                        " = " + aliasFieldName(newAlias, field))
                 .collect(joining(" AND ")) + QUERY_NEW_LINE;
 
         Map<String, Object> params = new HashMap<>();
@@ -1841,16 +1841,16 @@ public class DataDaoImpl implements DataDao {
         String nonPrimaryFieldsInequality = isEmpty(nonPrimaryFields)
                 ? " AND false "
                 : " AND (" + nonPrimaryFields.stream() // not equals (but null equals to null)
-                .map(field -> escapeFieldName(oldAlias, field) +
-                        " is distinct from " + escapeFieldName(newAlias, field))
+                .map(field -> aliasFieldName(oldAlias, field) +
+                        " is distinct from " + aliasFieldName(newAlias, field))
                 .collect(joining(" OR ")) +
                 ") ";
 
         String oldPrimaryIsNull = criteria.getPrimaryFields().stream()
-                .map(field -> escapeFieldName(oldAlias, field) + " is null ")
+                .map(field -> aliasFieldName(oldAlias, field) + " is null ")
                 .collect(joining(" AND "));
         String newPrimaryIsNull = criteria.getPrimaryFields().stream()
-                .map(field -> escapeFieldName(newAlias, field ) + " is null ")
+                .map(field -> aliasFieldName(newAlias, field ) + " is null ")
                 .collect(joining(" AND "));
 
         final String datesFilterFormat =
@@ -1860,8 +1860,8 @@ public class DataDaoImpl implements DataDao {
         String oldVersionDateFilter = "";
         if (criteria.getOldPublishDate() != null || criteria.getOldCloseDate() != null) {
             oldVersionDateFilter = String.format(datesFilterFormat,
-                    escapeFieldName(oldAlias, SYS_PUBLISHTIME), "oldPublishDate",
-                    escapeFieldName(oldAlias, SYS_CLOSETIME), "oldCloseDate");
+                    aliasFieldName(oldAlias, SYS_PUBLISHTIME), "oldPublishDate",
+                    aliasFieldName(oldAlias, SYS_CLOSETIME), "oldCloseDate");
             params.put("oldPublishDate", truncateDateTo(criteria.getOldPublishDate(), ChronoUnit.SECONDS, MIN_TIMESTAMP_VALUE));
             params.put("oldCloseDate", truncateDateTo(criteria.getOldCloseDate(), ChronoUnit.SECONDS, PG_MAX_TIMESTAMP));
         }
@@ -1869,8 +1869,8 @@ public class DataDaoImpl implements DataDao {
         String newVersionDateFilter = "";
         if (criteria.getNewPublishDate() != null || criteria.getNewCloseDate() != null) {
             newVersionDateFilter = String.format(datesFilterFormat,
-                    escapeFieldName(newAlias, SYS_PUBLISHTIME), "newPublishDate",
-                    escapeFieldName(newAlias, SYS_CLOSETIME), "newCloseDate");
+                    aliasFieldName(newAlias, SYS_PUBLISHTIME), "newPublishDate",
+                    aliasFieldName(newAlias, SYS_CLOSETIME), "newCloseDate");
             params.put("newPublishDate", truncateDateTo(criteria.getNewPublishDate(), ChronoUnit.SECONDS, MIN_TIMESTAMP_VALUE));
             params.put("newCloseDate", truncateDateTo(criteria.getNewCloseDate(), ChronoUnit.SECONDS, PG_MAX_TIMESTAMP));
         }
@@ -1913,13 +1913,13 @@ public class DataDaoImpl implements DataDao {
 
         String orderBy = " ORDER BY " +
                 criteria.getPrimaryFields().stream()
-                        .map(field -> escapeFieldName(newAlias, field))
+                        .map(field -> aliasFieldName(newAlias, field))
                         .collect(joining(", ")) + ", " +
                 criteria.getPrimaryFields().stream()
-                        .map(field -> escapeFieldName(oldAlias, field))
+                        .map(field -> aliasFieldName(oldAlias, field))
                         .collect(joining(", ")) + ", " +
-                escapeFieldName(newAlias, SYS_PRIMARY_COLUMN) + ", " +
-                escapeFieldName(oldAlias, SYS_PRIMARY_COLUMN);
+                aliasFieldName(newAlias, SYS_PRIMARY_COLUMN) + ", " +
+                aliasFieldName(oldAlias, SYS_PRIMARY_COLUMN);
 
         QueryWithParams dataQueryWithParams = new QueryWithParams(dataSelect + sql + orderBy, params);
         Query dataQuery = dataQueryWithParams.createQuery(entityManager)

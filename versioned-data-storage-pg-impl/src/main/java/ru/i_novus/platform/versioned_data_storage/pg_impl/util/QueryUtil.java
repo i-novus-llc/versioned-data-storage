@@ -130,7 +130,7 @@ public class QueryUtil {
     /** Получение наименования поля с кавычками для вычисления hash и fts. */
     public static String getHashUsedFieldName(Field field) {
 
-        String name = escapeFieldName(null, field.getName());
+        String name = escapeFieldName(field.getName());
 
         if (REFERENCE_FIELD_SQL_TYPE.equals(field.getType()))
             name += REFERENCE_FIELD_VALUE_OPERATOR + addSingleQuotes(REFERENCE_VALUE_NAME);
@@ -331,7 +331,7 @@ public class QueryUtil {
                                         Set<FieldValuePartEnum> valueParts,
                                         List<String> selectedFields) {
 
-        String selectedField = escapeFieldName(alias, field.getName());
+        String selectedField = aliasFieldName(alias, field.getName());
 
         if (field instanceof ReferenceField) {
             String queryValue = selectedField +
@@ -473,7 +473,7 @@ public class QueryUtil {
      */
     public static String sqlDisplayField(String tableAlias, String displayField) {
 
-        return escapeFieldName(tableAlias, displayField);
+        return aliasFieldName(tableAlias, displayField);
     }
 
     /**
@@ -490,7 +490,7 @@ public class QueryUtil {
         Map<String, Object> map = new HashMap<>();
         for (Map.Entry<String, String> e : displayExpression.getPlaceholders().entrySet()) {
             String value = e.getValue() == null ? "" : e.getValue();
-            value = String.format(valueFormat, escapeFieldName(tableAlias, e.getKey()), value);
+            value = String.format(valueFormat, aliasFieldName(tableAlias, e.getKey()), value);
             map.put(e.getKey(), value);
         }
 

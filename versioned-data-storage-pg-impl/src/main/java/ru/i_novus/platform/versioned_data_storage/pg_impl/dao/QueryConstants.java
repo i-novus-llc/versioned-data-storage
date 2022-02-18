@@ -3,7 +3,7 @@ package ru.i_novus.platform.versioned_data_storage.pg_impl.dao;
 import java.time.format.DateTimeFormatter;
 
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.escapeSystemFieldName;
+import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.aliasSystemFieldName;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addSingleQuotes;
 
 /**
@@ -254,7 +254,7 @@ public class QueryConstants {
     static final String REFERENCE_VALUATION_SELECT_EXPRESSION = "select jsonb_build_object(" +
             addSingleQuotes(REFERENCE_VALUE_NAME) + ", %3$s, " +
             addSingleQuotes(REFERENCE_DISPLAY_VALUE_NAME) + ", %4$s, " +
-            addSingleQuotes(REFERENCE_HASH_NAME) + ", " + escapeSystemFieldName("%2$s", SYS_HASH) +
+            addSingleQuotes(REFERENCE_HASH_NAME) + ", " + aliasSystemFieldName("%2$s", SYS_HASH) +
             ") " +
             "  from %1$s as %2$s " +
             " where %3$s = %5$s\\:\\:%6$s " +

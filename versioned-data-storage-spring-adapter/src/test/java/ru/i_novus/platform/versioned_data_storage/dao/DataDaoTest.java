@@ -121,10 +121,10 @@ public class DataDaoTest {
         assertFalse(dataDao.storageExists(storageCode));
 
         String ddlFormat = "CREATE TABLE %1$s (\n" +
-                "  " + escapeSystemFieldName(null, SYS_PRIMARY_COLUMN) + " bigserial NOT NULL,\n" +
-                "  " + escapeFieldName(null, FIELD_ID_CODE) + " integer,\n" +
-                "  " + escapeFieldName(null, FIELD_NAME_CODE) + " varchar(32),\n" +
-                "  " + escapeSystemFieldName(null, SYS_HASH) + " char(32)\n" +
+                "  " + escapeSystemFieldName(SYS_PRIMARY_COLUMN) + " bigserial NOT NULL,\n" +
+                "  " + escapeFieldName(FIELD_ID_CODE) + " integer,\n" +
+                "  " + escapeFieldName(FIELD_NAME_CODE) + " varchar(32),\n" +
+                "  " + escapeSystemFieldName(SYS_HASH) + " char(32)\n" +
                 ");";
 
         String ddl = String.format(ddlFormat, escapeStorageTableName(storageCode));
@@ -209,9 +209,9 @@ public class DataDaoTest {
         dataDao.createDraftTable(storageCode, fields);
 
         String columns = fields.stream()
-                .map(field -> escapeFieldName(null, field.getName()))
+                .map(field -> escapeFieldName(field.getName()))
                 .reduce((s1, s2) -> s1 + ", " + s2).orElse("");
-        columns += ", " + escapeSystemFieldName(null, SYS_HASH);
+        columns += ", " + escapeSystemFieldName(SYS_HASH);
 
         String sqlValuesFormat = "(%1$s" + ", " + String.format(HASH_EXPRESSION, "%1$s") + ")";
         String sqlInsert = String.format(INSERT_RECORD, escapeStorageTableName(storageCode), columns) +

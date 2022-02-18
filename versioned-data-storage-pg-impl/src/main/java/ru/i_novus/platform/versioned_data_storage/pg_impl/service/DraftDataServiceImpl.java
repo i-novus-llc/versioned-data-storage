@@ -260,7 +260,7 @@ public class DraftDataServiceImpl implements DraftDataService {
             throw new CodifiedException(SYS_FIELD_CONFLICT);
 
         List<String> fieldNames = dataDao.getEscapedFieldNames(draftCode);
-        if (fieldNames.contains(escapeFieldName(null, field.getName())))
+        if (fieldNames.contains(escapeFieldName(field.getName())))
             throw new CodifiedException(COLUMN_ALREADY_EXISTS);
 
         dataDao.dropTriggers(draftCode);
@@ -298,7 +298,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     public void deleteField(String draftCode, String fieldName) {
 
         List<String> fieldNames = dataDao.getEscapedFieldNames(draftCode);
-        if (!fieldNames.contains(escapeFieldName(null, fieldName)))
+        if (!fieldNames.contains(escapeFieldName(fieldName)))
             throw new CodifiedException(COLUMN_NOT_EXISTS);
 
         dataDao.dropTriggers(draftCode);
@@ -389,7 +389,7 @@ public class DraftDataServiceImpl implements DraftDataService {
     private void insertAllDataFromDraft(String draftCode, String targetCode, List<String> fieldNames,
                                         LocalDateTime publishTime, LocalDateTime closeTime) {
 
-        fieldNames.add(escapeSystemFieldName(null, SYS_FTS));
+        fieldNames.add(escapeSystemFieldName(SYS_FTS));
 
         BigInteger count = dataDao.countData(draftCode);
         for (int offset = 0; offset < count.intValue(); offset += TRANSACTION_ROW_LIMIT) {
