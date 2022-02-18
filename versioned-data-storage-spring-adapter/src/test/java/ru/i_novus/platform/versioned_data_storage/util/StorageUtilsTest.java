@@ -42,7 +42,8 @@ public class StorageUtilsTest {
     private static final String TEST_SCHEMA_TABLE_NAME = TEST_SCHEMA_NAME + NAME_SEPARATOR + '"' + TEST_TABLE_NAME + '"';
 
     private static final String TEST_TABLE_ALIAS = "t";
-    private static final String TEST_COLUMN_NAME = "name";
+    private static final String TEST_FIELD_NAME = "name";
+    private static final String TEST_FIELD_TYPE = "varchar";
 
     private static final String TEST_SYSTEM_FIELD_NAME = "system_name";
     private static final String ESCAPED_SYSTEM_FIELD_NAME = '"' + TEST_SYSTEM_FIELD_NAME + '"';
@@ -211,8 +212,15 @@ public class StorageUtilsTest {
     @Test
     public void testAliasColumnName() {
 
-        assertEquals(TEST_TABLE_ALIAS + NAME_SEPARATOR + TEST_COLUMN_NAME,
-                aliasColumnName(TEST_TABLE_ALIAS, TEST_COLUMN_NAME));
+        assertEquals(TEST_TABLE_ALIAS + NAME_SEPARATOR + TEST_FIELD_NAME,
+                aliasColumnName(TEST_TABLE_ALIAS, TEST_FIELD_NAME));
+    }
+
+    @Test
+    public void testTypedColumnName() {
+
+        assertEquals(TEST_FIELD_NAME + " " + TEST_FIELD_TYPE,
+                typedColumnName(TEST_FIELD_NAME, TEST_FIELD_TYPE));
     }
 
     @Test

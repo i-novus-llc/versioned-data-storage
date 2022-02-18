@@ -724,12 +724,17 @@ public class DataDaoImpl implements DataDao {
         String tableFields = "";
         if (!isNullOrEmpty(fields)) {
             tableFields = fields.stream()
-                    .map(f -> escapeFieldName(f.getName()) + " " + f.getType())
+                    .map(this::toTypedColumn)
                     .collect(joining(", \n")) + ", \n";
         }
 
         String ddl = String.format(CREATE_DRAFT_TABLE, escapeStorageTableName(storageCode), tableFields, tableName);
         entityManager.createNativeQuery(ddl).executeUpdate();
+    }
+
+    private String toTypedColumn(Field field) {
+
+        return typedColumnName(escapeFieldName(field.getName()), field.getType());
     }
 
     @Override

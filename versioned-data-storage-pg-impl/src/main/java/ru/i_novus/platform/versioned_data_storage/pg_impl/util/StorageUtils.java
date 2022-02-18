@@ -169,6 +169,12 @@ public class StorageUtils {
         return tableAlias + NAME_SEPARATOR + fieldName;
     }
 
+    /** Формирование наименования поля с типом. */
+    public static String typedColumnName(String fieldName, String fieldType) {
+
+        return fieldName + " " + fieldType;
+    }
+
     /** Экранирование наименования системного поля. */
     public static String escapeSystemFieldName(String fieldName) {
 

@@ -232,7 +232,7 @@ public class QueryUtil {
     public static String toTypedColumns(Map<String, String> typedNames) {
 
         return typedNames.keySet().stream().filter(Objects::nonNull)
-                .map(name -> name + " " + typedNames.get(name))
+                .map(name -> typedColumnName(name, typedNames.get(name)))
                 .collect(joining(", "));
     }
 
