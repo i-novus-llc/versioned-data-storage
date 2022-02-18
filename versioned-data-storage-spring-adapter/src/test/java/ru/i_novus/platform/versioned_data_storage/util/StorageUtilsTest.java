@@ -41,6 +41,16 @@ public class StorageUtilsTest {
     private static final String DATA_SCHEMA_TABLE_NAME = DATA_SCHEMA_NAME + NAME_SEPARATOR + '"' + TEST_TABLE_NAME + '"';
     private static final String TEST_SCHEMA_TABLE_NAME = TEST_SCHEMA_NAME + NAME_SEPARATOR + '"' + TEST_TABLE_NAME + '"';
 
+    private static final String TEST_TABLE_ALIAS = "t";
+    private static final String TEST_COLUMN_NAME = "name";
+
+    private static final String TEST_SYSTEM_FIELD_NAME = "system_name";
+    private static final String ESCAPED_SYSTEM_FIELD_NAME = '"' + TEST_SYSTEM_FIELD_NAME + '"';
+
+    private static final String TEST_CUSTOM_FIELD_NAME = "йцуAbc_№#123-$%^field";
+    private static final String EXPECTED_CUSTOM_FIELD_NAME = "Abc_123-field";
+    private static final String ESCAPED_CUSTOM_FIELD_NAME = '"' + EXPECTED_CUSTOM_FIELD_NAME + '"';
+
     @Test
     public void testSqlName() {
 
@@ -81,8 +91,7 @@ public class StorageUtilsTest {
         assertEquals("\"null\"", escapeSystemName(null));
         assertEquals("\"\"", escapeSystemName(""));
 
-        assertEquals("\"system\"", escapeSystemName("system"));
-        assertEquals("\"system_name\"", escapeSystemName("system_name"));
+        assertEquals(ESCAPED_SYSTEM_FIELD_NAME, escapeSystemName(TEST_SYSTEM_FIELD_NAME));
     }
 
     @Test
@@ -197,5 +206,40 @@ public class StorageUtilsTest {
 
         assertEquals(DATA_SCHEMA_TABLE_NAME, escapeStorageTableName(DATA_STORAGE_CODE));
         assertEquals(TEST_SCHEMA_TABLE_NAME, escapeStorageTableName(TEST_STORAGE_CODE));
+    }
+
+    @Test
+    public void testAliasColumnName() {
+
+        assertEquals(TEST_TABLE_ALIAS + NAME_SEPARATOR + TEST_COLUMN_NAME,
+                aliasColumnName(TEST_TABLE_ALIAS, TEST_COLUMN_NAME));
+    }
+
+    @Test
+    public void testEscapeSystemFieldName() {
+
+        assertEquals(ESCAPED_SYSTEM_FIELD_NAME, escapeSystemName(TEST_SYSTEM_FIELD_NAME));
+    }
+
+    @Test
+    public void testAliasSystemFieldName() {
+
+        assertEquals(ESCAPED_SYSTEM_FIELD_NAME, aliasSystemFieldName(null, TEST_SYSTEM_FIELD_NAME));
+        assertEquals(TEST_TABLE_ALIAS + NAME_SEPARATOR + ESCAPED_SYSTEM_FIELD_NAME,
+                aliasSystemFieldName(TEST_TABLE_ALIAS, TEST_SYSTEM_FIELD_NAME));
+    }
+
+    @Test
+    public void testEscapeFieldName() {
+
+        assertEquals(ESCAPED_CUSTOM_FIELD_NAME, escapeFieldName(TEST_CUSTOM_FIELD_NAME));
+    }
+
+    @Test
+    public void testAliasFieldName() {
+
+        assertEquals(ESCAPED_CUSTOM_FIELD_NAME, aliasFieldName(null, TEST_CUSTOM_FIELD_NAME));
+        assertEquals(TEST_TABLE_ALIAS + NAME_SEPARATOR + ESCAPED_CUSTOM_FIELD_NAME,
+                aliasFieldName(TEST_TABLE_ALIAS, TEST_CUSTOM_FIELD_NAME));
     }
 }
