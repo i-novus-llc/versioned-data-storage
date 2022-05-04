@@ -338,7 +338,7 @@ public class DataDaoImpl implements DataDao {
                     escapedFtsColumn + " @@ to_tsquery(:reverseSearch) ) ";
             String[] dateArr = search.split("\\.");
             String reverseSearch = dateArr[2] + "-" + dateArr[1] + "-" + dateArr[0];
-            params.put("search", search.trim());
+            params.put("search", search);
             params.put("reverseSearch", reverseSearch);
 
         } else {
