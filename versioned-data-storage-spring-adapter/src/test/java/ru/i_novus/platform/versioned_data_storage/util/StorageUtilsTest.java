@@ -57,6 +57,7 @@ public class StorageUtilsTest {
 
         assertEquals("", sqlName(null));
         assertEquals("", sqlName(""));
+        assertEquals("", sqlName(" "));
 
         TEST_NAMES.forEach(name ->
             assertEquals(EXPECTED_NAME, sqlName(name))
@@ -112,12 +113,15 @@ public class StorageUtilsTest {
 
         assertEquals(DATA_SCHEMA_NAME, toSchemaName(null));
         assertEquals(DATA_SCHEMA_NAME, toSchemaName(""));
+        assertEquals(DATA_SCHEMA_NAME, toSchemaName(" "));
 
         assertEquals(DATA_SCHEMA_NAME, toSchemaName(TEST_TABLE_NAME));
-        assertEquals(DATA_SCHEMA_NAME, toSchemaName(TEST_TABLE_NAME));
         assertEquals(DATA_SCHEMA_NAME, toSchemaName(DATA_STORAGE_CODE));
+        assertEquals(DATA_SCHEMA_NAME, toSchemaName(CODE_SEPARATOR));
         assertEquals(DATA_SCHEMA_NAME, toSchemaName(CODE_SEPARATOR + TEST_TABLE_NAME));
         assertEquals(TEST_SCHEMA_NAME, toSchemaName(TEST_STORAGE_CODE));
+
+        assertEquals(SCHEMA_NAME_WRONG_CHAR_REPLACE, toSchemaName(" " + CODE_SEPARATOR + TEST_TABLE_NAME));
 
         TEST_SCHEMA_NAMES.forEach(name ->
                 assertEquals(EXPECTED_SCHEMA_NAME, toSchemaName(name + CODE_SEPARATOR + TEST_TABLE_NAME))
@@ -129,6 +133,7 @@ public class StorageUtilsTest {
 
         assertEquals("", toTableName(null));
         assertEquals("", toTableName(""));
+        assertEquals("", toTableName(CODE_SEPARATOR));
 
         assertEquals(TEST_TABLE_NAME, toTableName(TEST_TABLE_NAME));
         assertEquals(TEST_TABLE_NAME, toTableName(DATA_STORAGE_CODE));
@@ -180,6 +185,7 @@ public class StorageUtilsTest {
         assertEquals(DATA_SCHEMA_NAME, escapeSchemaName(null));
         assertEquals(DATA_SCHEMA_NAME, escapeSchemaName(""));
 
+        assertEquals(DATA_SCHEMA_NAME, escapeSchemaName(DATA_SCHEMA_NAME));
         assertEquals(WRONG_SCHEMA_REPLACE_NAME, escapeSchemaName(WRONG_SCHEMA_NAME));
 
         TEST_SCHEMA_NAMES.forEach(name ->
