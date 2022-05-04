@@ -104,9 +104,6 @@ public class StorageUtils {
 
         int index = storageCode.indexOf(CODE_SEPARATOR);
         String name = (index >= 0) ? storageCode.substring(index + 1) : storageCode;
-        if (isNullOrEmpty(name))
-            return "";
-
         return isNullOrEmpty(name) ? "" : sqlName(name);
     }
 

@@ -58,7 +58,7 @@
         <jackson.version>2.11.1</jackson.version>
         <hibernate.version>5.4.16.Final</hibernate.version>
 
-        <n2o.version>7.20.3</n2o.version>
+        <n2o.version>7.20.12</n2o.version>
 
         <commons.text.version>1.6</commons.text.version>
         <maven.source.version>3.0.1</maven.source.version>
