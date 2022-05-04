@@ -55,7 +55,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <javaee.api.version>8.0.1</javaee.api.version>
-        <jackson.version>2.11.1</jackson.version>
+        <jackson.version>2.12.6.1</jackson.version>
         <hibernate.version>5.4.16.Final</hibernate.version>
 
         <n2o.version>7.20.12</n2o.version>
