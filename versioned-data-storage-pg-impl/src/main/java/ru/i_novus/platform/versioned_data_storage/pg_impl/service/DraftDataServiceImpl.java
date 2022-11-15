@@ -11,12 +11,12 @@ import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageCopyReques
 import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
+import ru.i_novus.platform.datastorage.temporal.util.StringUtils;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.BooleanField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.TreeField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
-import ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils;
 
 import javax.persistence.PersistenceException;
 import javax.transaction.Transactional;
@@ -212,7 +212,7 @@ public class DraftDataServiceImpl implements DraftDataService {
             throw new CodifiedException("target.table.is.not.empty");
 
         boolean isTriggersRedundant = isNullOrEmpty(fieldNames) ||
-                fieldNames.containsAll(escapedTriggeredFieldNames());
+                new HashSet<>(fieldNames).containsAll(escapedTriggeredFieldNames());
 
         if (isTriggersRedundant) {
             dataDao.disableTriggers(targetCode);

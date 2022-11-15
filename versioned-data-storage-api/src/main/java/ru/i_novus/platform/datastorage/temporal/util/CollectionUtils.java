@@ -3,6 +3,9 @@ package ru.i_novus.platform.datastorage.temporal.util;
 import java.util.Collection;
 import java.util.Map;
 
+/**
+ * Класс для работы с коллекциями.
+ */
 public class CollectionUtils {
 
     private CollectionUtils() {

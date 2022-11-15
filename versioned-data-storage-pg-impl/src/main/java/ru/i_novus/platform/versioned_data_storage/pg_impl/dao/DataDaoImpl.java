@@ -16,10 +16,10 @@ import ru.i_novus.platform.datastorage.temporal.model.value.DiffRowValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.TreeFieldValue;
+import ru.i_novus.platform.datastorage.temporal.util.StringUtils;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils;
-import ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils;
 
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
@@ -41,13 +41,13 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static org.springframework.util.CollectionUtils.isEmpty;
 import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
+import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addSingleQuotes;
+import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.substitute;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.CompareUtil.toDiffRowValues;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addSingleQuotes;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.substitute;
 
 @SuppressWarnings({"rawtypes", "java:S1192", "java:S3740"})
 public class DataDaoImpl implements DataDao {
@@ -995,6 +995,7 @@ public class DataDaoImpl implements DataDao {
 
         final String notLikeIndexes = LIKE_ESCAPE_MANY_CHAR + escapeSystemFieldName(SYS_HASH) + LIKE_ESCAPE_MANY_CHAR;
         String sql = SELECT_DDL_INDEXES + AND_DDL_INDEX_NOT_LIKE;
+        @SuppressWarnings("unchecked")
         List<String> ddlIndexes = entityManager.createNativeQuery(sql)
                 .setParameter(BIND_INFO_SCHEMA_NAME, sourceSchema)
                 .setParameter(BIND_INFO_TABLE_NAME, sourceTable)
@@ -1930,6 +1931,7 @@ public class DataDaoImpl implements DataDao {
         Query dataQuery = dataQueryWithParams.createQuery(entityManager)
                 .setFirstResult(criteria.getOffset())
                 .setMaxResults(criteria.getSize());
+        @SuppressWarnings("unchecked")
         List<Object[]> resultList = dataQuery.getResultList();
 
         List<DiffRowValue> diffRowValues = toDiffRowValues(criteria.getFields(), resultList, criteria);

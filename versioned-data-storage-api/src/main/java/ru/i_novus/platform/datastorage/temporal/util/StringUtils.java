@@ -1,9 +1,12 @@
-package ru.i_novus.platform.versioned_data_storage.pg_impl.util;
+package ru.i_novus.platform.datastorage.temporal.util;
 
 import org.apache.commons.text.StringSubstitutor;
 
 import java.util.Map;
 
+/**
+ * Класс для работы со строками.
+ */
 public class StringUtils {
 
     private static final String SUBST_PREFIX = "${";

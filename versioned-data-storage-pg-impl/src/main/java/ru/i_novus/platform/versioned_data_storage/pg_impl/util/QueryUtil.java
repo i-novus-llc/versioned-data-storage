@@ -16,11 +16,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
+import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addSingleQuotes;
+import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.stringFrom;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addSingleQuotes;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.stringFrom;
 
 /**
  * @author lgalimova

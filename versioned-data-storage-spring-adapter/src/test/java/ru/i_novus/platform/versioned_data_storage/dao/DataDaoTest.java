@@ -35,11 +35,11 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.*;
+import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addSingleQuotes;
 import static ru.i_novus.platform.versioned_data_storage.DataTestUtils.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.QueryConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.*;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addSingleQuotes;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {JpaTestConfig.class, VersionedDataStorageConfig.class})
