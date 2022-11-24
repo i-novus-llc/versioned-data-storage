@@ -5,10 +5,20 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.*;
 
 public class StringUtilsTest {
+
+    @Test
+    public void testIsNullOrEmpty() {
+
+        assertTrue(isNullOrEmpty(null));
+        assertTrue(isNullOrEmpty(""));
+
+        assertFalse(isNullOrEmpty(" "));
+        assertFalse(isNullOrEmpty("abc"));
+    }
 
     @Test
     public void testAddDoubleQuotes() {
