@@ -1,7 +1,6 @@
 package ru.i_novus.platform.versioned_data_storage;
 
 import org.junit.Assert;
-import org.springframework.util.StringUtils;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.LongRowValue;
@@ -9,6 +8,7 @@ import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageDataCriter
 import ru.i_novus.platform.datastorage.temporal.model.value.IntegerFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.StringFieldValue;
+import ru.i_novus.platform.datastorage.temporal.util.StringUtils;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.IntegerField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.StringField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
@@ -21,7 +21,6 @@ import java.util.function.Function;
 import java.util.stream.IntStream;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.*;
 import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
@@ -114,6 +113,7 @@ public class DataTestUtils {
     }
 
     /** Преобразование основных полей проверяемых данных для выполнения операции. */
+    @SuppressWarnings("unchecked")
     public static RowValue toIdNameRowValue(int index, String name, List<Field> fields) {
 
         FieldValue idValue = findFieldOrThrow(FIELD_ID_CODE, fields).valueOf(indexToId(index));
@@ -257,7 +257,7 @@ public class DataTestUtils {
     /** Преобразование индекса nameValues в значение поля FIELD_ID_CODE. */
     public static BigInteger indexToId(int index) {
 
-        return BigInteger.valueOf(index * INDEX_TO_ID_FACTOR);
+        return BigInteger.valueOf((long) index * INDEX_TO_ID_FACTOR);
     }
 
     /** Преобразование значения поля FIELD_ID_CODE в индекс nameValues. */
@@ -320,7 +320,7 @@ public class DataTestUtils {
      */
     public static String getExceptionMessage(Exception e) {
 
-        if (!StringUtils.isEmpty(e.getMessage()))
+        if (!StringUtils.isNullOrEmpty(e.getMessage()))
             return e.getMessage();
 
         return null;
