@@ -7,14 +7,14 @@ import java.util.Map;
 /**
  * Класс для работы со строками.
  */
-public class StringUtils {
+public final class StringUtils {
 
     private static final String SUBST_PREFIX = "${";
     private static final String SUBST_SUFFIX = "}";
     private static final String SUBST_DEFAULT = ":";
 
     private StringUtils() {
-        throw new UnsupportedOperationException();
+        // Nothing to do.
     }
 
     public static boolean isNullOrEmpty(String s) {

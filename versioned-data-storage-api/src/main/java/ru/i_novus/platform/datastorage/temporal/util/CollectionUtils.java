@@ -6,10 +6,10 @@ import java.util.Map;
 /**
  * Класс для работы с коллекциями.
  */
-public class CollectionUtils {
+public final class CollectionUtils {
 
     private CollectionUtils() {
-        throw new UnsupportedOperationException();
+        // Nothing to do.
     }
 
     public static boolean isNullOrEmpty(final Collection<?> c) {

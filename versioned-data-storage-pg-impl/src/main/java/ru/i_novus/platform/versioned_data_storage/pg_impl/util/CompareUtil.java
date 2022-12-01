@@ -13,10 +13,10 @@ import java.util.Objects;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.toValueByField;
 
 @SuppressWarnings({"unchecked","rawtypes"})
-public class CompareUtil {
+public final class CompareUtil {
 
     private CompareUtil() {
-        throw new UnsupportedOperationException();
+        // Nothing to do.
     }
 
     public static List<DiffRowValue> toDiffRowValues(List<Field> fields, List<Object[]> dataList,
