@@ -164,7 +164,7 @@ public class QueryUtil {
      * @param value значение
      * @return Значение
      */
-    public static Object toValueByField(Field field, Object value) {
+    public static Serializable toValueByField(Field field, Object value) {
 
         if (value == null) {
             return null;
@@ -181,7 +181,7 @@ public class QueryUtil {
         if (field instanceof BooleanField ||
                 field instanceof FloatField ||
                 field instanceof ReferenceField) {
-            return value;
+            return (Serializable) value;
         }
 
         return value.toString();

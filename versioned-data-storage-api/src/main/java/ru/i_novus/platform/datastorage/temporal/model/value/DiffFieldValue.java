@@ -11,17 +11,20 @@ import java.util.Objects;
  * @since 10.05.2018
  */
 @SuppressWarnings({"java:S3740", "java:S1948"})
-public class DiffFieldValue<T> implements Serializable {
+public class DiffFieldValue<T extends Serializable> implements Serializable {
 
     private Field field;
+
     private T oldValue;
     private T newValue;
+
     private DiffStatusEnum status;
 
     public DiffFieldValue() {
     }
 
     public DiffFieldValue(Field field, T oldValue, T newValue, DiffStatusEnum status) {
+
         this.field = field;
         this.oldValue = oldValue;
         this.newValue = newValue;
