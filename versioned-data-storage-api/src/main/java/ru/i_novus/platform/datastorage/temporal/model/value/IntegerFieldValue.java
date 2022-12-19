@@ -20,6 +20,4 @@ public class IntegerFieldValue extends FieldValue<BigInteger> {
     public IntegerFieldValue(String field, Integer value) {
         super(field, BigInteger.valueOf(value));
     }
-
-
 }
