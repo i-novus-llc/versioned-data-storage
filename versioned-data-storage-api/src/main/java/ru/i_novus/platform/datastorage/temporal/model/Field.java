@@ -4,10 +4,12 @@ import java.io.Serializable;
 import java.util.Objects;
 
 /**
+ * Поле хранилища данных.
+ *
  * @author lgalimova
  * @since 01.02.2018
  */
-public abstract class Field<T> implements Serializable {
+public abstract class Field<T extends Serializable> implements Serializable {
 
     private String name;
     private Integer maxLength;
