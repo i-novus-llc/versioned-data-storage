@@ -26,6 +26,12 @@ public class FloatField extends Field<Number> {
     }
 
     @Override
+    @SuppressWarnings("rawtypes")
+    public Class getFieldValueClass() {
+        return FloatFieldValue.class;
+    }
+
+    @Override
     @SuppressWarnings({"rawtypes", "unchecked"})
     public FieldValue valueOf(Number value) {
         return new FloatFieldValue(getName(), value);

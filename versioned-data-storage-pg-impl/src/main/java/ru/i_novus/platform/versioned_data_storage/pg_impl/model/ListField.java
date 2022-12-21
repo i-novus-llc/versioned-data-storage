@@ -28,6 +28,12 @@ public class ListField extends Field {
 
     @Override
     @SuppressWarnings("rawtypes")
+    public Class getFieldValueClass() {
+        throw new RuntimeException("not implemented");
+    }
+
+    @Override
+    @SuppressWarnings("rawtypes")
     public FieldValue valueOf(Serializable value) {
         throw new RuntimeException("not implemented");
     }

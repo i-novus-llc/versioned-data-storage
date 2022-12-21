@@ -26,6 +26,12 @@ public class StringField extends Field<String> {
     }
 
     @Override
+    @SuppressWarnings("rawtypes")
+    public Class getFieldValueClass() {
+        return StringFieldValue.class;
+    }
+
+    @Override
     @SuppressWarnings({"rawtypes", "unchecked"})
     public FieldValue valueOf(String value) {
         return new StringFieldValue(getName(), value);

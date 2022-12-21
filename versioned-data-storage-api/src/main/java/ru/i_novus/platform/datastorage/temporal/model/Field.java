@@ -11,11 +11,21 @@ import java.util.Objects;
  */
 public abstract class Field<T extends Serializable> implements Serializable {
 
+    /** Наименование поля в хранилище. */
     private String name;
+
+    /* Ограничения поля: */
+
+    /** Максимальная длина. */
     private Integer maxLength;
 
+    /** Уникальность. */
     private Boolean unique = false;
+
+    /** Обязательность. */
     private Boolean required = false;
+
+    /** Возможность поиска по полю. */
     private Boolean searchEnabled = false;
 
     public Field() {
@@ -34,11 +44,14 @@ public abstract class Field<T extends Serializable> implements Serializable {
         this.name = name;
     }
 
-    /**
-     * @return Database field type
-     */
+    /** Тип поля, определяемый хранилищем. */
     public abstract String getType();
 
+    /** Получение класса для значения поля. */
+    @SuppressWarnings("rawtypes")
+    public abstract Class getFieldValueClass();
+
+    /** Формирование значения поля. */
     public abstract FieldValue<Serializable> valueOf(T value);
 
     public Integer getMaxLength() {

@@ -28,6 +28,12 @@ public class DateField extends Field<LocalDate> {
     }
 
     @Override
+    @SuppressWarnings("rawtypes")
+    public Class getFieldValueClass() {
+        return DateFieldValue.class;
+    }
+
+    @Override
     @SuppressWarnings({"rawtypes", "unchecked"})
     public FieldValue valueOf(LocalDate value) {
         return new DateFieldValue(getName(), value);
