@@ -21,7 +21,7 @@ public final class CompareUtil {
 
     public static List<DiffRowValue> toDiffRowValues(List<Field> fields, List<Object[]> dataList,
                                                      CompareDataCriteria criteria) {
-        List<DiffRowValue> result = new ArrayList<>();
+        List<DiffRowValue> result = new ArrayList<>(dataList.size());
         if (dataList.isEmpty()) {
             return result;
         }
@@ -29,7 +29,7 @@ public final class CompareUtil {
         List<String> primaryFields = criteria.getPrimaryFields();
         for (Object[] row : dataList) {
             int i = 1; // get old/new versions data excluding sys_recordid
-            List<DiffFieldValue> fieldValues = new ArrayList<>();
+            List<DiffFieldValue> fieldValues = new ArrayList<>(fields.size());
             DiffStatusEnum rowStatus = null;
             for (Field field : fields) {
                 DiffFieldValue fieldValue = new DiffFieldValue();
