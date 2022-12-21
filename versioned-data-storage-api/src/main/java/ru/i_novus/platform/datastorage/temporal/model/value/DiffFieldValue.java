@@ -13,7 +13,7 @@ import java.util.Objects;
 @SuppressWarnings({"java:S3740", "java:S1948"})
 public class DiffFieldValue<T extends Serializable> implements Serializable {
 
-    private Field field;
+    private Field<T> field;
 
     private T oldValue;
     private T newValue;
@@ -23,7 +23,7 @@ public class DiffFieldValue<T extends Serializable> implements Serializable {
     public DiffFieldValue() {
     }
 
-    public DiffFieldValue(Field field, T oldValue, T newValue, DiffStatusEnum status) {
+    public DiffFieldValue(Field<T> field, T oldValue, T newValue, DiffStatusEnum status) {
 
         this.field = field;
         this.oldValue = oldValue;
@@ -31,11 +31,11 @@ public class DiffFieldValue<T extends Serializable> implements Serializable {
         this.status = status;
     }
 
-    public Field getField() {
+    public Field<T> getField() {
         return field;
     }
 
-    public void setField(Field field) {
+    public void setField(Field<T> field) {
         this.field = field;
     }
 
