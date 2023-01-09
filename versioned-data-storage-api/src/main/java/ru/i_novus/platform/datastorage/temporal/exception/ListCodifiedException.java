@@ -9,10 +9,12 @@ import java.util.List;
  */
 public class ListCodifiedException extends CodifiedException {
 
-    private List<CodifiedException> codifiedExceptions;
+    private final List<CodifiedException> codifiedExceptions;
 
     public ListCodifiedException(List<CodifiedException> codifiedExceptions) {
-        super(null, null);
+
+        super(null, (Throwable) null);
+
         this.codifiedExceptions = codifiedExceptions;
     }
 
