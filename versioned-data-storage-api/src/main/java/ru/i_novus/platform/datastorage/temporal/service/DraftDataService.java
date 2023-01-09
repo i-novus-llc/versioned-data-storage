@@ -203,14 +203,21 @@ public interface DraftDataService {
      * @return Возвращает true, если значения поля уникальны, иначе - false.
      * Значение null считается уникальным.
      */
+    boolean isFieldUnique(String storageCode, List<String> fieldNames, LocalDateTime publishTime);
+
+    /**
+     * Проверка уникальности значений поля хранилища.
+     *
+     * @deprecated Используйте isFieldUnique(storageCode, singletonList(fieldName), publishTime)
+     */
+    @Deprecated
     boolean isFieldUnique(String storageCode, String fieldName, LocalDateTime publishTime);
 
     /**
      * Проверка уникальности списка значений полей хранилища.
      *
-     * @param storageCode код хранилища данных
-     * @param fieldNames  список наименований полей
-     * @return Возвращает true, если значения полей уникальны, иначе false. Null считается уникальным значением.
+     * @deprecated Используйте isFieldUnique(storageCode, fieldNames, null)
      */
+    @Deprecated
     boolean isUnique(String storageCode, List<String> fieldNames);
 }
