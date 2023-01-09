@@ -471,9 +471,10 @@ public class DraftDataServiceImpl implements DraftDataService {
         }
     }
 
+    /** Преобразование ошибки хранилища в исключение. */
     private RuntimeException transformException(PersistenceException exception) {
 
-        //Обработка кода ошибки о нарушении уникальности в postgres
+        // Обработка кода ошибки о нарушении уникальности в PostgreSQL
         SQLException sqlException = (SQLException) of(exception)
                 .map(Throwable::getCause).map(Throwable::getCause)
                 .filter(e -> e instanceof SQLException).orElse(null);
