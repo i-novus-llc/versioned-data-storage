@@ -2,7 +2,11 @@ package ru.i_novus.platform.datastorage.temporal.exception;
 
 import ru.i_novus.components.common.exception.CodifiedException;
 
+/**
+ * Исключение при нарушении уникальности записей в хранилище.
+ */
 public class NotUniqueException extends CodifiedException {
+
     public NotUniqueException(String code, Object... args) {
         super(code, args);
     }

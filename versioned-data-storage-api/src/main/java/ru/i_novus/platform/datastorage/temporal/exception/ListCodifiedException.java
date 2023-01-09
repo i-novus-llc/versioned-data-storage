@@ -4,6 +4,9 @@ import ru.i_novus.components.common.exception.CodifiedException;
 
 import java.util.List;
 
+/**
+ * Исключение для использования списка CodifiedException.
+ */
 public class ListCodifiedException extends CodifiedException {
 
     private List<CodifiedException> codifiedExceptions;
