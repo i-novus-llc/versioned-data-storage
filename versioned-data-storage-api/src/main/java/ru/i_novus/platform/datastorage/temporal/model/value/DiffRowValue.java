@@ -12,7 +12,7 @@ import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNu
  * @author lgalimova
  * @since 10.05.2018
  */
-@SuppressWarnings("java:S3740")
+@SuppressWarnings("rawtypes")
 public class DiffRowValue implements Serializable {
 
     private final List<DiffFieldValue> values;
