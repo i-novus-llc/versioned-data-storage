@@ -22,7 +22,7 @@ public class FloatFieldValue extends FieldValue<Number> {
         super.setValue(toFloatValue(value));
     }
 
-    public static BigDecimal toFloatValue(Number value) {
+    private static BigDecimal toFloatValue(Number value) {
 
         return value instanceof BigDecimal
                 ? (BigDecimal) value
