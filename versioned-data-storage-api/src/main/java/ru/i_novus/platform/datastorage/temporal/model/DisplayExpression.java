@@ -7,8 +7,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static java.util.stream.Collectors.joining;
 
 /**
  * Формат отображения.
@@ -55,7 +56,9 @@ public class DisplayExpression implements Serializable {
     }
 
     public Map<String, String> getPlaceholders() {
-        if (value == null) return Collections.emptyMap();
+
+        if (value == null)
+            return Collections.emptyMap();
 
         Map<String, String> placeholders = new HashMap<>();
         Matcher matcher = DisplayExpression.PLACEHOLDER_PATTERN.matcher(value);
@@ -68,21 +71,29 @@ public class DisplayExpression implements Serializable {
     }
 
     public static DisplayExpression ofField(String field) {
-        if (field == null) return null;
+
+        if (field == null)
+            return null;
+
         return new DisplayExpression(toPlaceholder(field));
     }
 
     public static DisplayExpression ofFields(String ... field) {
-        if (field == null) return null;
-        String expression = Stream.of(field).map(DisplayExpression::toPlaceholder).collect(Collectors.joining(" "));
+
+        if (field == null)
+            return null;
+
+        String expression = Stream.of(field).map(DisplayExpression::toPlaceholder).collect(joining(" "));
         return new DisplayExpression(expression);
     }
 
     public static String toPlaceholder(String field) {
+
         return field == null ? null : PLACEHOLDER_START + field + PLACEHOLDER_END;
     }
 
     public static String toPlaceholder(String field, String defaultValue) {
+
         return field == null ? null : PLACEHOLDER_START + field + PLACEHOLDER_DEFAULT_DELIMITER + defaultValue + PLACEHOLDER_END;
     }
 
