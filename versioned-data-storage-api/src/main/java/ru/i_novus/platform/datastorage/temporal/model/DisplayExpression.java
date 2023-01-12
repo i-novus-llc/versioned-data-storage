@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -91,7 +92,7 @@ public class DisplayExpression implements Serializable {
         if (o == null || getClass() != o.getClass()) return false;
 
         DisplayExpression that = (DisplayExpression) o;
-        return (value != null ? value.equals(that.value) : that.value == null);
+        return Objects.equals(value, that.value);
     }
 
     @Override
