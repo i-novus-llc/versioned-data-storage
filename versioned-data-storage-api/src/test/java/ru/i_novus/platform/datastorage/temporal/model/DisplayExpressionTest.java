@@ -54,6 +54,13 @@ public class DisplayExpressionTest {
     }
 
     @Test
+    public void testOfFieldWithDefault() {
+
+        DisplayExpression expression = DisplayExpression.ofField("code", "default");
+        assertEquals("${code:default}", expression.getValue());
+    }
+
+    @Test
     public void testOfFields() {
 
         assertNull(DisplayExpression.ofFields());

@@ -99,6 +99,14 @@ public class DisplayExpression implements Serializable {
         return new DisplayExpression(toPlaceholder(field));
     }
 
+    public static DisplayExpression ofField(String field, String defaultValue) {
+
+        if (field == null)
+            return null;
+
+        return new DisplayExpression(toPlaceholder(field, defaultValue));
+    }
+
     public static DisplayExpression ofFields(String... fields) {
 
         if (fields == null || fields.length == 0)
