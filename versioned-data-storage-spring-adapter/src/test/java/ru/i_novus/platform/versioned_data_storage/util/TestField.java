@@ -21,6 +21,11 @@ public class TestField extends Field<Short> {
     }
 
     @Override
+    public Class getFieldValueClass() {
+        return TestFieldValue.class;
+    }
+
+    @Override
     @SuppressWarnings({"rawtypes", "unchecked"})
     public FieldValue valueOf(Short value) {
         return new TestFieldValue(getName(), value);

@@ -1,6 +1,9 @@
 package ru.i_novus.platform.datastorage.temporal.util;
 
-import net.n2oapp.criteria.api.*;
+import net.n2oapp.criteria.api.CollectionPage;
+import net.n2oapp.criteria.api.Criteria;
+import net.n2oapp.criteria.api.Sorting;
+import net.n2oapp.criteria.api.SortingDirection;
 import org.junit.Assert;
 import org.junit.Test;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.BaseDataCriteria;
@@ -18,7 +21,7 @@ public class CollectionPageIteratorTest {
 
         TestCriteria criteria = new TestCriteria();
         criteria.setSize(3);
-        criteria.setSorting(new Sorting("id", Direction.ASC));
+        criteria.addSorting(new Sorting("id", SortingDirection.ASC));
 
         CollectionPageIterator<String, TestCriteria> pageIterator = new CollectionPageIterator<>(c -> {
             int total = allContent.size();
@@ -41,6 +44,5 @@ public class CollectionPageIteratorTest {
     }
 
     private static class TestCriteria extends Criteria {
-
     }
 }

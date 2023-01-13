@@ -13,7 +13,7 @@ import java.util.List;
  * <p>
  * Черновик ({@code draft}) - это модифицируемый набор записей.
  * У черновика может изменяться как набор данных, так и их структура,
- * вплоть до момента публикации при помощи метода {@code apply}.
+ * вплоть до момента публикации с использованием метода {@code apply}.
  *
  * @author lgalimova
  * @since 31.01.2018
@@ -167,10 +167,11 @@ public interface DraftDataService {
 
     /**
      * Удаления поля из таблицы.
+     * <p/>
+     * В случае неуникальности записей после удаления будет выброшено NotUniqueException.
      *
      * @param draftCode код черновика
      * @param fieldName наименование удаляемого поля
-     * @throws NotUniqueException
      */
     void deleteField(String draftCode, String fieldName);
 
@@ -179,8 +180,8 @@ public interface DraftDataService {
      *
      * @param storageCode код хранилища данных
      * @param fieldName   наименование поля
-     * @return возвращает true, если в столбце есть данные, иначе false.
-     * Если столбец заполнен значениями null, считается, что он пустой.
+     * @return Возвращает true, если в столбце есть данные, иначе - false.
+     * Если столбец заполнен значениями null, то считается, что он пустой.
      */
     boolean isFieldNotEmpty(String storageCode, String fieldName);
 
@@ -189,7 +190,7 @@ public interface DraftDataService {
      *
      * @param storageCode код хранилища данных
      * @param fieldName   наименование поля
-     * @return Возвращает true, если в столбце есть null-значения, иначе false.
+     * @return Возвращает true, если в столбце есть null-значения, иначе - false.
      */
     boolean isFieldContainEmptyValues(String storageCode, String fieldName);
 
@@ -197,18 +198,26 @@ public interface DraftDataService {
      * Проверка уникальности значений поля хранилища.
      *
      * @param storageCode код хранилища данных
-     * @param fieldName   наименование поля
-     * @param publishTime дата публикации версии
-     * @return Возвращает true, если значения поля уникальны, иначе false. Null считается уникальным значением.
+     * @param fieldNames  наименования полей
+     * @param publishTime дата публикации версии (игнорируется, если null)
+     * @return Возвращает true, если значения поля уникальны, иначе - false.
+     * Значение null считается уникальным.
      */
+    boolean isFieldUnique(String storageCode, List<String> fieldNames, LocalDateTime publishTime);
+
+    /**
+     * Проверка уникальности значений поля хранилища.
+     *
+     * @deprecated Используйте isFieldUnique(storageCode, singletonList(fieldName), publishTime)
+     */
+    @Deprecated
     boolean isFieldUnique(String storageCode, String fieldName, LocalDateTime publishTime);
 
     /**
      * Проверка уникальности списка значений полей хранилища.
      *
-     * @param storageCode код хранилища данных
-     * @param fieldNames  список наименований полей
-     * @return Возвращает true, если значения полей уникальны, иначе false. Null считается уникальным значением.
+     * @deprecated Используйте isFieldUnique(storageCode, fieldNames, null)
      */
+    @Deprecated
     boolean isUnique(String storageCode, List<String> fieldNames);
 }

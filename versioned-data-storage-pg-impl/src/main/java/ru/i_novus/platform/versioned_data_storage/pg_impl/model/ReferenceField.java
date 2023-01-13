@@ -27,6 +27,12 @@ public class ReferenceField extends Field<Reference> {
     }
 
     @Override
+    @SuppressWarnings("rawtypes")
+    public Class getFieldValueClass() {
+        return ReferenceFieldValue.class;
+    }
+
+    @Override
     @SuppressWarnings({"rawtypes", "unchecked"})
     public FieldValue valueOf(Reference value) {
         return new ReferenceFieldValue(getName(), value);

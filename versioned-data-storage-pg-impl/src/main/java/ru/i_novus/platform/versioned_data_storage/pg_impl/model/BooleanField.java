@@ -26,6 +26,12 @@ public class BooleanField extends Field<Boolean> {
     }
 
     @Override
+    @SuppressWarnings("rawtypes")
+    public Class getFieldValueClass() {
+        return BooleanFieldValue.class;
+    }
+
+    @Override
     @SuppressWarnings({"rawtypes", "unchecked"})
     public FieldValue valueOf(Boolean value) {
         return new BooleanFieldValue(getName(), value);

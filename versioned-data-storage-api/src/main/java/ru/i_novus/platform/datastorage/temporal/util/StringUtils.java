@@ -1,17 +1,20 @@
-package ru.i_novus.platform.versioned_data_storage.pg_impl.util;
+package ru.i_novus.platform.datastorage.temporal.util;
 
 import org.apache.commons.text.StringSubstitutor;
 
 import java.util.Map;
 
-public class StringUtils {
+/**
+ * Класс для работы со строками.
+ */
+public final class StringUtils {
 
     private static final String SUBST_PREFIX = "${";
     private static final String SUBST_SUFFIX = "}";
     private static final String SUBST_DEFAULT = ":";
 
     private StringUtils() {
-        throw new UnsupportedOperationException();
+        // Nothing to do.
     }
 
     public static boolean isNullOrEmpty(String s) {

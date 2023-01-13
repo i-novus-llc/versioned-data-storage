@@ -13,15 +13,15 @@ import java.util.Objects;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil.toValueByField;
 
 @SuppressWarnings({"unchecked","rawtypes"})
-public class CompareUtil {
+public final class CompareUtil {
 
     private CompareUtil() {
-        throw new UnsupportedOperationException();
+        // Nothing to do.
     }
 
     public static List<DiffRowValue> toDiffRowValues(List<Field> fields, List<Object[]> dataList,
                                                      CompareDataCriteria criteria) {
-        List<DiffRowValue> result = new ArrayList<>();
+        List<DiffRowValue> result = new ArrayList<>(dataList.size());
         if (dataList.isEmpty()) {
             return result;
         }
@@ -29,7 +29,7 @@ public class CompareUtil {
         List<String> primaryFields = criteria.getPrimaryFields();
         for (Object[] row : dataList) {
             int i = 1; // get old/new versions data excluding sys_recordid
-            List<DiffFieldValue> fieldValues = new ArrayList<>();
+            List<DiffFieldValue> fieldValues = new ArrayList<>(fields.size());
             DiffStatusEnum rowStatus = null;
             for (Field field : fields) {
                 DiffFieldValue fieldValue = new DiffFieldValue();

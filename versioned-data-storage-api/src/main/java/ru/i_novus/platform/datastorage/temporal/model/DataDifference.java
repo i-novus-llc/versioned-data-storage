@@ -8,7 +8,8 @@ import ru.i_novus.platform.datastorage.temporal.model.value.DiffRowValue;
  * @since 20.03.2018
  */
 public class DataDifference {
-    private CollectionPage<DiffRowValue> rows;
+
+    private final CollectionPage<DiffRowValue> rows;
 
     public DataDifference(CollectionPage<DiffRowValue> rows) {
         this.rows = rows;

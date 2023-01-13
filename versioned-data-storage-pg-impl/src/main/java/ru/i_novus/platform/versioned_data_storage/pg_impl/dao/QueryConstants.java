@@ -2,9 +2,9 @@ package ru.i_novus.platform.versioned_data_storage.pg_impl.dao;
 
 import java.time.format.DateTimeFormatter;
 
+import static ru.i_novus.platform.datastorage.temporal.util.StringUtils.addSingleQuotes;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants.*;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils.aliasSystemFieldName;
-import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils.addSingleQuotes;
 
 /**
  * @author lgalimova

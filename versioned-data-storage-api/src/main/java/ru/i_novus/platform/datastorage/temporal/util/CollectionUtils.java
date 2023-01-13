@@ -3,10 +3,13 @@ package ru.i_novus.platform.datastorage.temporal.util;
 import java.util.Collection;
 import java.util.Map;
 
-public class CollectionUtils {
+/**
+ * Класс для работы с коллекциями.
+ */
+public final class CollectionUtils {
 
     private CollectionUtils() {
-        throw new UnsupportedOperationException();
+        // Nothing to do.
     }
 
     public static boolean isNullOrEmpty(final Collection<?> c) {

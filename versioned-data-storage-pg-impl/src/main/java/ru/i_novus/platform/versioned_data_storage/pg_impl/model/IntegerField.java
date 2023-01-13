@@ -28,6 +28,12 @@ public class IntegerField extends Field<BigInteger> {
     }
 
     @Override
+    @SuppressWarnings("rawtypes")
+    public Class getFieldValueClass() {
+        return IntegerFieldValue.class;
+    }
+
+    @Override
     @SuppressWarnings({"rawtypes", "unchecked"})
     public FieldValue valueOf(BigInteger value) {
         return new IntegerFieldValue(getName(), value);

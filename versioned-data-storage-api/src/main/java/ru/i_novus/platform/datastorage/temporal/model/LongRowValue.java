@@ -8,6 +8,8 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 
 /**
+ * Запись с системным идентификатором типа Long.
+ *
  * @author lgalimova
  * @since 01.02.2018
  */

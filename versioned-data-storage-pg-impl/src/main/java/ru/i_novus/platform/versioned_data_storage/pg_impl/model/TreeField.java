@@ -36,6 +36,12 @@ public class TreeField extends Field<String> {
     }
 
     @Override
+    @SuppressWarnings("rawtypes")
+    public Class getFieldValueClass() {
+        return TreeFieldValue.class;
+    }
+
+    @Override
     @SuppressWarnings({"rawtypes", "unchecked"})
     public FieldValue valueOf(String value) {
         return new TreeFieldValue(getName(), value);

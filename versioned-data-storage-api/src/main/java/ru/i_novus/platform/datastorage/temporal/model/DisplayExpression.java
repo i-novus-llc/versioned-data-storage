@@ -1,13 +1,15 @@
 package ru.i_novus.platform.datastorage.temporal.model;
 
+import ru.i_novus.platform.datastorage.temporal.util.CollectionUtils;
+import ru.i_novus.platform.datastorage.temporal.util.StringUtils;
+
 import java.io.Serializable;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static java.util.stream.Collectors.joining;
 
 /**
  * Формат отображения.
@@ -36,7 +38,7 @@ public class DisplayExpression implements Serializable {
     public static final String PLACEHOLDER_DEFAULT_DELIMITER = VAR_DEFAULT;
 
     private static final String PLACEHOLDER_REGEX = "\\" + VAR_ESCAPE + "\\" + VAR_START +
-            "(.+?)" + "(" + VAR_DEFAULT + ".*)?" + VAR_END;
+            "(.+?)" + "(" + VAR_DEFAULT + ".*?)?" + VAR_END;
     public static final Pattern PLACEHOLDER_PATTERN = Pattern.compile(PLACEHOLDER_REGEX);
 
     private String value;
@@ -54,7 +56,9 @@ public class DisplayExpression implements Serializable {
     }
 
     public Map<String, String> getPlaceholders() {
-        if (value == null) return Collections.emptyMap();
+
+        if (value == null)
+            return Collections.emptyMap();
 
         Map<String, String> placeholders = new HashMap<>();
         Matcher matcher = DisplayExpression.PLACEHOLDER_PATTERN.matcher(value);
@@ -66,32 +70,13 @@ public class DisplayExpression implements Serializable {
         return placeholders;
     }
 
-    public static DisplayExpression ofField(String field) {
-        if (field == null) return null;
-        return new DisplayExpression(toPlaceholder(field));
-    }
-
-    public static DisplayExpression ofFields(String ... field) {
-        if (field == null) return null;
-        String expression = Stream.of(field).map(DisplayExpression::toPlaceholder).collect(Collectors.joining(" "));
-        return new DisplayExpression(expression);
-    }
-
-    public static String toPlaceholder(String field) {
-        return field == null ? null : PLACEHOLDER_START + field + PLACEHOLDER_END;
-    }
-
-    public static String toPlaceholder(String field, String defaultValue) {
-        return field == null ? null : PLACEHOLDER_START + field + PLACEHOLDER_DEFAULT_DELIMITER + defaultValue + PLACEHOLDER_END;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
         DisplayExpression that = (DisplayExpression) o;
-        return (value != null ? value.equals(that.value) : that.value == null);
+        return Objects.equals(value, that.value);
     }
 
     @Override
@@ -104,5 +89,60 @@ public class DisplayExpression implements Serializable {
         return "DisplayExpression{" +
                 "value='" + value + '\'' +
                 '}';
+    }
+
+    public static DisplayExpression ofField(String field) {
+
+        if (field == null)
+            return null;
+
+        return new DisplayExpression(toPlaceholder(field));
+    }
+
+    public static DisplayExpression ofField(String field, String defaultValue) {
+
+        if (field == null)
+            return null;
+
+        return new DisplayExpression(toPlaceholder(field, defaultValue));
+    }
+
+    public static DisplayExpression ofFields(String... fields) {
+
+        if (fields == null || fields.length == 0)
+            return null;
+
+        String expression = Stream.of(fields).map(DisplayExpression::toPlaceholder).collect(joining(" "));
+        return new DisplayExpression(expression);
+    }
+
+    public static DisplayExpression ofFields(List<Map.Entry<String, String>> fields) {
+
+        if (CollectionUtils.isNullOrEmpty(fields))
+            return null;
+
+        String expression = fields.stream()
+                .map(entry -> toPlaceholder(entry.getKey(), entry.getValue()))
+                .collect(joining(" "));
+        return new DisplayExpression(expression);
+    }
+
+    public static String toPlaceholder(String field) {
+
+        if (field == null)
+            return null;
+
+        return PLACEHOLDER_START + field + PLACEHOLDER_END;
+    }
+
+    public static String toPlaceholder(String field, String defaultValue) {
+
+        if (field == null)
+            return null;
+
+        if (StringUtils.isNullOrEmpty(defaultValue))
+            return toPlaceholder(field);
+
+        return PLACEHOLDER_START + field + PLACEHOLDER_DEFAULT_DELIMITER + defaultValue + PLACEHOLDER_END;
     }
 }

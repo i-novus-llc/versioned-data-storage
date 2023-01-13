@@ -11,12 +11,12 @@ import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageCopyReques
 import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
+import ru.i_novus.platform.datastorage.temporal.util.StringUtils;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.BooleanField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.TreeField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
-import ru.i_novus.platform.versioned_data_storage.pg_impl.util.StringUtils;
 
 import javax.persistence.PersistenceException;
 import javax.transaction.Transactional;
@@ -212,7 +212,7 @@ public class DraftDataServiceImpl implements DraftDataService {
             throw new CodifiedException("target.table.is.not.empty");
 
         boolean isTriggersRedundant = isNullOrEmpty(fieldNames) ||
-                fieldNames.containsAll(escapedTriggeredFieldNames());
+                new HashSet<>(fieldNames).containsAll(escapedTriggeredFieldNames());
 
         if (isTriggersRedundant) {
             dataDao.disableTriggers(targetCode);
@@ -330,13 +330,18 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     @Override
+    public boolean isFieldUnique(String storageCode, List<String> fieldNames, LocalDateTime publishTime) {
+        return dataDao.isUnique(storageCode, fieldNames, publishTime);
+    }
+
+    @Override
     public boolean isFieldUnique(String storageCode, String fieldName, LocalDateTime publishTime) {
-        return dataDao.isUnique(storageCode, singletonList(fieldName), publishTime);
+        return isFieldUnique(storageCode, singletonList(fieldName), publishTime);
     }
 
     @Override
     public boolean isUnique(String storageCode, List<String> fieldNames) {
-        return dataDao.isUnique(storageCode, fieldNames, null);
+        return isFieldUnique(storageCode, fieldNames, null);
     }
 
     private void createDraftTable(String draftCode, List<Field> fields) {
@@ -471,9 +476,10 @@ public class DraftDataServiceImpl implements DraftDataService {
         }
     }
 
+    /** Преобразование ошибки хранилища в исключение. */
     private RuntimeException transformException(PersistenceException exception) {
 
-        //Обработка кода ошибки о нарушении уникальности в postgres
+        // Обработка кода ошибки о нарушении уникальности в PostgreSQL
         SQLException sqlException = (SQLException) of(exception)
                 .map(Throwable::getCause).map(Throwable::getCause)
                 .filter(e -> e instanceof SQLException).orElse(null);

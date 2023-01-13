@@ -7,32 +7,37 @@ import java.io.Serializable;
 import java.util.Objects;
 
 /**
+ * Разница между значениями поля в разных версиях хранилища.
+ *
  * @author lgalimova
  * @since 10.05.2018
  */
 @SuppressWarnings({"java:S3740", "java:S1948"})
-public class DiffFieldValue<T> implements Serializable {
+public class DiffFieldValue<T extends Serializable> implements Serializable {
 
-    private Field field;
+    private Field<T> field;
+
     private T oldValue;
     private T newValue;
+
     private DiffStatusEnum status;
 
     public DiffFieldValue() {
     }
 
-    public DiffFieldValue(Field field, T oldValue, T newValue, DiffStatusEnum status) {
+    public DiffFieldValue(Field<T> field, T oldValue, T newValue, DiffStatusEnum status) {
+
         this.field = field;
         this.oldValue = oldValue;
         this.newValue = newValue;
         this.status = status;
     }
 
-    public Field getField() {
+    public Field<T> getField() {
         return field;
     }
 
-    public void setField(Field field) {
+    public void setField(Field<T> field) {
         this.field = field;
     }
 

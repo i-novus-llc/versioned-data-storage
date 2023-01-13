@@ -55,10 +55,10 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <javaee.api.version>8.0.1</javaee.api.version>
-        <jackson.version>2.11.1</jackson.version>
+        <jackson-databind.version>2.12.7.1</jackson-databind.version>
         <hibernate.version>5.4.16.Final</hibernate.version>
 
-        <n2o.version>7.23.25</n2o.version>
+        <n2o.version>7.23.50</n2o.version>
 
         <commons.text.version>1.6</commons.text.version>
         <maven.source.version>3.0.1</maven.source.version>
@@ -125,10 +125,9 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
-                <version>${jackson.version}</version>
+                <version>${jackson-databind.version}</version>
                 <scope>provided</scope>
             </dependency>
-
         </dependencies>
     </dependencyManagement>
 

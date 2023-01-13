@@ -2,7 +2,7 @@ package ru.i_novus.platform.versioned_data_storage.pg_impl.model;
 
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
-import ru.i_novus.platform.datastorage.temporal.model.value.StringFieldValue;
+import ru.i_novus.platform.datastorage.temporal.model.value.IntegerStringFieldValue;
 
 /**
  * @author lgalimova
@@ -26,8 +26,14 @@ public class IntegerStringField extends Field<String> {
     }
 
     @Override
+    @SuppressWarnings("rawtypes")
+    public Class getFieldValueClass() {
+        return IntegerStringFieldValue.class;
+    }
+
+    @Override
     @SuppressWarnings({"rawtypes", "unchecked"})
     public FieldValue valueOf(String value) {
-        return new StringFieldValue(getName(), value);
+        return new IntegerStringFieldValue(getName(), value);
     }
 }
