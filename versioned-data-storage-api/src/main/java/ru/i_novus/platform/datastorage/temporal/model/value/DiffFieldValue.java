@@ -7,6 +7,8 @@ import java.io.Serializable;
 import java.util.Objects;
 
 /**
+ * Разница между значениями поля в разных версиях хранилища.
+ *
  * @author lgalimova
  * @since 10.05.2018
  */

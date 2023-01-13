@@ -9,10 +9,12 @@ import java.util.Objects;
 import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
 
 /**
+ * Разница между значениями полей записи в разных версиях хранилища.
+ *
  * @author lgalimova
  * @since 10.05.2018
  */
-@SuppressWarnings("rawtypes")
+@SuppressWarnings({"rawtypes", "java:S3740"})
 public class DiffRowValue implements Serializable {
 
     private final List<DiffFieldValue> values;
