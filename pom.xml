@@ -56,7 +56,7 @@
 
         <javaee.api.version>8.0.1</javaee.api.version>
         <jackson-databind.version>2.12.7.1</jackson-databind.version>
-        <hibernate.version>5.4.16.Final</hibernate.version>
+        <hibernate.version>5.4.24.Final</hibernate.version>
 
         <n2o.version>7.23.50</n2o.version>
 
