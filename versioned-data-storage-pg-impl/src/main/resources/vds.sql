@@ -7,8 +7,8 @@ CREATE OR REPLACE FUNCTION data.closed_now_records(fields text, id BIGINT, tbl t
                                                                            to_dt  TIMESTAMP WITHOUT TIME ZONE, tbl_seq_name text)
                           RETURNS SETOF RECORD AS
                         $BODY$
-DECLARE left  RECORD;
-        right RECORD;
+DECLARE _left  RECORD;
+        _right RECORD;
         r     RECORD;
 BEGIN
   IF (from_dt IS NULL)
@@ -33,18 +33,18 @@ BEGIN
     --отрезаем левый конец
     IF (coalesce(r."SYS_PUBLISHTIME", '-infinity') < from_dt AND from_dt < coalesce(r."SYS_CLOSETIME", 'infinity'))
     THEN
-      left := r;
-      left."SYS_RECORDID" := nextval(tbl_seq_name);
-      left."SYS_CLOSETIME" := from_dt;
-      RETURN NEXT left;
+      _left := r;
+      _left."SYS_RECORDID" := nextval(tbl_seq_name);
+      _left."SYS_CLOSETIME" := from_dt;
+      RETURN NEXT _left;
     END IF;
     --отрезаем правый конец
     IF (coalesce(r."SYS_PUBLISHTIME", '-infinity') < to_dt AND to_dt < coalesce(r."SYS_CLOSETIME", 'infinity'))
     THEN
-      right := r;
-      right."SYS_RECORDID" := nextval(tbl_seq_name);
-      right."SYS_PUBLISHTIME" := to_dt;
-      RETURN NEXT right;
+      _right := r;
+      _right."SYS_RECORDID" := nextval(tbl_seq_name);
+      _right."SYS_PUBLISHTIME" := to_dt;
+      RETURN NEXT _right;
     END IF;
   END IF;
 
