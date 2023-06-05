@@ -60,7 +60,7 @@
 
         <n2o.version>7.23.50</n2o.version>
 
-        <commons.text.version>1.6</commons.text.version>
+        <commons.text.version>1.10.0</commons.text.version>
         <maven.source.version>3.0.1</maven.source.version>
         <maven.javadoc.version>3.1.0</maven.javadoc.version>
         <maven.javadoc.failOnError>false</maven.javadoc.failOnError>
