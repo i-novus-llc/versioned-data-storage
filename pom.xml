@@ -54,13 +54,20 @@
         <encoding>UTF-8</encoding>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
+        <n2o.version>7.23.79</n2o.version>
+
+        <!-- from spring-boot-dependencies in n2o-boot-platform-parent -->
+        <jackson-databind.version>2.13.1</jackson-databind.version>
+        <hibernate.version>5.6.12.Final</hibernate.version>
+        <hibernate.jpa.version>1.0.2.Final</hibernate.jpa.version>
+        <liquibase.version>4.9.1</liquibase.version>
+        <slf4j.version>1.7.36</slf4j.version>
+        <javax.servlet.version>4.0.1</javax.servlet.version>
+
+        <commons.text.version>1.10.0</commons.text.version>
+
         <javaee.api.version>8.0.1</javaee.api.version>
-        <jackson-databind.version>2.12.7.1</jackson-databind.version>
-        <hibernate.version>5.4.16.Final</hibernate.version>
 
-        <n2o.version>7.23.50</n2o.version>
-
-        <commons.text.version>1.6</commons.text.version>
         <maven.source.version>3.0.1</maven.source.version>
         <maven.javadoc.version>3.1.0</maven.javadoc.version>
         <maven.javadoc.failOnError>false</maven.javadoc.failOnError>
@@ -87,14 +94,14 @@
             <dependency>
                 <groupId>javax.servlet</groupId>
                 <artifactId>javax.servlet-api</artifactId>
-                <version>3.0.1</version>
+                <version>${javax.servlet.version}</version>
                 <scope>provided</scope>
             </dependency>
 
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
-                <version>1.7.30</version>
+                <version>${slf4j.version}</version>
             </dependency>
 
             <dependency>
@@ -112,8 +119,8 @@
             <dependency>
                 <groupId>org.hibernate</groupId>
                 <artifactId>hibernate-core</artifactId>
-                <scope>provided</scope>
                 <version>${hibernate.version}</version>
+                <scope>provided</scope>
             </dependency>
 
             <dependency>
