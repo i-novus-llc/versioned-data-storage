@@ -56,7 +56,6 @@
 
         <n2o.version>7.23.79</n2o.version>
 
-        <!-- from spring-boot-dependencies in n2o-boot-platform-parent -->
         <jackson-databind.version>2.13.1</jackson-databind.version>
         <hibernate.version>5.6.12.Final</hibernate.version>
         <hibernate.jpa.version>1.0.2.Final</hibernate.jpa.version>
