@@ -1,6 +1,6 @@
 package ru.i_novus.platform.datastorage.temporal.model;
 
-import net.n2oapp.criteria.api.CollectionPage;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.DataPage;
 import ru.i_novus.platform.datastorage.temporal.model.value.DiffRowValue;
 
 /**
@@ -9,13 +9,13 @@ import ru.i_novus.platform.datastorage.temporal.model.value.DiffRowValue;
  */
 public class DataDifference {
 
-    private final CollectionPage<DiffRowValue> rows;
+    private final DataPage<DiffRowValue> rows;
 
-    public DataDifference(CollectionPage<DiffRowValue> rows) {
+    public DataDifference(DataPage<DiffRowValue> rows) {
         this.rows = rows;
     }
 
-    public CollectionPage<DiffRowValue> getRows() {
+    public DataPage<DiffRowValue> getRows() {
         return rows;
     }
 }

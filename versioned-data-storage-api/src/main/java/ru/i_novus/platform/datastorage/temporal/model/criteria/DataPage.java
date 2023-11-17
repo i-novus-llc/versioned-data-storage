@@ -9,17 +9,13 @@ import java.util.Objects;
  */
 public class DataPage<T> implements Serializable {
 
-    /**
-     * Критерий поиска.
-     */
+    /** Критерий поиска. */
     protected DataCriteria criteria;
-    /**
-     * Количество записей.
-     */
+
+    /** Количество записей. */
     protected Integer count;
-    /**
-     * Коллекция записей.
-     */
+
+    /** Коллекция записей. */
     protected Collection<T> collection;
 
     protected DataPage(DataCriteria criteria) {

@@ -146,23 +146,24 @@ public class StorageDataCriteria extends DataCriteria {
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), storageCode, bdate, edate, fields,
+        return Objects.hash(super.hashCode(),
+                storageCode, bdate, edate, fields,
                 fieldFilters, commonFilter, hashList, systemIds);
     }
 
     @Override
     public String toString() {
         return "StorageDataCriteria{" +
-                super.toString() +
-                ", storageCode='" + storageCode + '\'' +
+                "storageCode='" + storageCode + '\'' +
                 ", bdate=" + bdate +
                 ", edate=" + edate +
                 ", fields=" + fields +
 
                 ", fieldFilters=" + fieldFilters +
-                ", commonFilter=" + commonFilter +
+                ", commonFilter='" + commonFilter + '\'' +
                 ", hashList=" + hashList +
                 ", systemIds=" + systemIds +
-                '}';
+                "} " +
+                super.toString();
     }
 }

@@ -23,24 +23,16 @@ public class DataCriteria implements Serializable {
     public static final int NO_PAGINATION_PAGE = 0;
     public static final int NO_PAGINATION_SIZE = 0;
 
-    /**
-     * Номер страницы.
-     */
+    /** Номер страницы. */
     private int page = MIN_PAGE;
 
-    /**
-     * Размер страницы.
-     */
+    /** Размер страницы. */
     private int size = DEFAULT_SIZE;
 
-    /**
-     * Условия сортировки.
-     */
+    /** Условия сортировки. */
     private List<DataSorting> sortings;
 
-    /**
-     * Количество записей (если известно).
-     */
+    /** Количество записей (если известно). */
     private Integer count;
 
     public DataCriteria() {

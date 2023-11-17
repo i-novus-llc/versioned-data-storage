@@ -1,6 +1,6 @@
 package ru.i_novus.platform.versioned_data_storage;
 
-import net.n2oapp.criteria.api.CollectionPage;
+import org.hamcrest.MatcherAssert;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,7 +21,10 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.model.IntegerField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.StringField;
 
 import java.math.BigInteger;
-import java.time.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -366,8 +369,8 @@ public class UseCaseTest {
 
         StorageDataCriteria criteria = new StorageDataCriteria(targetCode, null, null,
                 singletonList(idField), emptySet(), null);
-        criteria.setPage(BaseDataCriteria.MIN_PAGE);
-        criteria.setSize(BaseDataCriteria.MIN_SIZE);
+        criteria.setPage(DataCriteria.MIN_PAGE);
+        criteria.setSize(DataCriteria.MIN_SIZE);
 
         Collection<RowValue> targetRows = searchDataService.getPagedData(criteria).getCollection();
         assertEquals(sourceRows.size(), criteria.getCount().intValue());
@@ -1119,10 +1122,12 @@ public class UseCaseTest {
      */
     @Test
     public void testPublishAndSearchNullCloseDateData() {
+
         Field stringField = new StringField("string");
         String draftStorageCode1 = draftDataService.createDraft(singletonList(stringField));
         String draftStorageCode2 = draftDataService.createDraft(singletonList(stringField));
         String draftStorageCode3 = draftDataService.createDraft(singletonList(stringField));
+
         List<RowValue> rowValues1 = singletonList(
                 new LongRowValue(stringField.valueOf("string field value 1")));
         List<RowValue> rowValues2 = Arrays.asList(
@@ -1146,7 +1151,7 @@ public class UseCaseTest {
 
         //Поиск когда closeTime поиска и данных closeTime одинаковый
         StorageDataCriteria dataCriteria = new StorageDataCriteria(versionStorageCode2, publishDate2, closeDate2, singletonList(stringField), emptySet(), null);
-        CollectionPage<RowValue> actualData = searchDataService.getPagedData(dataCriteria);
+        DataPage<RowValue> actualData = searchDataService.getPagedData(dataCriteria);
         assertEquals(3, actualData.getCount());
         assertRows(rowValues2, actualData.getCollection());
 
@@ -1170,11 +1175,14 @@ public class UseCaseTest {
 
     @Test
     public void testGroupFilters() {
+
         String id = "id";
         List<Field> fields = new ArrayList<>();
         Field integerField = new IntegerField(id);
         fields.add(integerField);
+
         String storageCode = draftDataService.createDraft(fields);
+
         RowValue[] records = {
             new LongRowValue(new IntegerFieldValue(id, 1)),
             new LongRowValue(new IntegerFieldValue(id, 2)),
@@ -1196,14 +1204,13 @@ public class UseCaseTest {
         FieldSearchCriteria criteria3 = new FieldSearchCriteria(integerField, SearchTypeEnum.EXACT, singletonList(3));
 
         StorageDataCriteria dataCriteria = new StorageDataCriteria(storageCode, null, null, fields, Arrays.asList(criteria1, criteria2, criteria3), null);
-        CollectionPage<RowValue> data = searchDataService.getPagedData(dataCriteria);
+        DataPage<RowValue> data = searchDataService.getPagedData(dataCriteria);
         assertEquals(3, data.getCount());
 
         Collection<RowValue> collection = data.getCollection();
         BigInteger[] searchIds = {BigInteger.valueOf(1), BigInteger.valueOf(2), BigInteger.valueOf(3)};
         for (RowValue rowValue : collection) {
-            assertThat(Arrays.asList(searchIds), hasItem(rowValue.getFieldValue(id).getValue()));
+            MatcherAssert.assertThat(Arrays.asList(searchIds), hasItem(rowValue.getFieldValue(id).getValue()));
         }
     }
-
 }

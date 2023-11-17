@@ -13,7 +13,7 @@ import ru.i_novus.platform.datastorage.temporal.enums.FieldType;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.LongRowValue;
-import ru.i_novus.platform.datastorage.temporal.model.criteria.BaseDataCriteria;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageCopyRequest;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.FieldFactory;
@@ -348,7 +348,7 @@ public class DataDaoTest {
         );
 
         StorageCopyRequest request = new StorageCopyRequest(sourceCode, targetCode, null, null, null);
-        request.setPage(BaseDataCriteria.MIN_PAGE);
+        request.setPage(DataCriteria.MIN_PAGE);
         request.setSize(dataNames.size());
 
         dataDao.copyTableData(request);

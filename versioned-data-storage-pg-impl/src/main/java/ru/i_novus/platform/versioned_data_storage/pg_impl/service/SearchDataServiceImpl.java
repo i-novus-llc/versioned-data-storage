@@ -1,6 +1,6 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.service;
 
-import net.n2oapp.criteria.api.CollectionPage;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.DataPage;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageDataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.SearchDataService;
@@ -26,7 +26,7 @@ public class SearchDataServiceImpl implements SearchDataService {
     }
 
     @Override
-    public CollectionPage<RowValue> getPagedData(StorageDataCriteria criteria) {
+    public DataPage<RowValue> getPagedData(StorageDataCriteria criteria) {
 
         Integer count = criteria.getCount();
         if (count == null) {
@@ -36,10 +36,10 @@ public class SearchDataServiceImpl implements SearchDataService {
         }
 
         if (count == 0)
-            return new CollectionPage<>(count, emptyList(), criteria);
+            return new DataPage<>(count, emptyList(), criteria);
 
         List<RowValue> data = dataDao.getData(criteria);
-        return new CollectionPage<>(criteria.getCount(), data, criteria);
+        return new DataPage<>(criteria.getCount(), data, criteria);
     }
 
     @Override
@@ -68,7 +68,9 @@ public class SearchDataServiceImpl implements SearchDataService {
     }
 
     @Override
-    public List<String> findExistentHashes(String storageCode, LocalDateTime bdate, LocalDateTime edate,
+    public List<String> findExistentHashes(String storageCode,
+                                           LocalDateTime bdate,
+                                           LocalDateTime edate,
                                            List<String> hashList) {
         return dataDao.findExistentHashes(storageCode, bdate, edate, hashList);
     }
