@@ -3,13 +3,16 @@ package ru.i_novus.platform.datastorage.temporal.model.criteria;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 import static java.util.Collections.emptyList;
 
 /** Критерий поиска данных в хранилище. */
 @SuppressWarnings("java:S3740")
-public class StorageDataCriteria extends BaseDataCriteria {
+public class StorageDataCriteria extends DataCriteria {
 
     /** Код хранилища. */
     private final String storageCode;
