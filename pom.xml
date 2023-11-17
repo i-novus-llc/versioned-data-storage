@@ -54,8 +54,6 @@
         <encoding>UTF-8</encoding>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <n2o.version>7.23.79</n2o.version>
-
         <jackson-databind.version>2.13.1</jackson-databind.version>
         <hibernate.version>5.6.12.Final</hibernate.version>
         <hibernate.jpa.version>1.0.2.Final</hibernate.jpa.version>
@@ -101,12 +99,6 @@
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
                 <version>${slf4j.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>net.n2oapp.criteria</groupId>
-                <artifactId>criteria-api</artifactId>
-                <version>${n2o.version}</version>
             </dependency>
 
             <dependency>
