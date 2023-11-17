@@ -1,6 +1,6 @@
 package ru.i_novus.platform.datastorage.temporal.service;
 
-import net.n2oapp.criteria.api.CollectionPage;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.DataPage;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageDataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 
@@ -21,7 +21,7 @@ public interface SearchDataService {
      * @param criteria критерий поиска
      * @return Список записей
      */
-    CollectionPage<RowValue> getPagedData(StorageDataCriteria criteria);
+    DataPage<RowValue> getPagedData(StorageDataCriteria criteria);
 
     /**
      * Получение данных по критерию.
@@ -68,6 +68,8 @@ public interface SearchDataService {
      * @param hashList    список хешей записей
      * @return Список существующих хешей
      */
-    List<String> findExistentHashes(String storageCode, LocalDateTime bdate, LocalDateTime edate,
+    List<String> findExistentHashes(String storageCode,
+                                    LocalDateTime bdate,
+                                    LocalDateTime edate,
                                     List<String> hashList);
 }

@@ -1,7 +1,5 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.dao;
 
-import net.n2oapp.criteria.api.CollectionPage;
-import net.n2oapp.criteria.api.Sorting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffReturnTypeEnum;
@@ -151,8 +149,8 @@ public class DataDaoImpl implements DataDao {
         StorageDataCriteria criteria = new StorageDataCriteria(storageCode, null, null,
                 emptyList(), emptySet(), null);
         criteria.setCount(1);
-        criteria.setPage(BaseDataCriteria.MIN_PAGE);
-        criteria.setSize(BaseDataCriteria.MIN_SIZE);
+        criteria.setPage(DataCriteria.MIN_PAGE);
+        criteria.setSize(DataCriteria.MIN_SIZE);
 
         List<RowValue> data = getData(criteria);
         return !isNullOrEmpty(data);
@@ -585,7 +583,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     /** Получение сортировки по списку полей. */
-    private String sortingsToOrderBy(List<Sorting> sortings, String alias) {
+    private String sortingsToOrderBy(List<DataSorting> sortings, String alias) {
 
         String result = " ORDER BY ";
 
@@ -600,7 +598,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     /** Получение части сортировки по полю. */
-    private String toOrderBy(String alias, Sorting sorting) {
+    private String toOrderBy(String alias, DataSorting sorting) {
 
         return " " + aliasFieldName(alias, sorting.getField()) +
                 " " + sorting.getDirection().toString();
@@ -1914,7 +1912,7 @@ public class DataDaoImpl implements DataDao {
         BigInteger count = (BigInteger) countQuery.getSingleResult();
 
         if (Boolean.TRUE.equals(criteria.getCountOnly())) {
-            return new DataDifference(new CollectionPage<>(count.intValue(), null, criteria));
+            return new DataDifference(new DataPage<>(count.intValue(), null, criteria));
         }
 
         String orderBy = " ORDER BY " +
@@ -1935,7 +1933,7 @@ public class DataDaoImpl implements DataDao {
         List<Object[]> resultList = dataQuery.getResultList();
 
         List<DiffRowValue> diffRowValues = toDiffRowValues(criteria.getFields(), resultList, criteria);
-        return new DataDifference(new CollectionPage<>(count.intValue(), diffRowValues, criteria));
+        return new DataDifference(new DataPage<>(count.intValue(), diffRowValues, criteria));
     }
 
     private String diffReturnTypeToJoinType(DiffReturnTypeEnum typeEnum) {

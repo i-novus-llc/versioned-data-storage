@@ -6,7 +6,7 @@ import ru.i_novus.components.common.exception.CodifiedException;
 import ru.i_novus.platform.datastorage.temporal.exception.ListCodifiedException;
 import ru.i_novus.platform.datastorage.temporal.exception.NotUniqueException;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
-import ru.i_novus.platform.datastorage.temporal.model.criteria.BaseDataCriteria;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageCopyRequest;
 import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
@@ -226,7 +226,7 @@ public class DraftDataServiceImpl implements DraftDataService {
 
             int pageCount = request.getPageCount();
             for (int page = 0; page < pageCount; page++) {
-                request.setPage(page + BaseDataCriteria.PAGE_SHIFT);
+                request.setPage(page + DataCriteria.PAGE_SHIFT);
                 dataDao.copyTableData(request);
             }
 

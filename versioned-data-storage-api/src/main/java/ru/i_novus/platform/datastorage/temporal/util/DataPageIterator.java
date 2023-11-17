@@ -1,7 +1,7 @@
 package ru.i_novus.platform.datastorage.temporal.util;
 
-import net.n2oapp.criteria.api.CollectionPage;
-import net.n2oapp.criteria.api.Criteria;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.DataCriteria;
+import ru.i_novus.platform.datastorage.temporal.model.criteria.DataPage;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -11,12 +11,12 @@ import java.util.function.Function;
  * Итератор для постраничной обработки данных, получаемых из БД.
  *
  * @param <T> тип получаемых данных
- * @param <C> тип критерия выборки данных
+ * @param <C> тип критерия поиска данных
  */
-public class CollectionPageIterator<T, C extends Criteria> implements Iterator<CollectionPage<? extends T>> {
+public class DataPageIterator<T, C extends DataCriteria> implements Iterator<DataPage<? extends T>> {
 
     /** Источник данных. */
-    private final Function<? super C, CollectionPage<? extends T>> pageSource;
+    private final Function<? super C, DataPage<? extends T>> pageSource;
 
     /** Критерий выборки. */
     private final C criteria;
@@ -25,9 +25,9 @@ public class CollectionPageIterator<T, C extends Criteria> implements Iterator<C
     private int currentPage;
 
     /** Следующая страница с данными. */
-    private CollectionPage<? extends T> nextPage;
+    private DataPage<? extends T> nextPage;
 
-    public CollectionPageIterator(Function<? super C, CollectionPage<? extends T>> pageSource, C criteria) {
+    public DataPageIterator(Function<? super C, DataPage<? extends T>> pageSource, C criteria) {
 
         this.pageSource = pageSource;
         this.criteria = criteria;
@@ -47,9 +47,9 @@ public class CollectionPageIterator<T, C extends Criteria> implements Iterator<C
 
     @Override
     @SuppressWarnings("squid:S2272")
-    public CollectionPage<? extends T> next() {
+    public DataPage<? extends T> next() {
 
-        CollectionPage<? extends T> result;
+        DataPage<? extends T> result;
 
         if (nextPage != null) {
             result = nextPage;
