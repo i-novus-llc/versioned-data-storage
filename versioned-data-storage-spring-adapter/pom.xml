@@ -77,12 +77,14 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-tx</artifactId>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>javax.transaction</groupId>
             <artifactId>javax.transaction-api</artifactId>
             <version>1.3</version>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
