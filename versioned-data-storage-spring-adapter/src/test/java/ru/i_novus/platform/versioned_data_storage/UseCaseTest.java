@@ -367,10 +367,10 @@ public class UseCaseTest {
         String targetCode = toStorageCode(TEST_SCHEMA_NAME, targetName);
         draftDataService.copyAllData(sourceCode, targetCode);
 
-        StorageDataCriteria criteria = new StorageDataCriteria(targetCode, null, null,
+        final StorageDataCriteria criteria = new StorageDataCriteria(targetCode, null, null,
                 singletonList(idField), emptySet(), null);
-        criteria.setPage(DataCriteria.MIN_PAGE);
-        criteria.setSize(DataCriteria.MIN_SIZE);
+        criteria.setPage(DataCriteria.FIRST_PAGE);
+        criteria.setSize(DataCriteria.LEAST_SIZE);
 
         Collection<RowValue> targetRows = searchDataService.getPagedData(criteria).getCollection();
         assertEquals(sourceRows.size(), criteria.getCount().intValue());

@@ -146,13 +146,13 @@ public class DataDaoImpl implements DataDao {
     @Override
     public boolean hasData(String storageCode) {
 
-        StorageDataCriteria criteria = new StorageDataCriteria(storageCode, null, null,
+        final StorageDataCriteria criteria = new StorageDataCriteria(storageCode, null, null,
                 emptyList(), emptySet(), null);
+        criteria.setPage(DataCriteria.FIRST_PAGE);
+        criteria.setSize(DataCriteria.LEAST_SIZE);
         criteria.setCount(1);
-        criteria.setPage(DataCriteria.MIN_PAGE);
-        criteria.setSize(DataCriteria.MIN_SIZE);
 
-        List<RowValue> data = getData(criteria);
+        final List<RowValue> data = getData(criteria);
         return !isNullOrEmpty(data);
     }
 

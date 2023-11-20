@@ -31,6 +31,8 @@ public class CompareDataCriteria extends DataCriteria {
 
     public CompareDataCriteria(String storageCode, String newStorageCode) {
 
+        super();
+
         this.storageCode = storageCode;
         this.newStorageCode = newStorageCode;
     }
@@ -45,6 +47,7 @@ public class CompareDataCriteria extends DataCriteria {
         this.primaryFieldsFilters = primaryFieldsFilters;
     }
 
+    //<editor-fold default-state="collapsed" desc="Методы доступа">
     public String getStorageCode() {
         return storageCode;
     }
@@ -132,14 +135,16 @@ public class CompareDataCriteria extends DataCriteria {
     public void setReturnType(DiffReturnTypeEnum returnType) {
         this.returnType = returnType;
     }
+    //</editor-fold> // Методы доступа
 
+    //<editor-fold default-state="collapsed" desc="Стандартные методы">
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         if(!super.equals(o)) return false;
 
-        CompareDataCriteria that = (CompareDataCriteria) o;
+        final CompareDataCriteria that = (CompareDataCriteria) o;
         return Objects.equals(storageCode, that.storageCode) &&
                 Objects.equals(newStorageCode, that.newStorageCode) &&
 
@@ -159,7 +164,8 @@ public class CompareDataCriteria extends DataCriteria {
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), storageCode, newStorageCode,
+        return Objects.hash(super.hashCode(),
+                storageCode, newStorageCode,
                 fields, primaryFields, primaryFieldsFilters,
                 oldPublishDate, oldCloseDate, newPublishDate, newCloseDate,
                 status, countOnly, returnType);
@@ -183,7 +189,9 @@ public class CompareDataCriteria extends DataCriteria {
                 ", status=" + status +
                 ", countOnly=" + countOnly +
                 ", returnType=" + returnType +
-                '}';
+                "} " +
+                super.toString();
     }
+    //</editor-fold> // Стандартные методы
 }
 

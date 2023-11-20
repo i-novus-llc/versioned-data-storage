@@ -40,6 +40,8 @@ public class StorageDataCriteria extends DataCriteria {
 
     public StorageDataCriteria(String storageCode, LocalDateTime bdate, LocalDateTime edate, List<Field> fields) {
 
+        super();
+
         this.storageCode = storageCode;
         this.bdate = bdate;
         this.edate = edate;
@@ -78,6 +80,7 @@ public class StorageDataCriteria extends DataCriteria {
         this.systemIds = criteria.systemIds;
     }
 
+    //<editor-fold default-state="collapsed" desc="Методы доступа">
     public String getStorageCode() {
         return storageCode;
     }
@@ -125,14 +128,16 @@ public class StorageDataCriteria extends DataCriteria {
     public void setSystemIds(List<Long> systemIds) {
         this.systemIds = systemIds;
     }
+    //</editor-fold> // Методы доступа
 
+    //<editor-fold default-state="collapsed" desc="Стандартные методы">
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         if(!super.equals(o)) return false;
 
-        StorageDataCriteria that = (StorageDataCriteria) o;
+        final StorageDataCriteria that = (StorageDataCriteria) o;
         return Objects.equals(storageCode, that.storageCode) &&
                 Objects.equals(bdate, that.bdate) &&
                 Objects.equals(edate, that.edate) &&
@@ -166,4 +171,5 @@ public class StorageDataCriteria extends DataCriteria {
                 "} " +
                 super.toString();
     }
+    //</editor-fold> // Стандартные методы
 }
