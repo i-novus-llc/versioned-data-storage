@@ -35,6 +35,7 @@ public class FieldSearchCriteria implements Serializable {
         this.values = values;
     }
 
+    //<editor-fold default-state="collapsed" desc="Методы доступа">
     public Field getField() {
         return field;
     }
@@ -58,13 +59,15 @@ public class FieldSearchCriteria implements Serializable {
     public void setType(SearchTypeEnum type) {
         this.type = type;
     }
+    //</editor-fold> // Методы доступа
 
+    //<editor-fold default-state="collapsed" desc="Стандартные методы">
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        FieldSearchCriteria that = (FieldSearchCriteria) o;
+        final FieldSearchCriteria that = (FieldSearchCriteria) o;
         return Objects.equals(field, that.field) &&
                 Objects.equals(values, that.values) &&
                 (type == that.type);
@@ -79,9 +82,10 @@ public class FieldSearchCriteria implements Serializable {
     @Override
     public String toString() {
         return "FieldSearchCriteria{" +
-                ", field=" + field +
+                "field=" + field +
                 ", values=" + values +
                 ", type=" + type +
                 '}';
     }
+    //</editor-fold> // Стандартные методы
 }

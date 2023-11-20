@@ -347,8 +347,9 @@ public class DataDaoTest {
                 assertTrue(targetFieldNames.contains(sourceFieldName))
         );
 
-        StorageCopyRequest request = new StorageCopyRequest(sourceCode, targetCode, null, null, null);
-        request.setPage(DataCriteria.MIN_PAGE);
+        final StorageCopyRequest request = new StorageCopyRequest(
+                sourceCode, targetCode, null, null, null);
+        request.setPage(DataCriteria.FIRST_PAGE);
         request.setSize(dataNames.size());
 
         dataDao.copyTableData(request);

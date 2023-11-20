@@ -5,26 +5,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
-
 /**
  * Критерий поиска данных.
  */
 public class DataCriteria implements Serializable {
 
-    // Нумерация страниц с 1, поэтому сдвиг = +1.
-    @SuppressWarnings("unused")
+    // NB: Нумерация страниц с 1, поэтому сдвиг от нуля = +1.
     public static final int PAGE_SHIFT = 1;
 
-    public static final int MIN_PAGE = 1;
-    public static final int MIN_SIZE = 1;
+    public static final int FIRST_PAGE = 1;
+    public static final int LEAST_SIZE = 1;
     public static final int DEFAULT_SIZE = 15;
 
     public static final int NO_PAGINATION_PAGE = 0;
     public static final int NO_PAGINATION_SIZE = 0;
 
     /** Номер страницы. */
-    private int page = MIN_PAGE;
+    private int page = FIRST_PAGE;
 
     /** Размер страницы. */
     private int size = DEFAULT_SIZE;
@@ -44,7 +41,6 @@ public class DataCriteria implements Serializable {
         this.page = criteria.page;
         this.size = criteria.size;
         this.sortings = criteria.sortings;
-
         this.count = criteria.count;
     }
 
@@ -82,10 +78,6 @@ public class DataCriteria implements Serializable {
     }
     //</editor-fold> // Методы доступа
 
-    public DataSorting getSorting() {
-        return !isNullOrEmpty(sortings) ? sortings.get(0) : null;
-    }
-
     public void addSorting(DataSorting sorting) {
         if (sortings == null) {
             sortings = new ArrayList<>();
@@ -94,12 +86,10 @@ public class DataCriteria implements Serializable {
     }
 
     public boolean hasPageAndSize() {
-
-        return page >= MIN_PAGE && size >= MIN_SIZE;
+        return page >= FIRST_PAGE && size >= LEAST_SIZE;
     }
 
     public boolean hasCount() {
-
         return count != null && count > 0;
     }
 
@@ -110,8 +100,7 @@ public class DataCriteria implements Serializable {
     }
 
     public int getOffset() {
-
-        return hasPageAndSize() ? (page - MIN_PAGE) * size : 0;
+        return hasPageAndSize() ? (page - FIRST_PAGE) * size : 0;
     }
 
     public int getPageCount() {
@@ -124,6 +113,7 @@ public class DataCriteria implements Serializable {
         return 1;
     }
 
+    //<editor-fold default-state="collapsed" desc="Стандартные методы">
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -150,4 +140,5 @@ public class DataCriteria implements Serializable {
                 ", count=" + count +
                 '}';
     }
+    //</editor-fold> // Стандартные методы
 }

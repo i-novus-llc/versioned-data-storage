@@ -32,6 +32,7 @@ public class StorageCopyRequest extends StorageDataCriteria {
         this.escapedFieldNames = request.escapedFieldNames;
     }
 
+    //<editor-fold default-state="collapsed" desc="Методы доступа">
     public String getPurposeCode() {
         return purposeCode;
     }
@@ -43,7 +44,9 @@ public class StorageCopyRequest extends StorageDataCriteria {
     public void setEscapedFieldNames(List<String> escapedFieldNames) {
         this.escapedFieldNames = escapedFieldNames;
     }
+    //</editor-fold> // Методы доступа
 
+    //<editor-fold default-state="collapsed" desc="Стандартные методы">
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -63,9 +66,10 @@ public class StorageCopyRequest extends StorageDataCriteria {
     @Override
     public String toString() {
         return "StorageCopyRequest{" +
-                super.toString() +
-                ", purposeCode='" + purposeCode + '\'' +
+                "purposeCode='" + purposeCode + '\'' +
                 ", escapedFieldNames=" + escapedFieldNames +
-                '}';
+                "} " +
+                super.toString();
     }
+    //</editor-fold> // Стандартные методы
 }
