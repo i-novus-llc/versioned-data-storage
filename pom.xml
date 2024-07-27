@@ -54,7 +54,7 @@
         <encoding>UTF-8</encoding>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <jackson-databind.version>2.13.1</jackson-databind.version>
+        <jackson-databind.version>2.15.0</jackson-databind.version>
         <hibernate.version>5.6.12.Final</hibernate.version>
         <hibernate.jpa.version>1.0.2.Final</hibernate.jpa.version>
         <liquibase.version>4.9.1</liquibase.version>
