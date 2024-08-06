@@ -1,5 +1,10 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.dao;
 
+import jakarta.ejb.TransactionAttribute;
+import jakarta.ejb.TransactionAttributeType;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
+import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffReturnTypeEnum;
@@ -19,13 +24,7 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils;
 
-import javax.ejb.TransactionAttribute;
-import javax.ejb.TransactionAttributeType;
-import javax.persistence.EntityManager;
-import javax.persistence.Query;
-import javax.transaction.Transactional;
 import java.io.Serializable;
-import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -122,7 +121,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    public BigInteger getDataCount(StorageDataCriteria criteria) {
+    public Long getDataCount(StorageDataCriteria criteria) {
 
         final String storageCode = criteria.getStorageCode();
         final String schemaName = getStorageCodeSchemaName(storageCode);
@@ -140,7 +139,7 @@ public class DataDaoImpl implements DataDao {
             queryWithParams.concat(where);
         }
 
-        return (BigInteger) queryWithParams.createQuery(entityManager).getSingleResult();
+        return (Long) queryWithParams.createQuery(entityManager).getSingleResult();
     }
 
     @Override
@@ -617,10 +616,10 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    public BigInteger countData(String storageCode) {
+    public Long countData(String storageCode) {
 
-        String sql = SELECT_COUNT_ONLY + "  FROM " + escapeStorageTableName(storageCode);
-        return (BigInteger) entityManager.createNativeQuery(sql).getSingleResult();
+        final String sql = SELECT_COUNT_ONLY + "  FROM " + escapeStorageTableName(storageCode);
+        return (Long) entityManager.createNativeQuery(sql).getSingleResult();
     }
 
     @Override
@@ -1353,21 +1352,21 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    public BigInteger countReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue) {
+    public Long countReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue) {
 
         String schemaName = toSchemaName(storageCode);
         String tableName = toTableName(storageCode);
 
         if (getReferenceDisplayType(fieldValue.getValue()) == null)
-            return BigInteger.ZERO;
+            return 0L;
 
-        Map<String, String> map = new HashMap<>();
+        final Map<String, String> map = new HashMap<>();
         map.put("versionTable", escapeTableName(schemaName, tableName));
         map.put("versionAlias", VERSION_TABLE_ALIAS);
         map.put("refFieldName", escapeFieldName(fieldValue.getField()));
 
         String sql = substitute(COUNT_REFERENCE_IN_REF_ROWS, map);
-        BigInteger count = (BigInteger) entityManager.createNativeQuery(sql).getSingleResult();
+        final Long count = (Long) entityManager.createNativeQuery(sql).getSingleResult();
 
         if (logger.isDebugEnabled()) {
             logger.debug("countReferenceInRefRows method count: {}, sql: {}", count, sql);
@@ -1600,7 +1599,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    public BigInteger countActualDataFromVersion(String versionCode, String draftCode,
+    public Long countActualDataFromVersion(String versionCode, String draftCode,
                                                  LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
@@ -1613,7 +1612,7 @@ public class DataDaoImpl implements DataDao {
         map.put("closeTime", formatDateTime(closeTime));
 
         String sql = substitute(COUNT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME, map);
-        return (BigInteger) entityManager.createNativeQuery(sql).getSingleResult();
+        return (Long) entityManager.createNativeQuery(sql).getSingleResult();
     }
 
     @Override
@@ -1654,8 +1653,8 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    public BigInteger countOldDataFromVersion(String versionCode, String draftCode,
-                                              LocalDateTime publishTime, LocalDateTime closeTime) {
+    public Long countOldDataFromVersion(String versionCode, String draftCode,
+                                        LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
         String sql = String.format(COUNT_OLD_VAL_FROM_VERSION_WITH_CLOSE_TIME,
@@ -1664,7 +1663,7 @@ public class DataDaoImpl implements DataDao {
                 formatDateTime(publishTime),
                 formatDateTime(closeTime)
         );
-        return (BigInteger) entityManager.createNativeQuery(sql).getSingleResult();
+        return (Long) entityManager.createNativeQuery(sql).getSingleResult();
     }
 
     @Override
@@ -1697,8 +1696,8 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    public BigInteger countClosedNowDataFromVersion(String versionCode, String draftCode,
-                                                    LocalDateTime publishTime, LocalDateTime closeTime) {
+    public Long countClosedNowDataFromVersion(String versionCode, String draftCode,
+                                              LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
         Map<String, String> map = new HashMap<>();
@@ -1708,7 +1707,7 @@ public class DataDaoImpl implements DataDao {
         map.put("closeTime", formatDateTime(closeTime));
 
         String sql = substitute(COUNT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME, map);
-        return (BigInteger) entityManager.createNativeQuery(sql).getSingleResult();
+        return (Long) entityManager.createNativeQuery(sql).getSingleResult();
     }
 
     @Override
@@ -1743,8 +1742,8 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    public BigInteger countNewValFromDraft(String draftCode, String versionCode,
-                                           LocalDateTime publishTime, LocalDateTime closeTime) {
+    public Long countNewValFromDraft(String draftCode, String versionCode,
+                                     LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
         Map<String, String> map = new HashMap<>();
@@ -1754,7 +1753,7 @@ public class DataDaoImpl implements DataDao {
         map.put("closeTime", formatDateTime(closeTime));
 
         String sql = substitute(COUNT_NEW_VAL_FROM_DRAFT_WITH_CLOSE_TIME, map);
-        return (BigInteger) entityManager.createNativeQuery(sql).getSingleResult();
+        return (Long) entityManager.createNativeQuery(sql).getSingleResult();
     }
 
     @Override
@@ -1909,7 +1908,7 @@ public class DataDaoImpl implements DataDao {
 
         QueryWithParams countQueryWithParams = new QueryWithParams(SELECT_COUNT_ONLY + sql, params);
         Query countQuery = countQueryWithParams.createQuery(entityManager);
-        BigInteger count = (BigInteger) countQuery.getSingleResult();
+        final Long count = (Long) countQuery.getSingleResult();
 
         if (Boolean.TRUE.equals(criteria.getCountOnly())) {
             return new DataDifference(new DataPage<>(count.intValue(), null, criteria));

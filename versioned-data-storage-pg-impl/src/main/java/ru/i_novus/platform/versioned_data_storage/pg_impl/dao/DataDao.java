@@ -8,7 +8,6 @@ import ru.i_novus.platform.datastorage.temporal.model.criteria.StorageDataCriter
 import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 
-import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +29,7 @@ public interface DataDao {
      * @param criteria критерий поиска
      * @return Список записей
      */
-    BigInteger getDataCount(StorageDataCriteria criteria);
+    Long getDataCount(StorageDataCriteria criteria);
 
     /**
      * Проверка на наличие данных.
@@ -95,7 +94,7 @@ public interface DataDao {
      * @param storageCode код хранилища
      * @return Количество записей
      */
-    BigInteger countData(String storageCode);
+    Long countData(String storageCode);
 
     /** Проверка схемы на существование. */
     boolean schemaExists(String schemaName);
@@ -189,7 +188,7 @@ public interface DataDao {
 
     void deleteEmptyRows(String draftCode);
 
-    BigInteger countReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue);
+    Long countReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue);
 
     void updateReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue, int offset, int limit);
 
@@ -281,32 +280,32 @@ public interface DataDao {
                                 int offset, int limit,
                                 LocalDateTime publishTime, LocalDateTime closeTime);
 
-    BigInteger countActualDataFromVersion(String versionCode, String draftCode,
-                                          LocalDateTime publishTime, LocalDateTime closeTime);
+    Long countActualDataFromVersion(String versionCode, String draftCode,
+                                    LocalDateTime publishTime, LocalDateTime closeTime);
 
     void insertActualDataFromVersion(String targetCode, String versionCode,
                                      String draftCode, Map<String, String> typedNames,
                                      int offset, int limit,
                                      LocalDateTime publishTime, LocalDateTime closeTime);
 
-    BigInteger countOldDataFromVersion(String versionCode, String draftCode,
-                                       LocalDateTime publishTime, LocalDateTime closeTime);
+    Long countOldDataFromVersion(String versionCode, String draftCode,
+                                 LocalDateTime publishTime, LocalDateTime closeTime);
 
     void insertOldDataFromVersion(String targetCode, String versionCode,
                                   String draftCode, List<String> fieldNames,
                                   int offset, int limit,
                                   LocalDateTime publishTime, LocalDateTime closeTime);
 
-    BigInteger countClosedNowDataFromVersion(String versionCode, String draftCode,
-                                             LocalDateTime publishTime, LocalDateTime closeTime);
+    Long countClosedNowDataFromVersion(String versionCode, String draftCode,
+                                       LocalDateTime publishTime, LocalDateTime closeTime);
 
     void insertClosedNowDataFromVersion(String targetCode, String versionCode,
                                         String draftCode, Map<String, String> typedNames,
                                         int offset, int limit,
                                         LocalDateTime publishTime, LocalDateTime closeTime);
 
-    BigInteger countNewValFromDraft(String draftCode, String versionCode,
-                                    LocalDateTime publishTime, LocalDateTime closeTime);
+    Long countNewValFromDraft(String draftCode, String versionCode,
+                              LocalDateTime publishTime, LocalDateTime closeTime);
 
     void insertNewDataFromDraft(String targetCode, String versionCode,
                                 String draftCode,  List<String> fieldNames,

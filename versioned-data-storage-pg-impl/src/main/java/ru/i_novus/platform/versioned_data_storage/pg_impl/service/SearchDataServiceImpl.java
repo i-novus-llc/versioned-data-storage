@@ -6,7 +6,6 @@ import ru.i_novus.platform.datastorage.temporal.model.value.RowValue;
 import ru.i_novus.platform.datastorage.temporal.service.SearchDataService;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 
-import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -30,7 +29,7 @@ public class SearchDataServiceImpl implements SearchDataService {
 
         Integer count = criteria.getCount();
         if (count == null) {
-            BigInteger dataCount = dataDao.getDataCount(criteria);
+            final Long dataCount = dataDao.getDataCount(criteria);
             count = dataCount.intValue();
             criteria.setCount(count);
         }
