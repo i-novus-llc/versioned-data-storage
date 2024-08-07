@@ -1,7 +1,5 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.dao;
 
-import jakarta.ejb.TransactionAttribute;
-import jakarta.ejb.TransactionAttributeType;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import jakarta.transaction.Transactional;
@@ -623,7 +621,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public boolean schemaExists(String schemaName) {
 
         Boolean result = (Boolean) entityManager.createNativeQuery(SELECT_SCHEMA_EXISTS)
@@ -634,7 +632,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public List<String> findExistentSchemas(List<String> schemaNames) {
 
         if (isNullOrEmpty(schemaNames))
@@ -652,7 +650,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public List<String> findExistentTableSchemas(List<String> schemaNames, String tableName) {
 
         if (isNullOrEmpty(schemaNames))
@@ -671,7 +669,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public boolean storageExists(String storageCode) {
 
         Boolean result = (Boolean) entityManager.createNativeQuery(SELECT_TABLE_EXISTS)
@@ -683,7 +681,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public boolean storageFieldExists(String storageCode, String fieldName) {
 
         Boolean result = (Boolean) entityManager.createNativeQuery(SELECT_COLUMN_EXISTS)
@@ -735,7 +733,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public void dropTable(String storageCode) {
 
         String tableName = toTableName(storageCode);
@@ -759,7 +757,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public void updateTableSequence(String storageCode) {
 
         String sqlSelect = String.format(SELECT_PRIMARY_MAX,
@@ -821,7 +819,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public void dropTriggers(String storageCode) {
 
         String escapedTableName = escapeStorageTableName(storageCode);
@@ -850,7 +848,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public void dropTableFunctions(String storageCode) {
 
         dropTableFunction(storageCode, HASH_FUNCTION_NAME);
@@ -888,7 +886,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public void createFieldIndex(String storageCode, String fieldName) {
 
         String indexName = escapeTableIndexName(toTableName(storageCode),
@@ -898,7 +896,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public void createFieldsIndex(String storageCode, String indexName, List<String> fieldNames) {
 
         String expression = fieldNames.stream()
@@ -914,7 +912,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public void createHashIndex(String storageCode) {
 
         String indexName = escapeTableIndexName(toTableName(storageCode), TABLE_INDEX_SYSHASH_NAME);
@@ -930,7 +928,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public void createFtsIndex(String storageCode) {
 
         String indexName = escapeTableIndexName(toTableName(storageCode), TABLE_INDEX_FTS_NAME + TABLE_INDEX_SUFFIX);
@@ -944,7 +942,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public void createLtreeIndex(String storageCode, String fieldName) {
 
         String indexName = escapeTableIndexName(toTableName(storageCode), fieldName.toLowerCase() + TABLE_INDEX_SUFFIX);
@@ -984,7 +982,7 @@ public class DataDaoImpl implements DataDao {
      * Копирование всех индексов
      * (включая индекс для FTS и исключая индекс для SYS_HASH).
      */
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     private void copyIndexes(String sourceCode, String targetCode) {
 
         String sourceSchema = toSchemaName(sourceCode);
@@ -1014,7 +1012,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     /** Добавление SYS_PRIMARY_COLUMN. */
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     private void addPrimaryKey(String storageCode) {
 
         String ddlAddPrimaryKey = String.format(ALTER_ADD_PRIMARY_KEY,
@@ -1024,7 +1022,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     /** Добавление последовательности. */
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     protected void addTableSequence(String storageCode) {
 
         createTableSequence(storageCode);
@@ -1063,7 +1061,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public void alterDataType(String storageCode, String fieldName, String oldType, String newType) {
 
         if (Objects.equals(oldType, newType))
@@ -1079,7 +1077,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public void deleteColumn(String storageCode, String fieldName) {
 
         String ddl = String.format(ALTER_DELETE_COLUMN,
@@ -1270,7 +1268,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public void deleteData(String storageCode) {
 
         String sql = String.format(DELETE_RECORD, escapeStorageTableName(storageCode));
@@ -1279,7 +1277,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public List<String> deleteData(String storageCode, List<Object> systemIds) {
 
         if (isNullOrEmpty(systemIds))

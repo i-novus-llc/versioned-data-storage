@@ -23,9 +23,13 @@
             <artifactId>slf4j-api</artifactId>
         </dependency>
 
+        <!--<dependency>-->
+        <!--    <groupId>jakarta.platform</groupId>-->
+        <!--    <artifactId>jakarta.jakartaee-api</artifactId>-->
+        <!--</dependency>-->
         <dependency>
-            <groupId>jakarta.platform</groupId>
-            <artifactId>jakarta.jakartaee-api</artifactId>
+            <groupId>jakarta.transaction</groupId>
+            <artifactId>jakarta.transaction-api</artifactId>
         </dependency>
 
         <dependency>
