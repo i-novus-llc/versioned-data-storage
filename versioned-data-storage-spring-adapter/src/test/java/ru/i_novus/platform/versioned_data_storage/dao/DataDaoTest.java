@@ -1,5 +1,8 @@
 package ru.i_novus.platform.versioned_data_storage.dao;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.PersistenceException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -22,9 +25,6 @@ import ru.i_novus.platform.versioned_data_storage.JpaTestConfig;
 import ru.i_novus.platform.versioned_data_storage.config.VersionedDataStorageConfig;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.persistence.PersistenceException;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;

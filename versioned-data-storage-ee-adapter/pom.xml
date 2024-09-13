@@ -11,6 +11,10 @@
     <artifactId>versioned-data-storage-ee-adapter</artifactId>
     <packaging>jar</packaging>
 
+    <properties>
+        <jakartaee-api.version>9.0.0</jakartaee-api.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>ru.i-novus.components</groupId>
@@ -25,8 +29,15 @@
         </dependency>
 
         <dependency>
-            <groupId>javax</groupId>
-            <artifactId>javaee-api</artifactId>
+            <groupId>jakarta.transaction</groupId>
+            <artifactId>jakarta.transaction-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>jakarta.platform</groupId>
+            <artifactId>jakarta.jakartaee-api</artifactId>
+            <version>${jakartaee-api.version}</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 

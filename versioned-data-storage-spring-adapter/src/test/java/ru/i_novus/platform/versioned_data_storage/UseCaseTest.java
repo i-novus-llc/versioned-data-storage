@@ -385,8 +385,8 @@ public class UseCaseTest {
     }
 
     /**
-     * Запись двух одинаковых строк в один черновик
-     * Ожидается ошибка NotUniqueException - нарушение уникальности строк в БД ("SYS_HASH")
+     * Запись двух одинаковых строк в один черновик.
+     * Ожидается ошибка NotUniqueException - нарушение уникальности строк в БД (по SYS_HASH).
      */
     @Test
     public void testCreateUniqueHash() {

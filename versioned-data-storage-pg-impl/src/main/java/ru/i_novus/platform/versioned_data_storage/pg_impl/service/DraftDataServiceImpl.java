@@ -1,5 +1,7 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.service;
 
+import jakarta.persistence.PersistenceException;
+import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.i_novus.components.common.exception.CodifiedException;
@@ -18,15 +20,11 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.model.BooleanField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.TreeField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
 
-import javax.persistence.PersistenceException;
-import javax.transaction.Transactional;
-import java.math.BigInteger;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.*;
 
 import static java.util.Collections.singletonList;
-import static java.util.Optional.of;
 import static java.util.stream.Collectors.toList;
 import static ru.i_novus.platform.datastorage.temporal.util.CollectionUtils.isNullOrEmpty;
 import static ru.i_novus.platform.versioned_data_storage.pg_impl.ExceptionCodes.*;
@@ -42,6 +40,8 @@ import static ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUti
 public class DraftDataServiceImpl implements DraftDataService {
 
     private static final Logger logger = LoggerFactory.getLogger(DraftDataServiceImpl.class);
+
+    private static final String PSQL_UNIQUE_VIOLATION_ERROR_CODE = "23505";
 
     private final DataDao dataDao;
 
@@ -204,9 +204,8 @@ public class DraftDataServiceImpl implements DraftDataService {
     private void copyTableData(String sourceCode, String targetCode, List<String> fieldNames,
                                LocalDateTime fromDate, LocalDateTime toDate) {
 
-        BigInteger count = dataDao.countData(sourceCode);
-        if (BigInteger.ZERO.equals(count))
-            return;
+        final Long count = dataDao.countData(sourceCode);
+        if (count == 0L) return;
 
         if (dataDao.hasData(targetCode))
             throw new CodifiedException("target.table.is.not.empty");
@@ -246,7 +245,8 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Override
     public void updateReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue,
                                          LocalDateTime publishTime, LocalDateTime closeTime) {
-        BigInteger count = dataDao.countReferenceInRefRows(storageCode, fieldValue);
+
+        final Long count = dataDao.countReferenceInRefRows(storageCode, fieldValue);
         for (int i = 0; i < count.intValue(); i += TRANSACTION_ROW_LIMIT) {
             dataDao.updateReferenceInRefRows(storageCode, fieldValue, i, TRANSACTION_ROW_LIMIT);
         }
@@ -396,7 +396,7 @@ public class DraftDataServiceImpl implements DraftDataService {
 
         fieldNames.add(escapeSystemFieldName(SYS_FTS));
 
-        BigInteger count = dataDao.countData(draftCode);
+        final Long count = dataDao.countData(draftCode);
         for (int offset = 0; offset < count.intValue(); offset += TRANSACTION_ROW_LIMIT) {
             dataDao.insertAllDataFromDraft(draftCode, targetCode, fieldNames,
                     offset, TRANSACTION_ROW_LIMIT, publishTime, closeTime);
@@ -415,7 +415,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         Map<String, String> typedNames = new LinkedHashMap<>();
         fieldNames.forEach(column -> typedNames.put(column, dataTypes.get(column.replace("\"", ""))));
 
-        BigInteger count = dataDao.countActualDataFromVersion(versionCode, draftCode, publishTime, closeTime);
+        final Long count = dataDao.countActualDataFromVersion(versionCode, draftCode, publishTime, closeTime);
         for (int offset = 0; offset < count.intValue(); offset += TRANSACTION_ROW_LIMIT) {
             dataDao.insertActualDataFromVersion(targetCode, versionCode, draftCode, typedNames,
                     offset, TRANSACTION_ROW_LIMIT, publishTime, closeTime);
@@ -430,7 +430,7 @@ public class DraftDataServiceImpl implements DraftDataService {
                                           String targetCode, List<String> fieldNames,
                                           LocalDateTime publishTime, LocalDateTime closeTime) {
 
-        BigInteger count = dataDao.countOldDataFromVersion(versionCode, draftCode, publishTime, closeTime);
+        final Long count = dataDao.countOldDataFromVersion(versionCode, draftCode, publishTime, closeTime);
         for (int offset = 0; offset < count.intValue(); offset += TRANSACTION_ROW_LIMIT) {
             dataDao.insertOldDataFromVersion(targetCode, versionCode, draftCode, fieldNames,
                     offset, TRANSACTION_ROW_LIMIT, publishTime, closeTime);
@@ -450,7 +450,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         Map<String, String> typedNames = new LinkedHashMap<>();
         fieldNames.forEach(column -> typedNames.put(column, dataTypes.get(column.replace("\"", ""))));
 
-        BigInteger count = dataDao.countClosedNowDataFromVersion(versionCode, draftCode, publishTime, closeTime);
+        final Long count = dataDao.countClosedNowDataFromVersion(versionCode, draftCode, publishTime, closeTime);
         for (int offset = 0; offset < count.intValue(); offset += TRANSACTION_ROW_LIMIT) {
             dataDao.insertClosedNowDataFromVersion(targetCode, versionCode, draftCode, typedNames,
                     offset, TRANSACTION_ROW_LIMIT, publishTime, closeTime);
@@ -469,7 +469,7 @@ public class DraftDataServiceImpl implements DraftDataService {
                                         String targetCode, List<String> fieldNames,
                                         LocalDateTime publishTime, LocalDateTime closeTime) {
 
-        BigInteger count = dataDao.countNewValFromDraft(draftCode, versionCode, publishTime, closeTime);
+        final Long count = dataDao.countNewValFromDraft(draftCode, versionCode, publishTime, closeTime);
         for (int offset = 0; offset < count.intValue(); offset += TRANSACTION_ROW_LIMIT) {
             dataDao.insertNewDataFromDraft(targetCode, versionCode, draftCode, fieldNames,
                     offset, TRANSACTION_ROW_LIMIT, publishTime, closeTime);
@@ -479,17 +479,25 @@ public class DraftDataServiceImpl implements DraftDataService {
     /** Преобразование ошибки хранилища в исключение. */
     private RuntimeException transformException(PersistenceException exception) {
 
-        // Обработка кода ошибки о нарушении уникальности в PostgreSQL
-        SQLException sqlException = (SQLException) of(exception)
-                .map(Throwable::getCause).map(Throwable::getCause)
-                .filter(e -> e instanceof SQLException).orElse(null);
+        final SQLException sqlException = getSQLException(exception);
 
-        final String uniqueViolationErrorCode = "23505";
+        // Обработка кода ошибки о нарушении уникальности в PostgreSQL.
         if (sqlException != null &&
-                uniqueViolationErrorCode.equals(sqlException.getSQLState())) {
+                PSQL_UNIQUE_VIOLATION_ERROR_CODE.equals(sqlException.getSQLState())) {
             return new NotUniqueException(NOT_UNIQUE_ROW);
         }
 
         return exception;
+    }
+
+    /** Получение sql-ошибки из ошибки хранилища. */
+    private SQLException getSQLException(PersistenceException exception) {
+
+        Throwable cause = exception;
+        while (cause != null && !(cause instanceof SQLException)) {
+            cause = cause.getCause();
+        }
+
+        return (SQLException) cause;
     }
 }

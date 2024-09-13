@@ -1,9 +1,10 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.util;
 
-import javax.persistence.AttributeConverter;
-import javax.persistence.Converter;
-import java.time.LocalDateTime;
+import jakarta.persistence.AttributeConverter;
+import jakarta.persistence.Converter;
+
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 /**
  * AutoConverter between LocalDateTime and Timestamp for JPA 2.1 that maps a LocalDateTime to a BLOB.

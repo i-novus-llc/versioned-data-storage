@@ -1,9 +1,9 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.dao;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
 import ru.i_novus.platform.datastorage.temporal.util.StringUtils;
 
-import javax.persistence.EntityManager;
-import javax.persistence.Query;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;

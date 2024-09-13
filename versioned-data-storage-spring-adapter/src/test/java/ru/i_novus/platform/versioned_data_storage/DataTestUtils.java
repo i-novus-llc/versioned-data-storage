@@ -1,5 +1,6 @@
 package ru.i_novus.platform.versioned_data_storage;
 
+import jakarta.persistence.EntityManager;
 import org.junit.Assert;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
@@ -13,7 +14,6 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.model.IntegerField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.StringField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
 
-import javax.persistence.EntityManager;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.function.BiConsumer;

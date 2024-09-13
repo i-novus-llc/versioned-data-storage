@@ -1,11 +1,11 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.service;
 
+import jakarta.transaction.Transactional;
 import ru.i_novus.platform.datastorage.temporal.model.Field;
 import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
 import ru.i_novus.platform.datastorage.temporal.service.StorageService;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 
-import javax.transaction.Transactional;
 import java.util.List;
 
 @SuppressWarnings({"rawtypes", "java:S3740"})

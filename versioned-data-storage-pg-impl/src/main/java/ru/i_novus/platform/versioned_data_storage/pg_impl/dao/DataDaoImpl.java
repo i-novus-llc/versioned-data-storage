@@ -1,5 +1,8 @@
 package ru.i_novus.platform.versioned_data_storage.pg_impl.dao;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
+import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffReturnTypeEnum;
@@ -19,13 +22,7 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.StorageUtils;
 
-import javax.ejb.TransactionAttribute;
-import javax.ejb.TransactionAttributeType;
-import javax.persistence.EntityManager;
-import javax.persistence.Query;
-import javax.transaction.Transactional;
 import java.io.Serializable;
-import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -122,7 +119,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    public BigInteger getDataCount(StorageDataCriteria criteria) {
+    public Long getDataCount(StorageDataCriteria criteria) {
 
         final String storageCode = criteria.getStorageCode();
         final String schemaName = getStorageCodeSchemaName(storageCode);
@@ -140,7 +137,7 @@ public class DataDaoImpl implements DataDao {
             queryWithParams.concat(where);
         }
 
-        return (BigInteger) queryWithParams.createQuery(entityManager).getSingleResult();
+        return (Long) queryWithParams.createQuery(entityManager).getSingleResult();
     }
 
     @Override
@@ -617,14 +614,14 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    public BigInteger countData(String storageCode) {
+    public Long countData(String storageCode) {
 
-        String sql = SELECT_COUNT_ONLY + "  FROM " + escapeStorageTableName(storageCode);
-        return (BigInteger) entityManager.createNativeQuery(sql).getSingleResult();
+        final String sql = SELECT_COUNT_ONLY + "  FROM " + escapeStorageTableName(storageCode);
+        return (Long) entityManager.createNativeQuery(sql).getSingleResult();
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public boolean schemaExists(String schemaName) {
 
         Boolean result = (Boolean) entityManager.createNativeQuery(SELECT_SCHEMA_EXISTS)
@@ -635,7 +632,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public List<String> findExistentSchemas(List<String> schemaNames) {
 
         if (isNullOrEmpty(schemaNames))
@@ -653,7 +650,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public List<String> findExistentTableSchemas(List<String> schemaNames, String tableName) {
 
         if (isNullOrEmpty(schemaNames))
@@ -672,7 +669,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public boolean storageExists(String storageCode) {
 
         Boolean result = (Boolean) entityManager.createNativeQuery(SELECT_TABLE_EXISTS)
@@ -684,7 +681,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public boolean storageFieldExists(String storageCode, String fieldName) {
 
         Boolean result = (Boolean) entityManager.createNativeQuery(SELECT_COLUMN_EXISTS)
@@ -736,7 +733,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public void dropTable(String storageCode) {
 
         String tableName = toTableName(storageCode);
@@ -760,7 +757,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public void updateTableSequence(String storageCode) {
 
         String sqlSelect = String.format(SELECT_PRIMARY_MAX,
@@ -822,7 +819,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public void dropTriggers(String storageCode) {
 
         String escapedTableName = escapeStorageTableName(storageCode);
@@ -851,7 +848,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public void dropTableFunctions(String storageCode) {
 
         dropTableFunction(storageCode, HASH_FUNCTION_NAME);
@@ -889,7 +886,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public void createFieldIndex(String storageCode, String fieldName) {
 
         String indexName = escapeTableIndexName(toTableName(storageCode),
@@ -899,7 +896,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public void createFieldsIndex(String storageCode, String indexName, List<String> fieldNames) {
 
         String expression = fieldNames.stream()
@@ -915,7 +912,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public void createHashIndex(String storageCode) {
 
         String indexName = escapeTableIndexName(toTableName(storageCode), TABLE_INDEX_SYSHASH_NAME);
@@ -931,7 +928,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public void createFtsIndex(String storageCode) {
 
         String indexName = escapeTableIndexName(toTableName(storageCode), TABLE_INDEX_FTS_NAME + TABLE_INDEX_SUFFIX);
@@ -945,7 +942,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public void createLtreeIndex(String storageCode, String fieldName) {
 
         String indexName = escapeTableIndexName(toTableName(storageCode), fieldName.toLowerCase() + TABLE_INDEX_SUFFIX);
@@ -985,7 +982,7 @@ public class DataDaoImpl implements DataDao {
      * Копирование всех индексов
      * (включая индекс для FTS и исключая индекс для SYS_HASH).
      */
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     private void copyIndexes(String sourceCode, String targetCode) {
 
         String sourceSchema = toSchemaName(sourceCode);
@@ -1015,7 +1012,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     /** Добавление SYS_PRIMARY_COLUMN. */
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     private void addPrimaryKey(String storageCode) {
 
         String ddlAddPrimaryKey = String.format(ALTER_ADD_PRIMARY_KEY,
@@ -1025,7 +1022,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     /** Добавление последовательности. */
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     protected void addTableSequence(String storageCode) {
 
         createTableSequence(storageCode);
@@ -1064,7 +1061,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public void alterDataType(String storageCode, String fieldName, String oldType, String newType) {
 
         if (Objects.equals(oldType, newType))
@@ -1080,7 +1077,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public void deleteColumn(String storageCode, String fieldName) {
 
         String ddl = String.format(ALTER_DELETE_COLUMN,
@@ -1271,7 +1268,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public void deleteData(String storageCode) {
 
         String sql = String.format(DELETE_RECORD, escapeStorageTableName(storageCode));
@@ -1280,7 +1277,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Transactional(Transactional.TxType.REQUIRED)
     public List<String> deleteData(String storageCode, List<Object> systemIds) {
 
         if (isNullOrEmpty(systemIds))
@@ -1353,21 +1350,21 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    public BigInteger countReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue) {
+    public Long countReferenceInRefRows(String storageCode, ReferenceFieldValue fieldValue) {
 
         String schemaName = toSchemaName(storageCode);
         String tableName = toTableName(storageCode);
 
         if (getReferenceDisplayType(fieldValue.getValue()) == null)
-            return BigInteger.ZERO;
+            return 0L;
 
-        Map<String, String> map = new HashMap<>();
+        final Map<String, String> map = new HashMap<>();
         map.put("versionTable", escapeTableName(schemaName, tableName));
         map.put("versionAlias", VERSION_TABLE_ALIAS);
         map.put("refFieldName", escapeFieldName(fieldValue.getField()));
 
         String sql = substitute(COUNT_REFERENCE_IN_REF_ROWS, map);
-        BigInteger count = (BigInteger) entityManager.createNativeQuery(sql).getSingleResult();
+        final Long count = (Long) entityManager.createNativeQuery(sql).getSingleResult();
 
         if (logger.isDebugEnabled()) {
             logger.debug("countReferenceInRefRows method count: {}, sql: {}", count, sql);
@@ -1600,7 +1597,7 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    public BigInteger countActualDataFromVersion(String versionCode, String draftCode,
+    public Long countActualDataFromVersion(String versionCode, String draftCode,
                                                  LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
@@ -1613,7 +1610,7 @@ public class DataDaoImpl implements DataDao {
         map.put("closeTime", formatDateTime(closeTime));
 
         String sql = substitute(COUNT_ACTUAL_VAL_FROM_VERSION_WITH_CLOSE_TIME, map);
-        return (BigInteger) entityManager.createNativeQuery(sql).getSingleResult();
+        return (Long) entityManager.createNativeQuery(sql).getSingleResult();
     }
 
     @Override
@@ -1654,8 +1651,8 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    public BigInteger countOldDataFromVersion(String versionCode, String draftCode,
-                                              LocalDateTime publishTime, LocalDateTime closeTime) {
+    public Long countOldDataFromVersion(String versionCode, String draftCode,
+                                        LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
         String sql = String.format(COUNT_OLD_VAL_FROM_VERSION_WITH_CLOSE_TIME,
@@ -1664,7 +1661,7 @@ public class DataDaoImpl implements DataDao {
                 formatDateTime(publishTime),
                 formatDateTime(closeTime)
         );
-        return (BigInteger) entityManager.createNativeQuery(sql).getSingleResult();
+        return (Long) entityManager.createNativeQuery(sql).getSingleResult();
     }
 
     @Override
@@ -1697,8 +1694,8 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    public BigInteger countClosedNowDataFromVersion(String versionCode, String draftCode,
-                                                    LocalDateTime publishTime, LocalDateTime closeTime) {
+    public Long countClosedNowDataFromVersion(String versionCode, String draftCode,
+                                              LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
         Map<String, String> map = new HashMap<>();
@@ -1708,7 +1705,7 @@ public class DataDaoImpl implements DataDao {
         map.put("closeTime", formatDateTime(closeTime));
 
         String sql = substitute(COUNT_CLOSED_NOW_VAL_FROM_VERSION_WITH_CLOSE_TIME, map);
-        return (BigInteger) entityManager.createNativeQuery(sql).getSingleResult();
+        return (Long) entityManager.createNativeQuery(sql).getSingleResult();
     }
 
     @Override
@@ -1743,8 +1740,8 @@ public class DataDaoImpl implements DataDao {
     }
 
     @Override
-    public BigInteger countNewValFromDraft(String draftCode, String versionCode,
-                                           LocalDateTime publishTime, LocalDateTime closeTime) {
+    public Long countNewValFromDraft(String draftCode, String versionCode,
+                                     LocalDateTime publishTime, LocalDateTime closeTime) {
         closeTime = closeTime == null ? PG_MAX_TIMESTAMP : closeTime;
 
         Map<String, String> map = new HashMap<>();
@@ -1754,7 +1751,7 @@ public class DataDaoImpl implements DataDao {
         map.put("closeTime", formatDateTime(closeTime));
 
         String sql = substitute(COUNT_NEW_VAL_FROM_DRAFT_WITH_CLOSE_TIME, map);
-        return (BigInteger) entityManager.createNativeQuery(sql).getSingleResult();
+        return (Long) entityManager.createNativeQuery(sql).getSingleResult();
     }
 
     @Override
@@ -1909,7 +1906,7 @@ public class DataDaoImpl implements DataDao {
 
         QueryWithParams countQueryWithParams = new QueryWithParams(SELECT_COUNT_ONLY + sql, params);
         Query countQuery = countQueryWithParams.createQuery(entityManager);
-        BigInteger count = (BigInteger) countQuery.getSingleResult();
+        final Long count = (Long) countQuery.getSingleResult();
 
         if (Boolean.TRUE.equals(criteria.getCountOnly())) {
             return new DataDifference(new DataPage<>(count.intValue(), null, criteria));
