@@ -24,32 +24,32 @@ public class VersionedDataStorageConfig {
     }
 
     @Bean
-    public SearchDataService getSearchDataService() {
-        return new SearchDataServiceImpl(dataDao());
+    public SearchDataService searchDataService(DataDao dataDao) {
+        return new SearchDataServiceImpl(dataDao);
     }
 
     @Bean
-    public DraftDataService getDraftDataService() {
-        return new DraftDataServiceImpl(dataDao());
+    public DraftDataService draftDataService(DataDao dataDao) {
+        return new DraftDataServiceImpl(dataDao);
     }
 
     @Bean
-    public DropDataService getDropDataService() {
-        return new DropDataServiceImpl(dataDao());
+    public DropDataService dropDataService(DataDao dataDao) {
+        return new DropDataServiceImpl(dataDao);
     }
 
     @Bean
-    public CompareDataService getCompareDataService() {
-        return new CompareDataServiceImpl(dataDao());
+    public CompareDataService compareDataService(DataDao dataDao) {
+        return new CompareDataServiceImpl(dataDao);
     }
 
     @Bean
-    public StorageService getStorageService() {
-        return new StorageServiceImpl(dataDao(), getDraftDataService());
+    public StorageService storageService(DataDao dataDao, DraftDataService draftDataService) {
+        return new StorageServiceImpl(dataDao, draftDataService);
     }
 
     @Bean
-    public FieldFactory getFieldFactory(){
+    public FieldFactory fieldFactory(){
         return new FieldFactoryImpl();
     }
 }
