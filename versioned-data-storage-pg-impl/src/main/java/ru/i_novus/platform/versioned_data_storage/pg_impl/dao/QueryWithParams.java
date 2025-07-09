@@ -108,18 +108,12 @@ public class QueryWithParams {
 
     private String paramToString(Object param) {
 
-        if (param == null)
-            return QUERY_NULL_VALUE;
-
-        if (param instanceof Number) {
-            return param.toString();
-        }
-
-        if (param instanceof LocalDateTime) {
-            return toTimestampWithoutTimeZone(formatDateTime((LocalDateTime) param));
-        }
-
-        return addSingleQuotes(param.toString());
+        return switch (param) {
+            case null -> QUERY_NULL_VALUE;
+            case Number number -> number.toString();
+            case LocalDateTime localDateTime -> toTimestampWithoutTimeZone(formatDateTime(localDateTime));
+            default -> addSingleQuotes(param.toString());
+        };
     }
 
     public Query createQuery(EntityManager entityManager) {

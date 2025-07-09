@@ -274,7 +274,7 @@ public class DataDaoTest {
         int allCount = nameValues.size();
         int changedCount = 2;
         List<BigInteger> changedIds = IntStream.range(allCount - changedCount, allCount)
-                .mapToObj(DataTestUtils::indexToId).collect(toList());
+                .mapToObj(DataTestUtils::indexToId).toList();
 
         List<RowValue> dataValues = dataDao.getData(toCriteria(storageCode, fields));
 

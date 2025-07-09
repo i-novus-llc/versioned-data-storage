@@ -175,7 +175,7 @@ public class DataDaoImpl implements DataDao {
         if (isNullOrEmpty(list))
             return null;
 
-        RowValue row = toRowValues(fields, valueParts, list).get(0);
+        RowValue row = toRowValue(fields, valueParts, list.getFirst());
         row.setSystemId(systemId); // ??
         return row;
     }
@@ -378,8 +378,9 @@ public class DataDaoImpl implements DataDao {
                 .filter(Objects::nonNull)
                 .collect(joining(" OR "));
 
-        if (!"".equals(sql))
+        if (!sql.isEmpty()) {
             sql = " AND (" + sql + ")";
+        }
 
         return new QueryWithParams(sql, params);
     }
@@ -486,7 +487,7 @@ public class DataDaoImpl implements DataDao {
         if (SearchTypeEnum.LIKE.equals(searchCriteria.getType()) && values.size() == 1) {
 
             filters.add(" AND " + "lower(" + escapedFieldName + ") LIKE :" + indexedFieldName + "");
-            String value = values.get(0).toString().trim().toLowerCase();
+            String value = values.getFirst().toString().trim().toLowerCase();
             params.put(indexedFieldName, LIKE_ESCAPE_MANY_CHAR + value + LIKE_ESCAPE_MANY_CHAR);
 
         } else {
@@ -544,7 +545,7 @@ public class DataDaoImpl implements DataDao {
 
         } else {
             sql = " AND (" + escapedColumn + " = :hashItem)";
-            params.put("hashItem", hashList.get(0));
+            params.put("hashItem", hashList.getFirst());
         }
 
         return new QueryWithParams(sql, params);
@@ -566,7 +567,7 @@ public class DataDaoImpl implements DataDao {
 
         } else {
             sql = " AND (" + escapedColumn + " = :systemId)";
-            params.put("systemId", systemIds.get(0));
+            params.put("systemId", systemIds.getFirst());
         }
 
         return new QueryWithParams(sql, params);
@@ -1096,7 +1097,7 @@ public class DataDaoImpl implements DataDao {
         String schemaName = toSchemaName(storageCode);
         String tableName = toTableName(storageCode);
 
-        List<FieldValue> fieldValues = (List<FieldValue>) data.get(0).getFieldValues();
+        List<FieldValue> fieldValues = (List<FieldValue>) data.getFirst().getFieldValues();
         String insertKeys = fieldValues.stream()
                 .map(fieldValue -> escapeFieldName(fieldValue.getField()))
                 .collect(joining(","));
