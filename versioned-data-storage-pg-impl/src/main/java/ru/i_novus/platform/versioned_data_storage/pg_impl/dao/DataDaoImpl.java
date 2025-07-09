@@ -8,10 +8,7 @@ import org.slf4j.LoggerFactory;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffReturnTypeEnum;
 import ru.i_novus.platform.datastorage.temporal.enums.DiffStatusEnum;
 import ru.i_novus.platform.datastorage.temporal.enums.ReferenceDisplayType;
-import ru.i_novus.platform.datastorage.temporal.model.DataDifference;
-import ru.i_novus.platform.datastorage.temporal.model.Field;
-import ru.i_novus.platform.datastorage.temporal.model.FieldValue;
-import ru.i_novus.platform.datastorage.temporal.model.Reference;
+import ru.i_novus.platform.datastorage.temporal.model.*;
 import ru.i_novus.platform.datastorage.temporal.model.criteria.*;
 import ru.i_novus.platform.datastorage.temporal.model.value.DiffRowValue;
 import ru.i_novus.platform.datastorage.temporal.model.value.ReferenceFieldValue;
@@ -175,8 +172,9 @@ public class DataDaoImpl implements DataDao {
         if (isNullOrEmpty(list))
             return null;
 
-        RowValue row = toRowValue(fields, valueParts, list.getFirst());
-        row.setSystemId(systemId); // ??
+        final LongRowValue row = toRowValue(fields, valueParts, list.getFirst());
+        row.setSystemId((Long) systemId); // ??
+
         return row;
     }
 
