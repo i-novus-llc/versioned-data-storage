@@ -11,6 +11,12 @@
     <artifactId>versioned-data-storage-spring-adapter</artifactId>
     <packaging>jar</packaging>
 
+    <properties>
+
+        <!-- from spring-boot-dependencies \ .. \ spring-boot in n2o-boot-platform-parent -->
+        <spring-context.version>6.1.14</spring-context.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>ru.i-novus.components</groupId>
@@ -27,6 +33,7 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
+            <version>${spring-context.version}</version>
         </dependency>
 
         <dependency>
@@ -56,7 +63,7 @@
         </dependency>
 
         <dependency>
-            <groupId>org.hibernate</groupId>
+            <groupId>org.hibernate.orm</groupId>
             <artifactId>hibernate-entitymanager</artifactId>
             <version>${hibernate-entitymanager.version}</version>
             <scope>test</scope>

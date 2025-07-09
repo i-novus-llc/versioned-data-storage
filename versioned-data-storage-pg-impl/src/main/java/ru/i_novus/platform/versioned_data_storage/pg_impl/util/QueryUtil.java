@@ -50,16 +50,23 @@ public class QueryUtil {
 
         List<RowValue> result = new ArrayList<>(data.size());
         for (Object row : data) {
-            LongRowValue rowValue = new LongRowValue();
-            if (row instanceof Object[]) {
-                addToRowValue((Object[]) row, fields, valueParts, rowValue);
-
-            } else {
-                rowValue.getFieldValues().add(toFieldValue(fields.get(0), row));
-            }
+            LongRowValue rowValue = toRowValue(fields, valueParts, row);
             result.add(rowValue);
         }
         return result;
+    }
+
+    public static LongRowValue toRowValue(List<Field> fields, Set<FieldValuePartEnum> valueParts, Object row) {
+
+        LongRowValue rowValue = new LongRowValue();
+        if (row instanceof Object[]) {
+            addToRowValue((Object[]) row, fields, valueParts, rowValue);
+
+        } else {
+            rowValue.getFieldValues().add(toFieldValue(fields.getFirst(), row));
+        }
+
+        return rowValue;
     }
 
     private static void addToRowValue(Object[] row, List<Field> fields,
@@ -387,25 +394,14 @@ public class QueryUtil {
      */
     public static Field getField(String name, String type) {
 
-        switch (type) {
-            case BooleanField.TYPE:
-                return new BooleanField(name);
-
-            case DateField.TYPE:
-                return new DateField(name);
-
-            case FloatField.TYPE:
-                return new FloatField(name);
-
-            case IntegerField.TYPE:
-                return new IntegerField(name);
-
-            case ReferenceField.TYPE:
-                return new ReferenceField(name);
-
-            default:
-                return new StringField(name);
-        }
+        return switch (type) {
+            case BooleanField.TYPE -> new BooleanField(name);
+            case DateField.TYPE -> new DateField(name);
+            case FloatField.TYPE -> new FloatField(name);
+            case IntegerField.TYPE -> new IntegerField(name);
+            case ReferenceField.TYPE -> new ReferenceField(name);
+            default -> new StringField(name);
+        };
     }
 
     /**
@@ -549,15 +545,12 @@ public class QueryUtil {
 
     public static String toTimestamp(String value) {
 
-        // Учесть другие константы: now, today etc.
-        switch(value) {
-            case MIN_TIMESTAMP_VALUE:
-            case MAX_TIMESTAMP_VALUE:
-                return value;
-
-            default:
-                return String.format(TO_TIMESTAMP, addSingleQuotes(value));
-        }
+        // NB: Учесть другие константы: now, today etc.
+        return switch (value) {
+            case MIN_TIMESTAMP_VALUE,
+                 MAX_TIMESTAMP_VALUE -> value;
+            default -> String.format(TO_TIMESTAMP, addSingleQuotes(value));
+        };
     }
 
     public static String toTimestampWithoutTimeZone(String value) {
