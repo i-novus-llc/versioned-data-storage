@@ -269,7 +269,7 @@ public class DraftDataServiceImpl implements DraftDataService {
 
         fieldNames = dataDao.getHashUsedFieldNames(draftCode);
         dataDao.createTriggers(draftCode, fieldNames);
-        dataDao.updateHashRows(draftCode, fieldNames);
+        updateHashRows(draftCode, fieldNames);
     }
 
     @Override
@@ -310,13 +310,17 @@ public class DraftDataServiceImpl implements DraftDataService {
             return;
 
         dataDao.createTriggers(draftCode, fieldNames);
+        updateHashRows(draftCode, fieldNames);
+        dataDao.updateFtsRows(draftCode, fieldNames);
+    }
+
+    protected void updateHashRows(String draftCode, List<String> fieldNames) {
         try {
             dataDao.updateHashRows(draftCode, fieldNames);
 
         } catch (PersistenceException pe) {
             throw transformException(pe);
         }
-        dataDao.updateFtsRows(draftCode, fieldNames);
     }
 
     @Override
