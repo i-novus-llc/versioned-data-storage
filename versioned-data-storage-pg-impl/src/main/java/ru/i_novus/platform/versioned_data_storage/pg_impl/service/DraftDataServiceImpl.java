@@ -281,16 +281,18 @@ public class DraftDataServiceImpl implements DraftDataService {
         if (oldType.equals(newType))
             return;
 
+        dataDao.dropTriggers(draftCode);
         try {
-            dataDao.dropTriggers(draftCode);
             dataDao.alterDataType(draftCode, field.getName(), oldType, newType);
-
-            List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
-            dataDao.createTriggers(draftCode, fieldNames);
 
         } catch (PersistenceException pe) {
             throw new CodifiedException(INCOMPATIBLE_NEW_DATA_TYPE_EXCEPTION_CODE, pe, field.getName());
         }
+
+        List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
+        dataDao.createTriggers(draftCode, fieldNames);
+        updateHashRows(draftCode, fieldNames);
+        dataDao.updateFtsRows(draftCode, fieldNames);
     }
 
     @Override
