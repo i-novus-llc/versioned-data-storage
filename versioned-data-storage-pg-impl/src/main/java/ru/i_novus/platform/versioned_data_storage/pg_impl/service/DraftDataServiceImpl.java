@@ -266,8 +266,7 @@ public class DraftDataServiceImpl implements DraftDataService {
         List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
         dataDao.dropTriggers(draftCode);
         try {
-            String defaultValue = (field instanceof BooleanField) ? "false" : null;
-            dataDao.addColumn(draftCode, field.getName(), field.getType(), defaultValue);
+            dataDao.addColumn(draftCode, field.getName(), field.getType(), field.getDefaultValue());
 
             fieldNames = dataDao.getHashUsedFieldNames(draftCode);
 
@@ -331,9 +330,9 @@ public class DraftDataServiceImpl implements DraftDataService {
         }
     }
 
-    protected void updateHashRows(String draftCode, List<String> escapedFieldNames) {
+    protected void updateHashRows(String draftCode, List<String> fieldNames) {
         try {
-            dataDao.updateHashRows(draftCode, escapedFieldNames);
+            dataDao.updateHashRows(draftCode, fieldNames);
 
         } catch (PersistenceException pe) {
             throw transformException(pe);
@@ -351,8 +350,8 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     @Override
-    public boolean isFieldUnique(String storageCode, List<String> escapedFieldNames, LocalDateTime publishTime) {
-        return dataDao.isUnique(storageCode, escapedFieldNames, publishTime);
+    public boolean isFieldUnique(String storageCode, List<String> fieldNames, LocalDateTime publishTime) {
+        return dataDao.isUnique(storageCode, fieldNames, publishTime);
     }
 
     @Override
@@ -361,8 +360,8 @@ public class DraftDataServiceImpl implements DraftDataService {
     }
 
     @Override
-    public boolean isUnique(String storageCode, List<String> escapedFieldNames) {
-        return isFieldUnique(storageCode, escapedFieldNames, null);
+    public boolean isUnique(String storageCode, List<String> fieldNames) {
+        return isFieldUnique(storageCode, fieldNames, null);
     }
 
     private void createDraftTable(String draftCode, List<Field> fields) {
@@ -412,14 +411,14 @@ public class DraftDataServiceImpl implements DraftDataService {
         return versionCode;
     }
 
-    private void insertAllDataFromDraft(String draftCode, String targetCode, List<String> escapedFieldNames,
+    private void insertAllDataFromDraft(String draftCode, String targetCode, List<String> fieldNames,
                                         LocalDateTime publishTime, LocalDateTime closeTime) {
 
-        escapedFieldNames.add(escapeSystemFieldName(SYS_FTS));
+        fieldNames.add(escapeSystemFieldName(SYS_FTS));
 
         final Long count = dataDao.countData(draftCode);
         for (int offset = 0; offset < count.intValue(); offset += TRANSACTION_ROW_LIMIT) {
-            dataDao.insertAllDataFromDraft(draftCode, targetCode, escapedFieldNames,
+            dataDao.insertAllDataFromDraft(draftCode, targetCode, fieldNames,
                     offset, TRANSACTION_ROW_LIMIT, publishTime, closeTime);
         }
     }
@@ -429,12 +428,12 @@ public class DraftDataServiceImpl implements DraftDataService {
      * есть SYS_HASH (draftCode join versionCode по SYS_HASH)
      */
     private void insertActualDataFromVersion(String versionCode, String draftCode,
-                                             String targetCode, List<String> escapedFieldNames,
+                                             String targetCode, List<String> fieldNames,
                                              LocalDateTime publishTime, LocalDateTime closeTime) {
 
         Map<String, String> dataTypes = dataDao.getColumnDataTypes(versionCode);
         Map<String, String> typedNames = new LinkedHashMap<>();
-        escapedFieldNames.forEach(column -> typedNames.put(column, dataTypes.get(column.replace("\"", ""))));
+        fieldNames.forEach(column -> typedNames.put(column, dataTypes.get(column.replace("\"", ""))));
 
         final Long count = dataDao.countActualDataFromVersion(versionCode, draftCode, publishTime, closeTime);
         for (int offset = 0; offset < count.intValue(); offset += TRANSACTION_ROW_LIMIT) {
@@ -448,12 +447,12 @@ public class DraftDataServiceImpl implements DraftDataService {
      * нет SYS_HASH (из versionCode те, которых нет в draftCode)
      */
     private void insertOldDataFromVersion(String versionCode, String draftCode,
-                                          String targetCode, List<String> escapedFieldNames,
+                                          String targetCode, List<String> fieldNames,
                                           LocalDateTime publishTime, LocalDateTime closeTime) {
 
         final Long count = dataDao.countOldDataFromVersion(versionCode, draftCode, publishTime, closeTime);
         for (int offset = 0; offset < count.intValue(); offset += TRANSACTION_ROW_LIMIT) {
-            dataDao.insertOldDataFromVersion(targetCode, versionCode, draftCode, escapedFieldNames,
+            dataDao.insertOldDataFromVersion(targetCode, versionCode, draftCode, fieldNames,
                     offset, TRANSACTION_ROW_LIMIT, publishTime, closeTime);
         }
     }
@@ -464,12 +463,12 @@ public class DraftDataServiceImpl implements DraftDataService {
      */
     @SuppressWarnings("I-novus:MethodNameWordCountRule")
     private void insertClosedNowDataFromVersion(String versionCode, String draftCode,
-                                                String targetCode, List<String> escapedFieldNames,
+                                                String targetCode, List<String> fieldNames,
                                                 LocalDateTime publishTime, LocalDateTime closeTime) {
 
         Map<String, String> dataTypes = dataDao.getColumnDataTypes(versionCode);
         Map<String, String> typedNames = new LinkedHashMap<>();
-        escapedFieldNames.forEach(column -> typedNames.put(column, dataTypes.get(column.replace("\"", ""))));
+        fieldNames.forEach(column -> typedNames.put(column, dataTypes.get(column.replace("\"", ""))));
 
         final Long count = dataDao.countClosedNowDataFromVersion(versionCode, draftCode, publishTime, closeTime);
         for (int offset = 0; offset < count.intValue(); offset += TRANSACTION_ROW_LIMIT) {
@@ -487,12 +486,12 @@ public class DraftDataServiceImpl implements DraftDataService {
      * нет SYS_HASH (из draftCode те, которых нет в versionCode)
      */
     private void insertNewDataFromDraft(String versionCode, String draftCode,
-                                        String targetCode, List<String> escapedFieldNames,
+                                        String targetCode, List<String> fieldNames,
                                         LocalDateTime publishTime, LocalDateTime closeTime) {
 
         final Long count = dataDao.countNewValFromDraft(draftCode, versionCode, publishTime, closeTime);
         for (int offset = 0; offset < count.intValue(); offset += TRANSACTION_ROW_LIMIT) {
-            dataDao.insertNewDataFromDraft(targetCode, versionCode, draftCode, escapedFieldNames,
+            dataDao.insertNewDataFromDraft(targetCode, versionCode, draftCode, fieldNames,
                     offset, TRANSACTION_ROW_LIMIT, publishTime, closeTime);
         }
     }
