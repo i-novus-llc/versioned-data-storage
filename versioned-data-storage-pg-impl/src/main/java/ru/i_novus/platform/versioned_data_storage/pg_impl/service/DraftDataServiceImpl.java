@@ -268,8 +268,8 @@ public class DraftDataServiceImpl implements DraftDataService {
 
         final List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
         dataDao.createTriggers(draftCode, fieldNames);
-
         updateHashRows(draftCode, fieldNames);
+        dataDao.updateFtsRows(draftCode, fieldNames);
     }
 
     @Override
@@ -283,18 +283,21 @@ public class DraftDataServiceImpl implements DraftDataService {
 
         dataDao.dropTriggers(draftCode);
 
-        try {
-            dataDao.alterDataType(draftCode, field.getName(), oldType, newType);
-
-        } catch (PersistenceException pe) {
-            throw new CodifiedException(INCOMPATIBLE_NEW_DATA_TYPE_EXCEPTION_CODE, pe, field.getName());
-        }
+        tryAlterDataType(draftCode, field.getName(), oldType, newType);
 
         final List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
         dataDao.createTriggers(draftCode, fieldNames);
-
         updateHashRows(draftCode, fieldNames);
         dataDao.updateFtsRows(draftCode, fieldNames);
+    }
+
+    private void tryAlterDataType(String draftCode, String name, String oldType, String newType) {
+        try {
+            dataDao.alterDataType(draftCode, name, oldType, newType);
+
+        } catch (PersistenceException pe) {
+            throw new CodifiedException(INCOMPATIBLE_NEW_DATA_TYPE_EXCEPTION_CODE, pe, name);
+        }
     }
 
     @Override
@@ -310,14 +313,13 @@ public class DraftDataServiceImpl implements DraftDataService {
         dataDao.deleteColumn(draftCode, fieldName);
         dataDao.deleteEmptyRows(draftCode);
 
-        List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
+        final List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
+        if (fieldNames.isEmpty())
+            return;
 
-        if (!fieldNames.isEmpty()) {
-            dataDao.createTriggers(draftCode, fieldNames);
-
-            updateHashRows(draftCode, fieldNames);
-            dataDao.updateFtsRows(draftCode, fieldNames);
-        }
+        dataDao.createTriggers(draftCode, fieldNames);
+        updateHashRows(draftCode, fieldNames);
+        dataDao.updateFtsRows(draftCode, fieldNames);
     }
 
     protected void updateHashRows(String draftCode, List<String> fieldNames) {
