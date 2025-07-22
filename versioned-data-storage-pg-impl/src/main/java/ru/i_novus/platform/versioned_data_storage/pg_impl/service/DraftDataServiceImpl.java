@@ -263,7 +263,6 @@ public class DraftDataServiceImpl implements DraftDataService {
             throw new CodifiedException(COLUMN_ALREADY_EXISTS);
 
         dataDao.dropTriggers(draftCode);
-
         dataDao.addColumn(draftCode, field.getName(), field.getType(), field.getDefaultValue());
 
         final List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
@@ -282,7 +281,6 @@ public class DraftDataServiceImpl implements DraftDataService {
             return;
 
         dataDao.dropTriggers(draftCode);
-
         tryAlterDataType(draftCode, field.getName(), oldType, newType);
 
         final List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
@@ -309,12 +307,11 @@ public class DraftDataServiceImpl implements DraftDataService {
             throw new CodifiedException(COLUMN_NOT_EXISTS);
 
         dataDao.dropTriggers(draftCode);
-
         dataDao.deleteColumn(draftCode, fieldName);
         dataDao.deleteEmptyRows(draftCode);
 
         final List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
-        if (fieldNames.isEmpty())
+        if (isNullOrEmpty(fieldNames))
             return;
 
         dataDao.createTriggers(draftCode, fieldNames);
