@@ -215,23 +215,21 @@ public class DraftDataServiceImpl implements DraftDataService {
         if (hasTriggerFields) {
             dataDao.disableTriggers(targetCode);
         }
-        try {
-            StorageCopyRequest request = new StorageCopyRequest(sourceCode, targetCode, fromDate, toDate, null);
-            request.setEscapedFieldNames(fieldNames);
 
-            request.setCount(count.intValue());
-            request.setSize(TRANSACTION_ROW_LIMIT);
+        StorageCopyRequest request = new StorageCopyRequest(sourceCode, targetCode, fromDate, toDate, null);
+        request.setEscapedFieldNames(fieldNames);
 
-            int pageCount = request.getPageCount();
-            for (int page = 0; page < pageCount; page++) {
-                request.setPage(page + DataCriteria.PAGE_SHIFT);
-                dataDao.copyTableData(request);
-            }
+        request.setCount(count.intValue());
+        request.setSize(TRANSACTION_ROW_LIMIT);
 
-        } finally {
-            if (hasTriggerFields) {
-                dataDao.enableTriggers(targetCode);
-            }
+        int pageCount = request.getPageCount();
+        for (int page = 0; page < pageCount; page++) {
+            request.setPage(page + DataCriteria.PAGE_SHIFT);
+            dataDao.copyTableData(request);
+        }
+
+        if (hasTriggerFields) {
+            dataDao.enableTriggers(targetCode);
         }
     }
 
