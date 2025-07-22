@@ -11,41 +11,51 @@ import ru.i_novus.platform.versioned_data_storage.pg_impl.model.*;
  */
 public class FieldFactoryImpl implements FieldFactory {
 
-    public Field createField(String name, FieldType type) {
-        switch (type) {
-            case BOOLEAN:
-                return new BooleanField(name);
-            case DATE:
-                return new DateField(name);
-            case FLOAT:
-                return new FloatField(name);
-            case INTEGER:
-                return new IntegerField(name);
-            case REFERENCE:
-                ReferenceField ref = new ReferenceField(name);
-                ref.setSearchEnabled(true);
-                return ref;
-            case TREE:
-                Field tree = new TreeField(name);
-                tree.setSearchEnabled(true);
-                return tree;
-            default:
-                return new StringField(name);
-        }
+    @Override
+    public Field<?> createField(String name, FieldType type) {
 
+        return switch (type) {
+            case BOOLEAN -> new BooleanField(name);
+            case DATE -> new DateField(name);
+            case FLOAT -> new FloatField(name);
+            case INTEGER -> new IntegerField(name);
+            case REFERENCE -> createReferenceField(name);
+            case TREE -> createTreeField(name);
+            default -> new StringField(name);
+        };
     }
 
-    @Override
-    public Field createUniqueField(String name, FieldType type) {
-        Field field = createField(name, type);
-        field.setUnique(true);
+    private static ReferenceField createReferenceField(String name) {
+
+        final ReferenceField field = new ReferenceField(name);
+        field.setSearchEnabled(true);
+
+        return field;
+    }
+
+    private static Field<?> createTreeField(String name) {
+
+        final Field<?> field = new TreeField(name);
+        field.setSearchEnabled(true);
+
         return field;
     }
 
     @Override
-    public Field createSearchField(String name, FieldType type) {
-        Field field = createField(name, type);
+    public Field<?> createUniqueField(String name, FieldType type) {
+
+        final Field<?> field = createField(name, type);
+        field.setUnique(true);
+
+        return field;
+    }
+
+    @Override
+    public Field<?> createSearchField(String name, FieldType type) {
+
+        final Field<?> field = createField(name, type);
         field.setSearchEnabled(true);
+
         return field;
     }
 }

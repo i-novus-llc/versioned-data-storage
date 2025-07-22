@@ -486,7 +486,7 @@ public class UseCaseTest {
      */
     @Test
     public void testApplyDraftWithCloseDate() {
-        Long time_sec_diff = 150000L;
+        long time_sec_diff = 150000L;
 
         List<Field> fields = new ArrayList<>();
         Field id = fieldFactory.createField(FIELD_ID_CODE, FieldType.INTEGER);

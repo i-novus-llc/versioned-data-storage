@@ -9,10 +9,10 @@ import ru.i_novus.platform.datastorage.temporal.model.Field;
  */
 public interface FieldFactory {
 
-    Field createField(String name, FieldType type);
+    Field<?> createField(String name, FieldType type);
 
-    Field createUniqueField(String name, FieldType type);
+    Field<?> createUniqueField(String name, FieldType type);
 
-    Field createSearchField(String name, FieldType type);
+    Field<?> createSearchField(String name, FieldType type);
 
 }
