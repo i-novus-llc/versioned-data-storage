@@ -16,7 +16,6 @@ import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
 import ru.i_novus.platform.datastorage.temporal.util.StringUtils;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants;
-import ru.i_novus.platform.versioned_data_storage.pg_impl.model.BooleanField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.TreeField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
 
@@ -210,29 +209,27 @@ public class DraftDataServiceImpl implements DraftDataService {
         if (dataDao.hasData(targetCode))
             throw new CodifiedException("target.table.is.not.empty");
 
-        boolean isTriggersRedundant = isNullOrEmpty(fieldNames) ||
+        boolean hasTriggerFields = isNullOrEmpty(fieldNames) ||
                 new HashSet<>(fieldNames).containsAll(escapedTriggeredFieldNames());
 
-        if (isTriggersRedundant) {
+        if (hasTriggerFields) {
             dataDao.disableTriggers(targetCode);
         }
-        try {
-            StorageCopyRequest request = new StorageCopyRequest(sourceCode, targetCode, fromDate, toDate, null);
-            request.setEscapedFieldNames(fieldNames);
 
-            request.setCount(count.intValue());
-            request.setSize(TRANSACTION_ROW_LIMIT);
+        StorageCopyRequest request = new StorageCopyRequest(sourceCode, targetCode, fromDate, toDate, null);
+        request.setEscapedFieldNames(fieldNames);
 
-            int pageCount = request.getPageCount();
-            for (int page = 0; page < pageCount; page++) {
-                request.setPage(page + DataCriteria.PAGE_SHIFT);
-                dataDao.copyTableData(request);
-            }
+        request.setCount(count.intValue());
+        request.setSize(TRANSACTION_ROW_LIMIT);
 
-        } finally {
-            if (isTriggersRedundant) {
-                dataDao.enableTriggers(targetCode);
-            }
+        int pageCount = request.getPageCount();
+        for (int page = 0; page < pageCount; page++) {
+            request.setPage(page + DataCriteria.PAGE_SHIFT);
+            dataDao.copyTableData(request);
+        }
+
+        if (hasTriggerFields) {
+            dataDao.enableTriggers(targetCode);
         }
     }
 
@@ -259,17 +256,17 @@ public class DraftDataServiceImpl implements DraftDataService {
         if (dataDao.getSystemFieldNames().contains(field.getName()))
             throw new CodifiedException(SYS_FIELD_CONFLICT);
 
-        List<String> fieldNames = dataDao.getEscapedFieldNames(draftCode);
-        if (fieldNames.contains(escapeFieldName(field.getName())))
+        final List<String> escapedFieldNames = dataDao.getEscapedFieldNames(draftCode);
+        if (escapedFieldNames.contains(escapeFieldName(field.getName())))
             throw new CodifiedException(COLUMN_ALREADY_EXISTS);
 
         dataDao.dropTriggers(draftCode);
-        String defaultValue = (field instanceof BooleanField) ? "false" : null;
-        dataDao.addColumn(draftCode, field.getName(), field.getType(), defaultValue);
+        dataDao.addColumn(draftCode, field.getName(), field.getType(), field.getDefaultValue());
 
-        fieldNames = dataDao.getHashUsedFieldNames(draftCode);
+        final List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
         dataDao.createTriggers(draftCode, fieldNames);
         updateHashRows(draftCode, fieldNames);
+        dataDao.updateFtsRows(draftCode, fieldNames);
     }
 
     @Override
@@ -281,15 +278,21 @@ public class DraftDataServiceImpl implements DraftDataService {
         if (oldType.equals(newType))
             return;
 
-        try {
-            dataDao.dropTriggers(draftCode);
-            dataDao.alterDataType(draftCode, field.getName(), oldType, newType);
+        dataDao.dropTriggers(draftCode);
+        tryAlterDataType(draftCode, field.getName(), oldType, newType);
 
-            List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
-            dataDao.createTriggers(draftCode, fieldNames);
+        final List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
+        dataDao.createTriggers(draftCode, fieldNames);
+        updateHashRows(draftCode, fieldNames);
+        dataDao.updateFtsRows(draftCode, fieldNames);
+    }
+
+    private void tryAlterDataType(String draftCode, String name, String oldType, String newType) {
+        try {
+            dataDao.alterDataType(draftCode, name, oldType, newType);
 
         } catch (PersistenceException pe) {
-            throw new CodifiedException(INCOMPATIBLE_NEW_DATA_TYPE_EXCEPTION_CODE, pe, field.getName());
+            throw new CodifiedException(INCOMPATIBLE_NEW_DATA_TYPE_EXCEPTION_CODE, pe, name);
         }
     }
 
@@ -297,15 +300,15 @@ public class DraftDataServiceImpl implements DraftDataService {
     @Transactional
     public void deleteField(String draftCode, String fieldName) {
 
-        List<String> fieldNames = dataDao.getEscapedFieldNames(draftCode);
-        if (!fieldNames.contains(escapeFieldName(fieldName)))
+        final List<String> escapedFieldNames = dataDao.getEscapedFieldNames(draftCode);
+        if (!escapedFieldNames.contains(escapeFieldName(fieldName)))
             throw new CodifiedException(COLUMN_NOT_EXISTS);
 
         dataDao.dropTriggers(draftCode);
         dataDao.deleteColumn(draftCode, fieldName);
         dataDao.deleteEmptyRows(draftCode);
 
-        fieldNames = dataDao.getHashUsedFieldNames(draftCode);
+        final List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
         if (isNullOrEmpty(fieldNames))
             return;
 

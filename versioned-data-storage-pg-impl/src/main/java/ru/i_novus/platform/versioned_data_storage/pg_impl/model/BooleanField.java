@@ -13,7 +13,8 @@ public class BooleanField extends Field<Boolean> {
     public static final String TYPE = "boolean";
 
     public BooleanField() {
-        // Nothing to do.
+
+        setDefaultValue("false");
     }
 
     public BooleanField(String name) {

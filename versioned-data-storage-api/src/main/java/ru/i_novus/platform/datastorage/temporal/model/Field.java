@@ -25,6 +25,9 @@ public abstract class Field<T extends Serializable> implements Serializable {
     /** Обязательность. */
     private Boolean required = false;
 
+    /** Значение по умолчанию. */
+    private String defaultValue = null;
+
     /** Возможность поиска по полю. */
     private Boolean searchEnabled = false;
 
@@ -76,6 +79,14 @@ public abstract class Field<T extends Serializable> implements Serializable {
 
     public void setRequired(Boolean required) {
         this.required = required;
+    }
+
+    public String getDefaultValue() {
+        return defaultValue;
+    }
+
+    public void setDefaultValue(String defaultValue) {
+        this.defaultValue = defaultValue;
     }
 
     public Boolean getSearchEnabled() {
