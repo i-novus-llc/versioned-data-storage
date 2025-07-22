@@ -16,7 +16,6 @@ import ru.i_novus.platform.datastorage.temporal.service.DraftDataService;
 import ru.i_novus.platform.datastorage.temporal.util.StringUtils;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.DataDao;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.dao.StorageConstants;
-import ru.i_novus.platform.versioned_data_storage.pg_impl.model.BooleanField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.model.TreeField;
 import ru.i_novus.platform.versioned_data_storage.pg_impl.util.QueryUtil;
 
@@ -263,16 +262,12 @@ public class DraftDataServiceImpl implements DraftDataService {
         if (escapedFieldNames.contains(escapeFieldName(field.getName())))
             throw new CodifiedException(COLUMN_ALREADY_EXISTS);
 
-        List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
         dataDao.dropTriggers(draftCode);
-        try {
-            dataDao.addColumn(draftCode, field.getName(), field.getType(), field.getDefaultValue());
 
-            fieldNames = dataDao.getHashUsedFieldNames(draftCode);
+        dataDao.addColumn(draftCode, field.getName(), field.getType(), field.getDefaultValue());
 
-        } finally {
-            dataDao.createTriggers(draftCode, fieldNames);
-        }
+        final List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
+        dataDao.createTriggers(draftCode, fieldNames);
 
         updateHashRows(draftCode, fieldNames);
     }
@@ -286,17 +281,17 @@ public class DraftDataServiceImpl implements DraftDataService {
         if (oldType.equals(newType))
             return;
 
-        final List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
         dataDao.dropTriggers(draftCode);
+
         try {
             dataDao.alterDataType(draftCode, field.getName(), oldType, newType);
 
         } catch (PersistenceException pe) {
             throw new CodifiedException(INCOMPATIBLE_NEW_DATA_TYPE_EXCEPTION_CODE, pe, field.getName());
-
-        } finally {
-            dataDao.createTriggers(draftCode, fieldNames);
         }
+
+        final List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
+        dataDao.createTriggers(draftCode, fieldNames);
 
         updateHashRows(draftCode, fieldNames);
         dataDao.updateFtsRows(draftCode, fieldNames);
@@ -310,21 +305,16 @@ public class DraftDataServiceImpl implements DraftDataService {
         if (!escapedFieldNames.contains(escapeFieldName(fieldName)))
             throw new CodifiedException(COLUMN_NOT_EXISTS);
 
-        List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
         dataDao.dropTriggers(draftCode);
-        try {
-            dataDao.deleteColumn(draftCode, fieldName);
-            dataDao.deleteEmptyRows(draftCode);
 
-            fieldNames = dataDao.getHashUsedFieldNames(draftCode);
+        dataDao.deleteColumn(draftCode, fieldName);
+        dataDao.deleteEmptyRows(draftCode);
 
-        } finally {
-            if (!fieldNames.isEmpty()) {
-                dataDao.createTriggers(draftCode, fieldNames);
-            }
-        }
+        List<String> fieldNames = dataDao.getHashUsedFieldNames(draftCode);
 
         if (!fieldNames.isEmpty()) {
+            dataDao.createTriggers(draftCode, fieldNames);
+
             updateHashRows(draftCode, fieldNames);
             dataDao.updateFtsRows(draftCode, fieldNames);
         }
