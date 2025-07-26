@@ -70,7 +70,7 @@
         <jakarta-servlet.version>6.1.0</jakarta-servlet.version>
         <jakarta-transaction.version>2.0.1</jakarta-transaction.version>
 
-        <commons.text.version>1.13.1</commons.text.version>
+        <commons.text.version>1.14.0</commons.text.version>
         <common-exception-handling.version>1.1</common-exception-handling.version>
 
         <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
