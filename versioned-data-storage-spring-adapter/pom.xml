@@ -14,7 +14,7 @@
     <properties>
 
         <!-- from spring-boot-dependencies \ .. \ spring-boot in n2o-boot-platform-parent -->
-        <spring-context.version>6.1.14</spring-context.version>
+        <spring-context.version>6.2.10</spring-context.version>
     </properties>
 
     <dependencies>
