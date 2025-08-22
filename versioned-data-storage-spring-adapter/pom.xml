@@ -12,9 +12,6 @@
     <packaging>jar</packaging>
 
     <properties>
-
-        <!-- from spring-boot-dependencies \ .. \ spring-boot in n2o-boot-platform-parent -->
-        <spring-context.version>6.1.14</spring-context.version>
     </properties>
 
     <dependencies>
@@ -33,7 +30,7 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
-            <version>${spring-context.version}</version>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>
@@ -109,7 +106,7 @@
             <dependency>
                 <groupId>net.n2oapp.platform</groupId>
                 <artifactId>n2o-boot-platform-parent</artifactId>
-                <version>6.1.2</version>
+                <version>7.0.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
