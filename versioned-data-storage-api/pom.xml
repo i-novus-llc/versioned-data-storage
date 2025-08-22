@@ -11,10 +11,6 @@
     <artifactId>versioned-data-storage-api</artifactId>
     <packaging>jar</packaging>
 
-    <properties>
-        <junit.version>4.12</junit.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>ru.i-novus.components</groupId>

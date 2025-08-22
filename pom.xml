@@ -70,14 +70,20 @@
         <jakarta-servlet.version>6.1.0</jakarta-servlet.version>
         <jakarta-transaction.version>2.0.1</jakarta-transaction.version>
 
-        <commons.text.version>1.13.1</commons.text.version>
+        <!-- from spring-boot-dependencies \ ... \ spring-boot in n2o-boot-platform-parent -->
+        <spring-framework.version>6.2.8</spring-framework.version>
+
+        <commons.text.version>1.14.0</commons.text.version>
         <common-exception-handling.version>1.1</common-exception-handling.version>
+
+        <junit.version>4.13.2</junit.version>
 
         <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
         <maven-javadoc-plugin.version>3.11.2</maven-javadoc-plugin.version>
         <maven.javadoc.failOnError>false</maven.javadoc.failOnError>
         <maven-release-plugin.version>2.5.3</maven-release-plugin.version>
         <maven-deploy-plugin.version>3.1.4</maven-deploy-plugin.version>
+
         <maven-gpg-plugin.version>3.2.7</maven-gpg-plugin.version>
         <central-publishing-maven-plugin.version>0.7.0</central-publishing-maven-plugin.version>
     </properties>
@@ -125,9 +131,22 @@
             </dependency>
 
             <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-context</artifactId>
+                <version>${spring-framework.version}</version>
+                <scope>compile</scope>
+            </dependency>
+
+            <dependency>
                 <groupId>ru.i-novus.components</groupId>
                 <artifactId>common-exception-handling</artifactId>
                 <version>${common-exception-handling.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.springframework</groupId>
+                        <artifactId>spring-context</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
