@@ -9,6 +9,7 @@
     </parent>
 
     <artifactId>versioned-data-storage-ee-adapter</artifactId>
+    <name>versioned-data-storage-ee-adapter</name>
     <packaging>jar</packaging>
 
     <properties>

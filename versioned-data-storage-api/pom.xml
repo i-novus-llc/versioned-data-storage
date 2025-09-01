@@ -9,6 +9,7 @@
     </parent>
 
     <artifactId>versioned-data-storage-api</artifactId>
+    <name>versioned-data-storage-api</name>
     <packaging>jar</packaging>
 
     <dependencies>

@@ -9,6 +9,7 @@
     </parent>
 
     <artifactId>versioned-data-storage-spring-adapter</artifactId>
+    <name>versioned-data-storage-spring-adapter</name>
     <packaging>jar</packaging>
 
     <properties>
