@@ -9,6 +9,7 @@
     </parent>
 
     <artifactId>versioned-data-storage-pg-impl</artifactId>
+    <name>versioned-data-storage-pg-impl</name>
     <packaging>jar</packaging>
 
     <dependencies>
