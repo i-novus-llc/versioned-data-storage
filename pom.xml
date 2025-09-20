@@ -71,7 +71,7 @@
         <jakarta-transaction.version>2.0.1</jakarta-transaction.version>
 
         <!-- from spring-boot-dependencies \ ... \ spring-boot in n2o-boot-platform-parent -->
-        <spring-framework.version>6.2.8</spring-framework.version>
+        <spring-framework.version>6.2.11</spring-framework.version>
 
         <commons.text.version>1.14.0</commons.text.version>
         <common-exception-handling.version>1.1</common-exception-handling.version>
